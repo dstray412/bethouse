@@ -64,7 +64,7 @@ header{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:1
 .vs{font-size:12.5px;color:var(--muted)}
 .vs b{color:var(--text);font-weight:600}
 
-.row{display:grid;grid-template-columns:32px 1fr 78px 20px;gap:12px;align-items:center;
+.row{display:grid;grid-template-columns:32px 1fr 78px 30px 20px;gap:10px;align-items:center;
   width:100%;text-align:left;font:inherit;color:inherit;background:none;border:0;
   padding:8px 15px;cursor:pointer;border-top:1px solid rgba(255,255,255,.045)}
 .row:hover{background:rgba(255,255,255,.028)}
@@ -77,6 +77,26 @@ header{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:1
 .verdict{font-size:11px;font-family:var(--display);font-weight:600;letter-spacing:.06em;text-align:right}
 .v-ok{color:var(--good)} .v-thin{color:var(--warn)} .v-no{color:var(--muted)}
 .caret{color:var(--muted);text-align:center;transition:transform .16s}
+.addleg{font:inherit;font-size:16px;line-height:1;color:var(--muted);background:var(--panel2);
+  border:1px solid var(--line);border-radius:8px;width:28px;height:28px;cursor:pointer;padding:0}
+.addleg:hover{color:var(--text);border-color:var(--accent)}
+.addleg[aria-pressed=true]{color:#0a0d14;background:linear-gradient(180deg,#7fe9ff,var(--accent));border-color:transparent;font-weight:700}
+.slip{border:1px solid rgba(56,225,255,.3);background:rgba(56,225,255,.06);border-radius:14px;
+  padding:14px 16px;margin-bottom:16px}
+.slip h3{font-family:var(--display);font-size:11.5px;font-weight:700;letter-spacing:.18em;
+  text-transform:uppercase;color:var(--accent);margin:0 0 10px}
+.leg{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:5px 0;
+  border-top:1px solid rgba(255,255,255,.06);font-size:14px}
+.leg:first-of-type{border-top:0}
+.leg .lp{font-variant-numeric:tabular-nums;color:var(--muted);font-size:13px}
+.leg button{font:inherit;color:var(--muted);background:none;border:0;cursor:pointer;font-size:15px;padding:0 2px}
+.leg button:hover{color:var(--bad)}
+.slipsum{display:flex;gap:20px;flex-wrap:wrap;align-items:baseline;margin-top:12px;padding-top:11px;
+  border-top:1px solid rgba(255,255,255,.12)}
+.slipsum .big{font-family:var(--display);font-size:26px;font-weight:700;font-variant-numeric:tabular-nums}
+.slipsum .lbl{font-size:12px;color:var(--muted);display:block}
+.slipwarn{margin-top:11px;font-size:13px;line-height:1.6}
+.slipwarn.severe{color:var(--bad)} .slipwarn.moderate{color:var(--warn)} .slipwarn.none{color:var(--muted)}
 .row[aria-expanded=true] .caret{transform:rotate(90deg)}
 .why{padding:2px 15px 16px;background:rgba(0,0,0,.16);border-top:1px solid var(--line);font-size:13px;color:var(--muted);line-height:1.75}
 .why b{color:var(--text);font-variant-numeric:tabular-nums}
@@ -125,12 +145,14 @@ footer{margin-top:22px;color:var(--muted);font-size:12px;line-height:1.7}
   </div>
 </div>
 
+<div id="slip"></div>
 <div class="summary" id="summary"></div>
 <div id="board"></div>
 
 <footer id="footer"></footer>
 </div>
 
+<script src="edge.js"></script>
 <script src="score.js"></script>
 <script src="mlb-data.js"></script>
 <!-- Written by track.mjs. Absent until a day has been graded. -->
@@ -139,6 +161,7 @@ footer{margin-top:22px;color:var(--muted);font-size:12px;line-height:1.7}
 (function(){
 "use strict";
 var S = window.BetHouseScore;
+var E = window.BetHouseEdge;
 var D = window.BETHOUSE_MLB;
 
 if (!D) {
@@ -163,7 +186,9 @@ var state = {
   minProb: 0,
   lineups: 'all',
   perTeam: 3,
-  tbThreshold: 2
+  tbThreshold: 2,
+  slip: [],
+  slipPrice: null
 };
 
 var VIEWS = [ {id:'hrr', label:'1+ H / R / RBI'}, {id:'tb', label:'Total bases'}, {id:'hr', label:'Home run'} ];
@@ -191,6 +216,86 @@ function seg(host,items,cur,pick){
 }
 
 /* ---------------- scoring ---------------- */
+function expectedFull(r){ return S.expectedPA(r.slot).toFixed(2); }
+function propKey(){ return state.view==='tb' ? ('tb'+state.tbThreshold) : state.view; }
+function propLabel(){
+  return state.view==='hrr' ? '1+ H/R/RBI'
+       : state.view==='hr'  ? '1+ home run'
+       : (state.tbThreshold+'+ total bases');
+}
+
+function renderSlip(){
+  var host=document.getElementById('slip');
+  host.innerHTML='';
+  if(!state.slip.length) return;
+  var box=el('div','slip');
+  box.appendChild(el('h3',null,'Parlay slip \u2014 '+state.slip.length+' leg'+(state.slip.length===1?'':'s')));
+
+  state.slip.forEach(function(l){
+    var row=el('div','leg');
+    var left=el('div');
+    left.appendChild(document.createTextNode(l.name));
+    left.appendChild(el('span','lp',' '+l.team+' \u00b7 '+l.propLabel));
+    row.appendChild(left);
+    var right=el('div');
+    right.appendChild(el('span','lp', pct(l.prob,0)+'  '));
+    var x=el('button',null,'\u2715'); x.type='button';
+    x.setAttribute('aria-label','Remove '+l.name);
+    x.addEventListener('click',function(){
+      state.slip = state.slip.filter(function(y){return y.key!==l.key;}); render();
+    });
+    right.appendChild(x); row.appendChild(right); box.appendChild(row);
+  });
+
+  var c = S.combineLegs(state.slip);
+  if(c){
+    var sum=el('div','slipsum');
+    var stat=function(node,label){ var d=el('div'); d.appendChild(node); d.appendChild(el('span','lbl',label)); sum.appendChild(d); };
+    stat(el('span','big', pct(c.prob, c.prob<0.1?2:1)), 'combined chance');
+    stat(el('span','big', E.formatAmerican(E.probToAmerican(c.prob))), 'fair price');
+
+    var inp=el('input'); inp.type='number'; inp.step='10'; inp.placeholder='offered';
+    inp.setAttribute('aria-label','Parlay price you are offered');
+    inp.style.cssText='font:inherit;font-size:20px;font-weight:700;width:112px;background:var(--panel2);'+
+      'border:1px solid var(--line);border-radius:9px;padding:3px 8px;color:var(--text);font-variant-numeric:tabular-nums';
+    if(state.slipPrice!=null) inp.value=state.slipPrice;
+    inp.addEventListener('input',function(e){
+      var v=parseFloat(e.target.value); state.slipPrice = isFinite(v)?v:null; renderSlip();
+    });
+    stat(inp,'price you are offered');
+
+    if(state.slipPrice!=null && isFinite(state.slipPrice) && state.slipPrice!==0){
+      var ev=E.evPct(c.prob, E.americanToDecimal(state.slipPrice));
+      var span=el('span','big', E.formatPct(ev));
+      span.style.color = ev>0.02 ? 'var(--good)' : ev>=0 ? 'var(--warn)' : 'var(--bad)';
+      stat(span,'edge at that price');
+    }
+    box.appendChild(sum);
+
+    var w=el('div','slipwarn '+c.correlation);
+    if(c.correlation==='severe'){
+      w.innerHTML='<b>These legs are nearly the same bet.</b> You have the same player on more than one prop. '+
+        'If he has a quiet night they all die together, so multiplying them is not an approximation, it is wrong. '+
+        'Treat this number as meaningless.';
+    } else if(c.correlation==='moderate'){
+      w.innerHTML='<b>Some legs share a game.</b> Real games are correlated: a slugfest lifts everyone in it, '+
+        'a shutout buries them, so the true chance is somewhat higher than this. That is not free money \u2014 '+
+        'books price same-game parlays with an adjustment that usually takes back more than the correlation is '+
+        'worth. How much more has not been measured here.';
+    } else {
+      w.innerHTML='All '+c.legs+' legs are from different games, so multiplying them is a reasonable assumption. '+
+        'Everything here has been validated on single legs only, never on joint outcomes.';
+    }
+    box.appendChild(w);
+
+    var clr=el('button',null,'Clear slip'); clr.type='button';
+    clr.style.cssText='font:inherit;font-size:12.5px;color:var(--muted);background:none;border:0;cursor:pointer;margin-top:10px;padding:0';
+    clr.addEventListener('click',function(){ state.slip=[]; state.slipPrice=null; render(); });
+    box.appendChild(clr);
+  }
+  host.appendChild(box);
+}
+
 function ctxFor(game, side){
   var s=game[side], faces=game[side+'Faces'], L=D.league;
   return {
@@ -344,6 +449,8 @@ function render(){
     note.innerHTML += ' <b>'+liveN+' game'+(liveN===1?' is':'s are')+' underway</b> \u2014 those numbers count only the plate appearances a hitter has left.';
   }
 
+  renderSlip();
+
   var games=(D.games||[]).filter(function(g){
     if(state.lineups==='posted') return g.away.confirmed||g.home.confirmed;
     return true;
@@ -401,7 +508,9 @@ function render(){
         if(!best||r.prob>best.prob) best=r;
         var key=g.gamePk+'|'+side+'|'+r.player.id;
         var open=state.open===key;
-        var row=el('button','row'); row.type='button'; row.setAttribute('aria-expanded',String(open));
+        var row=el('div','row');
+        row.setAttribute('role','button'); row.tabIndex=0;
+        row.setAttribute('aria-expanded',String(open));
 
         row.appendChild(el('div','slot','#'+r.slot));
         var who=el('div','who'); who.appendChild(document.createTextNode(r.name));
@@ -414,9 +523,34 @@ function render(){
         } else {
           row.appendChild(el('div','prob', pct(r.prob, 0)));
         }
+
+        var legKey = g.gamePk+'|'+r.player.id+'|'+propKey();
+        var inSlip = state.slip.some(function(x){return x.key===legKey;});
+        var add=el('button','addleg', inSlip?'\u2713':'+');
+        add.type='button';
+        add.setAttribute('aria-pressed', String(inSlip));
+        add.setAttribute('aria-label', (inSlip?'Remove ':'Add ')+r.name+' to parlay slip');
+        if(r.settled) { add.disabled=true; add.style.opacity=.3; add.title='Already decided'; }
+        add.addEventListener('click', function(ev){
+          ev.stopPropagation();
+          if(r.settled) return;
+          if(inSlip) state.slip = state.slip.filter(function(x){return x.key!==legKey;});
+          else state.slip.push({
+            key: legKey, gamePk: g.gamePk, playerId: r.player.id,
+            name: r.name, team: g[side].abbrev || g[side].team,
+            prop: propKey(), propLabel: propLabel(), prob: r.prob
+          });
+          render();
+        });
+        row.appendChild(add);
+
         row.appendChild(el('div','caret','›'));
 
-        row.addEventListener('click',function(){ state.open = open?null:key; render(); });
+        var toggle=function(){ state.open = open?null:key; render(); };
+        row.addEventListener('click', toggle);
+        row.addEventListener('keydown', function(ev){
+          if(ev.key==='Enter'||ev.key===' '){ ev.preventDefault(); toggle(); }
+        });
         card.appendChild(row);
         if(open) card.appendChild(buildWhy(r,g,side));
       });

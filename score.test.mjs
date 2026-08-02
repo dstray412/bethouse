@@ -527,3 +527,79 @@ test("a home run already hit settles the home run bet", () => {
   assert.equal(s.settled, true);
   assert.equal(s.prob, 1);
 });
+
+/* ---------------------------------------------------------------- *
+ * Parlays
+ * ---------------------------------------------------------------- */
+
+test("legs multiply", () => {
+  const c = score.combineLegs([
+    { prob: 0.5, playerId: 1, gamePk: 10 },
+    { prob: 0.4, playerId: 2, gamePk: 11 },
+  ]);
+  close(c.prob, 0.2, 1e-12);
+  assert.equal(c.legs, 2);
+});
+
+test("legs from different games are treated as independent", () => {
+  const c = score.combineLegs([
+    { prob: 0.6, playerId: 1, gamePk: 10 },
+    { prob: 0.6, playerId: 2, gamePk: 11 },
+    { prob: 0.6, playerId: 3, gamePk: 12 },
+  ]);
+  assert.equal(c.correlation, "none");
+  assert.equal(c.independent, true);
+  assert.equal(c.distinctGames, 3);
+});
+
+test("two hitters in the same game are flagged as correlated", () => {
+  const c = score.combineLegs([
+    { prob: 0.6, playerId: 1, gamePk: 10 },
+    { prob: 0.6, playerId: 2, gamePk: 10 },
+  ]);
+  assert.equal(c.correlation, "moderate");
+  assert.equal(c.independent, false);
+  assert.equal(c.sameGameGroups, 1);
+});
+
+test("the same player twice is the severe case", () => {
+  // "1+ hit/run/RBI" and "2+ total bases" on one hitter are nearly the same
+  // bet. Independence here is not an approximation, it is wrong.
+  const c = score.combineLegs([
+    { prob: 0.7, playerId: 1, gamePk: 10, prop: "hrr" },
+    { prob: 0.44, playerId: 1, gamePk: 10, prop: "tb2" },
+  ]);
+  assert.equal(c.correlation, "severe");
+  assert.equal(c.duplicatePlayers, 1);
+  assert.equal(c.independent, false);
+});
+
+test("severe outranks moderate when both are present", () => {
+  const c = score.combineLegs([
+    { prob: 0.7, playerId: 1, gamePk: 10 },
+    { prob: 0.4, playerId: 1, gamePk: 10 },
+    { prob: 0.5, playerId: 2, gamePk: 11 },
+  ]);
+  assert.equal(c.correlation, "severe");
+});
+
+test("a parlay of impossible or missing legs is refused", () => {
+  assert.equal(score.combineLegs([]), null);
+  assert.equal(score.combineLegs(null), null);
+  assert.equal(score.combineLegs([{ prob: 0, playerId: 1, gamePk: 1 }]), null);
+  assert.equal(score.combineLegs([{ prob: NaN, playerId: 1, gamePk: 1 }]), null);
+});
+
+test("more legs always means a smaller number", () => {
+  // The whole reason parlays are hard. Four coin-flip-ish legs at 60% is
+  // already under 13%.
+  let prev = 1;
+  const legs = [];
+  for (let i = 1; i <= 5; i++) {
+    legs.push({ prob: 0.6, playerId: i, gamePk: i });
+    const c = score.combineLegs(legs);
+    assert.ok(c.prob < prev);
+    prev = c.prob;
+  }
+  close(prev, Math.pow(0.6, 5), 1e-12);
+});

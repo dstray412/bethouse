@@ -30,7 +30,7 @@ means 72% — including the part where 72% loses more than a quarter of the time
 
 ```sh
 node fetch-mlb.mjs      # builds mlb-data.js for today
-node --test edge.test.mjs score.test.mjs   # 87 tests
+node --test edge.test.mjs score.test.mjs   # 94 tests
 node backtest.mjs --prop tb2               # validate total bases
 node backtest.mjs       # measures whether the model actually works
 ```
@@ -357,6 +357,51 @@ only moves forward.
 Each graded day lands in `history/YYYY-MM-DD.json`, and `record.js` carries
 the summary the board displays. Expect it to say nothing useful for a while:
 bias only means something once the sample is in the thousands.
+
+---
+
+## The parlay checker
+
+Tap the **+** on any row to add it to a slip. The slip shows the combined
+chance, the price that would be fair, and, if you type in the price you are
+being offered, your edge at that price.
+
+It deliberately does **not** recommend parlays. Nothing here has been
+validated on joint outcomes, only on single legs, so picking combinations for
+you would mean inventing confidence that does not exist.
+
+### What multiplying does and does not tell you
+
+The product of the legs is the easy part. Being clear about what it is not is
+the whole point, so the slip classifies rather than silently swallows:
+
+| legs | correlation | what the slip says |
+|---|---|---|
+| Different games | none | multiplying is a reasonable assumption |
+| Same game, different hitters | moderate | true chance is somewhat higher |
+| Same player, different props | **severe** | the number is meaningless |
+
+**Same player** is the trap worth naming. "1+ hit/run/RBI" and "2+ total
+bases" on one hitter are close to the same bet. If he goes 0-for-4 they die
+together. Independence there is not an approximation, it is wrong.
+
+**Same game** is subtler. A slugfest lifts everyone in it and a shutout buries
+them, so the true joint chance is *higher* than the product. That sounds like
+free money and is not: books price same-game parlays with a correlation
+adjustment that normally takes back more than the correlation is worth. How
+much more has not been measured here, so the slip says so rather than guessing
+at a correction.
+
+`track.mjs` will eventually have the data to measure this properly, since it
+records multiple predictions per game. Until the record fills in, the slip
+reports a number and names its own assumption.
+
+### The arithmetic is unforgiving
+
+Three legs at 63%, 47% and 58% combine to **17.2%**, which needs +481 to break
+even. Four decent legs land under 13%. This is why the honest version of a
+parlay feature is a calculator rather than a recommendation engine: the vig
+compounds faster than any edge the model can find.
 
 ---
 

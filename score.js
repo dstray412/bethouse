@@ -660,6 +660,67 @@
   }
 
   /* ------------------------------------------------------------------ *
+   * Parlays
+   *
+   * Multiplying the legs is the easy part. The honest part is being clear
+   * about what that number is NOT.
+   *
+   * Independence is an assumption, and it is wrong in two specific ways
+   * this classifies rather than silently swallows:
+   *
+   *   SAME PLAYER, different props. Severe. "1+ hit/run/RBI" and "2+ total
+   *     bases" on one hitter are close to the same bet. If he goes 0-for-4
+   *     both die together. The product wildly understates the joint chance
+   *     of BOTH landing and equally understates the chance of both dying.
+   *   SAME GAME, different hitters. Moderate and positive. A slugfest lifts
+   *     everyone in it; a shutout buries them. The true joint probability is
+   *     higher than the product. That sounds like free money and is not:
+   *     books price same-game parlays with a correlation adjustment that
+   *     normally takes back more than the correlation is worth.
+   *   DIFFERENT GAMES. Independence is a reasonable assumption here, so the
+   *     product is roughly right.
+   *
+   * Nothing here estimates the SIZE of the correlation, because nothing has
+   * measured it. track.mjs will have the data to once the record fills in.
+   * Until then this reports a number and names its own assumption rather
+   * than inventing a correction.
+   * ------------------------------------------------------------------ */
+
+  function combineLegs(legs) {
+    if (!Array.isArray(legs) || !legs.length) return null;
+
+    let prob = 1;
+    for (const l of legs) {
+      if (!(l.prob > 0 && l.prob <= 1)) return null;
+      prob *= l.prob;
+    }
+
+    const byPlayer = {}, byGame = {};
+    for (const l of legs) {
+      const pk = String(l.playerId);
+      byPlayer[pk] = (byPlayer[pk] || 0) + 1;
+      const gk = String(l.gamePk);
+      byGame[gk] = (byGame[gk] || 0) + 1;
+    }
+    const dupPlayers = Object.values(byPlayer).filter((n) => n > 1).length;
+    const sameGameGroups = Object.values(byGame).filter((n) => n > 1).length;
+    const distinctGames = Object.keys(byGame).length;
+
+    const severity = dupPlayers > 0 ? "severe" : sameGameGroups > 0 ? "moderate" : "none";
+
+    return {
+      prob: prob,
+      legs: legs.length,
+      distinctGames: distinctGames,
+      duplicatePlayers: dupPlayers,
+      sameGameGroups: sameGameGroups,
+      correlation: severity,
+      // Independence is only defensible when every leg is a different game.
+      independent: severity === "none",
+    };
+  }
+
+  /* ------------------------------------------------------------------ *
    * 6. Presentation
    * ------------------------------------------------------------------ */
 
@@ -713,6 +774,7 @@
     scoreHRR: scoreHRR,
     scoreHR: scoreHR,
     scoreTB: scoreTB,
+    combineLegs: combineLegs,
     tbRates: tbRates,
     tbDistribution: tbDistribution,
     probAtLeastTB: probAtLeastTB,
