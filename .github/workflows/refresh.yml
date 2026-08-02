@@ -1,0 +1,61 @@
+name: Refresh board
+
+# Lineups post roughly 3-4 hours before first pitch and keep landing all
+# afternoon, so refresh often through the US game window. Times are UTC:
+# 14:00 UTC is 7am Pacific, 03:00 UTC is 8pm Pacific.
+#
+# This is free. statsapi.mlb.com needs no key, and a public repo gets
+# unlimited Actions minutes, so there is no budget to manage here.
+on:
+  schedule:
+    - cron: "*/30 14-23 * * *"
+    - cron: "*/30 0-3 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Fetch today's slate
+        run: node fetch-mlb.mjs
+
+      - name: Sanity check before committing
+        # Never publish a broken board. If the fetch produced something the
+        # app cannot read, fail here rather than commit it.
+        run: |
+          node -e '
+            global.window = {};
+            require("./mlb-data.js");
+            const d = window.BETHOUSE_MLB;
+            if (!d || !Array.isArray(d.games)) throw new Error("no games array");
+            if (!d.league || !d.league.rates) throw new Error("no league rates");
+            const slots = d.games.reduce((n,g)=>n+g.away.lineup.length+g.home.lineup.length,0);
+            if (d.games.length && slots < d.games.length * 9) throw new Error("lineups look truncated: " + slots);
+            console.log("ok:", d.games.length, "games,", slots, "lineup slots");
+          '
+          node --test
+
+      - name: Commit if the board changed
+        run: |
+          git config user.name  "bethouse-bot"
+          git config user.email "bethouse-bot@users.noreply.github.com"
+          git add mlb-data.js
+          if git diff --staged --quiet; then
+            echo "No change."
+          else
+            git commit -m "board: $(date -u +%Y-%m-%dT%H:%MZ)"
+            git push
+          fi

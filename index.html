@@ -1,0 +1,400 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>BetHouse — today's board</title>
+<link rel="stylesheet" href="fonts/space-grotesk.css">
+<style>
+:root{
+  --bg:#12161f; --panel:rgba(255,255,255,0.04); --panel2:rgba(255,255,255,0.025);
+  --line:rgba(255,255,255,0.09); --text:#eef1f7; --muted:#a6b0c4;
+  --accent:#38e1ff; --accent2:#7c5cff; --warn:#e0a33f; --bad:#d8434f; --good:#5fce8f;
+  --display:'Space Grotesk',ui-sans-serif,system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font:15px/1.5 ui-sans-serif,system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased;min-height:100vh}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(900px 520px at 88% -8%,rgba(124,92,255,.16),transparent 60%),
+             radial-gradient(760px 480px at 4% 104%,rgba(56,225,255,.11),transparent 60%)}
+.wrap{position:relative;z-index:1;max-width:1080px;margin:0 auto;padding:22px 18px 60px}
+
+header{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:16px}
+.brand{flex:1 1 auto;min-width:200px}
+.logo{font-family:var(--display);font-size:22px;font-weight:700;letter-spacing:.14em;
+  background:linear-gradient(96deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent;margin:0}
+.tagline{font-family:var(--display);font-size:11px;font-weight:600;letter-spacing:.17em;text-transform:uppercase;color:var(--muted);margin-top:5px}
+
+.note{border:1px solid rgba(56,225,255,.26);background:rgba(56,225,255,.07);border-radius:13px;padding:13px 15px;margin-bottom:16px;font-size:14px;line-height:1.6}
+.note b{color:var(--accent)}
+.note .hot{color:var(--warn)}
+
+.controls{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-end;background:var(--panel);
+  border:1px solid var(--line);border-radius:13px;padding:12px 14px;margin-bottom:14px}
+.ctl{display:flex;flex-direction:column;gap:6px}
+.ctl>label{font-family:var(--display);font-size:10px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.seg{display:flex;gap:4px}
+.seg button{font:inherit;font-size:13px;color:var(--muted);background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:6px 11px;cursor:pointer}
+.seg button:hover{color:var(--text)}
+.seg button[aria-pressed=true]{color:#0a0d14;background:linear-gradient(180deg,#7fe9ff,var(--accent));border-color:transparent;font-weight:600}
+.priceinp{display:flex;align-items:center;gap:6px;background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:6px 10px}
+.priceinp input{font:inherit;font-size:14px;color:var(--text);background:transparent;border:0;width:64px;font-variant-numeric:tabular-nums}
+.priceinp input:focus{outline:none}
+.summary{display:flex;gap:22px;flex-wrap:wrap;margin:0 2px 14px;font-size:13px;color:var(--muted)}
+.summary b{color:var(--text);font-variant-numeric:tabular-nums}
+
+.game{border:1px solid var(--line);border-radius:15px;background:var(--panel2);margin-bottom:14px;overflow:hidden}
+.ghead{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;
+  padding:12px 15px;background:rgba(255,255,255,.03);border-bottom:1px solid var(--line)}
+.gtitle{font-family:var(--display);font-size:16px;font-weight:700}
+.gmeta{font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.side{padding:4px 0 10px}
+.shead{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;padding:10px 15px 6px}
+.sname{font-family:var(--display);font-size:12.5px;font-weight:600;letter-spacing:.05em}
+.chip{display:inline-block;font-family:var(--display);font-size:9.5px;font-weight:700;letter-spacing:.09em;
+  padding:2px 7px;border-radius:999px;border:1px solid var(--line);color:var(--muted);margin-left:7px;vertical-align:1px}
+.chip.live{color:var(--good);border-color:rgba(95,206,143,.4)}
+.chip.proj{color:var(--warn);border-color:rgba(224,163,63,.4)}
+.vs{font-size:12.5px;color:var(--muted)}
+.vs b{color:var(--text);font-weight:600}
+
+.row{display:grid;grid-template-columns:30px 1fr 72px 78px 62px 22px;gap:10px;align-items:center;
+  width:100%;text-align:left;font:inherit;color:inherit;background:none;border:0;
+  padding:8px 15px;cursor:pointer;border-top:1px solid rgba(255,255,255,.045)}
+.row:hover{background:rgba(255,255,255,.028)}
+.slot{font-family:var(--display);font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+.who{font-weight:600;font-size:14.5px}
+.pos{color:var(--muted);font-weight:400;font-size:12px;margin-left:5px}
+.prob{font-weight:700;font-size:15px;font-variant-numeric:tabular-nums;text-align:right}
+.be{font-variant-numeric:tabular-nums;text-align:right;font-size:14px}
+.be small{display:block;color:var(--muted);font-size:11px}
+.verdict{font-size:11px;font-family:var(--display);font-weight:600;letter-spacing:.06em;text-align:right}
+.v-ok{color:var(--good)} .v-thin{color:var(--warn)} .v-no{color:var(--muted)}
+.caret{color:var(--muted);text-align:center;transition:transform .16s}
+.row[aria-expanded=true] .caret{transform:rotate(90deg)}
+.why{padding:2px 15px 16px;background:rgba(0,0,0,.16);border-top:1px solid var(--line);font-size:13px;color:var(--muted);line-height:1.75}
+.why b{color:var(--text);font-variant-numeric:tabular-nums}
+.flag{color:var(--warn)}
+.empty{padding:44px 20px;text-align:center;color:var(--muted)}
+.empty .big{font-family:var(--display);font-size:18px;font-weight:600;color:var(--text);margin-bottom:7px}
+footer{margin-top:22px;color:var(--muted);font-size:12px;line-height:1.7}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+
+@media (max-width:760px){
+  .wrap{padding:14px 11px 40px}
+  .row{grid-template-columns:26px 1fr 66px 70px;gap:8px;row-gap:2px}
+  .verdict{grid-column:3/5;text-align:right;margin-top:-2px}
+  .caret{display:none}
+}
+@media (pointer:coarse){ .seg button{min-height:42px} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="brand">
+    <h1 class="logo">BETHOUSE</h1>
+    <div class="tagline" id="tagline">Today's board</div>
+  </div>
+  <div class="ctl">
+    <label id="lab-view">Bet type</label>
+    <div class="seg" id="view" role="group" aria-labelledby="lab-view"></div>
+  </div>
+</header>
+
+<div class="note" id="note"></div>
+
+<div class="controls">
+  <div class="ctl">
+    <label for="price">Price you're offered</label>
+    <div class="priceinp"><input id="price" type="number" step="5" value="-300"></div>
+  </div>
+  <div class="ctl">
+    <label id="lab-show">Show</label>
+    <div class="seg" id="show" role="group" aria-labelledby="lab-show"></div>
+  </div>
+  <div class="ctl">
+    <label id="lab-lu">Lineups</label>
+    <div class="seg" id="lu" role="group" aria-labelledby="lab-lu"></div>
+  </div>
+  <div class="ctl">
+    <label id="lab-top">Per team</label>
+    <div class="seg" id="top" role="group" aria-labelledby="lab-top"></div>
+  </div>
+</div>
+
+<div class="summary" id="summary"></div>
+<div id="board"></div>
+
+<footer id="footer"></footer>
+</div>
+
+<script src="score.js"></script>
+<script src="mlb-data.js"></script>
+<script>
+(function(){
+"use strict";
+var S = window.BetHouseScore;
+var D = window.BETHOUSE_MLB;
+
+if (!D) {
+  document.getElementById('board').innerHTML =
+    '<div class="empty"><div class="big">No data loaded</div>' +
+    '<div>Run <code>node fetch-mlb.mjs</code> to build today\'s board.</div></div>';
+  return;
+}
+
+/* ---- calibration facts from backtest.mjs, shown so the numbers can be judged ---- */
+var CAL = {
+  k: S.DEFAULT_K,
+  window: "Jul 12-25, out of sample",
+  n: 2466,
+  bias: 0.0001,
+  baseRate: 0.670,
+  ceiling: 0.755    // best slice the model has ever produced
+};
+
+var state = {
+  view: 'hrr',
+  minProb: 0,
+  lineups: 'all',
+  price: -300,
+  perTeam: 3
+};
+
+var VIEWS = [ {id:'hrr', label:'1+ H / R / RBI'}, {id:'hr', label:'Home run'} ];
+var SHOW  = [ {id:0,label:'All'}, {id:0.70,label:'70%+'}, {id:0.73,label:'73%+'} ];
+var LU    = [ {id:'all',label:'All games'}, {id:'posted',label:'Lineup posted'} ];
+var TOP   = [ {id:2,label:'Top 2'}, {id:3,label:'Top 3'}, {id:5,label:'Top 5'}, {id:99,label:'All'} ];
+
+/* ---------------- helpers ---------------- */
+function el(t,c,x){var n=document.createElement(t); if(c)n.className=c; if(x!=null)n.textContent=x; return n;}
+function pct(x,d){return isFinite(x)?(x*100).toFixed(d==null?1:d)+'%':'—';}
+function amer(a){ if(!isFinite(a))return '—'; a=Math.round(a); return a>0?'+'+a:''+a; }
+function probOf(price){
+  price=Number(price);
+  if(!isFinite(price)||price===0) return NaN;
+  return price>0 ? 100/(price+100) : (-price)/((-price)+100);
+}
+function timeStr(iso){
+  var d=new Date(iso); if(isNaN(d))return '';
+  return d.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'});
+}
+function seg(host,items,cur,pick){
+  host.innerHTML='';
+  items.forEach(function(it){
+    var b=el('button',null,it.label); b.type='button';
+    b.setAttribute('aria-pressed', String(it.id===cur));
+    b.addEventListener('click',function(){pick(it.id);});
+    host.appendChild(b);
+  });
+}
+
+/* ---------------- scoring ---------------- */
+function ctxFor(game, side){
+  var s=game[side], faces=game[side+'Faces'], L=D.league;
+  return {
+    leagueRates: L.rates,
+    oppAvgAllowed: faces && faces.avgAllowed,
+    leagueAvgAllowed: L.avgAllowed,
+    teamRunsPerGame: s.runsPerGame,
+    leagueRunsPerGame: L.runsPerGame,
+    pitcherHr9: faces && faces.hr9,
+    leagueHr9: L.hr9
+  };
+}
+
+function scoreSide(game, side){
+  var s=game[side], ctx=ctxFor(game,side);
+  var out=[];
+  s.lineup.forEach(function(p){
+    var r = state.view==='hr' ? S.scoreHR(p,ctx) : S.scoreHRR(p,ctx);
+    if(!r) return;
+    r.player=p; r.confidence=S.sampleConfidence(p.pa);
+    out.push(r);
+  });
+  return S.rank(out);
+}
+
+/* ---------------- render ---------------- */
+function verdictFor(prob){
+  var need = probOf(state.price);
+  if(!isFinite(need)||!isFinite(prob)) return null;
+  var edge = prob - need;
+  if(edge >= 0.02)  return {cls:'v-ok',   text:'+'+(edge*100).toFixed(1)+'pp'};
+  if(edge >= 0)     return {cls:'v-thin', text:'thin'};
+  return {cls:'v-no', text:(edge*100).toFixed(1)+'pp'};
+}
+
+function buildWhy(r, game, side){
+  var faces=game[side+'Faces'];
+  var w=el('div','why');
+  function line(html){var d=el('div'); d.innerHTML=html; w.appendChild(d);}
+
+  line('Batting <b>#'+r.slot+'</b> → about <b>'+r.expectedPA.toFixed(2)+'</b> plate appearances.');
+  if(state.view==='hrr'){
+    line('Season: <b>'+r.player.hits+'</b> H, <b>'+r.player.runs+'</b> R, <b>'+r.player.rbi+
+         '</b> RBI in <b>'+r.player.pa+'</b> PA'+(r.player.avg?' (AVG '+r.player.avg+', OBP '+r.player.obp+')':'')+'.');
+    line('Rate used after regression and matchup: <b>'+(r.hitRate*100).toFixed(1)+'%</b> hits per PA'+
+         (Math.abs(r.rawHitRate-r.hitRate)>0.002 ? ' (raw '+(r.rawHitRate*100).toFixed(1)+'%)' : '')+'.');
+  } else {
+    line('Season: <b>'+r.player.hr+'</b> HR in <b>'+r.player.pa+'</b> PA → <b>'+(r.hrRate*100).toFixed(2)+'%</b> per PA after regression.');
+  }
+  if(faces) line('Facing <b>'+faces.name+'</b>'+(faces.era?' — '+faces.era+' ERA':'')+
+    (faces.avgAllowed?', '+faces.avgAllowed.toFixed(3)+' opp AVG':'')+
+    ' → matchup factor <b>'+(r.pitcherFactor||1).toFixed(3)+'</b>.');
+  if(state.view==='hrr' && r.offenseFactor)
+    line('Lineup around him: <b>'+(game[side].runsPerGame||0).toFixed(2)+'</b> R/G → factor <b>'+r.offenseFactor.toFixed(3)+'</b>.');
+
+  line('Model: <b>'+pct(r.prob)+'</b> → fair price <b>'+amer(S.fairPrice(r.prob))+'</b>. '+
+       'You are offered <b>'+amer(state.price)+'</b>, which needs <b>'+pct(probOf(state.price))+'</b>.');
+
+  if(r.confidence < 0.65){
+    line('<span class="flag">Small sample.</span> Only <b>'+r.player.pa+'</b> PA, so this estimate is mostly the league average, not this hitter.');
+  }
+  if(!game[side].confirmed){
+    line('<span class="flag">Lineup not posted.</span> Slot projected from '+(game[side].projectedFrom||'a recent game')+'. If he moves or sits, this is wrong.');
+  }
+  if(state.view==='hrr'){
+    line('<span style="color:var(--muted)">Reality check: across '+CAL.n+' hitter-games the very best slice of this model cashed '+
+         pct(CAL.ceiling)+'. Nothing here is an 85% bet.</span>');
+  }
+  return w;
+}
+
+function render(){
+  seg(document.getElementById('view'), VIEWS, state.view, function(v){state.view=v; state.open=null; render();});
+  seg(document.getElementById('show'), SHOW, state.minProb, function(v){state.minProb=v; render();});
+  seg(document.getElementById('lu'), LU, state.lineups, function(v){state.lineups=v; render();});
+  seg(document.getElementById('top'), TOP, state.perTeam, function(v){state.perTeam=v; render();});
+
+  document.getElementById('tagline').textContent =
+    new Date(D.date+'T12:00:00Z').toLocaleDateString(undefined,{weekday:'long',month:'short',day:'numeric'});
+
+  /* honest header */
+  var note=document.getElementById('note');
+  note.innerHTML='';
+  if(state.view==='hrr'){
+    note.innerHTML =
+      '<b>What the backtest says.</b> Model calibration was checked against <b>'+CAL.n+
+      '</b> real hitter-games it never saw: bias <b>'+(CAL.bias*100).toFixed(2)+'pp</b>. '+
+      'The average starter cashes <b>'+pct(CAL.baseRate)+'</b>; the model\'s best slice ever reached <b>'+pct(CAL.ceiling)+
+      '</b>. At <span class="hot">-300 you need 75.0%</span>, so most of this board is a losing bet at standard juice. '+
+      'The edge is in the price, not the pick.';
+  } else {
+    note.innerHTML =
+      '<b>Home runs are not calibrated yet.</b> The H+R+RBI model was fitted and validated; this one has not been '+
+      'through <code>backtest.mjs</code>. Treat the ordering as a starting point and the percentages as unproven.';
+  }
+
+  var games=(D.games||[]).filter(function(g){
+    if(state.lineups==='posted') return g.away.confirmed||g.home.confirmed;
+    return true;
+  });
+
+  var board=document.getElementById('board');
+  board.innerHTML='';
+  var shown=0, best=null;
+
+  games.forEach(function(g){
+    var card=el('div','game');
+    var head=el('div','ghead');
+    var ttl=el('div','gtitle', g.away.team+' @ '+g.home.team);
+    head.appendChild(ttl);
+    head.appendChild(el('div','gmeta', timeStr(g.startTime)+' · '+(g.venue||'')));
+    card.appendChild(head);
+
+    var any=false;
+    ['away','home'].forEach(function(side){
+      var s=g[side], faces=g[side+'Faces'];
+      var rows=scoreSide(g,side)
+        .filter(function(r){return r.prob>=state.minProb;})
+        .slice(0, state.perTeam);
+      if(!rows.length) return;
+      any=true;
+
+      var sh=el('div','shead');
+      var nm=el('div','sname'); nm.textContent=s.team;
+      var chip=el('span','chip '+(s.confirmed?'live':'proj'), s.confirmed?'LINEUP POSTED':'PROJECTED');
+      nm.appendChild(chip); sh.appendChild(nm);
+      if(faces){
+        var v=el('div','vs'); v.innerHTML='vs <b>'+faces.name+'</b>'+(faces.era?' · '+faces.era+' ERA':'')+
+          (faces.avgAllowed?' · '+faces.avgAllowed.toFixed(3)+' opp AVG':'');
+        sh.appendChild(v);
+      }
+      card.appendChild(sh);
+
+      rows.forEach(function(r){
+        shown++;
+        if(!best||r.prob>best.prob) best=r;
+        var key=g.gamePk+'|'+side+'|'+r.player.id;
+        var open=state.open===key;
+        var row=el('button','row'); row.type='button'; row.setAttribute('aria-expanded',String(open));
+
+        row.appendChild(el('div','slot','#'+r.slot));
+        var who=el('div','who'); who.appendChild(document.createTextNode(r.name));
+        if(r.player.pos) who.appendChild(el('span','pos',r.player.pos));
+        if(r.confidence<0.65) who.appendChild(el('span','chip','THIN'));
+        row.appendChild(who);
+
+        row.appendChild(el('div','prob', pct(r.prob)));
+
+        var be=el('div','be');
+        be.appendChild(document.createTextNode(amer(S.fairPrice(r.prob))));
+        be.appendChild(el('small',null,'fair'));
+        row.appendChild(be);
+
+        var vd=verdictFor(r.prob);
+        row.appendChild(el('div','verdict '+(vd?vd.cls:''), vd?vd.text:''));
+        row.appendChild(el('div','caret','›'));
+
+        row.addEventListener('click',function(){ state.open = open?null:key; render(); });
+        card.appendChild(row);
+        if(open) card.appendChild(buildWhy(r,g,side));
+      });
+    });
+
+    if(any) board.appendChild(card);
+  });
+
+  if(!shown){
+    var e=el('div','empty');
+    e.appendChild(el('div','big','Nothing clears that filter'));
+    e.appendChild(el('div',null,'Lower the threshold, or switch to All games if lineups have not posted yet.'));
+    board.appendChild(e);
+  }
+
+  /* summary */
+  var sum=document.getElementById('summary'); sum.innerHTML='';
+  function stat(v,l){var d=el('div'); d.appendChild(el('b',null,String(v))); d.appendChild(document.createTextNode(' '+l)); sum.appendChild(d);}
+  var posted=(D.games||[]).filter(function(g){return g.away.confirmed&&g.home.confirmed;}).length;
+  stat((D.games||[]).length,'games');
+  stat(posted,'with both lineups posted');
+  stat(shown,'candidates');
+  if(best) stat(pct(best.prob),'best');
+
+  /* footer */
+  var f=document.getElementById('footer'); f.innerHTML='';
+  var when=D.fetchedAt?new Date(D.fetchedAt):null;
+  f.appendChild(el('div',null,'Data from statsapi.mlb.com (no API key). Fetched '+
+    (when&&!isNaN(when)?when.toLocaleString():'unknown')+'. Re-run node fetch-mlb.mjs to refresh.'));
+  f.appendChild(el('div',null,
+    'Model regresses every hitter toward league average by plate appearances, weights lineup slot for expected trips, '+
+    'and adjusts for the opposing starter. Correlation constant fitted on real outcomes, not guessed.'));
+  f.appendChild(el('div',null,
+    'A calibrated probability is not a winning bet. At standard juice most of these are −EV. Bet only what you can afford to lose.'));
+}
+
+document.getElementById('price').addEventListener('input',function(e){
+  var v=parseFloat(e.target.value);
+  state.price = isFinite(v)?v:-300;
+  render();
+});
+
+render();
+})();
+</script>
+</body>
+</html>

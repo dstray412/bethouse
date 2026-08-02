@@ -1,0 +1,13 @@
+# Your API key. Never commit this.
+.env
+
+# Credit ledger + fetched odds — regenerated, and the quota file is
+# specific to your key.
+.odds-quota.json
+odds-data.js
+
+.DS_Store
+.gstack/
+
+# Local agent state, not project code.
+.omc/
