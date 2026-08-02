@@ -141,6 +141,7 @@ should be re-fitted when the run environment shifts.
 | `score.test.mjs` | 43 tests on model shape, clamping, regression, handedness and the total-bases distribution. |
 | `fetch-mlb.mjs` | Five keyless requests to statsapi → `mlb-data.js`. |
 | `backtest.mjs` | Replays real games, measures calibration, fits `k`. |
+| `track.mjs` | Records each day's pregame predictions, grades them once games end, keeps the running record. |
 | `edge.js` | De-vig and EV math for the odds side. 36 tests. |
 | `fetch-odds.mjs` | The Odds API client. Needs a key; not required for the board. |
 
@@ -311,6 +312,51 @@ top-N slots, but they stay visible so you can see how a placed bet is doing.
 One caveat worth knowing: a delayed game may not resume. The board marks the
 delay but cannot tell you whether those remaining plate appearances will ever
 happen.
+
+---
+
+## The running record
+
+`backtest.mjs` answers "does the model work on history." `track.mjs` answers a
+harder question: does the board you actually look at, with the lineups posted
+at the time, keep holding up going forward. That is the one test a model
+cannot quietly pass by having been tuned to the data.
+
+```sh
+node track.mjs snapshot     # record today's pregame predictions
+node track.mjs grade        # grade any recorded day whose games are final
+node track.mjs report       # print the running record
+```
+
+The scheduled job does all three every run, so it accumulates on its own.
+
+### Two rules that keep it honest
+
+**First prediction wins.** Once a player is recorded for a day he is never
+overwritten. Without this the every-30-minutes refresh would keep updating
+him, and by the 7th inning the board would be "predicting" a bet it can
+already half see the answer to. Graded that way the model would look superb
+and prove nothing.
+
+**Pregame only.** Nothing is recorded once a game is underway, and nothing is
+recorded off a projected lineup. A projected lineup is a guess about who is
+even playing; grading it would measure the guess rather than the model.
+
+**Scratches are dropped, not counted.** A player in the lineup at snapshot
+time with no batting line was scratched before first pitch. That is not a
+model miss, so it leaves the sample instead of being scored as a loss.
+
+### No backfilling, on purpose
+
+It would be easy to seed months of history by replaying old dates, and it
+would be worthless. Season stats today include what happened on the day being
+"predicted," so every backfilled number would carry lookahead bias and the
+record would look far better than the model is. The record starts empty and
+only moves forward.
+
+Each graded day lands in `history/YYYY-MM-DD.json`, and `record.js` carries
+the summary the board displays. Expect it to say nothing useful for a while:
+bias only means something once the sample is in the thousands.
 
 ---
 

@@ -51,11 +51,21 @@ jobs:
           # statsapi on every scheduled run.
           node --test edge.test.mjs score.test.mjs
 
+      - name: Record predictions and grade finished games
+        run: |
+          # Snapshot is idempotent and pregame-only: the first prediction for
+          # a player on a given day is kept and never overwritten, so the
+          # every-30-minutes cadence cannot turn a 7th-inning number into a
+          # graded "prediction".
+          node track.mjs snapshot
+          node track.mjs grade
+          node track.mjs report --write-record
+
       - name: Commit if the board changed
         run: |
           git config user.name  "bethouse-bot"
           git config user.email "bethouse-bot@users.noreply.github.com"
-          git add mlb-data.js
+          git add mlb-data.js record.js history/
           if git diff --staged --quiet; then
             echo "No change."
           else
