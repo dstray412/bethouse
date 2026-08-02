@@ -1,6 +1,7 @@
 # BetHouse
 
-Ranks MLB hitters for the **1+ hits / runs / RBI** prop, every game, every day.
+Ranks MLB hitters for three props, every game, every day: **1+ hits/runs/RBI**,
+**total bases** (2+, 3+, 4+), and **home runs**.
 
 Open `index.html`. No build step, no server, no API key.
 
@@ -8,9 +9,8 @@ Open `index.html`. No build step, no server, no API key.
 
 ## What it is
 
-A daily board. For each game it shows the hitters most likely to record at
-least one hit, run or RBI, and the chance that they do. Name, number, nothing
-else.
+A daily board. For each game it shows the hitters most likely to hit the bet,
+and the chance that they do. Name, number, nothing else.
 
 Tap a player for the detail: the fair price, the plate appearances his lineup
 slot buys, how much his rate was regressed, and every adjustment applied.
@@ -30,7 +30,8 @@ means 72% — including the part where 72% loses more than a quarter of the time
 
 ```sh
 node fetch-mlb.mjs      # builds mlb-data.js for today
-node --test edge.test.mjs score.test.mjs   # 77 tests
+node --test edge.test.mjs score.test.mjs   # 79 tests
+node backtest.mjs --prop tb2               # validate total bases
 node backtest.mjs       # measures whether the model actually works
 ```
 
@@ -137,7 +138,7 @@ should be re-fitted when the run environment shifts.
 |---|---|
 | `index.html` | The board. Open it. |
 | `score.js` | The model. Loads in both browser and Node so the app, tests and backtest run identical code. |
-| `score.test.mjs` | 41 tests on model shape, clamping, regression and handedness. |
+| `score.test.mjs` | 43 tests on model shape, clamping, regression, handedness and the total-bases distribution. |
 | `fetch-mlb.mjs` | Five keyless requests to statsapi → `mlb-data.js`. |
 | `backtest.mjs` | Replays real games, measures calibration, fits `k`. |
 | `edge.js` | De-vig and EV math for the odds side. 36 tests. |
@@ -155,6 +156,71 @@ changed and everything passed. Pages serves it, so anyone with the link always
 has a current board.
 
 Keep `.env` and `.odds-quota.json` ignored — those belong to the odds side.
+
+---
+
+## Total bases
+
+Total bases needs a different kind of model. The other two props ask a yes/no
+question about a rate; this one asks *how many*, so you need the distribution
+of what each plate appearance produces and then the distribution of the sum.
+
+Each trip yields 0, 1, 2, 3 or 4 bases. Convolving that across the trips a
+lineup slot buys gives the exact distribution. No normal approximation, no
+fudge factor.
+
+**1+ total bases is not offered, because it is the same bet as 1+ hits** —
+every hit is worth at least one base. The board starts at 2+.
+
+That identity is also a useful tripwire, and it caught a real inconsistency.
+`P(1+ total bases)` computed from the distribution disagreed with
+`P(1+ hit)` computed from the rate, by 0.26pp. The cause: a hitter gets 4
+trips or 5, never 4.54. The distribution model convolves over whole trips by
+construction, while the older code raised to a fractional power. The mixture
+is right and the power form was the approximation, so `mixPow` now handles it
+everywhere and a test asserts the three models agree.
+
+### Out-of-sample results, 2+ total bases
+
+| | |
+|---|---|
+| Base rate | 35.4% |
+| Calibration bias | **+1.10pp** (runs slightly hot) |
+| Brier | 0.2266 |
+| Top 20% cashed | 41.2% |
+| Bottom 20% cashed | 27.4% |
+| Break-even price, top 20% | **+143** |
+
+That last number is the interesting one. The H+R+RBI prop needs -300 and tops
+out at 75.5%, so it is unbeatable at standard juice. 2+ total bases prices
+around +130 to +180, and the model's top slice needs +143. **This is a market
+you can actually reach**, which the other one is not.
+
+The board says it runs a point hot, so shade it down.
+
+## Plate appearances were a guess, and the guess was wrong
+
+`PA_LEADOFF` and `PA_DECAY` started as reasonable-looking numbers I made up:
+4.65 trips for the leadoff hitter, losing 0.105 per slot. The total-bases
+backtest exposed them, because it predicted 1.575 total bases per game against
+an actual 1.432 — a 9% over-prediction.
+
+Measured over 2,465 real starts:
+
+| slot | actual PA | old guess | gap |
+|---|---|---|---|
+| 1 | 4.486 | 4.650 | −0.164 |
+| 5 | 4.000 | 4.230 | −0.230 |
+| 9 | 3.419 | 3.810 | **−0.391** |
+
+Fitted: `PA_LEADOFF = 4.536`, `PA_DECAY = 0.1326`. Both guesses were wrong in
+the same direction and the error compounded down the order. Real starters get
+pinch-hit for, subbed out and caught by short games, so the true curve sits
+below a full-game assumption and falls away faster.
+
+Fixing it cut the total-bases bias from +3.11pp to +1.10pp, and moved the
+fitted correlation constant for H+R+RBI from 0.05 to 0.10 — k had been quietly
+absorbing the plate-appearance error.
 
 ---
 

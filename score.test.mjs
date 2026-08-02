@@ -20,8 +20,9 @@ const close = (a, b, tol = 1e-9) =>
  * ---------------------------------------------------------------- */
 
 test("leadoff gets the most plate appearances, ninth the fewest", () => {
-  close(score.expectedPA(1), 4.65);
-  close(score.expectedPA(9), 4.65 - 0.105 * 8); // 3.81
+  // Values fitted from 2,465 real starts, not assumed.
+  close(score.expectedPA(1), 4.536);
+  close(score.expectedPA(9), 4.536 - 0.1326 * 8); // 3.475
   for (let s = 2; s <= 9; s++) {
     assert.ok(score.expectedPA(s) < score.expectedPA(s - 1));
   }
@@ -59,16 +60,28 @@ test("zero plate appearances cannot produce a rate", () => {
 const PLAYER = { hits: 100, runs: 50, rbi: 50, pa: 400, slot: 1 };
 
 test("correlation 0 reduces to hits only, which is hand-checkable", () => {
-  // 1 - 0.75^4.65
-  const expected = 1 - Math.pow(0.75, 4.65);
+  // A hitter gets 4 trips or 5, never 4.536, so this is a mixture of the
+  // two whole-trip cases weighted by the fraction.
+  const pa = score.expectedPA(1);
+  const frac = pa - 4;
+  const expected = 1 - ((1 - frac) * Math.pow(0.75, 4) + frac * Math.pow(0.75, 5));
   close(score.probAtLeastOne(PLAYER, { correlation: 0 }), expected, 1e-12);
-  close(score.probAtLeastOne(PLAYER, { correlation: 0 }), 0.737563, 1e-5);
+});
+
+test("fractional plate appearances are a mixture, not a fractional power", () => {
+  // The power form is the approximation. Assert the mixture identity, and
+  // assert the two genuinely differ so nobody "simplifies" this back later.
+  close(score.mixPow(0.75, 4.65), 0.35 * Math.pow(0.75, 4) + 0.65 * Math.pow(0.75, 5), 1e-12);
+  assert.ok(Math.abs(score.mixPow(0.75, 4.65) - Math.pow(0.75, 4.65)) > 0.002);
+  close(score.mixPow(0.5, 4.5), 0.5 * Math.pow(0.5, 4) + 0.5 * Math.pow(0.5, 5), 1e-12);
+  // A whole number of trips must reduce to plain exponentiation.
+  close(score.mixPow(0.75, 4), Math.pow(0.75, 4), 1e-12);
 });
 
 test("correlation 1 is full independence and is the most optimistic", () => {
-  const pa = 4.65;
+  const pa = score.expectedPA(1);
   const expected =
-    1 - Math.pow(0.75, pa) * Math.pow(0.875, pa) * Math.pow(0.875, pa);
+    1 - score.mixPow(0.75, pa) * score.mixPow(0.875, pa) * score.mixPow(0.875, pa);
   close(score.probAtLeastOne(PLAYER, { correlation: 1 }), expected, 1e-12);
 });
 
@@ -166,7 +179,7 @@ test("scoreHRR refuses to opine without a slot or a sample", () => {
 test("scoreHRR reports the inputs it used, not just an answer", () => {
   const s = score.scoreHRR(PLAYER, { oppAvgAllowed: 0.28, leagueAvgAllowed: 0.248 });
   assert.equal(s.slot, 1);
-  close(s.expectedPA, 4.65);
+  close(s.expectedPA, 4.536);
   // hitRate is the rate the model ACTUALLY used, after context. The pitcher
   // factor wants 0.28/0.248 = 1.129 but clamps to 1.12, so 0.25 -> 0.28.
   close(s.rawHitRate, 0.25);
@@ -225,11 +238,24 @@ test("without league rates there is no regression, by design", () => {
  * Home runs
  * ---------------------------------------------------------------- */
 
-test("home run probability follows the Poisson form", () => {
+test("home run probability uses the same whole-trip mixture as the others", () => {
+  // Previously Poisson over fractional PA. Switched so all three models agree
+  // on what "4.65 trips" means; without that, P(1+ TB) and P(1+ hit) diverge.
   const p = { hr: 20, pa: 400, slot: 1, name: "x" };
   const s = score.scoreHR(p, {});
-  const lambda = (20 / 400) * 4.65;
-  close(s.prob, 1 - Math.exp(-lambda), 1e-12);
+  close(s.prob, 1 - score.mixPow(1 - 20 / 400, score.expectedPA(1)), 1e-12);
+});
+
+test("all three models agree that 1+ total bases is 1+ hits", () => {
+  // The invariant that exposed the fractional-PA inconsistency in the first
+  // place. If these ever diverge again, one of the models is wrong.
+  const lgTB = { single: 0.152, double: 0.043, triple: 0.004, hr: 0.031 };
+  const p = { name: "x", hits: 120, doubles: 28, triples: 2, hr: 20, pa: 500, slot: 2 };
+  const r = score.tbRates(p, lgTB);
+  const pa = score.expectedPA(2);
+  const viaDistribution = score.probAtLeastTB(r, pa, 1);
+  const viaRate = 1 - score.mixPow(1 - (r.p1 + r.p2 + r.p3 + r.p4), pa);
+  close(viaDistribution, viaRate, 1e-12);
 });
 
 test("a home-run-prone pitcher raises it, a stingy one lowers it", () => {

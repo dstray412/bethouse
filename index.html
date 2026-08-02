@@ -106,6 +106,10 @@ footer{margin-top:22px;color:var(--muted);font-size:12px;line-height:1.7}
 <div class="note" id="note"></div>
 
 <div class="controls">
+  <div class="ctl" id="tbwrap" hidden>
+    <label id="lab-tbn">Bases</label>
+    <div class="seg" id="tbn" role="group" aria-labelledby="lab-tbn"></div>
+  </div>
   <div class="ctl">
     <label id="lab-lu">Lineups</label>
     <div class="seg" id="lu" role="group" aria-labelledby="lab-lu"></div>
@@ -142,7 +146,7 @@ var CAL = {
   k: S.DEFAULT_K,
   window: "Jul 12-25, out of sample",
   n: 2466,
-  bias: 0.0001,
+  bias: -0.0048,
   baseRate: 0.670,
   ceiling: 0.755    // best slice the model has ever produced
 };
@@ -151,10 +155,12 @@ var state = {
   view: 'hrr',
   minProb: 0,
   lineups: 'all',
-  perTeam: 3
+  perTeam: 3,
+  tbThreshold: 2
 };
 
-var VIEWS = [ {id:'hrr', label:'1+ H / R / RBI'}, {id:'hr', label:'Home run'} ];
+var VIEWS = [ {id:'hrr', label:'1+ H / R / RBI'}, {id:'tb', label:'Total bases'}, {id:'hr', label:'Home run'} ];
+var TBN  = [ {id:2, label:'2+'}, {id:3, label:'3+'}, {id:4, label:'4+'} ];
 var SHOW  = [ {id:0,label:'All'}, {id:0.70,label:'70%+'}, {id:0.73,label:'73%+'} ];
 var LU    = [ {id:'all',label:'All games'}, {id:'posted',label:'Lineup posted'} ];
 var TOP   = [ {id:2,label:'Top 2'}, {id:3,label:'Top 3'}, {id:5,label:'Top 5'}, {id:99,label:'All'} ];
@@ -193,6 +199,9 @@ function ctxFor(game, side){
     leaguePlatoon: L.platoon,
     leagueHomeAway: L.homeAway,
     leaguePlatoonHR: L.platoonHR,
+    leaguePlatoonTB: L.platoonTB,
+    leagueTB: L.tb,
+    threshold: state.tbThreshold,
     leagueHomeAwayHR: L.homeAwayHR,
     isHome: side === 'home'
   };
@@ -213,7 +222,9 @@ function scoreSide(game, side){
     p.vsHandHR   = vs ? { hits: vs.hr,   pa: vs.pa } : null;
     p.homeAway   = sp.venue ? { hits: sp.venue.hits, pa: sp.venue.pa } : null;
     p.homeAwayHR = sp.venue ? { hits: sp.venue.hr,   pa: sp.venue.pa } : null;
-    var r = state.view==='hr' ? S.scoreHR(p,ctx) : S.scoreHRR(p,ctx);
+    var r = state.view==='hr' ? S.scoreHR(p,ctx)
+          : state.view==='tb' ? S.scoreTB(p,ctx)
+          : S.scoreHRR(p,ctx);
     if(!r) return;
     r.player=p; r.confidence=S.sampleConfidence(p.pa);
     out.push(r);
@@ -233,6 +244,13 @@ function buildWhy(r, game, side){
          '</b> RBI in <b>'+r.player.pa+'</b> PA'+(r.player.avg?' (AVG '+r.player.avg+', OBP '+r.player.obp+')':'')+'.');
     line('Rate used after regression and matchup: <b>'+(r.hitRate*100).toFixed(1)+'%</b> hits per PA'+
          (Math.abs(r.rawHitRate-r.hitRate)>0.002 ? ' (raw '+(r.rawHitRate*100).toFixed(1)+'%)' : '')+'.');
+  } else if(state.view==='tb'){
+    var pl=r.player;
+    var singles=Math.max(0,(pl.hits||0)-(pl.doubles||0)-(pl.triples||0)-(pl.hr||0));
+    line('Season: <b>'+singles+'</b> singles, <b>'+(pl.doubles||0)+'</b> doubles, <b>'+(pl.triples||0)+
+         '</b> triples, <b>'+(pl.hr||0)+'</b> home runs in <b>'+pl.pa+'</b> PA.');
+    line('Expected total bases tonight: <b>'+r.expectedTB.toFixed(2)+'</b>, and he needs <b>'+
+         r.threshold+'</b> to cash.');
   } else {
     line('Season: <b>'+r.player.hr+'</b> HR in <b>'+r.player.pa+'</b> PA → <b>'+(r.hrRate*100).toFixed(2)+'%</b> per PA after regression.');
   }
@@ -253,7 +271,9 @@ function buildWhy(r, game, side){
 
   line('Model: <b>'+pct(r.prob)+'</b>. A fair price for that is <b>'+amer(S.fairPrice(r.prob))+
        '</b> \u2014 anything longer is good value, anything shorter is not. '+
-       '<span style="color:var(--muted)">For reference: -300 needs 75.0%, -250 needs 71.4%.</span>');
+       (state.view==='tb'
+         ? '<span style="color:var(--muted)">This model runs about 1 point hot against real results, so shade it down slightly.</span>'
+         : '<span style="color:var(--muted)">For reference: -300 needs 75.0%, -250 needs 71.4%.</span>'));
 
   if(r.confidence < 0.65){
     line('<span class="flag">Small sample.</span> Only <b>'+r.player.pa+'</b> PA, so this estimate is mostly the league average, not this hitter.');
@@ -271,6 +291,8 @@ function buildWhy(r, game, side){
 function render(){
   seg(document.getElementById('view'), VIEWS, state.view, function(v){state.view=v; state.open=null; render();});
   seg(document.getElementById('lu'), LU, state.lineups, function(v){state.lineups=v; render();});
+  seg(document.getElementById('tbn'), TBN, state.tbThreshold, function(v){state.tbThreshold=v; state.open=null; render();});
+  document.getElementById('tbwrap').hidden = state.view!=='tb';
   seg(document.getElementById('top'), TOP, state.perTeam, function(v){state.perTeam=v; render();});
 
   document.getElementById('tagline').textContent =
@@ -278,7 +300,11 @@ function render(){
 
   /* honest header */
   var note=document.getElementById('note');
-  if(state.view==='hrr'){
+  if(state.view==='tb'){
+    note.innerHTML = 'Chance of <b>'+state.tbThreshold+'+ total bases</b> (single 1, double 2, triple 3, home run 4). '+
+      'Checked against <b>'+CAL.n+'</b> real games the model never saw; it runs about <b>1 point hot</b>, '+
+      'so shade these down slightly. Tap any player for the detail.';
+  } else if(state.view==='hrr'){
     note.innerHTML = 'Chance of at least one hit, run or RBI. Checked against <b>'+CAL.n+
       '</b> real games the model never saw \u2014 when it says 70%, it happens about 70% of the time. '+
       'Tap any player for the detail.';

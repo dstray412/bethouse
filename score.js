@@ -30,8 +30,23 @@
    * batting first clears it more often than a .290 hitter batting eighth.
    * ------------------------------------------------------------------ */
 
-  const PA_LEADOFF = 4.65;
-  const PA_DECAY = 0.105; // PA lost per slot going down the order
+  /*
+   * MEASURED, not guessed. Least-squares fit over 2,465 real starts
+   * (2026-07-12..25, backtest.mjs --prop tb2 prints the table).
+   *
+   * The original guesses were 4.65 and 0.105. Both were wrong in the same
+   * direction and the error compounded down the order: the 9-hole was
+   * assumed to get 3.81 trips when it actually gets 3.42. That inflated
+   * expected total bases by 9% and put the total-bases model 3.1 points
+   * hot. Real starters get pinch-hit for, subbed out and caught by short
+   * games, so the true curve sits below a full-game assumption and falls
+   * away faster.
+   *
+   *   slot 1  4.486 actual      slot 5  4.000
+   *   slot 3  4.274             slot 9  3.419
+   */
+  const PA_LEADOFF = 4.536;
+  const PA_DECAY = 0.1326; // PA lost per slot going down the order
 
   function expectedPA(slot) {
     if (!(slot >= 1 && slot <= 9)) return NaN;
@@ -116,9 +131,13 @@
    * ------------------------------------------------------------------ */
 
   /*
-   * FITTED, not guessed. backtest.mjs --fit swept k against 1,703 real
-   * hitter-games (2026-07-26..08-01) and found 0.05, where the mean
-   * prediction matches the actual 67.6% cash rate to within half a point.
+   * FITTED, not guessed. backtest.mjs --fit sweeps k against real outcomes.
+   * Currently 0.10, fitted over 2,466 hitter-games (2026-07-12..25) to a
+   * bias of -0.47pp.
+   *
+   * It was 0.05 while PA_LEADOFF and PA_DECAY were still guesses; k had been
+   * quietly absorbing that error. Measuring the plate-appearance curve moved
+   * the honest value to 0.10. Re-fit whenever an input stops being a guess.
    *
    * The first version of this file guessed 0.55 and ran 13 percentage points
    * hot: it said 82% where reality was 69.5%. Betting that model at -300
@@ -127,14 +146,36 @@
    * BECAUSE you got a hit, so runs and RBI add very little independent
    * chance. Re-fit whenever the season's run environment shifts.
    */
-  const DEFAULT_K = 0.05;
+  const DEFAULT_K = 0.10;
+
+  /**
+   * Probability of no success across a FRACTIONAL number of plate appearances.
+   *
+   * A leadoff hitter does not get 4.65 trips. He gets 4 or he gets 5, and the
+   * fraction is the chance of the fifth. So the right treatment is a mixture
+   * of the two whole-trip cases, not x raised to a fractional power.
+   *
+   * The difference is small but real: at p0=0.75 and pa=4.545, the power form
+   * gives 0.2705 and the mixture gives 0.2733, about 0.3pp on the final
+   * probability. It matters here because the total-bases model convolves over
+   * whole trips by construction, so using the power form elsewhere would make
+   * the two models disagree about the same event — P(1+ total bases) is by
+   * definition P(1+ hits).
+   */
+  function mixPow(x, pa) {
+    if (!(pa > 0)) return 1;
+    const whole = Math.floor(pa);
+    const frac = pa - whole;
+    const a = Math.pow(x, whole);
+    return frac > 1e-9 ? (1 - frac) * a + frac * a * x : a;
+  }
 
   /** The core: combine three per-PA rates into one game probability. */
   function probFromRates(rates, pa, k) {
     if (!(pa > 0)) return NaN;
-    const noHit = Math.pow(1 - rates.hit, pa);
-    const noRun = Math.pow(1 - rates.run, pa);
-    const noRbi = Math.pow(1 - rates.rbi, pa);
+    const noHit = mixPow(1 - rates.hit, pa);
+    const noRun = mixPow(1 - rates.run, pa);
+    const noRbi = mixPow(1 - rates.rbi, pa);
     const noneAtAll = noHit * Math.pow(noRun, k) * Math.pow(noRbi, k);
     return 1 - Math.max(0, Math.min(1, noneAtAll));
   }
@@ -374,8 +415,9 @@
     const haTable = ctx.leagueHomeAwayHR || ctx.leagueHomeAway;
     const plat = platoonFactor(player.batSide, ctx.pitchHand, platTable, player.vsHandHR, hrPerPA);
     const ha = homeAwayFactor(ctx.isHome, haTable, player.homeAwayHR, hrPerPA);
-    const lambda = hrPerPA * pa * pf * park * plat * ha;
-    const prob = 1 - Math.exp(-lambda);
+    /* Home runs use the same whole-trip mixture rather than a Poisson over
+       fractional PA, so all three models agree on what "4.65 trips" means. */
+    const prob = 1 - mixPow(1 - Math.min(0.999, hrPerPA * pf * park * plat * ha), pa);
     return {
       name: player.name,
       slot: player.slot,
@@ -390,6 +432,152 @@
       isHome: !!ctx.isHome,
       prob: prob,
       score: Math.round(prob * 1000) / 10,
+    };
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Total bases
+   *
+   * A different shape of problem from the other two. "1+ hits, runs or RBI"
+   * and "1+ home run" are both yes/no questions about a rate. Total bases
+   * asks how MANY, so a rate is not enough: you need the distribution of
+   * what happens in each plate appearance and then the distribution of the
+   * sum across a game.
+   *
+   * Note that 1+ total bases is exactly 1+ hits — every hit is worth at
+   * least one base — so the only thresholds worth betting are 2+ and up.
+   * `probAtLeastTB(rates, pa, 1)` reproducing the hit probability is a
+   * useful invariant and is asserted in the tests.
+   *
+   * Each plate appearance produces 0, 1, 2, 3 or 4 bases. Convolving that
+   * across the trips a lineup slot buys gives the exact distribution, with
+   * no normal approximation and no fudge factor.
+   * ------------------------------------------------------------------ */
+
+  /** Per-PA outcome probabilities, regressed toward league like everything else. */
+  function tbRates(player, leagueTB, opts) {
+    opts = opts || {};
+    const K = opts.regressionPA == null ? REGRESSION_PA : opts.regressionPA;
+    const pa = Number(player.pa) || 0;
+    const hits = num(player.hits);
+    const d = num(player.doubles), t = num(player.triples), hr = num(player.hr);
+    const singles = Math.max(0, hits - d - t - hr);
+
+    if (!leagueTB || K <= 0) {
+      return {
+        p1: safeRate(singles, pa), p2: safeRate(d, pa),
+        p3: safeRate(t, pa), p4: safeRate(hr, pa),
+      };
+    }
+    const blend = (events, lgRate) =>
+      Math.max(0, Math.min(0.999, (events + lgRate * K) / (pa + K)));
+    return {
+      p1: blend(singles, leagueTB.single),
+      p2: blend(d, leagueTB.double),
+      p3: blend(t, leagueTB.triple),
+      p4: blend(hr, leagueTB.hr),
+    };
+  }
+
+  /**
+   * Exact distribution of total bases over `pa` trips.
+   *
+   * `pa` is fractional (a leadoff hitter gets 4.65 trips), so the whole part
+   * is convolved and the remainder is treated as the probability of one more
+   * trip. That is exactly what a fractional expected PA means.
+   */
+  function tbDistribution(rates, pa) {
+    const p0 = Math.max(0, 1 - (rates.p1 + rates.p2 + rates.p3 + rates.p4));
+    const step = (dist) => {
+      const out = new Array(dist.length + 4).fill(0);
+      for (let i = 0; i < dist.length; i++) {
+        const w = dist[i];
+        if (!w) continue;
+        out[i] += w * p0;
+        out[i + 1] += w * rates.p1;
+        out[i + 2] += w * rates.p2;
+        out[i + 3] += w * rates.p3;
+        out[i + 4] += w * rates.p4;
+      }
+      return out;
+    };
+    const whole = Math.floor(pa);
+    const frac = pa - whole;
+    let dist = [1];
+    for (let i = 0; i < whole; i++) dist = step(dist);
+    if (frac > 1e-9) {
+      const extra = step(dist);
+      const len = extra.length;
+      const blended = new Array(len).fill(0);
+      for (let i = 0; i < len; i++) blended[i] = (1 - frac) * (dist[i] || 0) + frac * extra[i];
+      dist = blended;
+    }
+    return dist;
+  }
+
+  function probAtLeastTB(rates, pa, n) {
+    if (!(pa > 0) || !(n >= 1)) return NaN;
+    const dist = tbDistribution(rates, pa);
+    let below = 0;
+    for (let i = 0; i < n && i < dist.length; i++) below += dist[i];
+    return Math.max(0, Math.min(1, 1 - below));
+  }
+
+  /**
+   * @param player {hits, doubles, triples, hr, pa, slot, batSide, name}
+   * @param ctx    context plus { threshold, leagueTB, leaguePlatoonTB }
+   *
+   * Handedness is applied per component: singles take the hits platoon
+   * table, home runs take the home-run one, and extra-base hits take a
+   * total-bases table that sits between the two. Using one table for all
+   * three would either wash out the power effect or apply it to singles,
+   * where it does not belong.
+   */
+  function scoreTB(player, ctx) {
+    ctx = ctx || {};
+    const n = ctx.threshold == null ? 2 : ctx.threshold;
+    const pa = expectedPA(player.slot);
+    if (!(pa > 0) || !(Number(player.pa) > 0)) return null;
+
+    const pf = pitcherFactor(ctx.oppAvgAllowed, ctx.leagueAvgAllowed);
+    const base = tbRates(player, ctx.leagueTB, ctx);
+
+    const platHit = platoonFactor(player.batSide, ctx.pitchHand, ctx.leaguePlatoon, null, 0);
+    const platHR = platoonFactor(player.batSide, ctx.pitchHand, ctx.leaguePlatoonHR || ctx.leaguePlatoon, null, 0);
+    const platXB = platoonFactor(player.batSide, ctx.pitchHand, ctx.leaguePlatoonTB || ctx.leaguePlatoon, null, 0);
+    const ha = homeAwayFactor(ctx.isHome, ctx.leagueHomeAway, null, 0);
+
+    const clamp = (x) => Math.max(0, Math.min(0.999, x));
+    const rates = {
+      p1: clamp(base.p1 * pf * platHit * ha),
+      p2: clamp(base.p2 * pf * platXB * ha),
+      p3: clamp(base.p3 * pf * platXB * ha),
+      p4: clamp(base.p4 * pf * platHR * ha),
+    };
+
+    const prob = probAtLeastTB(rates, pa, n);
+    const dist = tbDistribution(rates, pa);
+    let expected = 0;
+    for (let i = 0; i < dist.length; i++) expected += i * dist[i];
+
+    return {
+      name: player.name,
+      slot: player.slot,
+      threshold: n,
+      expectedPA: pa,
+      expectedTB: expected,
+      rates: rates,
+      pa: player.pa,
+      confidence: sampleConfidence(player.pa),
+      pitcherFactor: pf,
+      platoonFactor: platXB,
+      platoonHRFactor: platHR,
+      homeAwayFactor: ha,
+      batSide: player.batSide || null,
+      pitchHand: ctx.pitchHand || null,
+      isHome: !!ctx.isHome,
+      prob: prob,
+      score: isFinite(prob) ? Math.round(prob * 1000) / 10 : NaN,
     };
   }
 
@@ -430,6 +618,7 @@
     DEFAULT_K: DEFAULT_K,
     REGRESSION_PA: REGRESSION_PA,
     expectedPA: expectedPA,
+    mixPow: mixPow,
     perPA: perPA,
     regressedPerPA: regressedPerPA,
     safeRate: safeRate,
@@ -444,6 +633,10 @@
     MIN_SPLIT_PA: MIN_SPLIT_PA,
     scoreHRR: scoreHRR,
     scoreHR: scoreHR,
+    scoreTB: scoreTB,
+    tbRates: tbRates,
+    tbDistribution: tbDistribution,
+    probAtLeastTB: probAtLeastTB,
     fairPrice: fairPrice,
     sampleConfidence: sampleConfidence,
     rank: rank,

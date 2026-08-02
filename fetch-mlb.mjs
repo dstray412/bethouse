@@ -100,7 +100,7 @@ async function main() {
   // League per-PA rates. These are what small samples get regressed toward,
   // so they must be real totals, not an average of per-player rates (which
   // would let a 3-PA callup count as much as a full-season regular).
-  let lgPA = 0, lgH = 0, lgR = 0, lgRBI = 0, lgHRb = 0;
+  let lgPA = 0, lgH = 0, lgR = 0, lgRBI = 0, lgHRb = 0, lg2B = 0, lg3B = 0;
   for (const s of hitters.stats?.[0]?.splits || []) {
     const st = s.stat || {};
     lgPA += num(st.plateAppearances);
@@ -108,12 +108,17 @@ async function main() {
     lgR += num(st.runs);
     lgRBI += num(st.rbi);
     lgHRb += num(st.homeRuns);
+    lg2B += num(st.doubles);
+    lg3B += num(st.triples);
     hitStat.set(s.player.id, {
       pa: num(st.plateAppearances),
       hits: num(st.hits),
       runs: num(st.runs),
       rbi: num(st.rbi),
       hr: num(st.homeRuns),
+      doubles: num(st.doubles),
+      triples: num(st.triples),
+      totalBases: num(st.totalBases),
       avg: st.avg,
       obp: st.obp,
       ops: st.ops,
@@ -167,6 +172,15 @@ async function main() {
       hit: lgPA > 0 ? lgH / lgPA : 0.222,
       run: lgPA > 0 ? lgR / lgPA : 0.118,
       rbi: lgPA > 0 ? lgRBI / lgPA : 0.113,
+      hr: lgPA > 0 ? lgHRb / lgPA : 0.031,
+    },
+    /* Per-PA rates for each outcome type, which is what the total-bases
+       model regresses toward. Singles are derived: a "hit" is a single
+       unless it is one of the extra-base types. */
+    tb: {
+      single: lgPA > 0 ? (lgH - lg2B - lg3B - lgHRb) / lgPA : 0.152,
+      double: lgPA > 0 ? lg2B / lgPA : 0.043,
+      triple: lgPA > 0 ? lg3B / lgPA : 0.004,
       hr: lgPA > 0 ? lgHRb / lgPA : 0.031,
     },
   };
@@ -238,6 +252,9 @@ async function main() {
           runs: s.runs || 0,
           rbi: s.rbi || 0,
           hr: s.hr || 0,
+          doubles: s.doubles || 0,
+          triples: s.triples || 0,
+          totalBases: s.totalBases || 0,
           avg: s.avg || null,
           obp: s.obp || null,
           ops: s.ops || null,
@@ -325,7 +342,10 @@ async function main() {
     if (!code) continue;
     const st = s.stat || {};
     const rec = splits.get(s.player.id) || {};
-    rec[code] = { hits: num(st.hits), hr: num(st.homeRuns), pa: num(st.plateAppearances) };
+    rec[code] = {
+      hits: num(st.hits), hr: num(st.homeRuns), tb: num(st.totalBases),
+      pa: num(st.plateAppearances),
+    };
     splits.set(s.player.id, rec);
   }
 
@@ -338,9 +358,10 @@ async function main() {
   const bump = (bucket, key, rec) => {
     if (!rec || !(rec.pa > 0)) return;
     agg[bucket] = agg[bucket] || {};
-    agg[bucket][key] = agg[bucket][key] || { hits: 0, hr: 0, pa: 0 };
+    agg[bucket][key] = agg[bucket][key] || { hits: 0, hr: 0, tb: 0, pa: 0 };
     agg[bucket][key].hits += rec.hits;
     agg[bucket][key].hr += num(rec.hr);
+    agg[bucket][key].tb += num(rec.tb);
     agg[bucket][key].pa += rec.pa;
   };
   for (const [pid, rec] of splits) {
@@ -350,11 +371,11 @@ async function main() {
     if (bats) {
       bump("bat:" + bats, "vl", rec.vl);
       bump("bat:" + bats, "vr", rec.vr);
-      bump("bat:" + bats, "all", { hits: h.hits, hr: h.hr, pa: h.pa });
+      bump("bat:" + bats, "all", { hits: h.hits, hr: h.hr, tb: h.totalBases, pa: h.pa });
     }
     bump("venue", "h", rec.h);
     bump("venue", "a", rec.a);
-    bump("venue", "all", { hits: h.hits, hr: h.hr, pa: h.pa });
+    bump("venue", "all", { hits: h.hits, hr: h.hr, tb: h.totalBases, pa: h.pa });
   }
   const ratio = (b, key) => {
     const g = agg[b];
@@ -379,6 +400,18 @@ async function main() {
     const a = g[key].hr / g[key].pa, o = g.all.hr / g.all.pa;
     return o > 0 ? a / o : null;
   };
+  const ratioTB = (b, key) => {
+    const g = agg[b];
+    if (!g || !g[key] || !g.all || !(g[key].pa > 0) || !(g.all.pa > 0)) return null;
+    const a = g[key].tb / g[key].pa, o = g.all.tb / g.all.pa;
+    return o > 0 ? a / o : null;
+  };
+  const leaguePlatoonTB = {};
+  for (const bs of ["R", "L", "S"]) {
+    const L = ratioTB("bat:" + bs, "vl"), R = ratioTB("bat:" + bs, "vr");
+    if (L && R) leaguePlatoonTB[bs] = { L, R };
+  }
+
   const leaguePlatoonHR = {};
   for (const bs of ["R", "L", "S"]) {
     const L = ratioHR("bat:" + bs, "vl"), R = ratioHR("bat:" + bs, "vr");
@@ -409,6 +442,7 @@ async function main() {
   league.platoon = leaguePlatoon;
   league.homeAway = leagueHomeAway;
   league.platoonHR = leaguePlatoonHR;
+  league.platoonTB = leaguePlatoonTB;
   league.homeAwayHR = leagueHomeAwayHR;
 
   const payload = { date: DATE, fetchedAt: new Date().toISOString(), season: SEASON, league, games };
@@ -443,6 +477,10 @@ async function main() {
     if (pl[bs]) console.log(`  platoon ${bs}HB:      vs LHP x${pl[bs].L.toFixed(4)}   vs RHP x${pl[bs].R.toFixed(4)}`);
   }
   console.log(`  home/away:        home x${payload.league.homeAway.home.toFixed(4)}   away x${payload.league.homeAway.away.toFixed(4)}`);
+  const pt = payload.league.platoonTB;
+  for (const bs of ["R", "L"]) {
+    if (pt[bs]) console.log(`  TB platoon ${bs}HB:   vs LHP x${pt[bs].L.toFixed(4)}   vs RHP x${pt[bs].R.toFixed(4)}`);
+  }
   const ph = payload.league.platoonHR;
   for (const bs of ["R", "L", "S"]) {
     if (ph[bs]) console.log(`  HR platoon ${bs}HB:   vs LHP x${ph[bs].L.toFixed(4)}   vs RHP x${ph[bs].R.toFixed(4)}`);

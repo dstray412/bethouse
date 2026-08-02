@@ -46,6 +46,10 @@ const has = (f) => args.includes(f);
 
 const DAYS = Number(flag("--days", 10));
 const FIT = has("--fit");
+/* Which prop to validate. "1+ total bases" is not offered because it is
+   identical to 1+ hits, so the total-bases thresholds worth checking are 2
+   and up. */
+const PROP = flag("--prop", "hrr"); // hrr | tb2 | tb3 | hr
 
 function iso(d) {
   return d.toISOString().slice(0, 10);
@@ -169,6 +173,11 @@ function harvest(box, obs) {
       const rbi = num(s.rbi) - num(g.rbi);
       if (pa < 30) continue; // nothing to model on yet
 
+      const doubles = num(s.doubles) - num(g.doubles);
+      const triples = num(s.triples) - num(g.triples);
+      const hr = num(s.homeRuns) - num(g.homeRuns);
+      const gameTB = num(g.totalBases);
+
       const actual = num(g.hits) > 0 || num(g.runs) > 0 || num(g.rbi) > 0 ? 1 : 0;
       obs.push({
         name: p.person.fullName,
@@ -177,6 +186,13 @@ function harvest(box, obs) {
         hits,
         runs,
         rbi,
+        doubles,
+        triples,
+        hr,
+        gameTB,
+        actualTB2: gameTB >= 2 ? 1 : 0,
+        actualTB3: gameTB >= 3 ? 1 : 0,
+        actualHR: num(g.homeRuns) > 0 ? 1 : 0,
         oppAvgAllowed: faced && faced.ip > 20 ? faced.avgAllowed : 0,
         batSide: (p.person?.batSide || {}).code || null,
         pitchHand: faced ? faced.throws : null,
@@ -248,25 +264,51 @@ function leagueSplitsFrom(obs) {
   };
 }
 
+function leagueTBFrom(obs) {
+  let pa = 0, s1 = 0, d = 0, t = 0, hr = 0;
+  for (const o of obs) {
+    pa += o.pa;
+    d += o.doubles; t += o.triples; hr += o.hr;
+    s1 += o.hits - o.doubles - o.triples - o.hr;
+  }
+  return pa > 0
+    ? { single: s1 / pa, double: d / pa, triple: t / pa, hr: hr / pa }
+    : { single: 0.152, double: 0.043, triple: 0.004, hr: 0.031 };
+}
+
+/** Actual outcome for whichever prop is being validated. */
+function actualFor(o) {
+  if (PROP === "tb2") return o.actualTB2;
+  if (PROP === "tb3") return o.actualTB3;
+  if (PROP === "hr") return o.actualHR;
+  return o.actual;
+}
+
 function predictAll(obs, k, lg, lgAvgAllowed, splits) {
+  const lgTB = predictAll._lgTB;
   return obs.map((o) => {
-    const s = score.scoreHRR(
-      {
-        name: o.name, hits: o.hits, runs: o.runs, rbi: o.rbi, pa: o.pa, slot: o.slot,
-        batSide: splits ? o.batSide : null,
-      },
-      {
-        correlation: k,
-        leagueRates: lg,
-        oppAvgAllowed: o.oppAvgAllowed,
-        leagueAvgAllowed: lgAvgAllowed,
-        pitchHand: splits ? o.pitchHand : null,
-        leaguePlatoon: splits ? splits.platoon : null,
-        leagueHomeAway: splits ? splits.homeAway : null,
-        isHome: o.isHome,
-      }
-    );
-    return { p: s ? s.prob : NaN, actual: o.actual, slot: o.slot };
+    const player = {
+      name: o.name, hits: o.hits, runs: o.runs, rbi: o.rbi, pa: o.pa, slot: o.slot,
+      doubles: o.doubles, triples: o.triples, hr: o.hr,
+      batSide: splits ? o.batSide : null,
+    };
+    const ctx = {
+      correlation: k,
+      leagueRates: lg,
+      leagueTB: lgTB,
+      oppAvgAllowed: o.oppAvgAllowed,
+      leagueAvgAllowed: lgAvgAllowed,
+      pitchHand: splits ? o.pitchHand : null,
+      leaguePlatoon: splits ? splits.platoon : null,
+      leagueHomeAway: splits ? splits.homeAway : null,
+      isHome: o.isHome,
+      threshold: PROP === "tb3" ? 3 : 2,
+    };
+    let s;
+    if (PROP === "tb2" || PROP === "tb3") s = score.scoreTB(player, ctx);
+    else if (PROP === "hr") s = score.scoreHR(player, ctx);
+    else s = score.scoreHRR(player, ctx);
+    return { p: s ? s.prob : NaN, actual: actualFor(o), slot: o.slot };
   });
 }
 
@@ -294,7 +336,7 @@ function bias(rows) {
 
 function calibrationTable(rows) {
   const buckets = [];
-  for (let lo = 0.5; lo < 1.0; lo += 0.05) {
+  for (let lo = 0.0; lo < 1.0; lo += 0.05) {
     const inB = rows.filter((r) => isFinite(r.p) && r.p >= lo && r.p < lo + 0.05);
     if (inB.length < 20) continue;
     const pred = inB.reduce((s, r) => s + r.p, 0) / inB.length;
@@ -331,7 +373,10 @@ async function main() {
       ? withPitcher.reduce((s, o) => s + o.oppAvgAllowed, 0) / withPitcher.length
       : 0.244;
 
-  const baseRate = obs.reduce((s, o) => s + o.actual, 0) / obs.length;
+  predictAll._lgTB = leagueTBFrom(obs);
+  const PROP_LABEL = { hrr: "1+ hits/runs/RBI", tb2: "2+ total bases", tb3: "3+ total bases", hr: "1+ home run" }[PROP] || PROP;
+  console.log(`\n  PROP: ${PROP_LABEL}`);
+  const baseRate = obs.reduce((s, o) => s + actualFor(o), 0) / obs.length;
   console.log(`\n  observations:     ${obs.length} hitter-games`);
   console.log(`  actual cash rate: ${(baseRate * 100).toFixed(1)}%  <- what a coin-flip bettor beats`);
   console.log(`  league per-PA:    hit ${lg.hit.toFixed(3)}  run ${lg.run.toFixed(3)}  rbi ${lg.rbi.toFixed(3)}`);
@@ -368,7 +413,7 @@ async function main() {
     if (!o.batSide || !o.pitchHand) continue;
     const key = o.batSide + " vs " + o.pitchHand;
     cell[key] = cell[key] || { n: 0, w: 0 };
-    cell[key].n++; cell[key].w += o.actual;
+    cell[key].n++; cell[key].w += actualFor(o);
   }
   for (const key of Object.keys(cell).sort()) {
     const c = cell[key];
@@ -376,8 +421,8 @@ async function main() {
     console.log(`    ${key.padEnd(10)} n=${String(c.n).padStart(5)}   cashed ${(c.w / c.n * 100).toFixed(1)}%`);
   }
   const hm = obs.filter(o => o.isHome), aw = obs.filter(o => !o.isHome);
-  console.log(`    home       n=${String(hm.length).padStart(5)}   cashed ${(hm.reduce((s,o)=>s+o.actual,0)/hm.length*100).toFixed(1)}%`);
-  console.log(`    away       n=${String(aw.length).padStart(5)}   cashed ${(aw.reduce((s,o)=>s+o.actual,0)/aw.length*100).toFixed(1)}%`);
+  console.log(`    home       n=${String(hm.length).padStart(5)}   cashed ${(hm.reduce((s,o)=>s+actualFor(o),0)/hm.length*100).toFixed(1)}%`);
+  console.log(`    away       n=${String(aw.length).padStart(5)}   cashed ${(aw.reduce((s,o)=>s+actualFor(o),0)/aw.length*100).toFixed(1)}%`);
 
   const withoutS = predictAll(obs, score.DEFAULT_K, lg, lgAvgAllowed, null);
   const withS = predictAll(obs, score.DEFAULT_K, lg, lgAvgAllowed, splits);
@@ -387,6 +432,54 @@ async function main() {
   console.log(`    with splits:     Brier ${bs2.toFixed(5)}   bias ${(bias(withS)*100).toFixed(2)}pp`);
   const delta = bw - bs2;
   console.log(`    delta:           ${delta >= 0 ? "-" : "+"}${Math.abs(delta).toFixed(5)}  ${delta > 0.0002 ? "-> splits HELP, keep them" : delta < -0.0002 ? "-> splits HURT, revert" : "-> no measurable difference"}`);
+
+  if (PROP === "tb2" || PROP === "tb3") {
+    const lgTB = predictAll._lgTB;
+    let predTB = 0, actTB = 0, n = 0, predPA = 0;
+    for (const o of obs) {
+      const s2 = score.scoreTB(
+        { name: o.name, hits: o.hits, doubles: o.doubles, triples: o.triples, hr: o.hr, pa: o.pa, slot: o.slot },
+        { leagueTB: lgTB, threshold: 2 }
+      );
+      if (!s2) continue;
+      predTB += s2.expectedTB; actTB += o.gameTB; predPA += s2.expectedPA; n++;
+    }
+    console.log(`\n  Where the bias comes from:`);
+    console.log(`    model expects ${(predTB / n).toFixed(3)} total bases per game, actual was ${(actTB / n).toFixed(3)}`);
+    console.log(`    model assumes ${(predPA / n).toFixed(2)} plate appearances per start`);
+    const ratio = actTB / predTB;
+    console.log(`    ratio actual/predicted: ${ratio.toFixed(4)}  ${Math.abs(ratio - 1) > 0.02 ? "-> the inputs are off, not just the threshold" : "-> inputs look right"}`);
+
+    /* Split the blame: is it the plate-appearance assumption or the rates?
+       PA_LEADOFF and PA_DECAY in score.js were reasonable-looking guesses
+       and have never been measured. */
+    const bySlot = {};
+    for (const o of obs) {
+      if (!o.gamePA) continue;
+      bySlot[o.slot] = bySlot[o.slot] || { pa: 0, n: 0 };
+      bySlot[o.slot].pa += o.gamePA; bySlot[o.slot].n++;
+    }
+    console.log(`\n  ACTUAL plate appearances by lineup slot (measured):`);
+    console.log(`    slot   n       actual PA   model assumes   gap`);
+    const pts = [];
+    for (let sl = 1; sl <= 9; sl++) {
+      const b = bySlot[sl];
+      if (!b) continue;
+      const act = b.pa / b.n, mod = score.expectedPA(sl);
+      pts.push([sl, act]);
+      console.log(`     ${sl}   ${String(b.n).padStart(5)}      ${act.toFixed(3)}        ${mod.toFixed(3)}      ${(act - mod >= 0 ? "+" : "")}${(act - mod).toFixed(3)}`);
+    }
+    // least-squares fit of actual PA = intercept - decay*(slot-1)
+    const n2 = pts.length;
+    const sx = pts.reduce((a, p2) => a + (p2[0] - 1), 0);
+    const sy = pts.reduce((a, p2) => a + p2[1], 0);
+    const sxx = pts.reduce((a, p2) => a + (p2[0] - 1) ** 2, 0);
+    const sxy = pts.reduce((a, p2) => a + (p2[0] - 1) * p2[1], 0);
+    const slope = (n2 * sxy - sx * sy) / (n2 * sxx - sx * sx);
+    const intercept = (sy - slope * sx) / n2;
+    console.log(`\n    fitted:  PA_LEADOFF = ${intercept.toFixed(3)}   PA_DECAY = ${(-slope).toFixed(4)}`);
+    console.log(`    current: PA_LEADOFF = ${score.PA_LEADOFF}   PA_DECAY = ${score.PA_DECAY}`);
+  }
 
   const rows = withS;
   console.log(`\n  Using DEFAULT_K = ${score.DEFAULT_K} (with splits)`);
