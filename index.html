@@ -26,8 +26,8 @@ header{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:1
   background:linear-gradient(96deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent;margin:0}
 .tagline{font-family:var(--display);font-size:11px;font-weight:600;letter-spacing:.17em;text-transform:uppercase;color:var(--muted);margin-top:5px}
 
-.note{border:1px solid rgba(56,225,255,.26);background:rgba(56,225,255,.07);border-radius:13px;padding:13px 15px;margin-bottom:16px;font-size:14px;line-height:1.6}
-.note b{color:var(--accent)}
+.note{color:var(--muted);font-size:12.5px;line-height:1.6;margin:0 2px 14px}
+.note b{color:var(--text);font-weight:600}
 .note .hot{color:var(--warn)}
 
 .controls{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-end;background:var(--panel);
@@ -59,14 +59,14 @@ header{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:1
 .vs{font-size:12.5px;color:var(--muted)}
 .vs b{color:var(--text);font-weight:600}
 
-.row{display:grid;grid-template-columns:30px 1fr 72px 78px 62px 22px;gap:10px;align-items:center;
+.row{display:grid;grid-template-columns:32px 1fr 78px 20px;gap:12px;align-items:center;
   width:100%;text-align:left;font:inherit;color:inherit;background:none;border:0;
   padding:8px 15px;cursor:pointer;border-top:1px solid rgba(255,255,255,.045)}
 .row:hover{background:rgba(255,255,255,.028)}
 .slot{font-family:var(--display);font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
 .who{font-weight:600;font-size:14.5px}
 .pos{color:var(--muted);font-weight:400;font-size:12px;margin-left:5px}
-.prob{font-weight:700;font-size:15px;font-variant-numeric:tabular-nums;text-align:right}
+.prob{font-weight:700;font-size:22px;font-variant-numeric:tabular-nums;text-align:right;letter-spacing:-.01em}
 .be{font-variant-numeric:tabular-nums;text-align:right;font-size:14px}
 .be small{display:block;color:var(--muted);font-size:11px}
 .verdict{font-size:11px;font-family:var(--display);font-weight:600;letter-spacing:.06em;text-align:right}
@@ -83,8 +83,7 @@ footer{margin-top:22px;color:var(--muted);font-size:12px;line-height:1.7}
 
 @media (max-width:760px){
   .wrap{padding:14px 11px 40px}
-  .row{grid-template-columns:26px 1fr 66px 70px;gap:8px;row-gap:2px}
-  .verdict{grid-column:3/5;text-align:right;margin-top:-2px}
+  .row{grid-template-columns:28px 1fr 72px;gap:10px}
   .caret{display:none}
 }
 @media (pointer:coarse){ .seg button{min-height:42px} }
@@ -107,14 +106,6 @@ footer{margin-top:22px;color:var(--muted);font-size:12px;line-height:1.7}
 <div class="note" id="note"></div>
 
 <div class="controls">
-  <div class="ctl">
-    <label for="price">Price you're offered</label>
-    <div class="priceinp"><input id="price" type="number" step="5" value="-300"></div>
-  </div>
-  <div class="ctl">
-    <label id="lab-show">Show</label>
-    <div class="seg" id="show" role="group" aria-labelledby="lab-show"></div>
-  </div>
   <div class="ctl">
     <label id="lab-lu">Lineups</label>
     <div class="seg" id="lu" role="group" aria-labelledby="lab-lu"></div>
@@ -160,7 +151,6 @@ var state = {
   view: 'hrr',
   minProb: 0,
   lineups: 'all',
-  price: -300,
   perTeam: 3
 };
 
@@ -173,11 +163,6 @@ var TOP   = [ {id:2,label:'Top 2'}, {id:3,label:'Top 3'}, {id:5,label:'Top 5'}, 
 function el(t,c,x){var n=document.createElement(t); if(c)n.className=c; if(x!=null)n.textContent=x; return n;}
 function pct(x,d){return isFinite(x)?(x*100).toFixed(d==null?1:d)+'%':'—';}
 function amer(a){ if(!isFinite(a))return '—'; a=Math.round(a); return a>0?'+'+a:''+a; }
-function probOf(price){
-  price=Number(price);
-  if(!isFinite(price)||price===0) return NaN;
-  return price>0 ? 100/(price+100) : (-price)/((-price)+100);
-}
 function timeStr(iso){
   var d=new Date(iso); if(isNaN(d))return '';
   return d.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'});
@@ -237,15 +222,6 @@ function scoreSide(game, side){
 }
 
 /* ---------------- render ---------------- */
-function verdictFor(prob){
-  var need = probOf(state.price);
-  if(!isFinite(need)||!isFinite(prob)) return null;
-  var edge = prob - need;
-  if(edge >= 0.02)  return {cls:'v-ok',   text:'+'+(edge*100).toFixed(1)+'pp'};
-  if(edge >= 0)     return {cls:'v-thin', text:'thin'};
-  return {cls:'v-no', text:(edge*100).toFixed(1)+'pp'};
-}
-
 function buildWhy(r, game, side){
   var faces=game[side+'Faces'];
   var w=el('div','why');
@@ -275,8 +251,9 @@ function buildWhy(r, game, side){
   if(state.view==='hrr' && r.offenseFactor)
     line('Lineup around him: <b>'+(game[side].runsPerGame||0).toFixed(2)+'</b> R/G → factor <b>'+r.offenseFactor.toFixed(3)+'</b>.');
 
-  line('Model: <b>'+pct(r.prob)+'</b> → fair price <b>'+amer(S.fairPrice(r.prob))+'</b>. '+
-       'You are offered <b>'+amer(state.price)+'</b>, which needs <b>'+pct(probOf(state.price))+'</b>.');
+  line('Model: <b>'+pct(r.prob)+'</b>. A fair price for that is <b>'+amer(S.fairPrice(r.prob))+
+       '</b> \u2014 anything longer is good value, anything shorter is not. '+
+       '<span style="color:var(--muted)">For reference: -300 needs 75.0%, -250 needs 71.4%.</span>');
 
   if(r.confidence < 0.65){
     line('<span class="flag">Small sample.</span> Only <b>'+r.player.pa+'</b> PA, so this estimate is mostly the league average, not this hitter.');
@@ -293,7 +270,6 @@ function buildWhy(r, game, side){
 
 function render(){
   seg(document.getElementById('view'), VIEWS, state.view, function(v){state.view=v; state.open=null; render();});
-  seg(document.getElementById('show'), SHOW, state.minProb, function(v){state.minProb=v; render();});
   seg(document.getElementById('lu'), LU, state.lineups, function(v){state.lineups=v; render();});
   seg(document.getElementById('top'), TOP, state.perTeam, function(v){state.perTeam=v; render();});
 
@@ -302,23 +278,13 @@ function render(){
 
   /* honest header */
   var note=document.getElementById('note');
-  note.innerHTML='';
   if(state.view==='hrr'){
-    note.innerHTML =
-      '<b>What the backtest says.</b> Model calibration was checked against <b>'+CAL.n+
-      '</b> real hitter-games it never saw: bias <b>'+(CAL.bias*100).toFixed(2)+'pp</b>. '+
-      'The average starter cashes <b>'+pct(CAL.baseRate)+'</b>; the model\'s best slice ever reached <b>'+pct(CAL.ceiling)+
-      '</b>. At <span class="hot">-300 you need 75.0%</span>, so most of this board is a losing bet at standard juice. '+
-      'The edge is in the price, not the pick. '+
-      '<span style="color:var(--muted)">Handedness and home/away are applied but are worth about 1 point '+
-      'combined on this prop \u2014 measured, not assumed, and the backtest found no improvement from them. '+
-      'They matter far more on home runs.</span>';
+    note.innerHTML = 'Chance of at least one hit, run or RBI. Checked against <b>'+CAL.n+
+      '</b> real games the model never saw \u2014 when it says 70%, it happens about 70% of the time. '+
+      'Tap any player for the detail.';
   } else {
-    note.innerHTML =
-      '<b>Home runs are not calibrated yet.</b> The H+R+RBI model was fitted and validated; this one has not been '+
-      'through <code>backtest.mjs</code>, so treat the percentages as unproven. '+
-      'It does use a home-run-specific handedness table: measured 2026, a left-handed batter facing left-handed '+
-      'pitching hits <b>29% fewer</b> home runs per plate appearance, where his hit rate only drops about 4%.';
+    note.innerHTML = 'Chance of at least one home run. <b>Not yet checked</b> against real results the way the '+
+      'hits board was, so treat these as rougher. Tap any player for the detail.';
   }
 
   var games=(D.games||[]).filter(function(g){
@@ -371,15 +337,7 @@ function render(){
         if(r.confidence<0.65) who.appendChild(el('span','chip','THIN'));
         row.appendChild(who);
 
-        row.appendChild(el('div','prob', pct(r.prob)));
-
-        var be=el('div','be');
-        be.appendChild(document.createTextNode(amer(S.fairPrice(r.prob))));
-        be.appendChild(el('small',null,'fair'));
-        row.appendChild(be);
-
-        var vd=verdictFor(r.prob);
-        row.appendChild(el('div','verdict '+(vd?vd.cls:''), vd?vd.text:''));
+        row.appendChild(el('div','prob', pct(r.prob, 0)));
         row.appendChild(el('div','caret','›'));
 
         row.addEventListener('click',function(){ state.open = open?null:key; render(); });
@@ -418,12 +376,6 @@ function render(){
   f.appendChild(el('div',null,
     'A calibrated probability is not a winning bet. At standard juice most of these are −EV. Bet only what you can afford to lose.'));
 }
-
-document.getElementById('price').addEventListener('input',function(e){
-  var v=parseFloat(e.target.value);
-  state.price = isFinite(v)?v:-300;
-  render();
-});
 
 render();
 })();

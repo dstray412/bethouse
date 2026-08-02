@@ -9,8 +9,11 @@ Open `index.html`. No build step, no server, no API key.
 ## What it is
 
 A daily board. For each game it shows the hitters most likely to record at
-least one hit, run or RBI, with the model's probability, the price that would
-be fair, and whether the price you're actually offered beats it.
+least one hit, run or RBI, and the chance that they do. Name, number, nothing
+else.
+
+Tap a player for the detail: the fair price, the plate appearances his lineup
+slot buys, how much his rate was regressed, and every adjustment applied.
 
 Click any row and it shows its work: the plate appearances the lineup slot
 buys, the player's season line, how much his rate was regressed toward league
