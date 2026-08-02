@@ -30,7 +30,7 @@ means 72% — including the part where 72% loses more than a quarter of the time
 
 ```sh
 node fetch-mlb.mjs      # builds mlb-data.js for today
-node --test edge.test.mjs score.test.mjs   # 79 tests
+node --test edge.test.mjs score.test.mjs   # 87 tests
 node backtest.mjs --prop tb2               # validate total bases
 node backtest.mjs       # measures whether the model actually works
 ```
@@ -281,6 +281,36 @@ handedness effect that genuinely moves a home run bet by more than fivefold.
   units mismatch (hit counts against a home-run rate) lands near 4.4; clamping
   that produced a confident 1.35 in a matchup whose true value is 0.75, pointing
   the wrong way. Falling back to the league value is the honest failure.
+
+---
+
+## Games already in progress
+
+The board used to show pregame projections all day, including for games that
+had already started. On a normal afternoon that is most of the slate: at one
+check, ten of fifteen games were underway and every one of them was still
+being shown a pregame number.
+
+That is not a cosmetic problem. A 44% chance of 2+ total bases assumes four or
+five trips to the plate. A hitter who has had two, with nothing to show for
+them, needs the same result from what is left, which is a much worse bet.
+
+So the fetcher pulls a live box score for every game underway (one extra
+keyless request each), and the model conditions on it:
+
+- **Already cashed** shows `HIT` rather than a probability. The bet is decided.
+- **No trips left and no result** shows `NO`.
+- **Otherwise** the number is recomputed on remaining plate appearances only,
+  and for total bases the bases already banked are subtracted from the
+  threshold. A hitter with a single needs one more base, not two.
+
+Game state appears on each card: the inning for a live game, `DELAYED`, or
+`FINAL`. Settled bets are ranked below live ones so they do not consume the
+top-N slots, but they stay visible so you can see how a placed bet is doing.
+
+One caveat worth knowing: a delayed game may not resume. The board marks the
+delay but cannot tell you whether those remaining plate appearances will ever
+happen.
 
 ---
 

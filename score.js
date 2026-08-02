@@ -321,10 +321,45 @@
    * @param ctx    {oppAvgAllowed, leagueAvgAllowed, teamRunsPerGame,
    *                leagueRunsPerGame, correlation}
    */
+  /**
+   * Plate appearances a hitter has LEFT, given what he has already taken.
+   *
+   * Without this the board shows a 44% pregame number to someone watching
+   * the fifth inning, when the hitter has had two trips and needs the same
+   * result from the two he has left. That is a different bet.
+   */
+  function remainingPA(slot, sofar) {
+    const total = expectedPA(slot);
+    if (!sofar || !(sofar.pa > 0)) return total;
+    return Math.max(0, total - sofar.pa);
+  }
+
   function scoreHRR(player, ctx) {
     ctx = ctx || {};
-    const pa = expectedPA(player.slot);
-    if (!(pa > 0) || !(Number(player.pa) > 0)) return null;
+    /* Validity first. An unknown lineup slot or an empty season means we
+       cannot model this player at all, which is not the same as saying his
+       bet is lost. Those two must not collapse into the same answer. */
+    const totalPA = expectedPA(player.slot);
+    if (!(totalPA > 0) || !(Number(player.pa) > 0)) return null;
+
+    const sofar = player.sofar || null;
+    // Already cashed: the bet is decided, no model needed.
+    if (sofar && (sofar.hits > 0 || sofar.runs > 0 || sofar.rbi > 0)) {
+      return {
+        name: player.name, slot: player.slot, settled: true, prob: 1,
+        score: 100, pa: player.pa, sofar: sofar,
+        expectedPA: expectedPA(player.slot), confidence: 1,
+      };
+    }
+    const pa = sofar ? remainingPA(player.slot, sofar) : totalPA;
+    if (!(pa > 0)) {
+      // No trips left and not cashed: the bet is lost.
+      return {
+        name: player.name, slot: player.slot, settled: true, prob: 0,
+        score: 0, pa: player.pa, sofar: sofar,
+        expectedPA: expectedPA(player.slot), confidence: 1,
+      };
+    }
 
     const pf = pitcherFactor(ctx.oppAvgAllowed, ctx.leagueAvgAllowed);
     const of = offenseFactor(ctx.teamRunsPerGame, ctx.leagueRunsPerGame);
@@ -374,6 +409,8 @@
       batSide: player.batSide || null,
       pitchHand: ctx.pitchHand || null,
       isHome: !!ctx.isHome,
+      sofar: sofar,
+      remainingPA: pa,
       prob: prob,
       score: isFinite(prob) ? Math.round(prob * 1000) / 10 : NaN,
     };
@@ -389,8 +426,23 @@
 
   function scoreHR(player, ctx) {
     ctx = ctx || {};
-    const pa = expectedPA(player.slot);
-    if (!(pa > 0) || !(Number(player.pa) > 0)) return null;
+    const totalPA = expectedPA(player.slot);
+    if (!(totalPA > 0) || !(Number(player.pa) > 0)) return null;
+
+    const sofar = player.sofar || null;
+    if (sofar && num(sofar.hr) > 0) {
+      return {
+        name: player.name, slot: player.slot, settled: true, prob: 1, score: 100,
+        pa: player.pa, sofar: sofar, expectedPA: totalPA, confidence: 1,
+      };
+    }
+    const pa = sofar ? remainingPA(player.slot, sofar) : totalPA;
+    if (!(pa > 0)) {
+      return {
+        name: player.name, slot: player.slot, settled: true, prob: 0, score: 0,
+        pa: player.pa, sofar: sofar, expectedPA: totalPA, confidence: 1,
+      };
+    }
 
     // Same regression guard as the H+R+RBI model. One home run in 12 PA is
     // not a 40-homer pace, and without this it would top the board.
@@ -430,6 +482,8 @@
       batSide: player.batSide || null,
       pitchHand: ctx.pitchHand || null,
       isHome: !!ctx.isHome,
+      sofar: sofar,
+      remainingPA: pa,
       prob: prob,
       score: Math.round(prob * 1000) / 10,
     };
@@ -535,9 +589,30 @@
    */
   function scoreTB(player, ctx) {
     ctx = ctx || {};
-    const n = ctx.threshold == null ? 2 : ctx.threshold;
-    const pa = expectedPA(player.slot);
-    if (!(pa > 0) || !(Number(player.pa) > 0)) return null;
+    const nTarget = ctx.threshold == null ? 2 : ctx.threshold;
+    const totalPA = expectedPA(player.slot);
+    if (!(totalPA > 0) || !(Number(player.pa) > 0)) return null;
+
+    const sofar = player.sofar || null;
+    // Bases already banked count toward the total, so the bet only needs
+    // the shortfall from the trips he has left.
+    const banked = sofar ? num(sofar.tb) : 0;
+    const n = nTarget - banked;
+    if (n <= 0) {
+      return {
+        name: player.name, slot: player.slot, threshold: nTarget, settled: true,
+        prob: 1, score: 100, pa: player.pa, sofar: sofar,
+        expectedPA: totalPA, expectedTB: banked, confidence: 1,
+      };
+    }
+    const pa = sofar ? remainingPA(player.slot, sofar) : totalPA;
+    if (!(pa > 0)) {
+      return {
+        name: player.name, slot: player.slot, threshold: nTarget, settled: true,
+        prob: 0, score: 0, pa: player.pa, sofar: sofar,
+        expectedPA: totalPA, expectedTB: banked, confidence: 1,
+      };
+    }
 
     const pf = pitcherFactor(ctx.oppAvgAllowed, ctx.leagueAvgAllowed);
     const base = tbRates(player, ctx.leagueTB, ctx);
@@ -563,9 +638,12 @@
     return {
       name: player.name,
       slot: player.slot,
-      threshold: n,
+      threshold: nTarget,
+      stillNeeds: n,
+      sofar: sofar,
+      remainingPA: pa,
       expectedPA: pa,
-      expectedTB: expected,
+      expectedTB: expected + banked,
       rates: rates,
       pa: player.pa,
       confidence: sampleConfidence(player.pa),
@@ -618,6 +696,7 @@
     DEFAULT_K: DEFAULT_K,
     REGRESSION_PA: REGRESSION_PA,
     expectedPA: expectedPA,
+    remainingPA: remainingPA,
     mixPow: mixPow,
     perPA: perPA,
     regressedPerPA: regressedPerPA,

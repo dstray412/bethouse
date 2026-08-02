@@ -56,6 +56,11 @@ header{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:1
   padding:2px 7px;border-radius:999px;border:1px solid var(--line);color:var(--muted);margin-left:7px;vertical-align:1px}
 .chip.live{color:var(--good);border-color:rgba(95,206,143,.4)}
 .chip.proj{color:var(--warn);border-color:rgba(224,163,63,.4)}
+.chip.livegame{color:#8fd9ff;border-color:rgba(56,225,255,.45)}
+.chip.delayed{color:var(--warn);border-color:rgba(224,163,63,.55)}
+.chip.done{color:var(--muted)}
+.settled{font-size:11px;font-family:var(--display);font-weight:700;letter-spacing:.06em}
+.settled.win{color:var(--good)} .settled.lost{color:var(--bad)}
 .vs{font-size:12.5px;color:var(--muted)}
 .vs b{color:var(--text);font-weight:600}
 
@@ -222,6 +227,7 @@ function scoreSide(game, side){
     p.vsHandHR   = vs ? { hits: vs.hr,   pa: vs.pa } : null;
     p.homeAway   = sp.venue ? { hits: sp.venue.hits, pa: sp.venue.pa } : null;
     p.homeAwayHR = sp.venue ? { hits: sp.venue.hr,   pa: sp.venue.pa } : null;
+    p.sofar = p.sofar || null;
     var r = state.view==='hr' ? S.scoreHR(p,ctx)
           : state.view==='tb' ? S.scoreTB(p,ctx)
           : S.scoreHRR(p,ctx);
@@ -238,7 +244,25 @@ function buildWhy(r, game, side){
   var w=el('div','why');
   function line(html){var d=el('div'); d.innerHTML=html; w.appendChild(d);}
 
-  line('Batting <b>#'+r.slot+'</b> → about <b>'+r.expectedPA.toFixed(2)+'</b> plate appearances.');
+  if(r.sofar && r.sofar.pa>0){
+    line('<b>Game underway.</b> He has taken <b>'+r.sofar.pa+'</b> plate appearance'+(r.sofar.pa===1?'':'s')+
+         ' so far: <b>'+r.sofar.hits+'</b> H, <b>'+r.sofar.runs+'</b> R, <b>'+r.sofar.rbi+'</b> RBI, <b>'+
+         r.sofar.tb+'</b> total bases.');
+  }
+  if(r.settled){
+    line(r.prob>=1
+      ? '<span style="color:var(--good)">This bet has already hit.</span>'
+      : '<span style="color:var(--bad)">No plate appearances left. This bet is done.</span>');
+    return w;
+  }
+  line('Batting <b>#'+r.slot+'</b> → '+
+    (r.remainingPA!=null && r.sofar && r.sofar.pa>0
+      ? 'about <b>'+r.remainingPA.toFixed(2)+'</b> plate appearances LEFT (of '+expectedFull(r)+' expected)'
+      : 'about <b>'+r.expectedPA.toFixed(2)+'</b> plate appearances')+'.');
+  if(state.view==='tb' && r.stillNeeds!=null && r.stillNeeds!==r.threshold){
+    line('Already has <b>'+(r.threshold-r.stillNeeds)+'</b> base'+((r.threshold-r.stillNeeds)===1?'':'s')+
+         ', so he needs <b>'+r.stillNeeds+'</b> more.');
+  }
   if(state.view==='hrr'){
     line('Season: <b>'+r.player.hits+'</b> H, <b>'+r.player.runs+'</b> R, <b>'+r.player.rbi+
          '</b> RBI in <b>'+r.player.pa+'</b> PA'+(r.player.avg?' (AVG '+r.player.avg+', OBP '+r.player.obp+')':'')+'.');
@@ -313,6 +337,11 @@ function render(){
       'hits board was, so treat these as rougher. Tap any player for the detail.';
   }
 
+  var liveN=(D.games||[]).filter(function(g){return g.live;}).length;
+  if(liveN){
+    note.innerHTML += ' <b>'+liveN+' game'+(liveN===1?' is':'s are')+' underway</b> \u2014 those numbers count only the plate appearances a hitter has left.';
+  }
+
   var games=(D.games||[]).filter(function(g){
     if(state.lineups==='posted') return g.away.confirmed||g.home.confirmed;
     return true;
@@ -327,15 +356,30 @@ function render(){
     var head=el('div','ghead');
     var ttl=el('div','gtitle', g.away.team+' @ '+g.home.team);
     head.appendChild(ttl);
-    head.appendChild(el('div','gmeta', timeStr(g.startTime)+' · '+(g.venue||'')));
+    var meta=el('div','gmeta');
+    if(g.live){
+      var lab = /Delay/i.test(g.status) ? g.status : (g.inningState||'')+' '+(g.inning||'');
+      meta.appendChild(el('span','chip '+(/Delay/i.test(g.status)?'delayed':'livegame'), lab.trim().toUpperCase()));
+      meta.appendChild(document.createTextNode(' '+(g.venue||'')));
+    } else if(/Final|Game Over/i.test(g.status)){
+      meta.appendChild(el('span','chip done','FINAL'));
+      meta.appendChild(document.createTextNode(' '+(g.venue||'')));
+    } else {
+      meta.textContent = timeStr(g.startTime)+' · '+(g.venue||'');
+    }
+    head.appendChild(meta);
     card.appendChild(head);
 
     var any=false;
     ['away','home'].forEach(function(side){
       var s=g[side], faces=g[side+'Faces'];
-      var rows=scoreSide(g,side)
-        .filter(function(r){return r.prob>=state.minProb;})
-        .slice(0, state.perTeam);
+      /* Settled bets are decided and not actionable, so they must not eat
+         the top-N budget. Rank live candidates first, then append anything
+         already resolved so you can still see how placed bets are doing. */
+      var all=scoreSide(g,side).filter(function(r){return r.prob>=state.minProb;});
+      var live=all.filter(function(r){return !r.settled;}).slice(0, state.perTeam);
+      var done=all.filter(function(r){return r.settled;});
+      var rows=live.concat(done);
       if(!rows.length) return;
       any=true;
 
@@ -363,7 +407,11 @@ function render(){
         if(r.confidence<0.65) who.appendChild(el('span','chip','THIN'));
         row.appendChild(who);
 
-        row.appendChild(el('div','prob', pct(r.prob, 0)));
+        if(r.settled){
+          row.appendChild(el('div','prob settled '+(r.prob>=1?'win':'lost'), r.prob>=1?'HIT':'NO'));
+        } else {
+          row.appendChild(el('div','prob', pct(r.prob, 0)));
+        }
         row.appendChild(el('div','caret','›'));
 
         row.addEventListener('click',function(){ state.open = open?null:key; render(); });

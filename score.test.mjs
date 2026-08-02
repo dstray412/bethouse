@@ -447,3 +447,83 @@ test("the plausibility guard rejects only absurd ratios, not real splits", () =>
   const mismatch = score.platoonFactor("L", "L", PLAT_HR, { hits: 110, pa: 500 }, 0.05);
   close(mismatch, PLAT_HR.L.L, 1e-12);
 });
+
+/* ---------------------------------------------------------------- *
+ * Games already in progress
+ * ---------------------------------------------------------------- */
+
+test("a bet already won is settled at 100%, not modelled", () => {
+  const s = score.scoreHRR(
+    { ...PLAYER, sofar: { pa: 2, hits: 1, runs: 0, rbi: 0, tb: 1, hr: 0 } },
+    {}
+  );
+  assert.equal(s.settled, true);
+  assert.equal(s.prob, 1);
+});
+
+test("a bet with no trips left and no result is settled at 0%", () => {
+  const s = score.scoreHRR(
+    { ...PLAYER, slot: 9, sofar: { pa: 9, hits: 0, runs: 0, rbi: 0, tb: 0, hr: 0 } },
+    {}
+  );
+  assert.equal(s.settled, true);
+  assert.equal(s.prob, 0);
+});
+
+test("mid-game, only the remaining trips count", () => {
+  // Two trips taken, nothing to show for them. The bet now needs the same
+  // result from what is left, which is a materially worse number than the
+  // pregame one. Showing the pregame figure to someone watching the fifth
+  // inning is the bug this fixes.
+  const pre = score.scoreHRR(PLAYER, {});
+  const mid = score.scoreHRR(
+    { ...PLAYER, sofar: { pa: 2, hits: 0, runs: 0, rbi: 0, tb: 0, hr: 0 } },
+    {}
+  );
+  assert.ok(mid.prob < pre.prob, "mid-game must be lower than pregame");
+  close(mid.remainingPA, score.expectedPA(1) - 2, 1e-9);
+});
+
+test("remaining plate appearances never go negative", () => {
+  close(score.remainingPA(1, { pa: 99 }), 0);
+  close(score.remainingPA(1, null), score.expectedPA(1));
+  close(score.remainingPA(1, { pa: 0 }), score.expectedPA(1));
+});
+
+test("an unknown lineup slot is unmodellable, not a lost bet", () => {
+  // These must stay null. Returning a settled 0% would put a confident
+  // "no chance" on a player we simply have no lineup information for.
+  assert.equal(score.scoreHRR({ ...PLAYER, slot: undefined }, {}), null);
+  assert.equal(score.scoreHRR({ ...PLAYER, slot: 12 }, {}), null);
+  assert.equal(score.scoreHRR({ ...PLAYER, pa: 0 }, {}), null);
+});
+
+test("total bases already banked count toward the threshold", () => {
+  const lgTB = { single: 0.152, double: 0.043, triple: 0.004, hr: 0.031 };
+  const base = { name: "x", hits: 120, doubles: 28, triples: 2, hr: 20, pa: 500, slot: 2 };
+  // A double in the first inning settles a 2+ bet immediately.
+  const done = score.scoreTB({ ...base, sofar: { pa: 1, tb: 2 } }, { leagueTB: lgTB, threshold: 2 });
+  assert.equal(done.settled, true);
+  assert.equal(done.prob, 1);
+  // A single leaves him needing one more base from his remaining trips,
+  // which is EASIER than the pregame 2+ bet, so the number must go up.
+  const pre = score.scoreTB(base, { leagueTB: lgTB, threshold: 2 });
+  const partial = score.scoreTB({ ...base, sofar: { pa: 1, tb: 1 } }, { leagueTB: lgTB, threshold: 2 });
+  assert.equal(partial.stillNeeds, 1);
+  assert.ok(partial.prob > pre.prob, "one base banked should improve a 2+ bet");
+});
+
+test("total bases with nothing banked and trips burned gets worse", () => {
+  const lgTB = { single: 0.152, double: 0.043, triple: 0.004, hr: 0.031 };
+  const base = { name: "x", hits: 120, doubles: 28, triples: 2, hr: 20, pa: 500, slot: 2 };
+  const pre = score.scoreTB(base, { leagueTB: lgTB, threshold: 2 });
+  const cold = score.scoreTB({ ...base, sofar: { pa: 2, tb: 0 } }, { leagueTB: lgTB, threshold: 2 });
+  assert.ok(cold.prob < pre.prob, "two hitless trips should lower a 2+ bet");
+  assert.equal(cold.stillNeeds, 2);
+});
+
+test("a home run already hit settles the home run bet", () => {
+  const s = score.scoreHR({ hr: 25, pa: 500, slot: 3, sofar: { pa: 2, hr: 1 } }, {});
+  assert.equal(s.settled, true);
+  assert.equal(s.prob, 1);
+});

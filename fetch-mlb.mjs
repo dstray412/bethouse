@@ -73,7 +73,7 @@ async function main() {
 
   const [sched, recent, hitters, pitchers, teamHit] = await Promise.all([
     get(
-      `${API}/schedule?sportId=1&date=${DATE}&hydrate=lineups,probablePitcher,venue,team`,
+      `${API}/schedule?sportId=1&date=${DATE}&hydrate=lineups,probablePitcher,venue,team,linescore`,
       "schedule"
     ),
     get(
@@ -288,6 +288,10 @@ async function main() {
         gamePk: g.gamePk,
         startTime: g.gameDate,
         status: g.status?.detailedState || "",
+        abstract: g.status?.abstractGameState || "",
+        live: (g.status?.abstractGameState || "") === "Live",
+        inning: g.linescore?.currentInning || null,
+        inningState: g.linescore?.inningState || null,
         venue: g.venue?.name || "",
         away: buildSide(g, "away"),
         home: buildSide(g, "home"),
@@ -437,6 +441,41 @@ async function main() {
     for (const key of ["awayFaces", "homeFaces"]) {
       if (g[key]) g[key].throws = (hand.get(g[key].id) || {}).throws || null;
     }
+  }
+
+  /* Games already underway need live results, or the board keeps showing
+     pregame projections to someone watching the 5th inning. One extra
+     request per live game, still keyless. */
+  const liveGames = games.filter((g) => g.live);
+  if (liveGames.length) {
+    const boxes = await Promise.all(
+      liveGames.map((g) =>
+        get(`${API}/game/${g.gamePk}/boxscore`, `live ${g.gamePk}`).catch(() => null)
+      )
+    );
+    liveGames.forEach((g, i) => {
+      const box = boxes[i];
+      if (!box) return;
+      for (const side of ["away", "home"]) {
+        const byId = new Map();
+        for (const p of Object.values(box.teams[side].players)) {
+          const st = p.stats?.batting;
+          if (!st) continue;
+          byId.set(p.person.id, {
+            pa: num(st.plateAppearances),
+            hits: num(st.hits),
+            runs: num(st.runs),
+            rbi: num(st.rbi),
+            tb: num(st.totalBases),
+            hr: num(st.homeRuns),
+          });
+        }
+        for (const pl of g[side].lineup) {
+          pl.sofar = byId.get(pl.id) || { pa: 0, hits: 0, runs: 0, rbi: 0, tb: 0, hr: 0 };
+        }
+      }
+    });
+    console.log(`  live games:       ${liveGames.length} (pulled in-game results)`);
   }
 
   league.platoon = leaguePlatoon;
