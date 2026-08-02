@@ -65,7 +65,13 @@ jobs:
         run: |
           git config user.name  "bethouse-bot"
           git config user.email "bethouse-bot@users.noreply.github.com"
-          git add mlb-data.js record.js history/
+          # record.js only exists once a day has been graded, and history/
+          # only once something has been snapshotted. Adding a path that is
+          # not there yet is a fatal error, which took down every scheduled
+          # run until the first graded day.
+          git add mlb-data.js
+          [ -f record.js ] && git add record.js || true
+          [ -d history ] && git add history/ || true
           if git diff --staged --quiet; then
             echo "No change."
           else
