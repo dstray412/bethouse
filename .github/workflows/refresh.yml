@@ -46,7 +46,10 @@ jobs:
             if (d.games.length && slots < d.games.length * 9) throw new Error("lineups look truncated: " + slots);
             console.log("ok:", d.games.length, "games,", slots, "lineup slots");
           '
-          node --test
+          # Name the test files explicitly. `node --test` bare discovery picks
+          # up backtest.mjs on Node 21+ and would fire ~100 live API calls at
+          # statsapi on every scheduled run.
+          node --test edge.test.mjs score.test.mjs
 
       - name: Commit if the board changed
         run: |

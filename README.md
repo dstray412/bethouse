@@ -27,7 +27,7 @@ means 72% — including the part where 72% loses more than a quarter of the time
 
 ```sh
 node fetch-mlb.mjs      # builds mlb-data.js for today
-node --test             # 66 tests
+node --test edge.test.mjs score.test.mjs   # 65 tests
 node backtest.mjs       # measures whether the model actually works
 ```
 
