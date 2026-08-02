@@ -174,6 +174,92 @@
     return Math.max(1 - cap, Math.min(1 + cap, raw));
   }
 
+  /* ------------------------------------------------------------------ *
+   * Handedness and home/away
+   *
+   * Both are supplied as MEASURED league ratios by the fetcher, never
+   * assumed here. For 2026 through Aug 2, hits per PA came out:
+   *
+   *   R-handed batters  vs LHP .2309  vs RHP .2201   (+4.9%)
+   *   L-handed batters  vs LHP .2219  vs RHP .2303   (-3.6%)
+   *   S-handed batters  vs LHP .2243  vs RHP .2154   (+4.1%)
+   *   home .2249  away .2192                          (+2.6%)
+   *
+   * A warning about the aggregate: pooling all batters together shows only
+   * a +1.6% "vs LHP" effect, because righties' +4.9% and lefties' -3.6%
+   * partly cancel. Applying that pooled number to everyone would be worse
+   * than applying nothing, since it points the wrong way for half the
+   * league. Always split by batter handedness.
+   *
+   * PLAYER-SPECIFIC SPLITS ARE MOSTLY NOISE. A hitter needs on the order of
+   * 1,000 PA against one hand before his own platoon split says more than
+   * the league's does. So the player's own number is blended in with a very
+   * large K, which means for most hitters this is the league effect plus a
+   * nudge. That is the honest amount of signal available, not a shortcut.
+   * ------------------------------------------------------------------ */
+
+  const PLATOON_K = 600;   // PA vs one hand before a player's own split half-counts
+  const HOMEAWAY_K = 800;  // individual home/away splits are even noisier
+
+  /* Below this many PA, ignore the player's own split entirely and use the
+     league value. The regression weight at 40 PA is only 6%, but a hot
+     40-PA line can be a 1.36x multiplier, and 6% of that still moved the
+     final probability by 0.86pp — nearly the size of the entire league
+     platoon effect. Forty plate appearances should not get that much say. */
+  const MIN_SPLIT_PA = 60;
+
+  /**
+   * Multiplier on the hit rate for this batter facing this pitcher's hand.
+   *
+   * @param batSide   "L" | "R" | "S"
+   * @param pitchHand "L" | "R"
+   * @param lg        measured ratios: { R:{L:1.035,R:0.986}, L:{...}, S:{...} }
+   *                  keyed [batSide][pitchHand], relative to the batter's
+   *                  OVERALL rate
+   * @param own       optional { hits, pa } for this batter vs this hand
+   * @param ownOverall optional the batter's overall hits-per-PA
+   */
+  function platoonFactor(batSide, pitchHand, lg, own, ownOverall, opts) {
+    if (!lg || !batSide || !pitchHand) return 1;
+    const row = lg[batSide] || lg["R"];
+    if (!row) return 1;
+    const leagueMult = row[pitchHand];
+    if (!(leagueMult > 0)) return 1;
+
+    // No usable player sample: use the league effect alone.
+    if (!own || !(own.pa >= MIN_SPLIT_PA) || !(ownOverall > 0)) return leagueMult;
+
+    const ownMult = safeRate(own.hits, own.pa) / ownOverall;
+    /* A ratio this far from 1 means the caller passed mismatched units (for
+       example a hits count divided by a home-run rate, which lands near 4.4).
+       Clamping that would produce a confident 1.35 in a matchup whose real
+       value is 0.75 — pointing the wrong way. Refuse it and fall back to the
+       league value instead. */
+    if (!(ownMult > 0.4 && ownMult < 2.5)) return leagueMult;
+
+    const w = own.pa / (own.pa + PLATOON_K);
+    const blended = w * ownMult + (1 - w) * leagueMult;
+    /* Clamp. The floor has to accommodate the real lefty-vs-lefty home run
+       effect (~0.71), which a hits-calibrated floor of 0.82 would silently
+       truncate — turning a 29% suppression into 18%. */
+    const lo = opts && opts.floor != null ? opts.floor : 0.65;
+    const hi = opts && opts.ceil != null ? opts.ceil : 1.35;
+    return Math.max(lo, Math.min(hi, blended));
+  }
+
+  /** Same idea for the ballpark the game is in. */
+  function homeAwayFactor(isHome, lg, own, ownOverall) {
+    if (!lg) return 1;
+    const leagueMult = isHome ? lg.home : lg.away;
+    if (!(leagueMult > 0)) return 1;
+    if (!own || !(own.pa >= MIN_SPLIT_PA) || !(ownOverall > 0)) return leagueMult;
+    const ownMult = safeRate(own.hits, own.pa) / ownOverall;
+    if (!(ownMult > 0.4 && ownMult < 2.5)) return leagueMult;
+    const w = own.pa / (own.pa + HOMEAWAY_K);
+    const blended = w * ownMult + (1 - w) * leagueMult;
+    return Math.max(0.88, Math.min(1.14, blended));
+  }
+
   /**
    * Team runs per game relative to the league. Affects the run and RBI
    * legs only — a great lineup does not make YOU get a hit, it makes you
@@ -206,11 +292,26 @@
     // Regress first, THEN apply context. Doing it the other way round lets a
     // 9-PA hitter's noise get multiplied by a favourable matchup.
     const base = regressedPerPA(player, ctx.leagueRates, ctx);
+
+    const plat = platoonFactor(
+      player.batSide,
+      ctx.pitchHand,
+      ctx.leaguePlatoon,
+      player.vsHand,
+      base.hit
+    );
+    const ha = homeAwayFactor(ctx.isHome, ctx.leagueHomeAway, player.homeAway, base.hit);
+
+    /* The platoon factor moves hits and RBI but NOT runs. That is a data
+       fact, not a modelling choice: MLB does not report runs scored inside
+       the vs-LHP / vs-RHP splits (154/154 and 346/346 rows came back null),
+       because you score after reaching base, often against a different
+       pitcher entirely. Home/away does report runs, so it moves all three. */
     const clamp = (x) => Math.max(0, Math.min(0.999, x));
     const rates = {
-      hit: clamp(base.hit * pf),
-      run: clamp(base.run * pf * of),
-      rbi: clamp(base.rbi * pf * of),
+      hit: clamp(base.hit * pf * plat * ha),
+      run: clamp(base.run * pf * of * ha),
+      rbi: clamp(base.rbi * pf * of * plat * ha),
     };
 
     const prob = probFromRates(rates, pa, k);
@@ -227,6 +328,11 @@
       confidence: sampleConfidence(player.pa),
       pitcherFactor: pf,
       offenseFactor: of,
+      platoonFactor: plat,
+      homeAwayFactor: ha,
+      batSide: player.batSide || null,
+      pitchHand: ctx.pitchHand || null,
+      isHome: !!ctx.isHome,
       prob: prob,
       score: isFinite(prob) ? Math.round(prob * 1000) / 10 : NaN,
     };
@@ -258,7 +364,17 @@
     if (ctx.pitcherHr9 > 0) pf = Math.max(0.75, Math.min(1.35, ctx.pitcherHr9 / lgHr9));
     const park = ctx.parkFactor > 0 ? ctx.parkFactor : 1;
 
-    const lambda = hrPerPA * pa * pf * park;
+    /* Use the HOME RUN platoon table, not the hits one. Measured 2026:
+       a left-handed batter facing left-handed pitching hits 29% fewer home
+       runs per PA, where his hit rate only drops about 4%. Applying the
+       hits ratios here would understate the effect that matters most by
+       more than five times. Falls back to the hits table if HR ratios are
+       missing, and to neutral if both are. */
+    const platTable = ctx.leaguePlatoonHR || ctx.leaguePlatoon;
+    const haTable = ctx.leagueHomeAwayHR || ctx.leagueHomeAway;
+    const plat = platoonFactor(player.batSide, ctx.pitchHand, platTable, player.vsHandHR, hrPerPA);
+    const ha = homeAwayFactor(ctx.isHome, haTable, player.homeAwayHR, hrPerPA);
+    const lambda = hrPerPA * pa * pf * park * plat * ha;
     const prob = 1 - Math.exp(-lambda);
     return {
       name: player.name,
@@ -267,6 +383,11 @@
       hrRate: hrPerPA,
       pitcherFactor: pf,
       parkFactor: park,
+      platoonFactor: plat,
+      homeAwayFactor: ha,
+      batSide: player.batSide || null,
+      pitchHand: ctx.pitchHand || null,
+      isHome: !!ctx.isHome,
       prob: prob,
       score: Math.round(prob * 1000) / 10,
     };
@@ -316,6 +437,11 @@
     probAtLeastOne: probAtLeastOne,
     pitcherFactor: pitcherFactor,
     offenseFactor: offenseFactor,
+    platoonFactor: platoonFactor,
+    homeAwayFactor: homeAwayFactor,
+    PLATOON_K: PLATOON_K,
+    HOMEAWAY_K: HOMEAWAY_K,
+    MIN_SPLIT_PA: MIN_SPLIT_PA,
     scoreHRR: scoreHRR,
     scoreHR: scoreHR,
     fairPrice: fairPrice,

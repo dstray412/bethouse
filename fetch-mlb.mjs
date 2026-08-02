@@ -283,6 +283,134 @@ async function main() {
 
   games.sort((a, b) => String(a.startTime).localeCompare(String(b.startTime)));
 
+  /* ---------------------------------------------------------------- *
+   * Handedness + splits
+   *
+   * Two more requests. Handedness is only needed for players actually on
+   * a card today (~300 people), so it batches into two calls rather than
+   * looking up all 678 hitters in the league.
+   * ---------------------------------------------------------------- */
+
+  const needIds = new Set();
+  for (const g of games) {
+    for (const side of ["away", "home"]) {
+      for (const p of g[side].lineup) needIds.add(p.id);
+    }
+    for (const key of ["awayFaces", "homeFaces"]) if (g[key]) needIds.add(g[key].id);
+  }
+
+  const hand = new Map(); // id -> { bats, throws }
+  const idList = [...needIds];
+  for (let i = 0; i < idList.length; i += 150) {
+    const chunk = idList.slice(i, i + 150);
+    const res = await get(`${API}/people?personIds=${chunk.join(",")}`, "people");
+    for (const p of res.people || []) {
+      hand.set(p.id, {
+        bats: (p.batSide || {}).code || null,
+        throws: (p.pitchHand || {}).code || null,
+      });
+    }
+  }
+
+  const splitsRaw = await get(
+    `${API}/stats?stats=statSplits&sitCodes=vl,vr,h,a&group=hitting&season=${SEASON}` +
+      `&sportId=1&gameType=R&playerPool=ALL&limit=4000`,
+    "splits"
+  );
+
+  // id -> { vl:{hits,pa}, vr:{...}, h:{...}, a:{...} }
+  const splits = new Map();
+  for (const s of splitsRaw.stats?.[0]?.splits || []) {
+    const code = s.split?.code;
+    if (!code) continue;
+    const st = s.stat || {};
+    const rec = splits.get(s.player.id) || {};
+    rec[code] = { hits: num(st.hits), hr: num(st.homeRuns), pa: num(st.plateAppearances) };
+    splits.set(s.player.id, rec);
+  }
+
+  /* League ratios, measured. Computed per batter handedness because the
+     pooled number is misleading: righties gain ~4.9% vs LHP while lefties
+     LOSE ~3.6%, so the aggregate reads +1.6% and points the wrong way for
+     half the league. Each ratio is relative to that group's OVERALL rate,
+     which is what score.js multiplies against. */
+  const agg = {};
+  const bump = (bucket, key, rec) => {
+    if (!rec || !(rec.pa > 0)) return;
+    agg[bucket] = agg[bucket] || {};
+    agg[bucket][key] = agg[bucket][key] || { hits: 0, hr: 0, pa: 0 };
+    agg[bucket][key].hits += rec.hits;
+    agg[bucket][key].hr += num(rec.hr);
+    agg[bucket][key].pa += rec.pa;
+  };
+  for (const [pid, rec] of splits) {
+    const h = hitStat.get(pid);
+    if (!h || h.pa < 80) continue; // keep league ratios off tiny samples
+    const bats = (hand.get(pid) || {}).bats || null;
+    if (bats) {
+      bump("bat:" + bats, "vl", rec.vl);
+      bump("bat:" + bats, "vr", rec.vr);
+      bump("bat:" + bats, "all", { hits: h.hits, hr: h.hr, pa: h.pa });
+    }
+    bump("venue", "h", rec.h);
+    bump("venue", "a", rec.a);
+    bump("venue", "all", { hits: h.hits, hr: h.hr, pa: h.pa });
+  }
+  const ratio = (b, key) => {
+    const g = agg[b];
+    if (!g || !g[key] || !g.all || !(g[key].pa > 0) || !(g.all.pa > 0)) return null;
+    return g[key].hits / g[key].pa / (g.all.hits / g.all.pa);
+  };
+  const leaguePlatoon = {};
+  for (const bs of ["R", "L", "S"]) {
+    const L = ratio("bat:" + bs, "vl");
+    const R = ratio("bat:" + bs, "vr");
+    if (L && R) leaguePlatoon[bs] = { L, R };
+  }
+  const leagueHomeAway = { home: ratio("venue", "h") || 1, away: ratio("venue", "a") || 1 };
+
+  /* Home runs need their OWN platoon table. The hits split is about +/-2%;
+     the home-run split for left-handed batters facing left-handed pitching
+     is roughly -29%. Reusing the hits ratios for power understates the one
+     handedness effect that genuinely moves a home run bet. */
+  const ratioHR = (b, key) => {
+    const g = agg[b];
+    if (!g || !g[key] || !g.all || !(g[key].pa > 0) || !(g.all.pa > 0)) return null;
+    const a = g[key].hr / g[key].pa, o = g.all.hr / g.all.pa;
+    return o > 0 ? a / o : null;
+  };
+  const leaguePlatoonHR = {};
+  for (const bs of ["R", "L", "S"]) {
+    const L = ratioHR("bat:" + bs, "vl"), R = ratioHR("bat:" + bs, "vr");
+    if (L && R) leaguePlatoonHR[bs] = { L, R };
+  }
+  const leagueHomeAwayHR = { home: ratioHR("venue", "h") || 1, away: ratioHR("venue", "a") || 1 };
+
+  // Attach per-player handedness and split samples.
+  for (const g of games) {
+    for (const side of ["away", "home"]) {
+      const isHome = side === "home";
+      g[side].isHome = isHome;
+      for (const p of g[side].lineup) {
+        p.batSide = (hand.get(p.id) || {}).bats || null;
+        const rec = splits.get(p.id) || {};
+        p.splits = {
+          vl: rec.vl || null,
+          vr: rec.vr || null,
+          venue: (isHome ? rec.h : rec.a) || null,
+        };
+      }
+    }
+    for (const key of ["awayFaces", "homeFaces"]) {
+      if (g[key]) g[key].throws = (hand.get(g[key].id) || {}).throws || null;
+    }
+  }
+
+  league.platoon = leaguePlatoon;
+  league.homeAway = leagueHomeAway;
+  league.platoonHR = leaguePlatoonHR;
+  league.homeAwayHR = leagueHomeAwayHR;
+
   const payload = { date: DATE, fetchedAt: new Date().toISOString(), season: SEASON, league, games };
 
   if (!games.length) {
@@ -310,6 +438,17 @@ async function main() {
   console.log(`  lineups posted:   ${full} complete, ${confirmed - full} partial, ${games.length - confirmed} projected`);
   console.log(`  league:           ${league.runsPerGame.toFixed(2)} R/G, ${league.avgAllowed.toFixed(3)} AVG, ${league.hr9.toFixed(2)} HR/9`);
   console.log(`  hitters indexed:  ${hitStat.size}   pitchers: ${pitchStat.size}`);
+  const pl = payload.league.platoon;
+  for (const bs of ["R", "L", "S"]) {
+    if (pl[bs]) console.log(`  platoon ${bs}HB:      vs LHP x${pl[bs].L.toFixed(4)}   vs RHP x${pl[bs].R.toFixed(4)}`);
+  }
+  console.log(`  home/away:        home x${payload.league.homeAway.home.toFixed(4)}   away x${payload.league.homeAway.away.toFixed(4)}`);
+  const ph = payload.league.platoonHR;
+  for (const bs of ["R", "L", "S"]) {
+    if (ph[bs]) console.log(`  HR platoon ${bs}HB:   vs LHP x${ph[bs].L.toFixed(4)}   vs RHP x${ph[bs].R.toFixed(4)}`);
+  }
+  const withHand = games.reduce((n,g)=>n+[...g.away.lineup,...g.home.lineup].filter(p=>p.batSide).length,0);
+  console.log(`  handedness known: ${withHand}/${games.length*18} lineup slots`);
   if (missingStats) console.log(`  note: ${missingStats} lineup slots have no season line yet (callups)`);
   console.log(`Wrote ${path.basename(OUT)} (${(fs.statSync(OUT).size / 1024).toFixed(0)} KB)`);
 }

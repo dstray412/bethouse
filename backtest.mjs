@@ -110,7 +110,7 @@ async function collect() {
     const chunk = pks.slice(i, i + BATCH);
     const boxes = await Promise.all(
       chunk.map((pk) =>
-        get(`${API}/game/${pk}/boxscore`, `box ${pk}`).catch(() => null)
+        get(`${API}/game/${pk}/boxscore?hydrate=person`, `box ${pk}`).catch(() => null)
       )
     );
     for (const box of boxes) {
@@ -145,6 +145,7 @@ function harvest(box, obs) {
       best = {
         ip: ipPrior,
         avgAllowed: abPrior > 20 ? hPrior / abPrior : 0,
+        throws: (p.person?.pitchHand || {}).code || null,
       };
     }
     starterEntering[side] = best;
@@ -177,6 +178,11 @@ function harvest(box, obs) {
         runs,
         rbi,
         oppAvgAllowed: faced && faced.ip > 20 ? faced.avgAllowed : 0,
+        batSide: (p.person?.batSide || {}).code || null,
+        pitchHand: faced ? faced.throws : null,
+        isHome: side === "home",
+        gameHits: num(g.hits),
+        gamePA: num(g.plateAppearances),
         actual,
       });
     }
@@ -200,15 +206,64 @@ function leagueRatesFrom(obs) {
     : { hit: 0.217, run: 0.119, rbi: 0.114 };
 }
 
-function predictAll(obs, k, lg, lgAvgAllowed) {
+/**
+ * League platoon and home/away ratios, measured from the backtest window
+ * itself rather than imported. Each is relative to that batter group's
+ * OVERALL rate, which is what score.js multiplies against.
+ *
+ * Computed per batter handedness on purpose: pooling all batters shows a
+ * misleadingly small "vs LHP" effect because righties gain and lefties lose.
+ */
+function leagueSplitsFrom(obs) {
+  const bucket = {};
+  const add = (b, key, hits, pa) => {
+    bucket[b] = bucket[b] || {};
+    bucket[b][key] = bucket[b][key] || { h: 0, pa: 0 };
+    bucket[b][key].h += hits;
+    bucket[b][key].pa += pa;
+  };
+  for (const o of obs) {
+    if (!o.gamePA) continue;
+    if (o.batSide && o.pitchHand) {
+      add("b" + o.batSide, o.pitchHand, o.gameHits, o.gamePA);
+      add("b" + o.batSide, "all", o.gameHits, o.gamePA);
+    }
+    add("venue", o.isHome ? "home" : "away", o.gameHits, o.gamePA);
+    add("venue", "all", o.gameHits, o.gamePA);
+  }
+  const ratio = (b, key) => {
+    const g = bucket[b];
+    if (!g || !g[key] || !g.all || !g[key].pa || !g.all.pa) return null;
+    return g[key].h / g[key].pa / (g.all.h / g.all.pa);
+  };
+  const platoon = {};
+  for (const bs of ["R", "L", "S"]) {
+    const L = ratio("b" + bs, "L"), R = ratio("b" + bs, "R");
+    if (L && R) platoon[bs] = { L, R };
+  }
+  return {
+    platoon,
+    homeAway: { home: ratio("venue", "home") || 1, away: ratio("venue", "away") || 1 },
+    counts: bucket,
+  };
+}
+
+function predictAll(obs, k, lg, lgAvgAllowed, splits) {
   return obs.map((o) => {
     const s = score.scoreHRR(
-      { name: o.name, hits: o.hits, runs: o.runs, rbi: o.rbi, pa: o.pa, slot: o.slot },
+      {
+        name: o.name, hits: o.hits, runs: o.runs, rbi: o.rbi, pa: o.pa, slot: o.slot,
+        batSide: splits ? o.batSide : null,
+      },
       {
         correlation: k,
         leagueRates: lg,
         oppAvgAllowed: o.oppAvgAllowed,
         leagueAvgAllowed: lgAvgAllowed,
+        pitchHand: splits ? o.pitchHand : null,
+        leaguePlatoon: splits ? splits.platoon : null,
+        leagueHomeAway: splits ? splits.homeAway : null,
+        isHome: o.isHome,
       }
     );
     return { p: s ? s.prob : NaN, actual: o.actual, slot: o.slot };
@@ -298,8 +353,43 @@ async function main() {
     return;
   }
 
-  const rows = predictAll(obs, score.DEFAULT_K, lg, lgAvgAllowed);
-  console.log(`\n  Using DEFAULT_K = ${score.DEFAULT_K}`);
+  /* ---- do the new inputs actually help? ---- */
+  const splits = leagueSplitsFrom(obs);
+  console.log(`\n  Measured splits in this window (hits per PA, vs that group's overall):`);
+  for (const bs of ["R", "L", "S"]) {
+    if (splits.platoon[bs])
+      console.log(`    ${bs}HB   vs LHP x${splits.platoon[bs].L.toFixed(4)}   vs RHP x${splits.platoon[bs].R.toFixed(4)}`);
+  }
+  console.log(`    venue  home x${splits.homeAway.home.toFixed(4)}   away x${splits.homeAway.away.toFixed(4)}`);
+
+  console.log(`\n  Actual cash rate by matchup (does handedness move THIS prop?):`);
+  const cell = {};
+  for (const o of obs) {
+    if (!o.batSide || !o.pitchHand) continue;
+    const key = o.batSide + " vs " + o.pitchHand;
+    cell[key] = cell[key] || { n: 0, w: 0 };
+    cell[key].n++; cell[key].w += o.actual;
+  }
+  for (const key of Object.keys(cell).sort()) {
+    const c = cell[key];
+    if (c.n < 50) continue;
+    console.log(`    ${key.padEnd(10)} n=${String(c.n).padStart(5)}   cashed ${(c.w / c.n * 100).toFixed(1)}%`);
+  }
+  const hm = obs.filter(o => o.isHome), aw = obs.filter(o => !o.isHome);
+  console.log(`    home       n=${String(hm.length).padStart(5)}   cashed ${(hm.reduce((s,o)=>s+o.actual,0)/hm.length*100).toFixed(1)}%`);
+  console.log(`    away       n=${String(aw.length).padStart(5)}   cashed ${(aw.reduce((s,o)=>s+o.actual,0)/aw.length*100).toFixed(1)}%`);
+
+  const withoutS = predictAll(obs, score.DEFAULT_K, lg, lgAvgAllowed, null);
+  const withS = predictAll(obs, score.DEFAULT_K, lg, lgAvgAllowed, splits);
+  const bw = brier(withoutS), bs2 = brier(withS);
+  console.log(`\n  A/B — do handedness + home/away improve predictions?`);
+  console.log(`    without splits:  Brier ${bw.toFixed(5)}   bias ${(bias(withoutS)*100).toFixed(2)}pp`);
+  console.log(`    with splits:     Brier ${bs2.toFixed(5)}   bias ${(bias(withS)*100).toFixed(2)}pp`);
+  const delta = bw - bs2;
+  console.log(`    delta:           ${delta >= 0 ? "-" : "+"}${Math.abs(delta).toFixed(5)}  ${delta > 0.0002 ? "-> splits HELP, keep them" : delta < -0.0002 ? "-> splits HURT, revert" : "-> no measurable difference"}`);
+
+  const rows = withS;
+  console.log(`\n  Using DEFAULT_K = ${score.DEFAULT_K} (with splits)`);
   console.log(`  Brier score:      ${brier(rows).toFixed(4)}   (0.25 = coin flip, lower is better)`);
   const b = bias(rows);
   console.log(`  Calibration bias: ${(b * 100 >= 0 ? "+" : "")}${(b * 100).toFixed(2)}pp  ${Math.abs(b) < 0.01 ? "(good)" : b > 0 ? "(model runs HOT — it overstates)" : "(model runs COLD)"}`);

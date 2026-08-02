@@ -202,7 +202,14 @@ function ctxFor(game, side){
     teamRunsPerGame: s.runsPerGame,
     leagueRunsPerGame: L.runsPerGame,
     pitcherHr9: faces && faces.hr9,
-    leagueHr9: L.hr9
+    leagueHr9: L.hr9,
+    // handedness + venue
+    pitchHand: faces && faces.throws,
+    leaguePlatoon: L.platoon,
+    leagueHomeAway: L.homeAway,
+    leaguePlatoonHR: L.platoonHR,
+    leagueHomeAwayHR: L.homeAwayHR,
+    isHome: side === 'home'
   };
 }
 
@@ -210,6 +217,17 @@ function scoreSide(game, side){
   var s=game[side], ctx=ctxFor(game,side);
   var out=[];
   s.lineup.forEach(function(p){
+    // Feed the player's own split samples through under the names score.js
+    // expects. The HR path wants the HR-specific ones.
+    var sp = p.splits || {};
+    var vs = ctx.pitchHand === 'L' ? sp.vl : ctx.pitchHand === 'R' ? sp.vr : null;
+    // The HR path divides by a HOME RUN rate, so it must be given home run
+    // counts. Passing hit counts here yields a ratio near 4.4 and a factor
+    // pinned to the ceiling, in the wrong direction.
+    p.vsHand     = vs ? { hits: vs.hits, pa: vs.pa } : null;
+    p.vsHandHR   = vs ? { hits: vs.hr,   pa: vs.pa } : null;
+    p.homeAway   = sp.venue ? { hits: sp.venue.hits, pa: sp.venue.pa } : null;
+    p.homeAwayHR = sp.venue ? { hits: sp.venue.hr,   pa: sp.venue.pa } : null;
     var r = state.view==='hr' ? S.scoreHR(p,ctx) : S.scoreHRR(p,ctx);
     if(!r) return;
     r.player=p; r.confidence=S.sampleConfidence(p.pa);
@@ -242,6 +260,15 @@ function buildWhy(r, game, side){
   } else {
     line('Season: <b>'+r.player.hr+'</b> HR in <b>'+r.player.pa+'</b> PA → <b>'+(r.hrRate*100).toFixed(2)+'%</b> per PA after regression.');
   }
+  if(r.batSide && r.pitchHand){
+    var pf2 = r.platoonFactor || 1;
+    var dir = pf2 > 1.005 ? 'favourable' : pf2 < 0.995 ? 'unfavourable' : 'neutral';
+    line('Handedness: <b>'+r.batSide+'HB</b> vs <b>'+r.pitchHand+'HP</b> \u2192 '+dir+
+         ', factor <b>'+pf2.toFixed(3)+'</b>'+
+         (state.view==='hr' && r.batSide==='L' && r.pitchHand==='L'
+            ? ' <span class="flag">(lefty-on-lefty power suppression, the biggest handedness effect in baseball)</span>' : '')+'.');
+  }
+  if(r.homeAwayFactor) line((r.isHome?'At home':'On the road')+': factor <b>'+r.homeAwayFactor.toFixed(3)+'</b>.');
   if(faces) line('Facing <b>'+faces.name+'</b>'+(faces.era?' — '+faces.era+' ERA':'')+
     (faces.avgAllowed?', '+faces.avgAllowed.toFixed(3)+' opp AVG':'')+
     ' → matchup factor <b>'+(r.pitcherFactor||1).toFixed(3)+'</b>.');
@@ -282,11 +309,16 @@ function render(){
       '</b> real hitter-games it never saw: bias <b>'+(CAL.bias*100).toFixed(2)+'pp</b>. '+
       'The average starter cashes <b>'+pct(CAL.baseRate)+'</b>; the model\'s best slice ever reached <b>'+pct(CAL.ceiling)+
       '</b>. At <span class="hot">-300 you need 75.0%</span>, so most of this board is a losing bet at standard juice. '+
-      'The edge is in the price, not the pick.';
+      'The edge is in the price, not the pick. '+
+      '<span style="color:var(--muted)">Handedness and home/away are applied but are worth about 1 point '+
+      'combined on this prop \u2014 measured, not assumed, and the backtest found no improvement from them. '+
+      'They matter far more on home runs.</span>';
   } else {
     note.innerHTML =
       '<b>Home runs are not calibrated yet.</b> The H+R+RBI model was fitted and validated; this one has not been '+
-      'through <code>backtest.mjs</code>. Treat the ordering as a starting point and the percentages as unproven.';
+      'through <code>backtest.mjs</code>, so treat the percentages as unproven. '+
+      'It does use a home-run-specific handedness table: measured 2026, a left-handed batter facing left-handed '+
+      'pitching hits <b>29% fewer</b> home runs per plate appearance, where his hit rate only drops about 4%.';
   }
 
   var games=(D.games||[]).filter(function(g){

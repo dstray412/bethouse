@@ -281,3 +281,143 @@ test("rank sorts by probability and drops the unscoreable", () => {
   ]);
   assert.deepEqual(out.map((x) => x.name), ["b", "d", "a"]);
 });
+
+/* ---------------------------------------------------------------- *
+ * Handedness and home/away
+ * ---------------------------------------------------------------- */
+
+// Measured from 2026 data, relative to each group's overall rate.
+const PLAT_HITS = { R: { L: 1.018, R: 0.992 }, L: { L: 0.947, R: 1.018 }, S: { L: 1.024, R: 0.989 } };
+const PLAT_HR   = { R: { L: 0.995, R: 1.002 }, L: { L: 0.751, R: 1.086 }, S: { L: 1.161, R: 0.928 } };
+const VENUE     = { home: 1.007, away: 0.993 };
+
+test("platoon points the right way for each batter handedness", () => {
+  // Righties hit lefties better; lefties hit righties better. Getting this
+  // backwards would be worse than applying nothing.
+  assert.ok(score.platoonFactor("R", "L", PLAT_HITS) > 1);
+  assert.ok(score.platoonFactor("R", "R", PLAT_HITS) < 1);
+  assert.ok(score.platoonFactor("L", "L", PLAT_HITS) < 1);
+  assert.ok(score.platoonFactor("L", "R", PLAT_HITS) > 1);
+});
+
+test("unknown handedness is neutral, never guessed", () => {
+  assert.equal(score.platoonFactor(null, "L", PLAT_HITS), 1);
+  assert.equal(score.platoonFactor("R", null, PLAT_HITS), 1);
+  assert.equal(score.platoonFactor("R", "L", null), 1);
+  assert.equal(score.homeAwayFactor(true, null), 1);
+});
+
+test("a player's own split is weighted exactly PA/(PA+K)", () => {
+  // Platoon splits are famously noisy, so a player's own number is blended
+  // in at weight PA/(PA+600). Assert the weight itself rather than an
+  // eyeballed tolerance: recover w from the output and check it.
+  const lgMult = PLAT_HITS.R.L;
+  const overall = 0.22;
+  for (const pa of [60, 150, 600, 1800]) {
+    const own = { hits: 0.3 * pa, pa }; // a real .300-vs-LHP sample
+    const ownMult = 0.3 / overall;
+    const got = score.platoonFactor("R", "L", PLAT_HITS, own, overall);
+    const w = (got - lgMult) / (ownMult - lgMult);
+    close(w, pa / (pa + score.PLATOON_K), 1e-9);
+  }
+  // 60 PA earns the player barely any say; 1800 PA earns him most of it.
+  close(60 / (60 + score.PLATOON_K), 60 / 660, 1e-9);
+  assert.ok(1800 / (1800 + score.PLATOON_K) > 0.74);
+  // Anything under the floor is ignored outright.
+  const under = score.platoonFactor("R", "L", PLAT_HITS, { hits: 20, pa: 40 }, 0.22);
+  close(under, PLAT_HITS.R.L, 1e-12);
+});
+
+test("a small platoon sample stays close to the league value in practice", () => {
+  // Same check in outcome terms: a 40-PA hot streak must not swing the
+  // final probability by a meaningful amount.
+  const lg = { hit: 0.217, run: 0.119, rbi: 0.114 };
+  const base = { name: "x", hits: 0.22 * 450, runs: 55, rbi: 52, pa: 450, slot: 2, batSide: "R" };
+  const plain = score.scoreHRR(base, { leagueRates: lg, pitchHand: "L", leaguePlatoon: PLAT_HITS });
+  const hot = score.scoreHRR(
+    { ...base, vsHand: { hits: 12, pa: 40 } },
+    { leagueRates: lg, pitchHand: "L", leaguePlatoon: PLAT_HITS }
+  );
+  assert.ok(Math.abs(hot.prob - plain.prob) < 0.006, "a 40-PA split swung the prop too far");
+});
+
+test("home runs use the HR platoon table, not the hits one", () => {
+  // This is the bug the backtest exposed: the lefty-vs-lefty power effect is
+  // about -25%, where the hits effect is only about -5%. Using the hits table
+  // for home runs understates it more than fivefold.
+  const p = { hr: 20, pa: 450, slot: 3, batSide: "L" };
+  const withHR = score.scoreHR(p, { pitchHand: "L", leaguePlatoonHR: PLAT_HR, leaguePlatoon: PLAT_HITS });
+  const withHits = score.scoreHR(p, { pitchHand: "L", leaguePlatoon: PLAT_HITS });
+  assert.ok(withHR.platoonFactor < 0.8, `HR table should suppress hard, got ${withHR.platoonFactor}`);
+  assert.ok(withHits.platoonFactor > 0.9, "hits table barely suppresses");
+  assert.ok(withHR.prob < withHits.prob, "the HR table must produce the lower estimate");
+});
+
+test("the clamp floor does not truncate the real lefty-on-lefty effect", () => {
+  // A floor of 0.82 (calibrated for hits) would silently turn a 25%
+  // suppression into 18%. The floor must sit below the measured value.
+  const f = score.platoonFactor("L", "L", PLAT_HR);
+  assert.ok(f < 0.8 && f > 0.7, `expected ~0.751, got ${f}`);
+});
+
+test("a right-handed batter's home run rate is barely platoon-sensitive", () => {
+  const p = { hr: 20, pa: 450, slot: 3, batSide: "R" };
+  const vsL = score.scoreHR(p, { pitchHand: "L", leaguePlatoonHR: PLAT_HR });
+  const vsR = score.scoreHR(p, { pitchHand: "R", leaguePlatoonHR: PLAT_HR });
+  assert.ok(Math.abs(vsL.prob - vsR.prob) < 0.005, "righty HR platoon should be near zero");
+});
+
+test("home/away moves the estimate the right way and stays small", () => {
+  const p = { name: "x", hits: 100, runs: 50, rbi: 50, pa: 450, slot: 2 };
+  const lg = { hit: 0.217, run: 0.119, rbi: 0.114 };
+  const h = score.scoreHRR(p, { leagueRates: lg, leagueHomeAway: VENUE, isHome: true });
+  const a = score.scoreHRR(p, { leagueRates: lg, leagueHomeAway: VENUE, isHome: false });
+  assert.ok(h.prob > a.prob);
+  assert.ok(h.prob - a.prob < 0.01, "home/away is worth well under a point on this prop");
+});
+
+test("the whole platoon swing on H+R+RBI is about one point", () => {
+  // Documented because it is the reason the backtest A/B found no
+  // improvement: real effect, far too small to matter against lineup slot.
+  const p = { name: "x", hits: 0.22 * 450, runs: 55, rbi: 52, pa: 450, slot: 2, batSide: "R" };
+  const lg = { hit: 0.217, run: 0.119, rbi: 0.114 };
+  const vsL = score.scoreHRR(p, { leagueRates: lg, pitchHand: "L", leaguePlatoon: PLAT_HITS });
+  const vsR = score.scoreHRR(p, { leagueRates: lg, pitchHand: "R", leaguePlatoon: PLAT_HITS });
+  const swing = vsL.prob - vsR.prob;
+  assert.ok(swing > 0.005 && swing < 0.02, `expected ~0.010, got ${swing}`);
+});
+
+test("scoreHR reports handedness so the UI can explain itself", () => {
+  // Without these fields the board silently drops the handedness line from
+  // the home run view, which is the one view where it matters most.
+  const s = score.scoreHR(
+    { hr: 25, pa: 500, slot: 3, batSide: "L" },
+    { pitchHand: "L", leaguePlatoonHR: PLAT_HR, isHome: true }
+  );
+  assert.equal(s.batSide, "L");
+  assert.equal(s.pitchHand, "L");
+  assert.equal(s.isHome, true);
+});
+
+test("a mismatched-units own-split is refused, not clamped into a lie", () => {
+  // Passing hit counts against a home-run rate gives a ratio near 4.4.
+  // Clamping that would return the 1.35 ceiling for a matchup whose true
+  // value is 0.75 — confidently backwards. It must fall back to league.
+  const bogus = score.platoonFactor("L", "L", PLAT_HR, { hits: 110, pa: 500 }, 0.05);
+  close(bogus, PLAT_HR.L.L, 1e-12);
+  // The correctly-typed call still blends: 15 HR in 500 PA is .030 against a
+  // .050 overall rate, a 0.60 ratio, which is a credible platoon split.
+  const good = score.platoonFactor("L", "L", PLAT_HR, { hits: 15, pa: 500 }, 0.05);
+  assert.ok(good !== PLAT_HR.L.L, "a valid sample should still move it");
+  assert.ok(good > 0.6 && good < 1.1);
+});
+
+test("the plausibility guard rejects only absurd ratios, not real splits", () => {
+  // The guard exists to catch units mismatches (~4.4), not to discard real
+  // extremes. A 0.60 platoon ratio is a genuine, if strong, split.
+  const real = score.platoonFactor("L", "L", PLAT_HR, { hits: 15, pa: 500 }, 0.05);
+  assert.notEqual(real, PLAT_HR.L.L);
+  // A hits-vs-HR-rate mismatch lands near 4.4 and must be thrown out.
+  const mismatch = score.platoonFactor("L", "L", PLAT_HR, { hits: 110, pa: 500 }, 0.05);
+  close(mismatch, PLAT_HR.L.L, 1e-12);
+});

@@ -27,7 +27,7 @@ means 72% — including the part where 72% loses more than a quarter of the time
 
 ```sh
 node fetch-mlb.mjs      # builds mlb-data.js for today
-node --test edge.test.mjs score.test.mjs   # 65 tests
+node --test edge.test.mjs score.test.mjs   # 77 tests
 node backtest.mjs       # measures whether the model actually works
 ```
 
@@ -134,7 +134,7 @@ should be re-fitted when the run environment shifts.
 |---|---|
 | `index.html` | The board. Open it. |
 | `score.js` | The model. Loads in both browser and Node so the app, tests and backtest run identical code. |
-| `score.test.mjs` | 30 tests on model shape, clamping and regression behaviour. |
+| `score.test.mjs` | 41 tests on model shape, clamping, regression and handedness. |
 | `fetch-mlb.mjs` | Five keyless requests to statsapi → `mlb-data.js`. |
 | `backtest.mjs` | Replays real games, measures calibration, fits `k`. |
 | `edge.js` | De-vig and EV math for the odds side. 36 tests. |
@@ -155,6 +155,66 @@ Keep `.env` and `.odds-quota.json` ignored — those belong to the odds side.
 
 ---
 
+## Handedness and home/away
+
+Both are applied, and both are **measured from this season, never assumed**.
+
+### The pooled number is a trap
+
+Comparing all batters vs LHP against all batters vs RHP shows a +1.6% effect.
+That number is worse than useless, because it points the wrong way for half
+the league. Split by batter handedness and the real picture appears:
+
+| batter | vs LHP | vs RHP | platoon |
+|---|---|---|---|
+| Right-handed | .2309 | .2201 | **+4.9%** |
+| Left-handed | .2219 | .2303 | **−3.6%** |
+| Switch | .2243 | .2154 | +4.1% |
+
+Righties hit lefties better, lefties hit righties better. Switch hitters follow
+the righty pattern against LHP because that is the side they bat from.
+
+### On this prop it barely matters, and the backtest says so
+
+The full platoon swing on 1+ H/R/RBI, facing a lefty versus a righty, is worth
+**about 1.0 percentage point**. Lineup slot alone is worth ~5. So:
+
+```
+without splits:  Brier 0.21876   bias +0.01pp
+with splits:     Brier 0.21884   bias +0.01pp
+delta:           no measurable difference
+```
+
+They are kept because they are correct and cost nothing, not because they help.
+Over a two-week window the platoon signal even **reverses** (righties cashed
+68.7% vs RHP against 64.9% vs LHP) — the season-long effect is real, but it is
+far smaller than the noise in any window you could validate on.
+
+### On home runs it matters enormously
+
+| batter | HR/PA vs LHP | vs RHP | platoon |
+|---|---|---|---|
+| Right-handed | .0323 | .0324 | −0.3% |
+| **Left-handed** | .0282 | .0398 | **−29.1%** |
+
+Lefty-on-lefty power suppression is roughly six times the size of the hits
+effect, and it is the reason home runs get their own platoon table
+(`league.platoonHR`). Using the hits ratios there would understate the one
+handedness effect that genuinely moves a home run bet by more than fivefold.
+
+### Guards
+
+- Player-specific splits need **60 PA minimum** and are then blended at
+  `PA/(PA+600)`. A hot 40-PA line was moving the final probability 0.86pp,
+  nearly the size of the entire league effect. Forty plate appearances should
+  not get that much say.
+- An own-split multiplier outside `[0.4, 2.5]` is **refused, not clamped**. A
+  units mismatch (hit counts against a home-run rate) lands near 4.4; clamping
+  that produced a confident 1.35 in a matchup whose true value is 0.75, pointing
+  the wrong way. Falling back to the league value is the honest failure.
+
+---
+
 ## Known gaps
 
 - **Home run rankings are not calibrated.** Only the H+R+RBI model has been
@@ -162,8 +222,9 @@ Keep `.env` and `.odds-quota.json` ignored — those belong to the odds side.
   are unproven.
 - **No park factors.** The HR model accepts a `parkFactor` but nothing supplies
   one yet.
-- **No handedness splits.** A lefty facing a lefty is treated like anyone else,
-  which is the single largest missing input.
+- **The HR platoon table is measured but the HR model is still uncalibrated.**
+  Knowing lefty-on-lefty costs 29% of home run rate does not tell you whether
+  the resulting percentages are right. Only a backtest can.
 - **Bullpen ignored.** Only the starting pitcher enters the model, though a
   hitter faces relievers for a third of his trips.
 - **Projected lineups are a guess.** Before lineups post, the board uses the
