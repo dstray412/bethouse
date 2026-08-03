@@ -550,7 +550,13 @@ function render(){
 
       rows.forEach(function(r){
         shown++;
-        if(!best||r.prob>best.prob) best=r;
+        /* "Best" must mean the best bet still available, not the best number
+           on screen. Settled rows carry prob 1 (they already hit) and render
+           as HIT rather than a percentage, so they used to leak into this stat
+           and the summary announced "100.0% best" with no row anywhere showing
+           100%. A board built to stop overconfident numbers should not lead
+           with a phantom lock. */
+        if(S.gameIsOpen(g) && !r.settled && (!best||r.prob>best.prob)) best=r;
         var key=g.gamePk+'|'+side+'|'+r.player.id;
         var open=state.open===key;
         var row=el('div','row');
