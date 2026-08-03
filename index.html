@@ -101,6 +101,10 @@ header{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:1
 .why{padding:2px 15px 16px;background:rgba(0,0,0,.16);border-top:1px solid var(--line);font-size:13px;color:var(--muted);line-height:1.75}
 .why b{color:var(--text);font-variant-numeric:tabular-nums}
 .flag{color:var(--warn)}
+/* Finished games stay on the board (seeing what happened is useful) but must
+   not compete with what you can still bet. */
+.game.closed{opacity:.58}
+.game.closed:hover{opacity:.85}
 .empty{padding:44px 20px;text-align:center;color:var(--muted)}
 .empty .big{font-family:var(--display);font-size:18px;font-weight:600;color:var(--text);margin-bottom:7px}
 footer{margin-top:22px;color:var(--muted);font-size:12px;line-height:1.7}
@@ -486,13 +490,20 @@ function render(){
     if(state.lineups==='posted') return g.away.confirmed||g.home.confirmed;
     return true;
   });
+  /* Games you can still bet come first. By late afternoon most of a day slate
+     is already final, and those cards were sitting at the top of the board
+     showing confident percentages you could no longer act on. Sort is stable,
+     so order within each group is unchanged. */
+  games = games.slice().sort(function(a,b){
+    return (S.gameIsOpen(b)?1:0) - (S.gameIsOpen(a)?1:0);
+  });
 
   var board=document.getElementById('board');
   board.innerHTML='';
   var shown=0, best=null;
 
   games.forEach(function(g){
-    var card=el('div','game');
+    var card=el('div','game'+(S.gameIsOpen(g)?'':' closed'));
     var head=el('div','ghead');
     var ttl=el('div','gtitle', g.away.team+' @ '+g.home.team);
     head.appendChild(ttl);
@@ -564,10 +575,17 @@ function render(){
         add.type='button';
         add.setAttribute('aria-pressed', String(inSlip));
         add.setAttribute('aria-label', (inSlip?'Remove ':'Add ')+r.name+' to parlay slip');
-        if(r.settled) { add.disabled=true; add.style.opacity=.3; add.title='Already decided'; }
+        // A finished game is not bettable, whatever the model still says about
+        // it. `settled` only covers live games whose outcome already landed, so
+        // without the gameIsOpen check a FINAL card kept a live + button.
+        var openGame = S.gameIsOpen(g);
+        if(r.settled || !openGame) {
+          add.disabled=true; add.style.opacity=.3;
+          add.title = r.settled ? 'Already decided' : 'Game is over';
+        }
         add.addEventListener('click', function(ev){
           ev.stopPropagation();
-          if(r.settled) return;
+          if(r.settled || !openGame) return;
           if(inSlip) state.slip = state.slip.filter(function(x){return x.key!==legKey;});
           else state.slip.push({
             key: legKey, gamePk: g.gamePk, playerId: r.player.id,
