@@ -44,6 +44,33 @@ const flag = (f, d) => {
 };
 const has = (f) => args.includes(f);
 
+/*
+ * Reject anything this file does not understand, LOUDLY.
+ *
+ * `flag()` returns the default for a flag it never finds, so an unrecognised
+ * name is indistinguishable from not passing one. On 2026-08-02 a run of
+ * `--from 2026-07-12 --to 2026-07-25` silently ignored both, backtested the
+ * default window (2026-07-23..08-01, 132 games) instead of the intended one
+ * (2026-07-12..25, 141 games), and printed a calibration table that looked
+ * like an answer to a question it had never been asked. The two windows were
+ * then compared against each other as though only the model had changed.
+ *
+ * A backtest exists to be trusted. Silently answering a different question
+ * than the one asked is the single worst thing it can do, so an unknown flag
+ * is a hard error, not a warning.
+ */
+const KNOWN_FLAGS = new Set(["--days", "--fit", "--prop", "--end", "--start"]);
+for (let i = 0; i < args.length; i++) {
+  const a = args[i];
+  if (!a.startsWith("--")) continue;
+  if (!KNOWN_FLAGS.has(a)) {
+    console.error(`unknown flag "${a}"`);
+    console.error(`known flags: ${[...KNOWN_FLAGS].join(", ")}`);
+    console.error(`(dates are --start/--end, NOT --from/--to)`);
+    process.exit(1);
+  }
+}
+
 const DAYS = Number(flag("--days", 10));
 const FIT = has("--fit");
 /* Which prop to validate. "1+ total bases" is not offered because it is
@@ -122,6 +149,7 @@ async function collect() {
 
   const obs = [];
   let done = 0;
+  let lostBoxes = 0;
   const BATCH = 8;
   for (let i = 0; i < pks.length; i += BATCH) {
     const chunk = pks.slice(i, i + BATCH);
@@ -132,6 +160,7 @@ async function collect() {
     );
     for (const box of boxes) {
       if (box) harvest(box, obs);
+      else lostBoxes++; // a game that failed all 3 retries: ~18 hitters gone
     }
     done += chunk.length;
     if (done % 40 === 0 || done === pks.length) {
@@ -139,6 +168,13 @@ async function collect() {
     }
   }
   process.stdout.write("\n");
+  /* The progress line counts boxscores ATTEMPTED, not harvested, so a game
+     lost to a failed fetch used to leave no trace at all -- the run just
+     quietly had fewer observations than the game count implied. Say so. */
+  if (lostBoxes) {
+    console.log(`  WARNING: ${lostBoxes} of ${pks.length} boxscores failed to fetch`);
+    console.log(`    (~${lostBoxes * 18} hitter-games missing; results are not reproducible)`);
+  }
   return obs;
 }
 

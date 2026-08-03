@@ -34,6 +34,22 @@ const flag = (f, d) => {
 };
 const has = (f) => args.includes(f);
 
+/* Same hard-error rule as backtest.mjs, for the same reason: an unrecognised
+   flag is invisible to flag(), so `--data tomorow.js` (typo) would silently
+   fall back to today's board and mail out the wrong slate under tomorrow's
+   heading. Fail instead. */
+const KNOWN_FLAGS = new Set([
+  "--prop", "--per-game", "--html", "--include-live", "--data", "--tz", "--tz-label",
+]);
+for (const a of args) {
+  if (!a.startsWith("--")) continue;
+  if (!KNOWN_FLAGS.has(a)) {
+    console.error(`unknown flag "${a}"`);
+    console.error(`known flags: ${[...KNOWN_FLAGS].join(", ")}`);
+    process.exit(1);
+  }
+}
+
 const PROP = flag("--prop", "tb2");
 const PER_GAME = Number(flag("--per-game", "2"));
 const AS_HTML = has("--html");
@@ -48,7 +64,13 @@ const LABEL = TB_N ? `${TB_N}+ total bases` : PROP === "hr" ? "1+ home run" : "1
 
 /* mlb-data.js is a browser script; give it a window to attach to. */
 function loadBoard() {
-  const src = fs.readFileSync(path.join(DIR, flag("--data", "mlb-data.js")), "utf8");
+  const file = path.join(DIR, flag("--data", "mlb-data.js"));
+  if (!fs.existsSync(file)) {
+    console.error(`no such slate file: ${file}`);
+    console.error(`generate one with: node fetch-mlb.mjs --date <YYYY-MM-DD> --out <name>.js`);
+    process.exit(1);
+  }
+  const src = fs.readFileSync(file, "utf8");
   const sandbox = {};
   new Function("window", src)(sandbox);
   return sandbox.BETHOUSE_MLB;

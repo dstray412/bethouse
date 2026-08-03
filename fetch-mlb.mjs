@@ -49,6 +49,19 @@ function easternToday() {
   }).format(new Date());
 }
 
+/* Unknown flags are a hard error here for the same reason as backtest.mjs and
+   digest.mjs: flag() cannot tell "not passed" from "misspelled", so a typo'd
+   --out would silently write mlb-data.js and clobber the live board. */
+const KNOWN_FLAGS = new Set(["--date", "--out"]);
+for (const a of args) {
+  if (!a.startsWith("--")) continue;
+  if (!KNOWN_FLAGS.has(a)) {
+    console.error(`unknown flag "${a}"`);
+    console.error(`known flags: ${[...KNOWN_FLAGS].join(", ")}`);
+    process.exit(1);
+  }
+}
+
 const DATE = flag("--date", easternToday());
 const OUT = path.join(DIR, flag("--out", "mlb-data.js"));
 
