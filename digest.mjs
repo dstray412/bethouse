@@ -12,6 +12,7 @@
  *   node digest.mjs --per-game 3     # more names per game
  *   node digest.mjs --html           # email-ready HTML
  *   node digest.mjs --include-live   # keep games already underway
+ *   node digest.mjs --data tomorrow.js
  *
  * Games already underway are dropped by default: their numbers count only the
  * plate appearances a hitter has left, which is not something you can bet.
@@ -47,7 +48,7 @@ const LABEL = TB_N ? `${TB_N}+ total bases` : PROP === "hr" ? "1+ home run" : "1
 
 /* mlb-data.js is a browser script; give it a window to attach to. */
 function loadBoard() {
-  const src = fs.readFileSync(path.join(DIR, "mlb-data.js"), "utf8");
+  const src = fs.readFileSync(path.join(DIR, flag("--data", "mlb-data.js")), "utf8");
   const sandbox = {};
   new Function("window", src)(sandbox);
   return sandbox.BETHOUSE_MLB;
@@ -129,6 +130,20 @@ function build() {
 
 const pct = (x) => (x * 100).toFixed(0) + "%";
 
+/* Times must be pinned to a zone, not left to the host: this runs in CI under
+   UTC, so a bare toLocaleTimeString would mail out first pitches eight hours
+   off. --tz overrides for anyone reading from elsewhere. */
+const TZ = flag("--tz", "America/Los_Angeles");
+const TZ_LABEL = flag("--tz-label", "PT");
+function timeStr(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (isNaN(d)) return "";
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone: TZ, hour: "numeric", minute: "2-digit",
+  }).format(d) + " " + TZ_LABEL;
+}
+
 function renderText(d) {
   const out = [];
   out.push(`BetHouse — ${d.date}`);
@@ -141,7 +156,7 @@ function renderText(d) {
     return out.join("\n");
   }
   for (const g of d.games) {
-    out.push(g.title + (g.time ? "  " + g.time : "") + (g.projected ? "   (lineup projected, not confirmed)" : ""));
+    out.push(g.title + (g.time ? "  " + timeStr(g.time) : "") + (g.projected ? "   (lineup projected, not confirmed)" : ""));
     for (const p of g.picks) out.push("   " + pct(p.prob).padStart(4) + "   " + p.name);
     out.push("");
   }
@@ -170,7 +185,7 @@ function renderHtml(d) {
   for (const g of d.games) {
     p.push(`<div style="margin-bottom:13px">`);
     p.push(`<div style="font-weight:600;font-size:14px">${esc(g.title)}`);
-    if (g.time) p.push(`<span style="color:#9ca3af;font-weight:400"> · ${esc(g.time)}</span>`);
+    if (g.time) p.push(`<span style="color:#9ca3af;font-weight:400"> · ${esc(timeStr(g.time))}</span>`);
     if (g.projected) p.push(`<span style="color:#b45309;font-weight:400;font-size:12px"> · lineup projected</span>`);
     p.push(`</div>`);
     p.push(`<table style="border-collapse:collapse;margin-top:4px">`);
