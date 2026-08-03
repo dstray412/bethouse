@@ -462,21 +462,18 @@ function render(){
   /* honest header */
   var note=document.getElementById('note');
   if(state.view==='tb'){
-    note.innerHTML = 'Chance of <b>'+state.tbThreshold+'+ total bases</b> (single 1, double 2, triple 3, home run 4). '+
-      'Checked against <b>'+CAL.n+'</b> real games the model never saw; it runs about <b>1 point hot</b>, '+
-      'so shade these down slightly. Tap any player for the detail.';
+    note.innerHTML = 'Chance of <b>'+state.tbThreshold+'+ total bases</b> (single 1, double 2, triple 3, homer 4). '+
+      'Checked against <b>'+CAL.n+'</b> unseen games; runs ~<b>1 point hot</b>. Tap a player for detail.';
   } else if(state.view==='hrr'){
-    note.innerHTML = 'Chance of at least one hit, run or RBI. Checked against <b>'+CAL.n+
-      '</b> real games the model never saw \u2014 when it says 70%, it happens about 70% of the time. '+
-      'Tap any player for the detail.';
+    note.innerHTML = 'Chance of <b>1+ hit, run or RBI</b>. Checked against <b>'+CAL.n+
+      '</b> unseen games \u2014 70% means about 70%. Tap a player for detail.';
   } else {
     // Was "Not yet checked" until 2026-08-03, when the HR prop finally went
     // through the backtest on the same window as the others: 2,466 unseen
     // hitter-games, bias +0.95pp, top quintile 15.4% against an 11.1% base.
-    note.innerHTML = 'Chance of at least one home run. Checked against <b>'+CAL.n+
-      '</b> real games the model never saw; it runs about <b>1 point hot</b>, so shade these down '+
-      'slightly. Home runs are rare, so the ranking separates less sharply here than on the hits '+
-      'board. Tap any player for the detail.';
+    note.innerHTML = 'Chance of <b>1+ home run</b>. Checked against <b>'+CAL.n+
+      '</b> unseen games; runs ~<b>1 point hot</b>, and separates less sharply than the hits board '+
+      'because homers are rare. Tap a player for detail.';
   }
 
   var liveN=(D.games||[]).filter(function(g){return g.live;}).length;
