@@ -47,7 +47,7 @@ header{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:1
 .game{border:1px solid var(--line);border-radius:15px;background:var(--panel2);margin-bottom:14px;overflow:hidden}
 .ghead{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;
   padding:12px 15px;background:rgba(255,255,255,.03);border-bottom:1px solid var(--line)}
-.gtitle{font-family:var(--display);font-size:16px;font-weight:700}
+.gtitle{font-family:var(--display);font-size:16px;font-weight:700;margin:0}
 .gmeta{font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums}
 .side{padding:4px 0 10px}
 .shead{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;padding:10px 15px 6px}
@@ -172,7 +172,7 @@ footer{margin-top:22px;color:var(--muted);font-size:12px;line-height:1.7}
 
 <div id="slip"></div>
 <div class="summary" id="summary"></div>
-<div id="board"></div>
+<main id="board"></main>
 
 <footer id="footer"></footer>
 </div>
@@ -502,7 +502,7 @@ function render(){
   games.forEach(function(g){
     var card=el('div','game'+(S.gameIsOpen(g)?'':' closed'));
     var head=el('div','ghead');
-    var ttl=el('div','gtitle', g.away.team+' @ '+g.home.team);
+    var ttl=el('h2','gtitle', g.away.team+' @ '+g.home.team);
     head.appendChild(ttl);
     var meta=el('div','gmeta');
     if(g.live){
