@@ -114,6 +114,18 @@ footer{margin-top:22px;color:var(--muted);font-size:12px;line-height:1.7}
      row became 88px instead of ~50px, the button landed orphaned under the
      slot number, and across 101 rows that added roughly 3,850px -- about four
      and a half extra phone screens of scrolling to reach the same picks. */
+  /* Filters ran label-above-buttons in a wrapping flex row, so three groups
+     cost 226px -- the single biggest block above the first pick. Run each
+     group as one line (LABEL | buttons) instead. The defaults are almost
+     always what you want, so these should cost a glance, not a screen. */
+  .controls{gap:9px;padding:10px 12px}
+  /* One group per line. Without the 100% basis the three groups share rows,
+     which squeezed "2+" to 27x34 and wrapped "Top 2" onto two lines -- a
+     worse problem than the height it saved. */
+  .ctl{flex:0 0 100%;flex-direction:row;align-items:center;gap:9px}
+  .ctl>label{flex:0 0 58px;font-size:9.5px;letter-spacing:.10em}
+  .ctl .seg{flex:1 1 auto}
+  .ctl .seg button{flex:1 1 0;min-height:40px;padding:6px}
   .row{grid-template-columns:28px 1fr 72px 44px;gap:8px}
   .caret{display:none}
   /* 28px fails the 44px touch minimum, and this is the primary action on the
