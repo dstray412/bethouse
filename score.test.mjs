@@ -603,3 +603,91 @@ test("more legs always means a smaller number", () => {
   }
   close(prev, Math.pow(0.6, 5), 1e-12);
 });
+
+/* ------------------------------------------------------------------ *
+ * Fitted-constant tripwires.
+ *
+ * These pin values that were MEASURED, not chosen. Every one of them was
+ * wrong once, and in each case the whole board was wrong with it while the
+ * suite stayed green. A test that only checks lo < default < hi does not
+ * catch a refit that lands somewhere plausible but unvalidated -- k=0.55
+ * satisfies such a bound and ran 13 percentage points hot.
+ *
+ * If you refit, change the literal here in the same commit and say what
+ * window produced it. A failure here is a question, not a bug.
+ * ------------------------------------------------------------------ */
+
+test("DEFAULT_K is pinned to its fitted value", () => {
+  // Fitted by `backtest.mjs --fit` over 2,466 hitter-games the model never
+  // saw (2026-07-12..25), minimising |bias| then Brier: bias -0.47pp.
+  // k=0.55 was an earlier GUESS and said 82% where reality was 69.5%.
+  assert.equal(score.DEFAULT_K, 0.10);
+});
+
+test("the PA curve constants are pinned to the measured fit", () => {
+  // Least-squares over 2,465 real starts. These were invented once
+  // (4.65 / 0.105) and carried a +3.11pp bias until they were measured.
+  assert.equal(score.PA_LEADOFF, 4.536);
+  assert.equal(score.PA_DECAY, 0.1326);
+  assert.equal(score.REGRESSION_PA, 180);
+  assert.equal(score.PLATOON_K, 600);
+  assert.equal(score.HOMEAWAY_K, 800);
+  assert.equal(score.MIN_SPLIT_PA, 60);
+});
+
+test("a league-average hitter lands in the band the backtest validated", () => {
+  // Outcome-level guard: pins the composite, not just the constants, so a
+  // change in how they combine still trips even if each literal survives.
+  // .250 hitter batting cleanup, neutral context.
+  const r = score.scoreHRR(
+    { hits: 100, runs: 55, rbi: 55, pa: 400, slot: 4 },
+    { leagueRates: { hit: 0.223, run: 0.124, rbi: 0.119 } }
+  );
+  assert.ok(r.prob > 0.60 && r.prob < 0.72, `league-average HRR drifted to ${r.prob}`);
+});
+
+test("home/away weights its own split exactly PA/(PA+HOMEAWAY_K)", () => {
+  // Structural twin of the platoonFactor test, which had this and passed
+  // while homeAwayFactor's entire blending branch went unexercised.
+  // blended = w*ownMult + (1-w)*leagueMult, a LINEAR mix. With leagueMult
+  // pinned to 1.00 and ownMult to 1.10, blended = 1 + 0.1w, which stays
+  // clear of the 0.88/1.14 clamp at every weight below.
+  const table = { home: 1.00, away: 1.00 };
+  for (const [pa, want] of [[60, 60 / 860], [150, 150 / 950], [800, 800 / 1600], [2400, 2400 / 3200]]) {
+    const own = { hits: 0.275 * pa, pa }; // own split .275 against a .250 base -> ownMult 1.10
+    const f = score.homeAwayFactor(true, table, own, 0.250);
+    close((f - 1.0) / 0.1, want, 1e-6);
+  }
+  // Below MIN_SPLIT_PA the own split is ignored entirely, not partly used.
+  assert.equal(score.homeAwayFactor(true, table, { hits: 0.275 * 59, pa: 59 }, 0.250), 1.0);
+});
+
+test("the home/away clamp bites on an absurd own split", () => {
+  // A hitter who has genuinely doubled his rate at home still cannot move
+  // the factor past 1.14; without the clamp this rides to ~1.5.
+  const f = score.homeAwayFactor(true, { home: 1.10, away: 0.90 }, { hits: 0.480 * 900, pa: 900 }, 0.250);
+  assert.equal(f, 1.14);
+  const g = score.homeAwayFactor(false, { home: 1.10, away: 0.90 }, { hits: 0.110 * 900, pa: 900 }, 0.250);
+  assert.equal(g, 0.88);
+});
+
+test("no plate appearances means the miss is certain", () => {
+  // mixPow returning 0 here instead of 1 would invert every probability.
+  close(score.mixPow(0.75, 0), 1);
+  close(score.mixPow(0.75, -1), 1);
+  const rates = score.tbRates({ hits: 100, doubles: 20, triples: 2, hr: 15, pa: 400 }, null);
+  assert.ok(Number.isNaN(score.probAtLeastTB(rates, 4.5, 0)));
+  assert.ok(Number.isNaN(score.probAtLeastTB(rates, 0, 2)));
+});
+
+test("total bases is monotone in the threshold", () => {
+  // The board ships 2+, 3+ and 4+. Nothing varied the threshold before, so
+  // `threshold` could have been hardcoded to 2 and the suite stayed green.
+  const player = { hits: 110, doubles: 25, triples: 3, hr: 20, pa: 420, slot: 3 };
+  const ctxAt = (n) => ({ leagueTB: null, threshold: n });
+  const p2 = score.scoreTB(player, ctxAt(2)).prob;
+  const p3 = score.scoreTB(player, ctxAt(3)).prob;
+  const p4 = score.scoreTB(player, ctxAt(4)).prob;
+  assert.ok(p2 > p3 && p3 > p4, `not monotone: ${p2} ${p3} ${p4}`);
+  assert.ok(p4 > 0, "4+ must be reachable, the board offers it");
+});

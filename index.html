@@ -199,6 +199,11 @@ var TOP   = [ {id:2,label:'Top 2'}, {id:3,label:'Top 3'}, {id:5,label:'Top 5'}, 
 
 /* ---------------- helpers ---------------- */
 function el(t,c,x){var n=document.createElement(t); if(c)n.className=c; if(x!=null)n.textContent=x; return n;}
+// Names arrive from statsapi.mlb.com and go into innerHTML alongside markup we
+// want rendered, so textContent is not an option there. MLB is not a hostile
+// source, but this page is public and the cost of being right is one function.
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){
+  return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
 function pct(x,d){return isFinite(x)?(x*100).toFixed(d==null?1:d)+'%':'—';}
 function amer(a){ if(!isFinite(a))return '—'; a=Math.round(a); return a>0?'+'+a:''+a; }
 function timeStr(iso){
@@ -394,7 +399,7 @@ function buildWhy(r, game, side){
             ? ' <span class="flag">(lefty-on-lefty power suppression, the biggest handedness effect in baseball)</span>' : '')+'.');
   }
   if(r.homeAwayFactor) line((r.isHome?'At home':'On the road')+': factor <b>'+r.homeAwayFactor.toFixed(3)+'</b>.');
-  if(faces) line('Facing <b>'+faces.name+'</b>'+(faces.era?' — '+faces.era+' ERA':'')+
+  if(faces) line('Facing <b>'+esc(faces.name)+'</b>'+(faces.era?' — '+faces.era+' ERA':'')+
     (faces.avgAllowed?', '+faces.avgAllowed.toFixed(3)+' opp AVG':'')+
     ' → matchup factor <b>'+(r.pitcherFactor||1).toFixed(3)+'</b>.');
   if(state.view==='hrr' && r.offenseFactor)
@@ -497,7 +502,7 @@ function render(){
       var chip=el('span','chip '+(s.confirmed?'live':'proj'), s.confirmed?'LINEUP POSTED':'PROJECTED');
       nm.appendChild(chip); sh.appendChild(nm);
       if(faces){
-        var v=el('div','vs'); v.innerHTML='vs <b>'+faces.name+'</b>'+(faces.era?' · '+faces.era+' ERA':'')+
+        var v=el('div','vs'); v.innerHTML='vs <b>'+esc(faces.name)+'</b>'+(faces.era?' · '+faces.era+' ERA':'')+
           (faces.avgAllowed?' · '+faces.avgAllowed.toFixed(3)+' opp AVG':'');
         sh.appendChild(v);
       }

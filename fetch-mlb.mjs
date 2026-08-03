@@ -32,7 +32,24 @@ const flag = (f, d) => {
   return i >= 0 && args[i + 1] ? args[i + 1] : d;
 };
 
-const DATE = flag("--date", new Date().toISOString().slice(0, 10));
+/**
+ * MLB files a game under the date it STARTS in US Eastern time, not UTC.
+ * A 7:10pm PT first pitch is 02:10Z the NEXT day but is still that day's game.
+ * Using toISOString() here meant that from 5:00pm PT onward (00:00Z) the
+ * fetcher asked for tomorrow's slate and tonight's games vanished mid-game --
+ * exactly the hours the cron runs. Always resolve "today" in Eastern.
+ */
+function easternToday() {
+  // en-CA gives YYYY-MM-DD directly.
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/New_York",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+}
+
+const DATE = flag("--date", easternToday());
 const OUT = path.join(DIR, flag("--out", "mlb-data.js"));
 
 /* ---------------------------------------------------------------- *

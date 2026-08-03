@@ -43,6 +43,9 @@ const PROPS = [
   { id: "hrr", label: "1+ H/R/RBI" },
   { id: "tb2", label: "2+ total bases" },
   { id: "tb3", label: "3+ total bases" },
+  // index.html ships a 4+ view; without this it was the one board surface
+  // nothing graded and nothing backtested.
+  { id: "tb4", label: "4+ total bases" },
   { id: "hr", label: "1+ home run" },
 ];
 
@@ -92,8 +95,8 @@ function listDays() {
 function scoreOne(prop, player, ctx) {
   if (prop === "hrr") return score.scoreHRR(player, ctx);
   if (prop === "hr") return score.scoreHR(player, ctx);
-  if (prop === "tb2") return score.scoreTB(player, { ...ctx, threshold: 2 });
-  if (prop === "tb3") return score.scoreTB(player, { ...ctx, threshold: 3 });
+  const tb = /^tb(\d+)$/.exec(prop);
+  if (tb) return score.scoreTB(player, { ...ctx, threshold: Number(tb[1]) });
   return null;
 }
 
@@ -148,6 +151,10 @@ function snapshot() {
         leaguePlatoonHR: L.platoonHR,
         leaguePlatoonTB: L.platoonTB,
         leagueHomeAway: L.homeAway,
+        // Without this, score.js falls back to the HITS home/away table for
+        // home runs (`ctx.leagueHomeAwayHR || ctx.leagueHomeAway`) and the
+        // live record would grade a number the board never displayed.
+        leagueHomeAwayHR: L.homeAwayHR,
         isHome: side === "home",
       };
       for (const p of s.lineup) {
@@ -206,7 +213,11 @@ async function grade() {
 
   for (const date of days) {
     const day = loadDay(date);
-    const ungraded = day.predictions.filter((p) => p.actual == null);
+    // `!p.scratched` matters: a scratched row keeps actual == null forever, so
+    // without it every past day containing a scratch re-fetched its whole
+    // boxscore set on every run -- growing API cost, permanently, for rows
+    // that can never be graded.
+    const ungraded = day.predictions.filter((p) => p.actual == null && !p.scratched);
     if (!ungraded.length) continue;
 
     const pks = [...new Set(ungraded.map((p) => p.gamePk))];
@@ -259,11 +270,15 @@ async function grade() {
         tb,
         hr: num(st.homeRuns),
       };
-      p.actual =
-        p.prop === "hrr" ? (num(st.hits) || num(st.runs) || num(st.rbi) ? 1 : 0)
-        : p.prop === "tb2" ? (tb >= 2 ? 1 : 0)
-        : p.prop === "tb3" ? (tb >= 3 ? 1 : 0)
-        : num(st.homeRuns) > 0 ? 1 : 0;
+      // The old chain ended in a bare `: homeRuns > 0`, so ANY prop id it did
+      // not recognise was silently graded as a home run. Match explicitly and
+      // leave anything unknown ungraded rather than scoring it against the
+      // wrong outcome.
+      const tbn = /^tb(\d+)$/.exec(p.prop);
+      if (p.prop === "hrr") p.actual = num(st.hits) || num(st.runs) || num(st.rbi) ? 1 : 0;
+      else if (tbn) p.actual = tb >= Number(tbn[1]) ? 1 : 0;
+      else if (p.prop === "hr") p.actual = num(st.homeRuns) > 0 ? 1 : 0;
+      else continue; // unknown prop: never invent a grade for it
       graded++;
     }
 

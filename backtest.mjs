@@ -49,7 +49,20 @@ const FIT = has("--fit");
 /* Which prop to validate. "1+ total bases" is not offered because it is
    identical to 1+ hits, so the total-bases thresholds worth checking are 2
    and up. */
-const PROP = flag("--prop", "hrr"); // hrr | tb2 | tb3 | hr
+const PROP = flag("--prop", "hrr"); // hrr | hr | tb<N> for any N >= 1
+
+/**
+ * Total-bases props are a family, not two hardcoded cases. This used to read
+ * `PROP === "tb3" ? 3 : 2`, which meant `--prop tb4` scored at threshold 2,
+ * never called scoreTB at all, and graded against the H+R+RBI outcome --
+ * silently reporting a 1+H/R/RBI backtest under a "4+ total bases" heading.
+ * The board ships a 4+ view, so that path was reachable and wrong.
+ */
+const TB_N = /^tb(\d+)$/.test(PROP) ? Number(PROP.slice(2)) : null;
+if (!TB_N && PROP !== "hrr" && PROP !== "hr") {
+  console.error(`unknown --prop "${PROP}" (expected hrr, hr, or tb<N>)`);
+  process.exit(1);
+}
 
 function iso(d) {
   return d.toISOString().slice(0, 10);
@@ -193,6 +206,7 @@ function harvest(box, obs) {
         actualTB2: gameTB >= 2 ? 1 : 0,
         actualTB3: gameTB >= 3 ? 1 : 0,
         actualHR: num(g.homeRuns) > 0 ? 1 : 0,
+        gameHR: num(g.homeRuns),
         oppAvgAllowed: faced && faced.ip > 20 ? faced.avgAllowed : 0,
         batSide: (p.person?.batSide || {}).code || null,
         pitchHand: faced ? faced.throws : null,
@@ -232,33 +246,51 @@ function leagueRatesFrom(obs) {
  */
 function leagueSplitsFrom(obs) {
   const bucket = {};
-  const add = (b, key, hits, pa) => {
+  const add = (b, key, o) => {
     bucket[b] = bucket[b] || {};
-    bucket[b][key] = bucket[b][key] || { h: 0, pa: 0 };
-    bucket[b][key].h += hits;
-    bucket[b][key].pa += pa;
+    bucket[b][key] = bucket[b][key] || { h: 0, hr: 0, tb: 0, pa: 0 };
+    bucket[b][key].h += o.gameHits;
+    bucket[b][key].hr += o.gameHR;
+    bucket[b][key].tb += o.gameTB;
+    bucket[b][key].pa += o.gamePA;
   };
   for (const o of obs) {
     if (!o.gamePA) continue;
     if (o.batSide && o.pitchHand) {
-      add("b" + o.batSide, o.pitchHand, o.gameHits, o.gamePA);
-      add("b" + o.batSide, "all", o.gameHits, o.gamePA);
+      add("b" + o.batSide, o.pitchHand, o);
+      add("b" + o.batSide, "all", o);
     }
-    add("venue", o.isHome ? "home" : "away", o.gameHits, o.gamePA);
-    add("venue", "all", o.gameHits, o.gamePA);
+    add("venue", o.isHome ? "home" : "away", o);
+    add("venue", "all", o);
   }
-  const ratio = (b, key) => {
+  // `field` picks which event the ratio is measured on. The hits table is the
+  // wrong denominator for home runs and for total bases -- score.js keeps
+  // separate leaguePlatoonHR / leaguePlatoonTB tables for exactly that reason,
+  // and silently falls back to the hits table when they are absent. The
+  // backtest used to supply only the hits table, so every tb2/tb3/hr run was
+  // validating a model the board does not display.
+  const on = (field) => (b, key) => {
     const g = bucket[b];
     if (!g || !g[key] || !g.all || !g[key].pa || !g.all.pa) return null;
-    return g[key].h / g[key].pa / (g.all.h / g.all.pa);
+    const base = g.all[field] / g.all.pa;
+    if (!(base > 0)) return null;
+    return g[key][field] / g[key].pa / base;
   };
-  const platoon = {};
-  for (const bs of ["R", "L", "S"]) {
-    const L = ratio("b" + bs, "L"), R = ratio("b" + bs, "R");
-    if (L && R) platoon[bs] = { L, R };
-  }
+  const ratio = on("h"), ratioHR = on("hr"), ratioTB = on("tb");
+  const table = (r) => {
+    const t = {};
+    for (const bs of ["R", "L", "S"]) {
+      const L = r("b" + bs, "L"), R = r("b" + bs, "R");
+      if (L && R) t[bs] = { L, R };
+    }
+    return t;
+  };
+  const platoon = table(ratio);
   return {
     platoon,
+    platoonHR: table(ratioHR),
+    platoonTB: table(ratioTB),
+    homeAwayHR: { home: ratioHR("venue", "home") || 1, away: ratioHR("venue", "away") || 1 },
     homeAway: { home: ratio("venue", "home") || 1, away: ratio("venue", "away") || 1 },
     counts: bucket,
   };
@@ -278,8 +310,7 @@ function leagueTBFrom(obs) {
 
 /** Actual outcome for whichever prop is being validated. */
 function actualFor(o) {
-  if (PROP === "tb2") return o.actualTB2;
-  if (PROP === "tb3") return o.actualTB3;
+  if (TB_N) return o.gameTB >= TB_N ? 1 : 0;
   if (PROP === "hr") return o.actualHR;
   return o.actual;
 }
@@ -300,12 +331,22 @@ function predictAll(obs, k, lg, lgAvgAllowed, splits) {
       leagueAvgAllowed: lgAvgAllowed,
       pitchHand: splits ? o.pitchHand : null,
       leaguePlatoon: splits ? splits.platoon : null,
+      leaguePlatoonHR: splits ? splits.platoonHR : null,
+      leaguePlatoonTB: splits ? splits.platoonTB : null,
       leagueHomeAway: splits ? splits.homeAway : null,
+      leagueHomeAwayHR: splits ? splits.homeAwayHR : null,
       isHome: o.isHome,
-      threshold: PROP === "tb3" ? 3 : 2,
+      threshold: TB_N || 2,
+      // NOT supplied, and deliberately so: teamRunsPerGame/leagueRunsPerGame.
+      // Reconstructing a team's season-to-date scoring rate as of each past
+      // date is not something the boxscore carries, so offenseFactor() runs
+      // neutral here while the board applies it (measured range 0.874-1.150).
+      // It is mean-1.00 across the league, so it barely moves the k fit, but
+      // it does mean backtested DISCRIMINATION understates the live board.
+      // reportGaps() prints this so the calibration claim is never silent.
     };
     let s;
-    if (PROP === "tb2" || PROP === "tb3") s = score.scoreTB(player, ctx);
+    if (TB_N) s = score.scoreTB(player, ctx);
     else if (PROP === "hr") s = score.scoreHR(player, ctx);
     else s = score.scoreHRR(player, ctx);
     return { p: s ? s.prob : NaN, actual: actualFor(o), slot: o.slot };
@@ -374,8 +415,13 @@ async function main() {
       : 0.244;
 
   predictAll._lgTB = leagueTBFrom(obs);
-  const PROP_LABEL = { hrr: "1+ hits/runs/RBI", tb2: "2+ total bases", tb3: "3+ total bases", hr: "1+ home run" }[PROP] || PROP;
+  const PROP_LABEL = TB_N ? `${TB_N}+ total bases` : { hrr: "1+ hits/runs/RBI", hr: "1+ home run" }[PROP] || PROP;
   console.log(`\n  PROP: ${PROP_LABEL}`);
+  // Never let a calibration number imply the board's exact model was tested.
+  console.log(`  NOT exercised here: offenseFactor (team runs/game is not`);
+  console.log(`    reconstructible per past date) -- the board applies it,`);
+  console.log(`    range x0.874..x1.150, mean x1.00. Bias below is unaffected;`);
+  console.log(`    live discrimination should be slightly BETTER than shown.`);
   const baseRate = obs.reduce((s, o) => s + actualFor(o), 0) / obs.length;
   console.log(`\n  observations:     ${obs.length} hitter-games`);
   console.log(`  actual cash rate: ${(baseRate * 100).toFixed(1)}%  <- what a coin-flip bettor beats`);
@@ -433,7 +479,7 @@ async function main() {
   const delta = bw - bs2;
   console.log(`    delta:           ${delta >= 0 ? "-" : "+"}${Math.abs(delta).toFixed(5)}  ${delta > 0.0002 ? "-> splits HELP, keep them" : delta < -0.0002 ? "-> splits HURT, revert" : "-> no measurable difference"}`);
 
-  if (PROP === "tb2" || PROP === "tb3") {
+  if (TB_N) {
     const lgTB = predictAll._lgTB;
     let predTB = 0, actTB = 0, n = 0, predPA = 0;
     for (const o of obs) {
