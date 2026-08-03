@@ -7992,6 +7992,366 @@
     "hr": 0
    },
    "actual": 0
+  },
+  {
+   "gamePk": 824807,
+   "playerId": 607208,
+   "name": "Trea Turner",
+   "team": "Philadelphia Phillies",
+   "slot": 1,
+   "prop": "tb4",
+   "prob": 0.1745,
+   "pa": 482,
+   "recordedAt": "2026-08-03T00:37:04.630Z",
+   "result": {
+    "pa": 4,
+    "hits": 1,
+    "runs": 0,
+    "rbi": 0,
+    "tb": 1,
+    "hr": 0
+   },
+   "actual": 0
+  },
+  {
+   "gamePk": 824807,
+   "playerId": 656941,
+   "name": "Kyle Schwarber",
+   "team": "Philadelphia Phillies",
+   "slot": 2,
+   "prop": "tb4",
+   "prob": 0.2706,
+   "pa": 470,
+   "recordedAt": "2026-08-03T00:37:04.630Z",
+   "result": {
+    "pa": 4,
+    "hits": 0,
+    "runs": 0,
+    "rbi": 1,
+    "tb": 0,
+    "hr": 0
+   },
+   "actual": 0
+  },
+  {
+   "gamePk": 824807,
+   "playerId": 547180,
+   "name": "Bryce Harper",
+   "team": "Philadelphia Phillies",
+   "slot": 3,
+   "prop": "tb4",
+   "prob": 0.2189,
+   "pa": 472,
+   "recordedAt": "2026-08-03T00:37:04.630Z",
+   "result": {
+    "pa": 4,
+    "hits": 1,
+    "runs": 1,
+    "rbi": 1,
+    "tb": 4,
+    "hr": 1
+   },
+   "actual": 1
+  },
+  {
+   "gamePk": 824807,
+   "playerId": 664761,
+   "name": "Alec Bohm",
+   "team": "Philadelphia Phillies",
+   "slot": 4,
+   "prop": "tb4",
+   "prob": 0.1404,
+   "pa": 437,
+   "recordedAt": "2026-08-03T00:37:04.630Z",
+   "result": {
+    "pa": 4,
+    "hits": 2,
+    "runs": 1,
+    "rbi": 0,
+    "tb": 2,
+    "hr": 0
+   },
+   "actual": 0
+  },
+  {
+   "gamePk": 824807,
+   "playerId": 669016,
+   "name": "Brandon Marsh",
+   "team": "Philadelphia Phillies",
+   "slot": 5,
+   "prop": "tb4",
+   "prob": 0.1761,
+   "pa": 420,
+   "recordedAt": "2026-08-03T00:37:04.630Z",
+   "result": {
+    "pa": 3,
+    "hits": 1,
+    "runs": 1,
+    "rbi": 0,
+    "tb": 1,
+    "hr": 0
+   },
+   "actual": 0
+  },
+  {
+   "gamePk": 824807,
+   "playerId": 592663,
+   "name": "J.T. Realmuto",
+   "team": "Philadelphia Phillies",
+   "slot": 6,
+   "prop": "tb4",
+   "prob": 0.1236,
+   "pa": 307,
+   "recordedAt": "2026-08-03T00:37:04.630Z",
+   "result": {
+    "pa": 3,
+    "hits": 1,
+    "runs": 1,
+    "rbi": 0,
+    "tb": 1,
+    "hr": 0
+   },
+   "actual": 0
+  },
+  {
+   "gamePk": 824807,
+   "playerId": 681082,
+   "name": "Bryson Stott",
+   "team": "Philadelphia Phillies",
+   "slot": 7,
+   "prop": "tb4",
+   "prob": 0.1293,
+   "pa": 409,
+   "recordedAt": "2026-08-03T00:37:04.630Z",
+   "result": {
+    "pa": 3,
+    "hits": 0,
+    "runs": 1,
+    "rbi": 1,
+    "tb": 0,
+    "hr": 0
+   },
+   "actual": 0
+  },
+  {
+   "gamePk": 824807,
+   "playerId": 702222,
+   "name": "Justin Crawford",
+   "team": "Philadelphia Phillies",
+   "slot": 8,
+   "prop": "tb4",
+   "prob": 0.0866,
+   "pa": 327,
+   "recordedAt": "2026-08-03T00:37:04.630Z",
+   "result": {
+    "pa": 3,
+    "hits": 2,
+    "runs": 2,
+    "rbi": 2,
+    "tb": 3,
+    "hr": 0
+   },
+   "actual": 0
+  },
+  {
+   "gamePk": 824807,
+   "playerId": 650559,
+   "name": "Bryan De La Cruz",
+   "team": "Philadelphia Phillies",
+   "slot": 9,
+   "prop": "tb4",
+   "prob": 0.1429,
+   "pa": 23,
+   "recordedAt": "2026-08-03T00:37:04.630Z",
+   "result": {
+    "pa": 3,
+    "hits": 1,
+    "runs": 1,
+    "rbi": 3,
+    "tb": 4,
+    "hr": 1
+   },
+   "actual": 1
+  },
+  {
+   "gamePk": 824807,
+   "playerId": 687637,
+   "name": "Dylan Beavers",
+   "team": "Baltimore Orioles",
+   "slot": 1,
+   "prop": "tb4",
+   "prob": 0.1169,
+   "pa": 197,
+   "recordedAt": "2026-08-03T00:37:04.630Z",
+   "result": {
+    "pa": 3,
+    "hits": 1,
+    "runs": 0,
+    "rbi": 0,
+    "tb": 1,
+    "hr": 0
+   },
+   "actual": 0
+  },
+  {
+   "gamePk": 824807,
+   "playerId": 624413,
+   "name": "Pete Alonso",
+   "team": "Baltimore Orioles",
+   "slot": 2,
+   "prop": "tb4",
+   "prob": 0.1779,
+   "pa": 486,
+   "recordedAt": "2026-08-03T00:37:04.630Z",
+   "result": {
+    "pa": 2,
+    "hits": 1,
+    "runs": 0,
+    "rbi": 0,
+    "tb": 1,
+    "hr": 0
+   },
+   "actual": 0
+  },
+  {
+   "gamePk": 824807,
+   "playerId": 683002,
+   "name": "Gunnar Henderson",
+   "team": "Baltimore Orioles",
+   "slot": 3,
+   "prop": "tb4",
+   "prob": 0.157,
+   "pa": 506,
+   "recordedAt": "2026-08-03T00:37:04.630Z",
+   "result": {
+    "pa": 2,
+    "hits": 0,
+    "runs": 0,
+    "rbi": 0,
+    "tb": 0,
+    "hr": 0
+   },
+   "actual": 0
+  },
+  {
+   "gamePk": 824807,
+   "playerId": 621493,
+   "name": "Taylor Ward",
+   "team": "Baltimore Orioles",
+   "slot": 4,
+   "prop": "tb4",
+   "prob": 0.0828,
+   "pa": 506,
+   "recordedAt": "2026-08-03T00:37:04.630Z",
+   "result": {
+    "pa": 2,
+    "hits": 1,
+    "runs": 0,
+    "rbi": 0,
+    "tb": 1,
+    "hr": 0
+   },
+   "actual": 0
+  },
+  {
+   "gamePk": 824807,
+   "playerId": 702616,
+   "name": "Jackson Holliday",
+   "team": "Baltimore Orioles",
+   "slot": 5,
+   "prop": "tb4",
+   "prob": 0.1212,
+   "pa": 194,
+   "recordedAt": "2026-08-03T00:37:04.631Z",
+   "result": {
+    "pa": 2,
+    "hits": 0,
+    "runs": 0,
+    "rbi": 0,
+    "tb": 0,
+    "hr": 0
+   },
+   "actual": 0
+  },
+  {
+   "gamePk": 824807,
+   "playerId": 687952,
+   "name": "Christian Encarnacion-Strand",
+   "team": "Baltimore Orioles",
+   "slot": 6,
+   "prop": "tb4",
+   "prob": 0.1433,
+   "pa": 43,
+   "recordedAt": "2026-08-03T00:37:04.631Z",
+   "result": {
+    "pa": 2,
+    "hits": 0,
+    "runs": 0,
+    "rbi": 0,
+    "tb": 0,
+    "hr": 0
+   },
+   "actual": 0
+  },
+  {
+   "gamePk": 824807,
+   "playerId": 665750,
+   "name": "Leody Taveras",
+   "team": "Baltimore Orioles",
+   "slot": 7,
+   "prop": "tb4",
+   "prob": 0.0806,
+   "pa": 342,
+   "recordedAt": "2026-08-03T00:37:04.631Z",
+   "result": {
+    "pa": 2,
+    "hits": 0,
+    "runs": 0,
+    "rbi": 0,
+    "tb": 0,
+    "hr": 0
+   },
+   "actual": 0
+  },
+  {
+   "gamePk": 824807,
+   "playerId": 681297,
+   "name": "Colton Cowser",
+   "team": "Baltimore Orioles",
+   "slot": 8,
+   "prop": "tb4",
+   "prob": 0.1074,
+   "pa": 265,
+   "recordedAt": "2026-08-03T00:37:04.631Z",
+   "result": {
+    "pa": 2,
+    "hits": 0,
+    "runs": 0,
+    "rbi": 0,
+    "tb": 0,
+    "hr": 0
+   },
+   "actual": 0
+  },
+  {
+   "gamePk": 824807,
+   "playerId": 668670,
+   "name": "Jake Rogers",
+   "team": "Baltimore Orioles",
+   "slot": 9,
+   "prop": "tb4",
+   "prob": 0.0978,
+   "pa": 116,
+   "recordedAt": "2026-08-03T00:37:04.631Z",
+   "result": {
+    "pa": 2,
+    "hits": 1,
+    "runs": 0,
+    "rbi": 0,
+    "tb": 1,
+    "hr": 0
+   },
+   "actual": 0
   }
  ],
  "graded": false
