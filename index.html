@@ -108,8 +108,17 @@ footer{margin-top:22px;color:var(--muted);font-size:12px;line-height:1.7}
 
 @media (max-width:760px){
   .wrap{padding:14px 11px 40px}
-  .row{grid-template-columns:28px 1fr 72px;gap:10px}
+  /* Four columns, not three. The row has four visible children on mobile
+     (slot, name, probability, add-to-slip) because .caret is display:none.
+     Declaring three columns pushed the + button onto its own grid row: every
+     row became 88px instead of ~50px, the button landed orphaned under the
+     slot number, and across 101 rows that added roughly 3,850px -- about four
+     and a half extra phone screens of scrolling to reach the same picks. */
+  .row{grid-template-columns:28px 1fr 72px 44px;gap:8px}
   .caret{display:none}
+  /* 28px fails the 44px touch minimum, and this is the primary action on the
+     page: it is how a leg gets into the parlay slip. */
+  .addleg{width:44px;height:44px;font-size:20px}
 }
 @media (pointer:coarse){ .seg button{min-height:42px} }
 </style>
