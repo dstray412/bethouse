@@ -745,6 +745,31 @@
     return 0.2;
   }
 
+  /**
+   * Is this game still open — not started, not over?
+   *
+   * MLB's `detailedState` is a human-readable string with a long vocabulary:
+   * Final, Game Over, Completed Early, Postponed, Suspended, Cancelled,
+   * In Progress, Warmup, Pre-Game, Scheduled, Delayed Start. Every consumer
+   * used to test `/Final|Game Over/` against it, so a game that ended early
+   * (rain, most often) read as still bettable: on 2026-08-02 track.mjs
+   * recorded 18 predictions for Phillies @ Orioles hours AFTER it finished,
+   * which is a lookahead leak straight into the accuracy record.
+   *
+   * `abstractGameState` is the authoritative field and has only three values,
+   * Preview / Live / Final, so lead with it and keep the string check as a
+   * backstop for states it does not distinguish (Postponed stays "Preview").
+   *
+   * A delayed-but-unstarted game is deliberately still open: it has not begun,
+   * and most delays still produce a full game.
+   */
+  function gameIsOpen(g) {
+    if (!g) return false;
+    if (g.live) return false;
+    if (g.abstract && g.abstract !== "Preview") return false;
+    return !/final|game over|completed|postponed|cancell?ed|suspended/i.test(g.status || "");
+  }
+
   function rank(list) {
     return list
       .filter(function (x) { return x && isFinite(x.prob); })
@@ -781,5 +806,6 @@
     fairPrice: fairPrice,
     sampleConfidence: sampleConfidence,
     rank: rank,
+    gameIsOpen: gameIsOpen,
   };
 });

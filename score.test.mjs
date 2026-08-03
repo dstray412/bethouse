@@ -691,3 +691,31 @@ test("total bases is monotone in the threshold", () => {
   assert.ok(p2 > p3 && p3 > p4, `not monotone: ${p2} ${p3} ${p4}`);
   assert.ok(p4 > 0, "4+ must be reachable, the board offers it");
 });
+
+test("gameIsOpen trusts abstractGameState, not the prose status", () => {
+  // The bug this exists to prevent: "Completed Early" (a rain-shortened game)
+  // did not match /Final|Game Over/, so a FINISHED game read as bettable and
+  // track.mjs recorded 90 post-hoc predictions for it -- 290 minutes after
+  // first pitch -- straight into the accuracy record shown on the board.
+  const open = { abstract: "Preview", status: "Scheduled", live: false };
+  assert.equal(score.gameIsOpen(open), true);
+  assert.equal(score.gameIsOpen({ ...open, status: "Pre-Game" }), true);
+  assert.equal(score.gameIsOpen({ ...open, status: "Warmup" }), true);
+  // A delay before first pitch is still bettable: it has not started.
+  assert.equal(score.gameIsOpen({ ...open, status: "Delayed Start" }), true);
+
+  assert.equal(score.gameIsOpen({ abstract: "Live", status: "In Progress", live: true }), false);
+  assert.equal(score.gameIsOpen({ abstract: "Final", status: "Final", live: false }), false);
+  assert.equal(score.gameIsOpen({ abstract: "Final", status: "Game Over", live: false }), false);
+  assert.equal(score.gameIsOpen({ abstract: "Final", status: "Completed Early", live: false }), false);
+
+  // Postponed keeps abstract "Preview", so the string backstop must catch it.
+  assert.equal(score.gameIsOpen({ abstract: "Preview", status: "Postponed", live: false }), false);
+  assert.equal(score.gameIsOpen({ abstract: "Preview", status: "Suspended", live: false }), false);
+  assert.equal(score.gameIsOpen({ abstract: "Preview", status: "Cancelled", live: false }), false);
+  assert.equal(score.gameIsOpen({ abstract: "Preview", status: "Canceled", live: false }), false);
+
+  // `live` alone closes it even if the other fields disagree.
+  assert.equal(score.gameIsOpen({ abstract: "Preview", status: "Scheduled", live: true }), false);
+  assert.equal(score.gameIsOpen(null), false);
+});

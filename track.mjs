@@ -124,7 +124,17 @@ function snapshot() {
 
   for (const g of D.games) {
     // Rule 2: never record a prediction for a game already underway.
-    if (g.live || /Final|Game Over/i.test(g.status)) {
+    if (!score.gameIsOpen(g)) {
+      skippedLive++;
+      continue;
+    }
+    /* Belt and braces. Rule 2 used to be enforced only by matching status
+       strings, and MLB's vocabulary is wider than the match: "Completed
+       Early" read as bettable for five hours and put 90 post-hoc rows into
+       the record for a game that had already finished. A wall clock cannot
+       be misread the way a status string can, so refuse anything at or past
+       its own first pitch regardless of what the status says. */
+    if (g.startTime && Date.now() >= new Date(g.startTime).getTime()) {
       skippedLive++;
       continue;
     }

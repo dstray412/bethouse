@@ -475,8 +475,11 @@ function render(){
       var lab = /Delay/i.test(g.status) ? g.status : (g.inningState||'')+' '+(g.inning||'');
       meta.appendChild(el('span','chip '+(/Delay/i.test(g.status)?'delayed':'livegame'), lab.trim().toUpperCase()));
       meta.appendChild(document.createTextNode(' '+(g.venue||'')));
-    } else if(/Final|Game Over/i.test(g.status)){
-      meta.appendChild(el('span','chip done','FINAL'));
+    } else if(!S.gameIsOpen(g)){
+      // Not just Final/Game Over: "Completed Early", "Postponed" and
+      // "Suspended" all mean you cannot bet it, and all used to fall through
+      // to the else branch below and render as an upcoming start time.
+      meta.appendChild(el('span','chip done',/Postpone|Suspend|Cancel/i.test(g.status)?g.status.toUpperCase():'FINAL'));
       meta.appendChild(document.createTextNode(' '+(g.venue||'')));
     } else {
       meta.textContent = timeStr(g.startTime)+' · '+(g.venue||'');
