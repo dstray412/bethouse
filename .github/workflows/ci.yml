@@ -22,8 +22,8 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: "20"
       # Named files, not bare `node --test`: bare discovery picks up backtest.mjs and
@@ -34,7 +34,7 @@ jobs:
   secrets:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Install gitleaks (free binary — no license needed)
@@ -47,7 +47,7 @@ jobs:
       - name: Upload findings to Code Scanning
         if: always()
         continue-on-error: true
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: gitleaks.sarif
           category: gitleaks
