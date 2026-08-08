@@ -1,0 +1,38 @@
+# BetHouse local hooks — tailored from the Altera Claude Code Standard.
+#
+# Trimmed for this repo: it's a vanilla-JS GitHub Pages app with no Python and no
+# package.json, so the standard's ruff (Python lint) and Semgrep pre-push steps are
+# omitted. What's kept is what earns its place here: file hygiene + secret scanning,
+# so an odds/API key can never be committed. Full tests run in CI (.github/workflows/ci.yml).
+
+default_install_hook_types: [pre-commit, pre-push]
+
+repos:
+  # --- general hygiene (pre-commit) ---
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: ["--maxkb=1024"]
+      - id: detect-private-key
+
+  # --- secret scanning (pre-commit) ---
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.18.4
+    hooks:
+      - id: gitleaks
+
+  # --- the real test suite, before push ---
+  # Named files, not bare `node --test`: bare discovery picks up backtest.mjs on
+  # Node 21+ and fires ~100 live statsapi calls. Mirror ci.yml exactly.
+  - repo: local
+    hooks:
+      - id: node-tests
+        name: node --test (edge + score)
+        language: system
+        entry: node --test edge.test.mjs score.test.mjs
+        pass_filenames: false
+        stages: [pre-push]

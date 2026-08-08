@@ -1,0 +1,53 @@
+# BetHouse CI — tailored from the Altera Claude Code Standard.
+#
+# The stock template's node job keys off package.json (this repo has none) and would
+# skip the suite, and its Python/coverage jobs don't apply. This runs what BetHouse
+# actually has: the real test command + a secret scan. Separate from refresh.yml, and
+# it does NOT gate main via branch protection, so the auto-refresh bot's pushes are
+# unaffected.
+
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  security-events: write   # upload gitleaks SARIF to Code Scanning
+  actions: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      # Named files, not bare `node --test`: bare discovery picks up backtest.mjs and
+      # fires ~100 live statsapi calls. Same command as .pre-commit-config.yaml.
+      - name: Run tests
+        run: node --test edge.test.mjs score.test.mjs
+
+  secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install gitleaks (free binary — no license needed)
+        run: |
+          VER=8.18.4
+          curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${VER}/gitleaks_${VER}_linux_x64.tar.gz" | tar -xz gitleaks
+          sudo mv gitleaks /usr/local/bin/
+      - name: Scan for secrets
+        run: gitleaks detect --redact --no-banner --report-format sarif --report-path gitleaks.sarif
+      - name: Upload findings to Code Scanning
+        if: always()
+        continue-on-error: true
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: gitleaks.sarif
+          category: gitleaks
