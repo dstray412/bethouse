@@ -1,9 +1,11 @@
 # BetHouse
 
 Ranks MLB hitters for three props, every game, every day: **1+ hits/runs/RBI**,
-**total bases** (2+, 3+, 4+), and **home runs**.
+**total bases** (2+, 3+, 4+), and **home runs**. And ranks PGA Tour players by
+their chance of **making the cut**.
 
-Open `index.html`. No build step, no server, no API key.
+Open `index.html` for baseball, `golf.html` for golf. No build step, no server,
+no API key.
 
 ---
 
@@ -144,6 +146,11 @@ should be re-fitted when the run environment shifts.
 | `track.mjs` | Records each day's pregame predictions, grades them once games end, keeps the running record. |
 | `edge.js` | De-vig and EV math for the odds side. 36 tests. |
 | `fetch-odds.mjs` | The Odds API client. Needs a key; not required for the board. |
+| `golf.html` | The PGA board: who makes the cut. Open it. |
+| `golf.js` | The cut model. Two-way ratings solve plus a field-wide Monte Carlo. |
+| `golf.test.mjs` | 41 tests on cut rules, the ratings solve, ties and the simulation. |
+| `fetch-pga.mjs` | Keyless ESPN requests → `pga-data.js` and `pga-history.json`. |
+| `backtest-pga.mjs` | Replays completed tournaments, measures calibration, fits the constants. |
 
 ## Sharing it
 
@@ -405,8 +412,155 @@ compounds faster than any edge the model can find.
 
 ---
 
+## Golf: who makes the cut
+
+`golf.html` is a second board, for the PGA Tour. Open it. Same deal — no build
+step, no server, no API key. ESPN's golf API is as open as statsapi is.
+
+```sh
+node fetch-pga.mjs                    # builds pga-data.js + pga-history.json
+node --test golf.test.mjs             # 41 tests
+node backtest-pga.mjs                 # does it work?
+node fetch-pga.mjs --event 401811961  # build the board for any tournament
+```
+
+### Why this model looks nothing like the baseball one
+
+Every prop in `score.js` asks about one player alone: given his rate and his
+trips to the plate, does he get a hit? Making the cut is not that question.
+The cut is **low 65 and ties** — an order statistic of the entire field.
+Whether a player survives depends on how the other 155 played, so the outcomes
+are coupled and there is no closed form for one man's probability.
+
+So `golf.js` simulates. Twenty thousand tournaments, all 156 players each
+time, and count how often each man finished on the right side of wherever the
+line happened to fall. That coupling is also what makes the bet interesting:
+the same player is a different price in a Monday-qualifier field than in a
+major, and the model gets that for free.
+
+### Rating players
+
+You cannot use scoring average. It cannot tell "this player is good" from
+"this player drew the easy course in the calm wave". So solve both at once:
+
+    score(player, round) = roundDifficulty(round) + skill(player)
+
+Alternating least squares, with the player step ridged by `K` — the same
+regress-toward-average idea as `K = 180` on the baseball side. A man who shot
+64 once is not a −6 talent, he is a small sample.
+
+Splitting difficulty out is worth a lot. By split-half reliability across 2026:
+
+| rating method | r |
+|---|---|
+| raw differential vs the field, R1–R2 | 0.443 |
+| this solve, R1–R2 | 0.581 |
+| this solve, all four rounds | **0.684** |
+
+Rounds 3 and 4 are included even though only players who made the cut have
+them. A raw differential over the weekend is biased — the field left standing
+is better, so the average to beat is tougher — but the round-difficulty term
+absorbs exactly that, because it is fitted from whoever actually teed off.
+
+### What the variance splits into
+
+| | strokes per round | |
+|---|---|---|
+| true skill | 0.52 | who the player is |
+| form and course fit | 1.03 | this week, shared across his rounds |
+| noise | 2.71 | the part nobody can predict |
+
+Those imply a 36-hole spread of 4.35 strokes against an observed 4.48. The
+decomposition reproduces reality, which is the only reason to trust it.
+
+Note the ratio. Over 36 holes the best player in a field is about two strokes
+better than the median while the noise is nearly four. **Golf is mostly
+noise**, which is why make-cut markets sit near even money and why nothing
+here will ever print a 95% pick for a normal player.
+
+### The bug that mattered: ties
+
+The first version drew scores from a normal distribution and ran **5.75
+percentage points cold**. The tell was the U.S. Open: it predicted 38.5% for
+that field, which is exactly 60/156, the cut rule itself.
+
+Golf scores are whole numbers of strokes. With continuous scores no two
+players ever tie, so exactly `cutN` survive and "and ties" never fires. In
+reality the field stacks up about fifteen players deep on each stroke near the
+line, so whoever is sitting on the number brings a dozen friends to the
+weekend. That U.S. Open sent **72** players through a low-60-and-ties cut.
+
+Rounding the simulated score fixed most of it. The rest was shape: real
+36-hole totals are right-skewed (+0.48) and more peaked than a bell (+0.69
+excess kurtosis), and both pile players into the middle, which is where the
+cut falls. So the model samples from the **real distribution** of 36-hole
+scores rather than a normal — the same instinct as convolving the actual total
+bases distribution instead of reaching for a normal approximation.
+
+This is the golf version of the `mixPow` story: a continuous approximation
+standing in for something that is discrete by construction.
+
+### Debutants are not average
+
+A player making his first start of the season played **1.07 strokes per round
+worse** than the field and made the cut 37.7% of the time, against 57.4% for
+everyone else. Monday qualifiers and sponsor exemptions are not average tour
+players, and starting them at average was quietly handing free probability to
+the weakest man in the field.
+
+### Out-of-sample results
+
+23 tournaments, 3,046 player-events, each predicted using only tournaments
+that had already finished. Ratings, scoring shape and all:
+
+| | |
+|---|---|
+| Base rate | 53.5% |
+| Calibration bias | **−1.29pp** (runs slightly cold) |
+| Brier score | 0.2284 |
+| Brier, guessing the base rate | 0.2488 |
+| Top 20% cashed | 72.9% |
+| Bottom 20% cashed | 30.5% |
+| Spread | **42.4pp** |
+
+Every bucket from 20% to 80% lands within about 2 points of reality, except
+one: **the very top of the board runs hot**. The players it likes most were
+priced at 83.5% and cashed 73.8%. Trust the middle of this board more than the
+top of it — the same "there is a ceiling on this bet type" finding the
+baseball model ran into, showing up again.
+
+### Cut rules
+
+The tour standard is low 65 and ties; majors and signature events set their
+own; playoff and limited-field events do not cut at all. The table in
+`golf.js` was **wrong on first writing and the data caught it** — the
+signature events were assumed to have no cut, but 2026 shows Genesis, Bay Hill
+and the Memorial cutting 21, 22 and 19 players. They cut at 50. Check any
+change the same way, by counting `STATUS_CUT` in `pga-history.json`.
+
+Three formats are excluded rather than mis-modelled: the Zurich Classic (two-man
+teams), the American Express and Pebble Beach (54-hole cuts across three
+courses, so a round's "field average" is three different field averages).
+
+On a no-cut week the board says so and shows the power ranking instead. A
+column of 100%s is not a board, it is a trap.
+
+---
+
 ## Known gaps
 
+- **Golf ratings only know 2026 PGA Tour rounds.** A player arriving from LIV,
+  the DP World Tour or the Korn Ferry Tour reads as unrated and gets the
+  debutant prior, which will underrate a genuinely good player. The board
+  labels these `unrated` so you can see it happening.
+- **No course fit.** A bomber at a short, tight track and a plotter at a wide
+  one get the same rating. `formSD` covers the average size of that effect
+  without knowing which way it points for whom.
+- **Golf has no odds feed.** `golf.html` will price any number you type, but
+  nothing fetches make-cut markets automatically the way `fetch-odds.mjs` does
+  for baseball.
+- **The top of the golf board is overconfident.** See above: 83.5% predicted,
+  73.8% actual. Shade the favourites down.
 - **Home run rankings are not calibrated.** Only the H+R+RBI model has been
   through the backtest. The HR ordering is a starting point; its percentages
   are unproven.
