@@ -25,6 +25,9 @@ header{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:1
 .logo{font-family:var(--display);font-size:22px;font-weight:700;letter-spacing:.14em;
   background:linear-gradient(96deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent;margin:0}
 .tagline{font-family:var(--display);font-size:11px;font-weight:600;letter-spacing:.17em;text-transform:uppercase;color:var(--muted);margin-top:5px}
+.navlink{font-family:var(--display);font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--muted);text-decoration:none;border:1px solid var(--line);border-radius:9px;padding:7px 12px;white-space:nowrap}
+.navlink:hover{color:var(--text);border-color:var(--accent)}
 
 .note{color:var(--muted);font-size:12.5px;line-height:1.6;margin:0 2px 14px}
 .note b{color:var(--text);font-weight:600}
@@ -151,6 +154,7 @@ footer{margin-top:22px;color:var(--muted);font-size:12px;line-height:1.7}
     <label id="lab-view">Bet type</label>
     <div class="seg" id="view" role="group" aria-labelledby="lab-view"></div>
   </div>
+  <a class="navlink" href="golf.html">PGA — the cut →</a>
 </header>
 
 <div class="note" id="note"></div>

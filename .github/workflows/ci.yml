@@ -27,9 +27,10 @@ jobs:
         with:
           node-version: "20"
       # Named files, not bare `node --test`: bare discovery picks up backtest.mjs and
-      # fires ~100 live statsapi calls. Same command as .pre-commit-config.yaml.
+      # backtest-pga.mjs and fires ~100 live statsapi and ESPN calls. Same command
+      # as .pre-commit-config.yaml.
       - name: Run tests
-        run: node --test edge.test.mjs score.test.mjs
+        run: node --test edge.test.mjs score.test.mjs golf.test.mjs
 
   secrets:
     runs-on: ubuntu-latest

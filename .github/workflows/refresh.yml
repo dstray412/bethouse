@@ -32,6 +32,13 @@ jobs:
       - name: Fetch today's slate
         run: node fetch-mlb.mjs
 
+      - name: Fetch the golf board
+        # Cheap: the season cache only re-fetches tournaments that have
+        # finished since last run, so most runs cost a single schedule
+        # request. Never fail the whole refresh over golf — the baseball
+        # board is the thing people open every day.
+        run: node fetch-pga.mjs || echo "PGA fetch failed, keeping the previous board"
+
       - name: Sanity check before committing
         # Never publish a broken board. If the fetch produced something the
         # app cannot read, fail here rather than commit it.
@@ -46,10 +53,22 @@ jobs:
             if (d.games.length && slots < d.games.length * 9) throw new Error("lineups look truncated: " + slots);
             console.log("ok:", d.games.length, "games,", slots, "lineup slots");
           '
+          # The golf board is allowed to be absent (the fetch step is
+          # non-fatal) but never malformed.
+          node -e '
+            const fs = require("fs");
+            if (!fs.existsSync("pga-data.js")) { console.log("no pga-data.js yet — skipping"); process.exit(0); }
+            global.window = {};
+            require("./pga-data.js");
+            const d = window.BetHousePGAData;
+            if (!d || !d.event) throw new Error("no event");
+            if (!Array.isArray(d.field) || !d.field.length) throw new Error("empty field");
+            console.log("ok:", d.event.name, d.field.length, "players, cut", d.event.cut);
+          '
           # Name the test files explicitly. `node --test` bare discovery picks
-          # up backtest.mjs on Node 21+ and would fire ~100 live API calls at
-          # statsapi on every scheduled run.
-          node --test edge.test.mjs score.test.mjs
+          # up backtest.mjs and backtest-pga.mjs on Node 21+ and would fire
+          # ~100 live API calls at statsapi and ESPN on every scheduled run.
+          node --test edge.test.mjs score.test.mjs golf.test.mjs
 
       - name: Record predictions and grade finished games
         run: |
@@ -70,6 +89,8 @@ jobs:
           # not there yet is a fatal error, which took down every scheduled
           # run until the first graded day.
           git add mlb-data.js
+          [ -f pga-data.js ] && git add pga-data.js || true
+          [ -f pga-history.json ] && git add pga-history.json || true
           [ -f record.js ] && git add record.js || true
           [ -d history ] && git add history/ || true
           if git diff --staged --quiet; then

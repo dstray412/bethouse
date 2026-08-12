@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>BetHouse — the cut</title>
+<link rel="stylesheet" href="fonts/space-grotesk.css">
+<style>
+:root{
+  --bg:#12161f; --panel:rgba(255,255,255,0.04); --panel2:rgba(255,255,255,0.025);
+  --line:rgba(255,255,255,0.09); --text:#eef1f7; --muted:#a6b0c4;
+  --accent:#38e1ff; --accent2:#7c5cff; --warn:#e0a33f; --bad:#d8434f; --good:#5fce8f;
+  --display:'Space Grotesk',ui-sans-serif,system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font:15px/1.5 ui-sans-serif,system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased;min-height:100vh}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(900px 520px at 88% -8%,rgba(124,92,255,.16),transparent 60%),
+             radial-gradient(760px 480px at 4% 104%,rgba(56,225,255,.11),transparent 60%)}
+.wrap{position:relative;z-index:1;max-width:1080px;margin:0 auto;padding:22px 18px 60px}
+
+header{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:16px}
+.brand{flex:1 1 auto;min-width:200px}
+.logo{font-family:var(--display);font-size:22px;font-weight:700;letter-spacing:.14em;
+  background:linear-gradient(96deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent;margin:0}
+.tagline{font-family:var(--display);font-size:11px;font-weight:600;letter-spacing:.17em;text-transform:uppercase;color:var(--muted);margin-top:5px}
+.navlink{font-family:var(--display);font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--muted);text-decoration:none;border:1px solid var(--line);border-radius:9px;padding:7px 12px}
+.navlink:hover{color:var(--text);border-color:var(--accent)}
+
+.note{color:var(--muted);font-size:12.5px;line-height:1.6;margin:0 2px 14px}
+.note b{color:var(--text);font-weight:600}
+
+.game{border:1px solid var(--line);border-radius:15px;background:var(--panel2);margin-bottom:14px;overflow:hidden}
+.ghead{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;
+  padding:12px 15px;background:rgba(255,255,255,.03);border-bottom:1px solid var(--line)}
+.gtitle{font-family:var(--display);font-size:16px;font-weight:700;margin:0}
+.gmeta{font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.chip{display:inline-block;font-family:var(--display);font-size:9.5px;font-weight:700;letter-spacing:.09em;
+  padding:2px 7px;border-radius:999px;border:1px solid var(--line);color:var(--muted);margin-left:7px;vertical-align:1px}
+.chip.live{color:var(--good);border-color:rgba(95,206,143,.4)}
+.chip.proj{color:var(--warn);border-color:rgba(224,163,63,.4)}
+
+.controls{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-end;background:var(--panel);
+  border:1px solid var(--line);border-radius:13px;padding:12px 14px;margin-bottom:14px}
+.ctl{display:flex;flex-direction:column;gap:6px}
+.ctl>label{font-family:var(--display);font-size:10px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.seg{display:flex;gap:4px}
+.seg button{font:inherit;font-size:13px;color:var(--muted);background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:6px 11px;cursor:pointer}
+.seg button:hover{color:var(--text)}
+.seg button[aria-pressed=true]{color:#0a0d14;background:linear-gradient(180deg,#7fe9ff,var(--accent));border-color:transparent;font-weight:600}
+.summary{display:flex;gap:22px;flex-wrap:wrap;margin:0 2px 14px;font-size:13px;color:var(--muted)}
+.summary b{color:var(--text);font-variant-numeric:tabular-nums}
+
+.row{display:grid;grid-template-columns:32px 1fr 78px 62px 20px;gap:10px;align-items:center;
+  width:100%;text-align:left;font:inherit;color:inherit;background:none;border:0;
+  padding:8px 15px;cursor:pointer;border-top:1px solid rgba(255,255,255,.045)}
+.row:hover{background:rgba(255,255,255,.028)}
+.slot{font-family:var(--display);font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+.who{font-weight:600;font-size:14.5px}
+.pos{color:var(--muted);font-weight:400;font-size:12px;margin-left:5px}
+.prob{font-weight:700;font-size:22px;font-variant-numeric:tabular-nums;text-align:right;letter-spacing:-.01em}
+.be{font-variant-numeric:tabular-nums;text-align:right;font-size:14px}
+.be small{display:block;color:var(--muted);font-size:11px}
+.caret{color:var(--muted);text-align:center;transition:transform .16s}
+.row[aria-expanded=true] .caret{transform:rotate(90deg)}
+.why{padding:2px 15px 16px;background:rgba(0,0,0,.16);border-top:1px solid var(--line);font-size:13px;color:var(--muted);line-height:1.75}
+.why b{color:var(--text);font-variant-numeric:tabular-nums}
+.why table{border-collapse:collapse;margin:8px 0 4px;font-variant-numeric:tabular-nums}
+.why td{padding:2px 16px 2px 0;vertical-align:top}
+.why td:first-child{color:var(--muted)}
+.priceinp{display:flex;align-items:center;gap:6px;background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:6px 10px;margin-top:8px;width:max-content}
+.priceinp input{font:inherit;font-size:14px;color:var(--text);background:transparent;border:0;width:70px;font-variant-numeric:tabular-nums}
+.priceinp input:focus{outline:none}
+.ev{font-family:var(--display);font-weight:700;font-size:13px;letter-spacing:.04em}
+.ev.pos{color:var(--good)} .ev.neg{color:var(--muted)}
+
+.banner{border:1px solid rgba(224,163,63,.45);background:rgba(224,163,63,.09);border-radius:14px;
+  padding:16px 18px;margin-bottom:16px}
+.banner h3{font-family:var(--display);font-size:12px;font-weight:700;letter-spacing:.18em;
+  text-transform:uppercase;color:var(--warn);margin:0 0 8px}
+.banner p{margin:0 0 8px;font-size:13.5px;line-height:1.65;color:var(--text)}
+.banner ul{margin:8px 0 0;padding-left:18px;color:var(--muted);font-size:13px;line-height:1.8}
+.banner b{color:var(--text)}
+.empty{padding:44px 20px;text-align:center;color:var(--muted)}
+.empty .big{font-family:var(--display);font-size:18px;font-weight:600;color:var(--text);margin-bottom:7px}
+footer{margin-top:22px;color:var(--muted);font-size:12px;line-height:1.7}
+footer b{color:var(--text)}
+footer table{border-collapse:collapse;margin:8px 0;font-variant-numeric:tabular-nums;font-size:12px}
+footer td{padding:1px 14px 1px 0}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+
+@media (max-width:760px){
+  .wrap{padding:14px 11px 40px}
+  .row{grid-template-columns:28px 1fr 66px 56px;gap:8px;padding:8px 12px}
+  .caret{display:none}
+  .prob{font-size:19px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="brand">
+    <h1 class="logo">BETHOUSE</h1>
+    <div class="tagline">PGA Tour — who makes the cut</div>
+  </div>
+  <a class="navlink" href="index.html">Baseball board →</a>
+</header>
+
+<div id="app"><div class="empty"><div class="big">Loading…</div>
+  <div>If this does not clear, run <code>node fetch-pga.mjs</code> to build <code>pga-data.js</code>.</div></div></div>
+
+<footer id="foot"></footer>
+</div>
+
+<script src="edge.js"></script>
+<script src="golf.js"></script>
+<script src="pga-data.js"></script>
+<script>
+(function () {
+  "use strict";
+  var G = window.BetHouseGolf, D = window.BetHousePGAData;
+  var app = document.getElementById("app");
+
+  if (!D || !D.event) {
+    app.innerHTML = '<div class="empty"><div class="big">No board yet</div>' +
+      '<div>Run <code>node fetch-pga.mjs</code> to build <code>pga-data.js</code>.</div></div>';
+    return;
+  }
+
+  var ev = D.event;
+  var pct = function (x) { return (100 * x).toFixed(1) + "%"; };
+  var sgn = function (n) { return n > 0 ? "+" + n : String(n); };
+  var esc = function (s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  };
+  var when = function (iso) {
+    if (!iso) return "";
+    var d = new Date(iso);
+    return isNaN(d) ? "" : d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  };
+
+  /*
+   * The board runs the same simulation the backtest ran. Twenty thousand
+   * tournaments over ~150 players is a few million draws and lands in well
+   * under a second, so there is no reason to bake the answers in at fetch
+   * time and no way for the page and the measured model to drift apart.
+   */
+  var field = (D.field || []).map(function (p) {
+    return { id: p.id, name: p.name, skill: p.skill, rounds: p.rounds, teeTime: p.teeTime, amateur: p.amateur };
+  });
+  var residuals = D.residuals ? Float64Array.from(D.residuals) : null;
+  var noCut = ev.cut == null;
+  var sim = G.simulateCut(field, { cutN: ev.cut, residuals: residuals });
+
+  /* ---------------------------------------------------------------- *
+   * No cut this week.
+   *
+   * Every player is 100% to "make the cut" and that is not a board, it is
+   * a trap. Say so, say why, and say when the next real one is — then show
+   * the ratings, which are still the useful thing on a no-cut week.
+   * ---------------------------------------------------------------- */
+  var banner = "";
+  if (noCut) {
+    var next = (D.upcoming || []);
+    banner =
+      '<div class="banner"><h3>No cut this week</h3>' +
+      "<p><b>" + esc(ev.name) + "</b> is a limited-field event — all " + field.length +
+      " players are guaranteed four rounds. There is no make-the-cut market to price, " +
+      "so this page is showing the <b>power ranking</b> instead: strokes per round " +
+      "better or worse than a field-average tour player.</p>" +
+      (next.length
+        ? "<p>Next tournaments with a real cut:</p><ul>" +
+          next.map(function (e) {
+            return "<li><b>" + esc(e.name) + "</b> — " + when(e.date) +
+              ", low " + e.cut + " and ties</li>";
+          }).join("") + "</ul>"
+        : "") +
+      "</div>";
+  }
+
+  var rows = noCut
+    ? field.slice().sort(function (a, b) {
+        var as = a.skill == null ? 99 : a.skill, bs = b.skill == null ? 99 : b.skill;
+        return as - bs;
+      })
+    : sim;
+
+  var head =
+    '<div class="game"><div class="ghead">' +
+    '<h2 class="gtitle">' + esc(ev.name) +
+      (ev.state === "in" ? '<span class="chip live">LIVE</span>'
+        : ev.state === "pre" ? '<span class="chip proj">UPCOMING</span>' : "") +
+    "</h2>" +
+    '<div class="gmeta">' + esc(ev.course || "") + (ev.par ? " · par " + ev.par : "") +
+      " · " + field.length + " players · " +
+      (noCut ? "no cut" : "low " + ev.cut + " and ties") + "</div>" +
+    "</div>";
+
+  var body = rows.map(function (p, i) {
+    var rated = p.rounds > 0;
+    var prob = noCut ? null : p.prob;
+    var main = noCut
+      ? (p.skill == null ? "—" : (p.skill <= 0 ? "" : "+") + p.skill.toFixed(2))
+      : pct(prob);
+    var right = noCut
+      ? "<small>str/rnd</small>"
+      : (p.fair == null ? "—" : sgn(p.fair)) + "<small>fair</small>";
+    return (
+      '<button class="row" aria-expanded="false" data-i="' + i + '">' +
+      '<span class="slot">' + (i + 1) + "</span>" +
+      '<span class="who">' + esc(p.name) + (p.amateur ? '<span class="pos">(a)</span>' : "") +
+        (rated ? "" : '<span class="pos">unrated</span>') + "</span>" +
+      '<span class="prob">' + main + "</span>" +
+      '<span class="be">' + right + "</span>" +
+      '<span class="caret">›</span>' +
+      "</button>" +
+      '<div class="why" id="why' + i + '" hidden></div>'
+    );
+  }).join("");
+
+  app.innerHTML = banner + head + body + "</div>";
+
+  /* ---------------------------------------------------------------- *
+   * Showing the work, the same way the baseball board does: every number
+   * that went into the probability, and the arithmetic on top of it.
+   * ---------------------------------------------------------------- */
+  function detail(p) {
+    var shrink = p.rounds > 0 ? p.rounds / (p.rounds + G.DEFAULTS.K) : 0;
+    var t = "<table>";
+    t += "<tr><td>rating</td><td><b>" +
+      (p.skill <= 0 ? "" : "+") + p.skill.toFixed(2) +
+      "</b> strokes per round vs the field</td></tr>";
+    t += "<tr><td>evidence</td><td><b>" + p.rounds + "</b> rounds this season" +
+      (p.rounds > 0
+        ? " — kept <b>" + pct(shrink) + "</b> of the raw number, the rest regressed to average (K=" + G.DEFAULTS.K + ")"
+        : " — no tour rounds, so the model starts him at <b>+" + G.DEFAULTS.priorSkill.toFixed(2) +
+          "</b>, which is what a debutant averages") + "</td></tr>";
+    if (!noCut) {
+      t += "<tr><td>36-hole spread</td><td>&plusmn;<b>" + p.sigma.toFixed(2) + "</b> strokes</td></tr>";
+      t += "<tr><td>cut line</td><td>simulated at <b>" +
+        (sim.cutLineMean <= 0 ? "" : "+") + sim.cutLineMean.toFixed(1) +
+        "</b> strokes vs field average, low " + ev.cut + " and ties</td></tr>";
+      t += "<tr><td>result</td><td>made the weekend in <b>" + pct(p.prob) +
+        "</b> of " + G.DEFAULTS.sims.toLocaleString() + " simulated tournaments</td></tr>";
+      t += "<tr><td>fair price</td><td><b>" + (p.fair == null ? "—" : sgn(p.fair)) + "</b></td></tr>";
+    }
+    t += "</table>";
+    if (!noCut) {
+      t += '<div class="priceinp"><span>your price</span>' +
+        '<input type="text" inputmode="text" placeholder="-140" data-prob="' + p.prob + '">' +
+        '<span class="ev neg">—</span></div>';
+    }
+    return t;
+  }
+
+  app.addEventListener("click", function (e) {
+    var btn = e.target.closest(".row");
+    if (!btn) return;
+    var i = +btn.getAttribute("data-i");
+    var box = document.getElementById("why" + i);
+    var open = btn.getAttribute("aria-expanded") === "true";
+    btn.setAttribute("aria-expanded", open ? "false" : "true");
+    if (open) { box.hidden = true; return; }
+    if (!box.innerHTML) box.innerHTML = detail(rows[i]);
+    box.hidden = false;
+  });
+
+  /*
+   * EV against a price you type. edge.js already does the odds maths for
+   * the baseball side; make-cut is just another two-way market to it.
+   */
+  app.addEventListener("input", function (e) {
+    var input = e.target;
+    if (!input.matches(".priceinp input")) return;
+    var out = input.parentNode.querySelector(".ev");
+    var price = parseFloat(String(input.value).replace(/[^-+0-9.]/g, ""));
+    var prob = parseFloat(input.getAttribute("data-prob"));
+    if (!isFinite(price) || price === 0) { out.textContent = "—"; out.className = "ev neg"; return; }
+    var dec = window.BetHouseEdge.americanToDecimal(price);
+    var ev = prob * (dec - 1) - (1 - prob);
+    out.textContent = (ev >= 0 ? "+" : "") + (100 * ev).toFixed(1) + "% EV";
+    out.className = "ev " + (ev > 0 ? "pos" : "neg");
+  });
+
+  /* ---------------------------------------------------------------- *
+   * The footer carries the backtest, because a probability nobody has
+   * checked is exactly what this project keeps trying not to ship.
+   * ---------------------------------------------------------------- */
+  document.getElementById("foot").innerHTML =
+    "<p><b>Does it work?</b> Out of sample over 23 tournaments and 3,046 player-events of the " +
+    "2026 season, each one predicted using only tournaments that had already finished:</p>" +
+    "<table>" +
+    "<tr><td>calibration bias</td><td><b>&minus;1.3pp</b> (runs slightly cold)</td></tr>" +
+    "<tr><td>Brier score</td><td><b>0.2284</b> against 0.2488 for guessing the base rate</td></tr>" +
+    "<tr><td>top 20% actually cashed</td><td><b>72.9%</b></td></tr>" +
+    "<tr><td>bottom 20% actually cashed</td><td><b>30.5%</b></td></tr>" +
+    "<tr><td>spread</td><td><b>42.4pp</b></td></tr>" +
+    "</table>" +
+    "<p>The model is calibrated, which means when it says 65% it loses about a third of the time. " +
+    "<b>The exception is the very top of the board</b>, which runs hot: the players it likes most " +
+    "were priced at 83.5% and cashed 73.8%. Trust the middle of this board more than the top of it. " +
+    "Re-check it with <code>node backtest-pga.mjs</code>.</p>" +
+    "<p>Data: ESPN, no key required. Board built " +
+    esc((D.generated || "").slice(0, 16).replace("T", " ")) + " UTC from " +
+    D.seasonEvents + " completed events.</p>";
+})();
+</script>
+</body>
+</html>
