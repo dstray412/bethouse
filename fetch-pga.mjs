@@ -195,7 +195,10 @@ async function refreshHistory(year) {
   }
 
   history.events.sort((a, b) => String(a.date).localeCompare(String(b.date)));
-  writeFileSync(HISTORY_FILE, JSON.stringify(history));
+  // Trailing newline: the end-of-file-fixer pre-commit hook adds one
+  // otherwise, so every regeneration would show up as a diff against
+  // itself and fight whoever commits next.
+  writeFileSync(HISTORY_FILE, JSON.stringify(history) + "\n");
   console.log(
     `wrote ${HISTORY_FILE}: ${history.events.length} events, ${history.events.reduce((n, e) => n + e.players.length, 0)} player-events`,
   );
