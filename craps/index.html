@@ -1,0 +1,1320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vegas Craps — Learn &amp; Play</title>
+<style>
+  :root{
+    --felt:#0b6b3a; --felt-dark:#075029; --felt-line:#f4e9c1;
+    --rail:#3a2416; --rail-2:#5a3a20; --gold:#e9c46a; --gold-2:#c99a3a;
+    --chip-red:#c0392b; --ink:#0f1a12; --panel:#12261b; --panel-2:#183524;
+    --txt:#eaf3ec; --muted:#9fc0ac; --win:#7CFC7A; --lose:#ff8a80; --acc:#ffd166;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:#0a120d;color:var(--txt);
+    font-family:"Segoe UI",system-ui,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+  a{color:var(--acc)}
+  .wrap{max-width:1280px;margin:0 auto;padding:14px}
+  h1{font-size:22px;margin:0;letter-spacing:.5px}
+  h1 .sub{font-size:12px;color:var(--muted);font-weight:400;letter-spacing:1px}
+  .topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+  .badges{display:flex;gap:10px;flex-wrap:wrap}
+  .badge{background:var(--panel);border:1px solid #22402f;border-radius:10px;padding:7px 12px;font-size:12px;line-height:1.15}
+  .badge b{display:block;font-size:16px;color:var(--acc)}
+  .badge.bank b{color:var(--win)}
+  .btns{display:flex;gap:8px;flex-wrap:wrap}
+  button{font-family:inherit;cursor:pointer;border:none;border-radius:9px;padding:9px 13px;font-size:13px;font-weight:600;
+    background:#1c3a28;color:var(--txt);border:1px solid #2b5a3d;transition:.12s}
+  button:hover{filter:brightness(1.15)}
+  button:disabled{opacity:.4;cursor:not-allowed;filter:none}
+  button.primary{background:linear-gradient(#e9c46a,#c99a3a);color:#3a2600;border:none;font-weight:800}
+  button.danger{background:#5a2320;border-color:#803}
+  button.ghost{background:transparent;border:1px solid #2b5a3d}
+
+  .layout{display:grid;grid-template-columns:1fr 340px;gap:14px;align-items:start}
+  @media(max-width:1080px){.layout{grid-template-columns:1fr}}
+
+  /* ---- TABLE ---- */
+  .table-outer{background:linear-gradient(#5a3a20,#3a2416);border-radius:22px;padding:16px;
+    box-shadow:0 18px 40px rgba(0,0,0,.55), inset 0 2px 3px rgba(255,255,255,.12)}
+  .felt{background:
+      radial-gradient(120% 120% at 50% 0%, #0e7a42 0%, var(--felt) 45%, var(--felt-dark) 100%);
+    border:3px solid #d8b45a;border-radius:14px;padding:12px;position:relative;overflow:hidden}
+  .felt:before{content:"";position:absolute;inset:0;
+    background:repeating-linear-gradient(45deg,rgba(255,255,255,.015) 0 12px,transparent 12px 24px);pointer-events:none}
+  .brand-wm{position:absolute;top:6px;left:0;right:0;text-align:center;color:rgba(255,255,255,.10);
+    font-weight:900;letter-spacing:8px;font-size:34px;pointer-events:none;user-select:none}
+
+  .zone{border:2px solid var(--felt-line);border-radius:8px;position:relative;cursor:pointer;
+    transition:.1s;background:rgba(0,0,0,.06);min-height:44px}
+  .zone:hover{background:rgba(255,255,255,.10);box-shadow:0 0 0 2px var(--acc) inset}
+  .zone .lbl{font-size:11px;font-weight:800;letter-spacing:.5px;color:var(--felt-line);
+    text-transform:uppercase;padding:5px 6px 2px;line-height:1.05}
+  .zone .pay{font-size:9px;color:#d7ecd8;padding:0 6px 4px;opacity:.9}
+  .zone .chips{position:absolute;bottom:2px;right:4px;display:flex;gap:2px;align-items:center}
+  .zone.hot{box-shadow:0 0 0 2px var(--acc) inset, 0 0 14px var(--acc)}
+  .zone.off-dim{opacity:.5}
+  .flash-win{animation:fw .8s ease}
+  .flash-lose{animation:fl .8s ease}
+  @keyframes fw{0%{box-shadow:0 0 0 3px var(--win) inset,0 0 22px var(--win)}100%{}}
+  @keyframes fl{0%{box-shadow:0 0 0 3px var(--lose) inset,0 0 22px var(--lose)}100%{}}
+
+  /* place numbers row */
+  .placerow{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:8px}
+  .numcell{text-align:center;min-height:78px}
+  .numcell .big{font-size:26px;font-weight:900;color:#fff;text-shadow:0 2px 3px #000;padding-top:6px}
+  .numcell .sub{font-size:9px;color:#d7ecd8}
+  .numcell.point-on{border-color:var(--acc);box-shadow:0 0 0 2px var(--acc) inset,0 0 16px rgba(255,209,102,.5)}
+  .puck{position:absolute;top:-9px;left:50%;transform:translateX(-50%);width:34px;height:34px;border-radius:50%;
+    background:#f7f7f7;color:#111;border:3px solid #111;font-size:9px;font-weight:900;display:flex;align-items:center;justify-content:center;
+    box-shadow:0 3px 6px rgba(0,0,0,.5);z-index:5}
+  .puck.off{background:#111;color:#eee;border-color:#eee}
+
+  .midgrid{display:grid;grid-template-columns:1fr 1.15fr;gap:8px;margin-bottom:8px}
+  .leftcol,.rightcol{display:flex;flex-direction:column;gap:8px}
+
+  .field .fieldnums{display:flex;justify-content:space-around;font-size:17px;font-weight:900;color:#fff;
+    text-shadow:0 1px 2px #000;padding:2px 4px 6px}
+  .field .fieldnums .hot2{color:var(--acc)}
+
+  /* center prop box */
+  .center{background:rgba(0,0,0,.14);border:2px solid var(--felt-line);border-radius:10px;padding:8px}
+  .center h4{margin:0 0 6px;font-size:10px;letter-spacing:1px;color:var(--felt-line);text-align:center}
+  .hardgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:8px}
+  .propgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+  .mini{min-height:52px;text-align:center}
+  .mini .lbl{padding:4px 2px 0;font-size:10px}
+  .mini .pay{padding:0 2px 2px;font-size:8px}
+  .mini .chips{right:50%;transform:translateX(50%);bottom:2px}
+  .hardface{font-size:15px;letter-spacing:-2px}
+
+  .lineband{display:flex;flex-direction:column;gap:6px}
+  .passline{min-height:52px}
+  .oddsline{min-height:34px}
+  .comebox{min-height:96px}
+
+  /* chip visuals */
+  .chip{width:22px;height:22px;border-radius:50%;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center;
+    color:#fff;border:2px dashed rgba(255,255,255,.7);box-shadow:0 2px 3px rgba(0,0,0,.5);position:relative}
+  .chip small{font-size:8px}
+  .c1{background:#e8e8e8;color:#222;border-color:#999}
+  .c5{background:#c0392b}
+  .c25{background:#1e824c}
+  .c100{background:#2c3e50}
+  .c500{background:#6c3483}
+  .chipcount{position:absolute;-webkit-text-stroke:.3px #000}
+
+  /* dice */
+  .dice-area{display:flex;align-items:center;gap:14px;justify-content:center;margin-top:10px;flex-wrap:wrap}
+  .die{width:56px;height:56px;background:#fff;border-radius:12px;position:relative;box-shadow:0 4px 8px rgba(0,0,0,.5),inset 0 0 0 2px #ddd}
+  .die.rolling{animation:sh .5s ease}
+  @keyframes sh{0%,100%{transform:translateY(0) rotate(0)}25%{transform:translateY(-10px) rotate(-18deg)}
+    50%{transform:translateY(4px) rotate(12deg)}75%{transform:translateY(-6px) rotate(-8deg)}}
+  .pip{position:absolute;width:10px;height:10px;background:#b0181b;border-radius:50%}
+  .rolltotal{font-size:30px;font-weight:900;color:var(--acc);min-width:52px;text-align:center}
+  .rolltotal .rt-sub{display:block;font-size:10px;color:var(--muted);font-weight:600}
+
+  /* chip rail / controls */
+  .controls{background:var(--rail);border-radius:14px;padding:10px 12px;margin-top:14px;
+    display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:space-between}
+  .chiptray{display:flex;gap:8px;align-items:center}
+  .selchip{width:46px;height:46px;border-radius:50%;border:3px solid rgba(255,255,255,.25);cursor:pointer;
+    font-weight:800;color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;transition:.1s;position:relative}
+  .selchip.sel{border-color:var(--acc);box-shadow:0 0 12px var(--acc);transform:translateY(-4px)}
+  .roll-controls{display:flex;gap:8px;align-items:center}
+  .toggle{display:flex;align-items:center;gap:6px;font-size:12px;color:#f0e6d0}
+  .toggle input{width:16px;height:16px;accent-color:var(--gold)}
+
+  /* side panel */
+  .panel{background:var(--panel);border:1px solid #22402f;border-radius:14px;padding:14px;margin-bottom:12px}
+  .panel h3{margin:0 0 8px;font-size:14px;color:var(--acc);letter-spacing:.5px}
+  .coach{min-height:120px}
+  .coach-msg{font-size:13px;line-height:1.5;color:#e8f3ea}
+  .coach-msg .tip{color:var(--acc);font-weight:700}
+  .log{max-height:210px;overflow:auto;font-size:12px;line-height:1.5}
+  .log .row{padding:3px 0;border-bottom:1px solid #1c3627}
+  .log .w{color:var(--win)} .log .l{color:var(--lose)} .log .n{color:var(--muted)}
+  .log .roll-chip{display:inline-block;background:#0c1d14;border:1px solid #2b5a3d;border-radius:6px;
+    padding:0 6px;font-weight:800;margin-right:6px}
+  .stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px}
+  .stats div{background:#0d1f15;border:1px solid #1c3627;border-radius:8px;padding:6px 8px}
+  .stats b{display:block;font-size:15px;color:var(--acc)}
+
+  /* strategy coach */
+  .stratbtns{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+  .stratbtns button{padding:6px 9px;font-size:11px;flex:1 1 auto}
+  .stratbtns button.active{background:linear-gradient(#e9c46a,#c99a3a);color:#3a2600;border:none;font-weight:800}
+  .suggestion{background:#0d2016;border:1px dashed var(--gold-2);border-radius:10px;padding:11px 12px;font-size:13px;line-height:1.5;min-height:46px}
+  .suggestion .why{color:var(--muted);font-size:12px;display:block;margin-top:5px;line-height:1.45}
+  .sugbtn{margin-top:9px;width:100%}
+  /* dice fairness tracker */
+  .dist{font-size:11px}
+  .distrow{display:flex;align-items:center;gap:7px;margin:3px 0}
+  .distrow .dlbl{width:16px;text-align:right;color:var(--muted);font-weight:800}
+  .distrow.seven .dlbl{color:var(--acc)}
+  .dbar{flex:1;height:13px;background:#0a1a11;border:1px solid #16301f;border-radius:3px;position:relative;overflow:hidden}
+  .dfill{height:100%;background:linear-gradient(90deg,#1e824c,#2ecc71);border-radius:2px;transition:width .3s}
+  .distrow.seven .dfill{background:linear-gradient(90deg,#c0392b,#e74c3c)}
+  .dtick{position:absolute;top:-1px;bottom:-1px;width:2px;background:var(--acc);box-shadow:0 0 3px var(--acc)}
+  .dpct{width:42px;text-align:right;color:#cfe;font-variant-numeric:tabular-nums}
+  .zone.suggest{animation:sug 1.15s ease-in-out infinite;z-index:6}
+  @keyframes sug{0%,100%{box-shadow:0 0 0 2px var(--acc) inset,0 0 5px var(--acc)}50%{box-shadow:0 0 0 3px var(--acc) inset,0 0 22px var(--acc)}}
+
+  /* tooltip */
+  #tt{position:fixed;z-index:80;pointer-events:none;background:#0b1a11;border:1px solid var(--gold-2);
+    border-radius:10px;padding:9px 11px;max-width:250px;font-size:12px;line-height:1.45;display:none;box-shadow:0 8px 20px rgba(0,0,0,.6)}
+  #tt h5{margin:0 0 4px;color:var(--acc);font-size:12px}
+  #tt .edge{color:var(--lose);font-weight:700}
+  #tt .edge.good{color:var(--win)}
+
+  /* modal */
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:90;display:none;align-items:center;justify-content:center;padding:20px}
+  .modal.open{display:flex}
+  .sheet{background:#0e1d14;border:1px solid #2b5a3d;border-radius:16px;max-width:860px;width:100%;max-height:88vh;overflow:auto;padding:22px 26px}
+  .sheet h2{margin-top:0;color:var(--acc)}
+  .sheet h3{color:var(--gold);margin:18px 0 6px}
+  .sheet p,.sheet li{font-size:14px;line-height:1.6;color:#dcece0}
+  .sheet table{width:100%;border-collapse:collapse;margin:10px 0;font-size:13px}
+  .sheet th,.sheet td{border:1px solid #24432f;padding:6px 9px;text-align:left}
+  .sheet th{background:#12291c;color:var(--acc)}
+  .sheet .good{color:var(--win);font-weight:700}
+  .sheet .bad{color:var(--lose);font-weight:700}
+  .sheet .mid{color:var(--acc);font-weight:700}
+  .close-x{float:right;background:#2a1414;border:1px solid #803}
+  .tut-nav{display:flex;justify-content:space-between;margin-top:18px;gap:10px}
+  .step-dots{display:flex;gap:6px;align-items:center;justify-content:center;margin-top:6px}
+  .dot{width:8px;height:8px;border-radius:50%;background:#2b5a3d}
+  .dot.on{background:var(--acc)}
+  .kbd{background:#12291c;border:1px solid #2b5a3d;border-radius:5px;padding:1px 6px;font-size:12px}
+  .callout{background:#12291c;border-left:3px solid var(--gold);padding:10px 12px;border-radius:0 8px 8px 0;margin:12px 0}
+  .msg-flash{animation:mf 1s ease}
+  @keyframes mf{0%{background:#1f3b28}100%{background:transparent}}
+  .footer-note{color:var(--muted);font-size:11px;text-align:center;margin-top:14px;line-height:1.5}
+
+  /* ---------------- MOBILE / TOUCH ---------------- */
+  @media(max-width:760px){
+    .wrap{padding:9px}
+    h1{font-size:17px} h1 .sub{display:none}
+    .topbar{gap:8px}
+    .badges{gap:6px;order:3;width:100%}
+    .badge{flex:1 1 22%;padding:6px 6px;text-align:center;line-height:1.1}
+    .badge span{font-size:10px} .badge b{font-size:14px}
+    .btns{gap:6px;width:100%}
+    .btns button{padding:9px 8px;font-size:12px;flex:1 1 auto}
+    .table-outer{padding:8px;border-radius:14px}
+    .felt{padding:8px}
+    .brand-wm{font-size:22px;letter-spacing:5px}
+    .zone .lbl{font-size:9px;padding:4px 4px 1px}
+    .zone .pay{font-size:8px;padding:0 4px 3px}
+    .placerow{gap:5px;margin-bottom:6px}
+    .numcell{min-height:60px}
+    .numcell .big{font-size:19px;padding-top:4px}
+    .numcell .sub{font-size:8px}
+    .midgrid{grid-template-columns:1fr !important;gap:6px;margin-bottom:6px}
+    .comebox{min-height:66px}
+    .center h4{font-size:9px}
+    .hardgrid,.propgrid{gap:5px}
+    .mini{min-height:46px}
+    .field .fieldnums{font-size:14px}
+    .die{width:48px;height:48px}
+    .rolltotal{font-size:24px}
+    .dice-area{gap:10px;margin-top:8px}
+    .controls{gap:9px;padding:9px;border-radius:12px}
+    .chiptray{gap:7px;justify-content:center;width:100%;flex-wrap:wrap}
+    .selchip{width:44px;height:44px;font-size:13px}
+    .roll-controls{width:100%;justify-content:center;flex-wrap:wrap;gap:7px}
+    .roll-controls .toggle{flex:1 1 44%;font-size:11px}
+    .roll-controls .ghost{flex:1 1 44%}
+    #rollBtn{flex:1 1 100%;padding:15px;font-size:17px}
+    .footer-note{font-size:10px}
+    #tt{display:none !important}
+    .sheet{padding:18px 16px}
+  }
+  @media(max-width:430px){
+    .placerow{grid-template-columns:repeat(3,1fr)}
+    .badge{flex:1 1 46%}
+    .hardgrid{grid-template-columns:repeat(2,1fr)}
+    .propgrid{grid-template-columns:repeat(4,1fr)}
+    .propgrid .mini .lbl{font-size:9px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <div>
+      <h1>♦ VEGAS CRAPS <span class="sub">— LEARN &amp; PLAY</span></h1>
+    </div>
+    <div class="badges">
+      <div class="badge bank"><span>Bankroll</span><b id="bankroll">$1,000</b></div>
+      <div class="badge"><span>At Risk</span><b id="atrisk">$0</b></div>
+      <div class="badge"><span>Phase</span><b id="phase">Come Out</b></div>
+      <div class="badge"><span>Point</span><b id="pointDisp">—</b></div>
+    </div>
+    <div class="btns">
+      <button class="ghost" onclick="openTutorial()">📖 Tutorial</button>
+      <button class="ghost" onclick="openModal('strategyModal')">🎯 Strategy</button>
+      <button class="ghost" onclick="openModal('payoutModal')">💰 Payouts</button>
+      <button class="danger" onclick="resetGame()">↻ Reset</button>
+    </div>
+  </div>
+
+  <div class="layout">
+    <!-- ============ TABLE ============ -->
+    <div>
+      <div class="table-outer">
+        <div class="felt">
+          <div class="brand-wm">CRAPS</div>
+
+          <!-- Place numbers -->
+          <div class="placerow" id="placerow"></div>
+
+          <!-- middle: come / dontcome / field   |   center prop box -->
+          <div class="midgrid">
+            <div class="leftcol">
+              <div class="zone comebox" data-bet="come" onclick="clickZone('come')">
+                <div class="lbl">Come</div>
+                <div class="pay">Wins 7/11 · then travels to a box number</div>
+                <div class="chips" id="chips-come"></div>
+              </div>
+              <div class="zone" data-bet="dontcome" onclick="clickZone('dontcome')" style="min-height:54px">
+                <div class="lbl">Don't Come</div>
+                <div class="pay">Bar 12 · wins on 7 after traveling</div>
+                <div class="chips" id="chips-dontcome"></div>
+              </div>
+              <div class="zone field" data-bet="field" onclick="clickZone('field')">
+                <div class="lbl">Field <span style="font-weight:400">(one roll)</span></div>
+                <div class="fieldnums"><span class="hot2">2</span><span>3</span><span>4</span><span>9</span><span>10</span><span>11</span><span class="hot2">12</span></div>
+                <div class="pay" style="text-align:center">2 pays 2:1 · 12 pays 3:1 · rest even</div>
+                <div class="chips" id="chips-field"></div>
+              </div>
+            </div>
+
+            <div class="rightcol">
+              <div class="center">
+                <h4>PROPOSITION &amp; HARDWAYS (center)</h4>
+                <div class="hardgrid" id="hardgrid"></div>
+                <div class="propgrid" id="propgrid"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Big 6/8 + line bets -->
+          <div class="midgrid" style="grid-template-columns:0.7fr 1.6fr">
+            <div class="leftcol">
+              <div class="zone mini" data-bet="big6" onclick="clickZone('big6')" style="min-height:44px">
+                <div class="lbl">Big 6</div><div class="pay">even</div>
+                <div class="chips" id="chips-big6"></div>
+              </div>
+              <div class="zone mini" data-bet="big8" onclick="clickZone('big8')" style="min-height:44px">
+                <div class="lbl">Big 8</div><div class="pay">even</div>
+                <div class="chips" id="chips-big8"></div>
+              </div>
+            </div>
+            <div class="lineband">
+              <div class="zone dontpass" data-bet="dontpass" onclick="clickZone('dontpass')" style="min-height:46px">
+                <div class="lbl">Don't Pass Bar 🚫12</div>
+                <div class="pay">Wins 2/3 · loses 7/11 · bar 12 (push) · pays even</div>
+                <div class="chips" id="chips-dontpass"></div>
+              </div>
+              <div class="zone oddsline" data-bet="dontpassodds" onclick="clickZone('dontpassodds')">
+                <div class="lbl">Lay Odds (Don't Pass)</div>
+                <div class="pay">true odds · 0% edge · lay to win less</div>
+                <div class="chips" id="chips-dontpassodds"></div>
+              </div>
+              <div class="zone passline" data-bet="pass" onclick="clickZone('pass')">
+                <div class="lbl">Pass Line</div>
+                <div class="pay">Wins 7/11 · loses 2/3/12 · else sets the point · pays even</div>
+                <div class="chips" id="chips-pass"></div>
+              </div>
+              <div class="zone oddsline" data-bet="passodds" onclick="clickZone('passodds')">
+                <div class="lbl">Take Odds (Pass Line)</div>
+                <div class="pay">true odds · 0% house edge · best bet on the table</div>
+                <div class="chips" id="chips-passodds"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- dice -->
+          <div class="dice-area">
+            <div class="die" id="die1"></div>
+            <div class="die" id="die2"></div>
+            <div class="rolltotal" id="rolltotal">—<span class="rt-sub" id="rollname">roll the dice</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- chip rail / controls -->
+      <div class="controls">
+        <div class="chiptray" id="chiptray"></div>
+        <div class="roll-controls">
+          <label class="toggle"><input type="checkbox" id="autoOdds" checked> Auto-take odds</label>
+          <label class="toggle"><input type="checkbox" id="workComeout"> Place bets work on come-out</label>
+          <button class="ghost" id="takeDownBtn" onclick="toggleTakeDown()">✋ Take Down</button>
+          <button class="ghost" onclick="clearAllBets()">Clear Bets</button>
+          <button class="primary" id="rollBtn" onclick="rollDice()">🎲 ROLL</button>
+        </div>
+      </div>
+      <div class="footer-note">
+        Educational simulator. Payouts use common Las Vegas tables (Field 2:1/3:1, 3-4-5× odds).
+        Click a spot to bet the selected chip · toggle <b>Take Down</b> then click a bet to remove it.
+      </div>
+    </div>
+
+    <!-- ============ SIDE PANEL ============ -->
+    <div>
+      <div class="panel coach">
+        <h3>🎓 Coach <button class="ghost" style="float:right;padding:3px 8px;font-size:11px" onclick="toggleCoach()" id="coachToggle">On</button></h3>
+        <div class="coach-msg" id="coachMsg">Welcome to the table! I'm your coach and I'll explain everything as we go. To start: click the <span class="tip">Pass Line</span> (the long strip near the bottom) to put a chip down, then hit <b>🎲 ROLL</b>. That's the main craps bet — I'll tell you what happens after the dice land. Totally new? Tap <b>📖 Tutorial</b> for a 2-minute walkthrough.</div>
+      </div>
+
+      <div class="panel">
+        <h3>🧠 Strategy Coach</h3>
+        <div class="stratbtns" id="stratbtns"></div>
+        <div class="suggestion" id="suggestion">Pick a strategy above and I'll tell you the exact next bet — amount and all — step by step.</div>
+        <button class="primary sugbtn" id="sugBtn" onclick="doSuggested()" style="display:none">▶ Place it for me</button>
+      </div>
+
+      <div class="panel">
+        <h3>📊 Session Stats</h3>
+        <div class="stats">
+          <div><span>Net P/L</span><b id="netpl">$0</b></div>
+          <div><span>Rolls</span><b id="rollcount">0</b></div>
+          <div><span>Points Made</span><b id="pointsmade">0</b></div>
+          <div><span>Seven-Outs</span><b id="sevenouts">0</b></div>
+          <div><span>Biggest Win</span><b id="bigwin">$0</b></div>
+          <div><span>Peak Bank</span><b id="peakbank">$1,000</b></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>🎲 Dice Fairness <span style="float:right;font-size:11px;color:var(--muted);font-weight:400">◆ gold = fair odds</span></h3>
+        <div class="dist" id="dist"></div>
+        <p style="font-size:11px;color:var(--muted);margin:9px 0 0;line-height:1.5">Two fair dice: <b>7</b> has six ways to land (1-6, 2-5, 3-4…), more than any other total — so it's <b>always</b> the most common, ~16.7% of rolls. Your bars slide toward the gold ticks the more you roll.</p>
+      </div>
+
+      <div class="panel">
+        <h3>🧾 Roll Log</h3>
+        <div class="log" id="log"><div class="row n">The table is open. Place your bets…</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- tooltip -->
+<div id="tt"></div>
+
+<!-- ===== Tutorial modal ===== -->
+<div class="modal" id="tutorialModal">
+  <div class="sheet">
+    <button class="close-x" onclick="closeModal('tutorialModal')">✕ Close</button>
+    <h2 id="tutTitle">How to Play Craps</h2>
+    <div id="tutBody"></div>
+    <div class="step-dots" id="tutDots"></div>
+    <div class="tut-nav">
+      <button class="ghost" onclick="tutPrev()">← Back</button>
+      <button class="primary" onclick="tutNext()" id="tutNextBtn">Next →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Strategy modal ===== -->
+<div class="modal" id="strategyModal">
+  <div class="sheet">
+    <button class="close-x" onclick="closeModal('strategyModal')">✕ Close</button>
+    <h2>🎯 Strategy &amp; Betting Principles</h2>
+
+    <div class="callout"><b>The golden rule:</b> The <span class="good">Odds</span> bet is the only wager in the casino with a <span class="good">0% house edge</span>. Every winning strategy is built on making a small flat bet and backing it with as much Odds as you can.</div>
+
+    <h3>House Edge — know what you're paying</h3>
+    <table>
+      <tr><th>Bet</th><th>House Edge</th><th>Verdict</th></tr>
+      <tr><td>Odds (behind Pass/Come)</td><td class="good">0.00%</td><td class="good">Always take it</td></tr>
+      <tr><td>Don't Pass / Don't Come</td><td class="good">1.36%</td><td class="good">Best flat bet</td></tr>
+      <tr><td>Pass Line / Come</td><td class="good">1.41%</td><td class="good">Excellent</td></tr>
+      <tr><td>Place 6 &amp; 8</td><td class="mid">1.52%</td><td class="mid">Very good</td></tr>
+      <tr><td>Place 5 &amp; 9</td><td class="mid">4.00%</td><td class="mid">OK</td></tr>
+      <tr><td>Field (3:1 on 12)</td><td class="mid">2.78%</td><td class="mid">OK</td></tr>
+      <tr><td>Place 4 &amp; 10</td><td class="bad">6.67%</td><td class="bad">Avoid (buy instead)</td></tr>
+      <tr><td>Big 6 / Big 8</td><td class="bad">9.09%</td><td class="bad">Sucker bet — Place 6/8 instead</td></tr>
+      <tr><td>Hard 6 / Hard 8</td><td class="bad">9.09%</td><td class="bad">Fun, not smart</td></tr>
+      <tr><td>Hard 4 / Hard 10</td><td class="bad">11.1%</td><td class="bad">Bad</td></tr>
+      <tr><td>Any Craps</td><td class="bad">11.1%</td><td class="bad">Bad</td></tr>
+      <tr><td>2, 3, 11, 12, Horn</td><td class="bad">13.9–16.7%</td><td class="bad">Worst on the table</td></tr>
+      <tr><td>Any Seven</td><td class="bad">16.67%</td><td class="bad">The single worst bet</td></tr>
+    </table>
+
+    <h3>System 1 — Pass Line + Full Odds (the foundation)</h3>
+    <p>Bet the Pass Line. When a point is set, back it with the maximum Odds you can afford (this table allows <b>3-4-5×</b>). You blend the 1.41% flat edge down toward the 0% odds edge — with full 3-4-5× odds your combined edge drops to about <span class="good">0.37%</span>. This is the lowest-risk way to play. Turn on <b>Auto-take odds</b> to do it automatically.</p>
+
+    <h3>System 2 — The 3-Point Molly</h3>
+    <p>The gold-standard grind strategy. Always keep bets working on up to three numbers:</p>
+    <ol>
+      <li>Bet the <b>Pass Line</b>; take odds when the point is set.</li>
+      <li>Make a <b>Come</b> bet; take odds when it travels to a number.</li>
+      <li>Make a second <b>Come</b> bet; take odds again.</li>
+    </ol>
+    <p>Now you win on almost every box number the shooter hits, and only a 7 hurts you. Every bet in the Molly carries the table's lowest edge. Stop at three numbers so a seven-out doesn't wipe out too much.</p>
+
+    <h3>System 3 — Place the 6 &amp; 8</h3>
+    <p>The 6 and 8 are the most common numbers after 7. Placing both (in multiples of $6) at only a 1.52% edge is a solid, low-variance way to get action without touching the line. Take them down whenever you feel the shooter cooling.</p>
+
+    <h3>System 4 — Dark Side (Don't Pass + Lay Odds)</h3>
+    <p>Betting <b>Don't Pass</b> then laying odds has an even lower edge (1.36% → ~0.27% with full odds). After the come-out you're statistically favored on every roll (a 7 helps you). The trade-off: you lay more to win less, and you'll be quietly rooting against the whole table.</p>
+
+    <div class="callout"><b>Bankroll management:</b> Bring at least 20–30× your base bet. Decide a <b>win goal</b> and a <b>loss limit</b> before you start, and walk when you hit either. Never chase losses by jumping to high-edge prop bets — that's how bankrolls die. Press (increase) bets with the house's money, not your buy-in.</div>
+
+    <h3>What to avoid</h3>
+    <p>The center of the table (props, hardways, any seven, horn) is where the house makes its money — edges of 9% to 17%. They're thrilling and occasionally hand you a big pop, but over time they bleed you fast. Treat them as entertainment with a tiny fraction of your bankroll, never as a strategy.</p>
+  </div>
+</div>
+
+<!-- ===== Payout modal ===== -->
+<div class="modal" id="payoutModal">
+  <div class="sheet">
+    <button class="close-x" onclick="closeModal('payoutModal')">✕ Close</button>
+    <h2>💰 Payout Reference</h2>
+    <table id="payoutTable"></table>
+    <p style="color:var(--muted);font-size:12px">Payouts shown as (winnings : stake). "True odds" means the payout exactly matches the real probability, so there's no built-in house profit.</p>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   VEGAS CRAPS — engine + coach + UI
+   ============================================================ */
+
+const START_BANK = 1000;
+const BOX_NUMBERS = [4,5,6,8,9,10];
+
+/* ---- payout tables (winnings : stake) ---- */
+const passOddsPay = {4:[2,1],5:[3,2],6:[6,5],8:[6,5],9:[3,2],10:[2,1]};      // take odds
+const layOddsPay  = {4:[1,2],5:[2,3],6:[5,6],8:[5,6],9:[2,3],10:[1,2]};      // lay odds (don't)
+const placePay    = {4:[9,5],5:[7,5],6:[7,6],8:[7,6],9:[7,5],10:[9,5]};
+const hardPay     = {4:[7,1],6:[9,1],8:[9,1],10:[7,1]};
+const maxOddsMult = {4:3,5:4,6:5,8:5,9:4,10:3};  // 3-4-5x
+
+/* ---- state ---- */
+let state, selectedChip = 25, takeDownMode = false, coachOn = true, rolling = false;
+let strategy = null, currentSug = null;
+
+function freshState(){
+  return {
+    bank: START_BANK,
+    point: null,
+    bets: {
+      pass:0, passodds:0, dontpass:0, dontpassodds:0,
+      field:0, big6:0, big8:0,
+      any7:0, anycraps:0, two:0, three:0, eleven:0, twelve:0, horn:0, ce:0,
+      hard4:0, hard6:0, hard8:0, hard10:0,
+      place:{4:0,5:0,6:0,8:0,9:0,10:0},
+      comeMain:0, come:{4:0,5:0,6:0,8:0,9:0,10:0}, comeOdds:{4:0,5:0,6:0,8:0,9:0,10:0},
+      dcMain:0, dc:{4:0,5:0,6:0,8:0,9:0,10:0}
+    },
+    stats:{rolls:0, pointsMade:0, sevenOuts:0, net:0, bigWin:0, peak:START_BANK,
+      dist:{2:0,3:0,4:0,5:0,6:0,7:0,8:0,9:0,10:0,11:0,12:0}}
+  };
+}
+
+/* ---- bet metadata for tooltips ---- */
+const betInfo = {
+  pass:{name:"Pass Line",edge:"1.41%",good:true,text:"The main craps bet. On the come-out, 7 or 11 wins even money and 2/3/12 loses. Any other number becomes the 'point' — then you win if it repeats before a 7."},
+  passodds:{name:"Take Odds",edge:"0.00%",good:true,text:"After a point is set, bet behind your Pass Line. Pays TRUE odds (4/10→2:1, 5/9→3:2, 6/8→6:5). Zero house edge — the best bet in the casino. Max 3-4-5× here."},
+  dontpass:{name:"Don't Pass",edge:"1.36%",good:true,text:"The opposite of Pass. Come-out 2 or 3 wins, 7/11 loses, 12 is a push (barred). After a point, you win on a 7. Slightly better odds than Pass."},
+  dontpassodds:{name:"Lay Odds",edge:"0.00%",good:true,text:"Odds behind Don't Pass. You lay more to win less (4/10→1:2, 5/9→2:3, 6/8→5:6) but there's no house edge."},
+  come:{name:"Come Bet",edge:"1.41%",good:true,text:"Just like a Pass Line bet, but made after the point is set. 7/11 wins; 2/3/12 loses; any box number becomes YOUR come point and travels to that box."},
+  dontcome:{name:"Don't Come",edge:"1.36%",good:true,text:"The Don't Pass equivalent made after the come-out. 2/3 wins, 7/11 loses, 12 push; otherwise it travels and wins on a 7."},
+  field:{name:"Field",edge:"2.78%",good:false,text:"One-roll bet. Wins on 2,3,4,9,10,11,12. Here 2 pays 2:1 and 12 pays 3:1; the rest pay even. Loses on 5,6,7,8."},
+  big6:{name:"Big 6",edge:"9.09%",good:false,text:"Wins even money if a 6 rolls before a 7. Sucker bet — Placing the 6 pays 7:6 for the same risk (1.52% edge)."},
+  big8:{name:"Big 8",edge:"9.09%",good:false,text:"Wins even money if an 8 rolls before a 7. Place the 8 instead — same odds of hitting, far better payout."},
+  place4:{name:"Place 4",edge:"6.67%",good:false,text:"Wins 9:5 if 4 rolls before 7. High edge — consider Buying the 4 in real casinos."},
+  place5:{name:"Place 5",edge:"4.00%",good:false,text:"Wins 7:5 if 5 rolls before 7."},
+  place6:{name:"Place 6",edge:"1.52%",good:true,text:"Wins 7:6 if 6 rolls before 7. One of the best bets — the 6 is a common number. Bet in multiples of $6."},
+  place8:{name:"Place 8",edge:"1.52%",good:true,text:"Wins 7:6 if 8 rolls before 7. Excellent low-edge bet. Bet in multiples of $6."},
+  place9:{name:"Place 9",edge:"4.00%",good:false,text:"Wins 7:5 if 9 rolls before 7."},
+  place10:{name:"Place 10",edge:"6.67%",good:false,text:"Wins 9:5 if 10 rolls before 7. High edge."},
+  hard4:{name:"Hard 4 (2+2)",edge:"11.1%",good:false,text:"Wins 7:1 if 4 comes as 2+2 before any 'easy' 4 (3+1) or a 7."},
+  hard6:{name:"Hard 6 (3+3)",edge:"9.09%",good:false,text:"Wins 9:1 if 6 comes as 3+3 before an easy 6 or a 7."},
+  hard8:{name:"Hard 8 (4+4)",edge:"9.09%",good:false,text:"Wins 9:1 if 8 comes as 4+4 before an easy 8 or a 7."},
+  hard10:{name:"Hard 10 (5+5)",edge:"11.1%",good:false,text:"Wins 7:1 if 10 comes as 5+5 before an easy 10 or a 7."},
+  any7:{name:"Any Seven",edge:"16.67%",good:false,text:"One-roll bet on 7, pays 4:1. The single worst bet on the table."},
+  anycraps:{name:"Any Craps",edge:"11.1%",good:false,text:"One-roll bet on 2, 3, or 12, pays 7:1."},
+  two:{name:"Snake Eyes (2)",edge:"13.9%",good:false,text:"One-roll bet on 2, pays 30:1."},
+  three:{name:"Ace-Deuce (3)",edge:"11.1%",good:false,text:"One-roll bet on 3, pays 15:1."},
+  eleven:{name:"Yo (11)",edge:"11.1%",good:false,text:"One-roll bet on 11, pays 15:1."},
+  twelve:{name:"Boxcars (12)",edge:"13.9%",good:false,text:"One-roll bet on 12, pays 30:1."},
+  horn:{name:"Horn",edge:"12.5%",good:false,text:"One-roll bet split equally across 2,3,11,12. Winning number pays its prop odds; the other three quarters lose."},
+  ce:{name:"C & E",edge:"11.1%",good:false,text:"One-roll bet split between Any Craps (2/3/12→7:1) and Eleven (11→15:1)."}
+};
+
+/* ============================================================
+   RENDERING
+   ============================================================ */
+function money(n){ return (n<0?"-$":"$") + Math.abs(Math.round(n)).toLocaleString(); }
+
+function buildTable(){
+  // place numbers row
+  const pr = document.getElementById('placerow');
+  pr.innerHTML='';
+  BOX_NUMBERS.forEach(n=>{
+    const d=document.createElement('div');
+    d.className='zone numcell'; d.id='cell-'+n;
+    d.dataset.bet='place'+n;
+    d.onclick=()=>clickZone('place'+n);
+    d.innerHTML=`<div class="puck off" id="puck-${n}" style="display:none">OFF</div>
+      <div class="big">${n}</div>
+      <div class="sub">Place ${placePay[n][0]}:${placePay[n][1]}</div>
+      <div class="chips" id="chips-place${n}"></div>
+      <div class="chips" id="chips-come${n}" style="bottom:20px;right:4px"></div>`;
+    pr.appendChild(d);
+  });
+  // hardways
+  const hg=document.getElementById('hardgrid'); hg.innerHTML='';
+  [ ['hard4','Hard 4','⚁⚁'],['hard6','Hard 6','⚂⚂'],['hard8','Hard 8','⚃⚃'],['hard10','Hard 10','⚄⚄'] ].forEach(([k,lbl,f])=>{
+    const el=document.createElement('div');
+    el.className='zone mini'; el.dataset.bet=k; el.onclick=()=>clickZone(k);
+    el.innerHTML=`<div class="lbl">${lbl}</div><div class="hardface">${f}</div><div class="pay">${hardPay[+k.replace('hard','')][0]}:1</div><div class="chips" id="chips-${k}"></div>`;
+    hg.appendChild(el);
+  });
+  // props
+  const pg=document.getElementById('propgrid'); pg.innerHTML='';
+  [ ['any7','Any 7','4:1'],['anycraps','Any Craps','7:1'],['two','2','30:1'],['three','3','15:1'],
+    ['eleven','11 (Yo)','15:1'],['twelve','12','30:1'],['horn','Horn','split'],['ce','C &amp; E','split'] ].forEach(([k,lbl,p])=>{
+    const el=document.createElement('div');
+    el.className='zone mini'; el.dataset.bet=k; el.onclick=()=>clickZone(k);
+    el.innerHTML=`<div class="lbl">${lbl}</div><div class="pay">${p}</div><div class="chips" id="chips-${k}"></div>`;
+    pg.appendChild(el);
+  });
+  // chip tray
+  const tray=document.getElementById('chiptray'); tray.innerHTML='';
+  [[1,'c1'],[5,'c5'],[25,'c25'],[100,'c100'],[500,'c500']].forEach(([v,cls])=>{
+    const c=document.createElement('div');
+    c.className='selchip '+cls+(v===selectedChip?' sel':'');
+    c.textContent = v>=1000? (v/1000)+'k' : v;
+    c.onclick=()=>{selectedChip=v; buildTable(); };
+    c.dataset.v=v;
+    tray.appendChild(c);
+  });
+  attachTooltips();
+}
+
+function chipClass(v){ return v>=500?'c500':v>=100?'c100':v>=25?'c25':v>=5?'c5':'c1'; }
+function chipStack(el, amount){
+  if(!el) return;
+  if(!amount){ el.innerHTML=''; return; }
+  el.innerHTML = `<div class="chip ${chipClass(amount)}"><span class="chipcount">${amount>=1000?(amount/1000).toFixed(amount%1000?1:0)+'k':amount}</span></div>`;
+}
+
+function renderBets(){
+  const b=state.bets;
+  chipStack(document.getElementById('chips-pass'), b.pass);
+  chipStack(document.getElementById('chips-passodds'), b.passodds);
+  chipStack(document.getElementById('chips-dontpass'), b.dontpass);
+  chipStack(document.getElementById('chips-dontpassodds'), b.dontpassodds);
+  chipStack(document.getElementById('chips-come'), b.comeMain);
+  chipStack(document.getElementById('chips-dontcome'), b.dcMain);
+  chipStack(document.getElementById('chips-field'), b.field);
+  chipStack(document.getElementById('chips-big6'), b.big6);
+  chipStack(document.getElementById('chips-big8'), b.big8);
+  ['any7','anycraps','two','three','eleven','twelve','horn','ce','hard4','hard6','hard8','hard10'].forEach(k=>{
+    chipStack(document.getElementById('chips-'+k), b[k]);
+  });
+  BOX_NUMBERS.forEach(n=>{
+    // show place + come odds stacked on the box, come point marker
+    const placeAmt = b.place[n] + (b.comeOdds[n]||0);
+    chipStack(document.getElementById('chips-place'+n), placeAmt);
+    chipStack(document.getElementById('chips-come'+n), b.come[n]);
+    // point highlight
+    const cell=document.getElementById('cell-'+n);
+    cell.classList.toggle('point-on', state.point===n);
+    // off-dim place bets on come-out if not working
+    const working = state.point!==null || document.getElementById('workComeout').checked;
+    cell.classList.toggle('off-dim', b.place[n]>0 && !working);
+    const puck=document.getElementById('puck-'+n);
+    if(puck){ puck.style.display = (state.point===n)?'flex':'none'; puck.className='puck'; puck.textContent='ON'; }
+  });
+  updateBadges();
+  refreshSuggestion();
+}
+
+function totalAtRisk(){
+  const b=state.bets; let t=0;
+  t+=b.pass+b.passodds+b.dontpass+b.dontpassodds+b.field+b.big6+b.big8+b.comeMain+b.dcMain;
+  ['any7','anycraps','two','three','eleven','twelve','horn','ce','hard4','hard6','hard8','hard10'].forEach(k=>t+=b[k]);
+  BOX_NUMBERS.forEach(n=>{ t+=b.place[n]+b.come[n]+(b.comeOdds[n]||0)+b.dc[n]; });
+  return t;
+}
+
+function updateBadges(){
+  document.getElementById('bankroll').textContent=money(state.bank);
+  document.getElementById('atrisk').textContent=money(totalAtRisk());
+  document.getElementById('phase').textContent= state.point? 'Point':'Come Out';
+  document.getElementById('pointDisp').textContent= state.point||'—';
+  const s=state.stats;
+  document.getElementById('netpl').textContent=money(s.net);
+  document.getElementById('netpl').style.color = s.net>=0? 'var(--win)':'var(--lose)';
+  document.getElementById('rollcount').textContent=s.rolls;
+  document.getElementById('pointsmade').textContent=s.pointsMade;
+  document.getElementById('sevenouts').textContent=s.sevenOuts;
+  document.getElementById('bigwin').textContent=money(s.bigWin);
+  document.getElementById('peakbank').textContent=money(s.peak);
+  renderDist();
+}
+
+function renderDist(){
+  const host=document.getElementById('dist'); if(!host) return;
+  const exp={2:2.78,3:5.56,4:8.33,5:11.11,6:13.89,7:16.67,8:13.89,9:11.11,10:8.33,11:5.56,12:2.78};
+  const d=state.stats.dist, tot=state.stats.rolls, SCALE=20; // 20% = full-width bar
+  let html='';
+  for(let t=2;t<=12;t++){
+    const obs = tot? d[t]/tot*100 : 0;
+    const w = Math.min(100, obs/SCALE*100);
+    const tick = Math.min(100, exp[t]/SCALE*100);
+    html += `<div class="distrow${t===7?' seven':''}">`+
+      `<span class="dlbl">${t}</span>`+
+      `<span class="dbar"><span class="dfill" style="width:${w}%"></span><span class="dtick" style="left:${tick}%"></span></span>`+
+      `<span class="dpct">${tot? obs.toFixed(1)+'%' : '—'}</span></div>`;
+  }
+  host.innerHTML=html;
+}
+
+/* ============================================================
+   BETTING
+   ============================================================ */
+function coach(html, flash){
+  if(!coachOn) return;
+  const el=document.getElementById('coachMsg');
+  el.innerHTML=html;
+  if(flash){ el.parentElement.classList.remove('msg-flash'); void el.offsetWidth; el.parentElement.classList.add('msg-flash'); }
+}
+
+function clickZone(bet){
+  if(rolling) return;
+  if(takeDownMode){ takeDown(bet); return; }
+  placeBet(bet, selectedChip);
+}
+
+function canPlace(bet){
+  // rules about when a bet is legal
+  if(bet==='passodds'){ if(!state.point){coach("An <span class='tip'>Odds</span> bet is only allowed once a point exists (a number set on the first roll of a round). Bet the Pass Line, roll to set a point, then add Odds.",true); return false;} if(!state.bets.pass){coach("Odds sit alongside a Pass Line bet — put a chip on the Pass Line first.",true); return false;} }
+  if(bet==='dontpassodds'){ if(!state.point){coach("This is only allowed once a point number has been set on the first roll. Roll first.",true); return false;} if(!state.bets.dontpass){coach("This backs a Don't Pass bet — place one of those first.",true); return false;} }
+  if((bet==='come'||bet==='dontcome') && !state.point){ coach("A Come bet only opens up once a round has a point (a number set on the first roll). Right now it's the first roll, so bet the <b>Pass Line</b> instead — once a point is set, Come bets become available.",true); return false; }
+  return true;
+}
+
+function placeBet(bet, amt){
+  if(!canPlace(bet)) return;
+  // odds caps
+  if(bet==='passodds'){
+    const max = state.bets.pass * maxOddsMult[state.point];
+    if(state.bets.passodds+amt > max){ amt = max - state.bets.passodds; if(amt<=0){coach(`Max odds on the ${state.point} is ${maxOddsMult[state.point]}× your line bet (${money(max)}). You're maxed out.`,true); return;} }
+  }
+  if(bet==='dontpassodds'){
+    // cap lay so that a win = line * 3-4-5 payout equivalent; use flat*mult on the win side
+    const winCap = state.bets.dontpass * maxOddsMult[state.point];
+    const [wn,wd]=layOddsPay[state.point];
+    const maxLay = Math.floor(winCap * wd/wn);
+    if(state.bets.dontpassodds+amt > maxLay){ amt=maxLay-state.bets.dontpassodds; if(amt<=0){coach(`You're at the max lay for the ${state.point}.`,true); return;} }
+  }
+  if(amt>state.bank){ coach("Not enough bankroll for that chip. Pick a smaller chip.",true); return; }
+
+  const b=state.bets;
+  state.bank -= amt;
+  if(bet.startsWith('place')){ b.place[+bet.slice(5)] += amt; }
+  else if(bet==='come'){ b.comeMain += amt; }
+  else if(bet==='dontcome'){ b.dcMain += amt; }
+  else { b[bet] += amt; }
+
+  renderBets();
+  coachAdvice(bet, amt);
+}
+
+function coachAdvice(bet, amt){
+  const info = betInfo[bet] || betInfo[bet.replace(/\d+$/,'') ] || null;
+  const map = {
+    pass:"Nice — the Pass Line is the best way to start a round. Now roll. If you get a 7 or 11 you win right away; a 2, 3, or 12 loses; anything else becomes 'the point', a number you'll then try to roll again before a 7.",
+    dontpass:"You're betting the opposite way from most players ('the dark side'). Don't Pass wins when the Pass Line loses. On the first roll a 2 or 3 wins, 7 or 11 loses, and 12 is a tie. It's a slightly better bet than the Pass Line.",
+    passodds:"This is the single best bet in the casino — it pays fair value with <span class='tip'>zero house edge</span>. Add as much as you can whenever there's a point.",
+    dontpassodds:"This backs your Don't Pass bet at fair value (no house edge). The catch: you risk more than you win, but the math is dead even.",
+    come:"A Come bet is just like the Pass Line, only you make it after a point already exists. The next roll's number becomes a second number you're chasing to win — and a 7 or 11 wins it immediately. Same low house edge as the Pass Line.",
+    field:"The Field is a quick one-roll bet: it wins or loses on the very next roll only. Wins on 2, 3, 4, 9, 10, 11, or 12; loses on 5, 6, 7, 8.",
+    big6:"Heads up: <b>Big 6</b> has a 9% edge. <span class='tip'>Place the 6</span> instead — same number, pays 7:6 (only 1.52%).",
+    big8:"Heads up: <b>Big 8</b> has a 9% edge. <span class='tip'>Place the 8</span> instead for a far better payout.",
+    any7:"That's the <b>worst bet on the table</b> (16.7% edge). Great for a thrill, terrible for your bankroll.",
+    anycraps:"A proposition bet with an 11% edge — treat it as entertainment only.",
+    horn:"Horn bets look exciting but carry a ~12.5% edge. Tiny fraction of your roll at most.",
+    ce:"C&E is a center-table long shot. High edge — bet small."
+  };
+  if(bet.startsWith('place')){
+    const n=+bet.slice(5);
+    if(n===6||n===8) coach(`Placing the ${n} is a smart, low-edge bet (1.52%). It wins every time a ${n} rolls before a 7. Bet in multiples of $6 to get the full 7:6 payout. These bets are active once a round has a point set.`,true);
+    else if(n===4||n===10) coach(`Placing the ${n} carries a steep 6.67% edge. In a real casino you'd 'Buy' it instead. It wins ${placePay[n][0]}:${placePay[n][1]} if ${n} hits before a 7.`,true);
+    else coach(`Placing the ${n} — 4% edge, pays ${placePay[n][0]}:${placePay[n][1]}. Bet in multiples of $5.`,true);
+    return;
+  }
+  if(bet.startsWith('hard')) { const hn=bet.replace('hard',''); coach(`This is a fun long shot (high house edge). It wins only if the ${hn} comes up as a matching pair — both dice showing ${hn/2} — that's "the hard way". It loses if the ${hn} shows any other way, or if a 7 rolls.`,true); return; }
+  if(map[bet]) coach(map[bet],true);
+}
+
+function takeDown(bet){
+  const b=state.bets;
+  // contract bets can't be removed once a point is set
+  if((bet==='pass'&&state.point)||(bet==='come'&&false)){ coach("A Pass Line bet can't be taken down once the point is set — that's a real craps rule (it's a 'contract' bet).",true); return; }
+  let returned=0;
+  if(bet.startsWith('place')){ const n=+bet.slice(5); returned=b.place[n]+ (b.comeOdds[n]||0); b.place[n]=0; b.comeOdds[n]=0; }
+  else if(bet==='come'){ returned=b.comeMain; b.comeMain=0; }
+  else if(bet==='dontcome'){ returned=b.dcMain; b.dcMain=0; }
+  else if(bet==='pass'){ returned=b.pass; b.pass=0; }
+  else { returned=b[bet]||0; b[bet]=0; }
+  if(returned>0){ state.bank+=returned; coach(`Took down ${money(returned)}. It's back in your bankroll. Toggle Take Down off to place bets again.`,false); }
+  renderBets();
+}
+
+function clearAllBets(){
+  if(rolling) return;
+  const b=state.bets;
+  // return everything that's legally removable
+  let ret=0;
+  const removable=['passodds','dontpass','dontpassodds','field','big6','big8','comeMain','dcMain','any7','anycraps','two','three','eleven','twelve','horn','ce','hard4','hard6','hard8','hard10'];
+  removable.forEach(k=>{ ret+=b[k]; b[k]=0; });
+  if(!state.point){ ret+=b.pass; b.pass=0; } // pass removable only pre-point
+  BOX_NUMBERS.forEach(n=>{ ret+=b.place[n]+(b.comeOdds[n]||0); b.place[n]=0; b.comeOdds[n]=0; });
+  state.bank+=ret;
+  renderBets();
+  coach(`Cleared ${money(ret)} in removable bets.`+(state.point?" (Your Pass Line and traveling Come bets are contract bets and stay up.)":""),true);
+}
+
+function toggleTakeDown(){
+  takeDownMode=!takeDownMode;
+  document.getElementById('takeDownBtn').style.background = takeDownMode? '#5a2320':'';
+  document.getElementById('takeDownBtn').textContent = takeDownMode? '✋ Take Down: ON':'✋ Take Down';
+  coach(takeDownMode? "Take Down mode on — click any removable bet to return it to your bankroll." : "Take Down off — click spots to place bets.",false);
+}
+
+/* ============================================================
+   DICE
+   ============================================================ */
+const PIP = {
+  1:[[50,50]],
+  2:[[28,28],[72,72]],
+  3:[[26,26],[50,50],[74,74]],
+  4:[[28,28],[72,28],[28,72],[72,72]],
+  5:[[28,28],[72,28],[50,50],[28,72],[72,72]],
+  6:[[28,25],[72,25],[28,50],[72,50],[28,75],[72,75]]
+};
+function drawDie(el,v){
+  el.innerHTML='';
+  PIP[v].forEach(([x,y])=>{
+    const p=document.createElement('div');
+    p.className='pip'; p.style.left=(x-8)+'%'; p.style.top=(y-8)+'%';
+    el.appendChild(p);
+  });
+}
+function d6(){ return Math.floor(Math.random()*6)+1; }
+
+/* ============================================================
+   ROLL RESOLUTION
+   ============================================================ */
+function rollDice(){
+  if(rolling) return;
+  if(totalAtRisk()===0){ coach("You haven't placed a bet yet! Click the <span class='tip'>Pass Line</span> to start, then ROLL.",true); return; }
+  rolling=true;
+  const btn=document.getElementById('rollBtn'); btn.disabled=true;
+  const d1=document.getElementById('die1'), d2=document.getElementById('die2');
+  d1.classList.add('rolling'); d2.classList.add('rolling');
+  document.getElementById('rolltotal').innerHTML='<span style="font-size:20px">…</span>';
+  // tumble animation
+  let ticks=0;
+  const tmr=setInterval(()=>{ drawDie(d1,d6()); drawDie(d2,d6()); ticks++; if(ticks>7){clearInterval(tmr); finishRoll();} }, 60);
+}
+
+function finishRoll(){
+  const a=d6(), b=d6(), total=a+b;
+  const isHard = a===b && [4,6,8,10].includes(total);
+  drawDie(document.getElementById('die1'),a);
+  drawDie(document.getElementById('die2'),b);
+  document.getElementById('die1').classList.remove('rolling');
+  document.getElementById('die2').classList.remove('rolling');
+  const names={2:'Snake Eyes',3:'Ace-Deuce',7:'Seven',11:'Yo-leven',12:'Boxcars'};
+  document.getElementById('rolltotal').innerHTML=`${total}<span class="rt-sub">${a}+${b}${names[total]?' · '+names[total]:''}</span>`;
+
+  state.stats.rolls++;
+  state.stats.dist[total]++;
+  const bankBefore = state.bank + totalAtRisk(); // equity before resolving (money on table returns as won/lost)
+  const results=[]; // {text, type}
+  const comeOut = state.point===null;
+  let net=0; // net change to equity from this roll
+
+  const B=state.bets;
+  const add=(txt,type,delta)=>{ results.push({txt,type}); if(delta) net+=delta; };
+
+  /* helper to pay a bet that RESOLVES (stake already deducted): returns stake+profit */
+  const payResolve=(stake,pn,pd)=>{ const win=stake*pn/pd; state.bank+=stake+win; return win; };
+  /* helper to pay a bet that STANDS (keep stake): returns profit only */
+  const payStand=(stake,pn,pd)=>{ const win=stake*pn/pd; state.bank+=win; return win; };
+
+  // ---------- ONE-ROLL PROPS (resolve every roll) ----------
+  // Field
+  if(B.field>0){
+    if([2,3,4,9,10,11,12].includes(total)){
+      const mult = total===2?2 : total===12?3 : 1;
+      const w=payResolve(B.field,mult,1); add(`Field hits ${total}: +${money(w)}`,'w',B.field+w);
+    } else { add(`Field loses on ${total}: -${money(B.field)}`,'l'); }
+    B.field=0;
+  }
+  // Any 7
+  if(B.any7>0){ if(total===7){const w=payResolve(B.any7,4,1); add(`Any 7 wins: +${money(w)}`,'w',B.any7+w);} else add(`Any 7 loses: -${money(B.any7)}`,'l'); B.any7=0; }
+  // Any craps
+  if(B.anycraps>0){ if([2,3,12].includes(total)){const w=payResolve(B.anycraps,7,1); add(`Any Craps wins: +${money(w)}`,'w',B.anycraps+w);} else add(`Any Craps loses: -${money(B.anycraps)}`,'l'); B.anycraps=0; }
+  // singles
+  const singles=[['two',2,30],['three',3,15],['eleven',11,15],['twelve',12,30]];
+  singles.forEach(([k,num,p])=>{ if(B[k]>0){ if(total===num){const w=payResolve(B[k],p,1); add(`${betInfo[k].name} wins: +${money(w)}`,'w',B[k]+w);} else add(`${betInfo[k].name} loses: -${money(B[k])}`,'l'); B[k]=0; } });
+  // Horn (split 4 ways)
+  if(B.horn>0){
+    const q=B.horn/4; const payMap={2:30,3:15,11:15,12:30};
+    if([2,3,11,12].includes(total)){ const w=q*payMap[total]; state.bank+=q+w; add(`Horn hits ${total}: +${money(w-3*q)} net`,'w',q+w); }
+    else add(`Horn loses: -${money(B.horn)}`,'l');
+    B.horn=0;
+  }
+  // C&E (half craps, half eleven)
+  if(B.ce>0){
+    const h=B.ce/2;
+    if([2,3,12].includes(total)){ const w=payResolve(h,7,1); add(`C&E craps wins: +${money(w-h)} net`,'w',h+w); }
+    else if(total===11){ const w=payResolve(h,15,1); add(`C&E eleven wins: +${money(w-h)} net`,'w',h+w); }
+    else add(`C&E loses: -${money(B.ce)}`,'l');
+    B.ce=0;
+  }
+
+  // ---------- HARDWAYS (multi-roll, stand until resolved) ----------
+  [4,6,8,10].forEach(n=>{
+    const k='hard'+n; if(B[k]>0){
+      if(total===n){
+        if(isHard){ const w=payStand(B[k],hardPay[n][0],hardPay[n][1]); add(`Hard ${n} hits! +${money(w)} (stays up)`,'w',w); }
+        else { add(`Hard ${n} loses (easy ${n}): -${money(B[k])}`,'l'); B[k]=0; }
+      } else if(total===7){ add(`Hard ${n} loses (seven): -${money(B[k])}`,'l'); B[k]=0; }
+    }
+  });
+
+  // ---------- COME / DON'T COME ----------
+  // existing come points first (so a new come bet can also win on 7)
+  BOX_NUMBERS.forEach(n=>{
+    if(B.come[n]>0){
+      if(total===n){
+        const w=payResolve(B.come[n],1,1); add(`Come ${n} wins: +${money(w)}`,'w',B.come[n]+w);
+        let ow=0; if(B.comeOdds[n]>0){ ow=payResolve(B.comeOdds[n],passOddsPay[n][0],passOddsPay[n][1]); add(`Come ${n} odds: +${money(ow)}`,'w',B.comeOdds[n]+ow); }
+        B.come[n]=0; B.comeOdds[n]=0;
+      } else if(total===7){
+        add(`Come ${n} loses (seven-out): -${money(B.come[n]+(B.comeOdds[n]||0))}`,'l');
+        B.come[n]=0; B.comeOdds[n]=0;
+      }
+    }
+    if(B.dc[n]>0){
+      if(total===7){ const w=payResolve(B.dc[n],1,1); add(`Don't Come ${n} wins on 7: +${money(w)}`,'w',B.dc[n]+w); B.dc[n]=0; }
+      else if(total===n){ add(`Don't Come ${n} loses: -${money(B.dc[n])}`,'l'); B.dc[n]=0; }
+    }
+  });
+  // new come bet (uses this roll as its come-out)
+  if(B.comeMain>0){
+    if(total===7||total===11){ const w=payResolve(B.comeMain,1,1); add(`Come bet wins on ${total}: +${money(w)}`,'w',B.comeMain+w); B.comeMain=0; }
+    else if([2,3,12].includes(total)){ add(`Come bet loses on ${total}: -${money(B.comeMain)}`,'l'); B.comeMain=0; }
+    else { B.come[total]+=B.comeMain; add(`Come bet travels to the ${total}.`,'n'); B.comeMain=0;
+      if(document.getElementById('autoOdds').checked){ autoOdds('come',total); } }
+  }
+  if(B.dcMain>0){
+    if(total===2||total===3){ const w=payResolve(B.dcMain,1,1); add(`Don't Come wins on ${total}: +${money(w)}`,'w',B.dcMain+w); B.dcMain=0; }
+    else if(total===7||total===11){ add(`Don't Come loses on ${total}: -${money(B.dcMain)}`,'l'); B.dcMain=0; }
+    else if(total===12){ state.bank+=B.dcMain; add(`Don't Come pushes on 12 (bar).`,'n'); B.dcMain=0; }
+    else { B.dc[total]+=B.dcMain; add(`Don't Come travels to the ${total}.`,'n'); B.dcMain=0; }
+  }
+
+  // ---------- PLACE / BIG (working only when point on, or toggle) ----------
+  const placeWorking = !comeOut || document.getElementById('workComeout').checked;
+  if(placeWorking){
+    BOX_NUMBERS.forEach(n=>{
+      if(B.place[n]>0){
+        if(total===n){ const w=payStand(B.place[n],placePay[n][0],placePay[n][1]); add(`Place ${n} wins: +${money(w)} (stays up)`,'w',w); }
+        else if(total===7){ add(`Place ${n} loses (seven): -${money(B.place[n])}`,'l'); B.place[n]=0; }
+      }
+    });
+  }
+  // Big 6 / Big 8 (always working)
+  if(B.big6>0){ if(total===6){const w=payStand(B.big6,1,1); add(`Big 6 wins: +${money(w)}`,'w',w);} else if(total===7){add(`Big 6 loses: -${money(B.big6)}`,'l'); B.big6=0;} }
+  if(B.big8>0){ if(total===8){const w=payStand(B.big8,1,1); add(`Big 8 wins: +${money(w)}`,'w',w);} else if(total===7){add(`Big 8 loses: -${money(B.big8)}`,'l'); B.big8=0;} }
+
+  // ---------- PASS / DON'T PASS + POINT ----------
+  let phaseMsg='';
+  if(comeOut){
+    // Pass line
+    if(B.pass>0){
+      if(total===7||total===11){ const w=payResolve(B.pass,1,1); add(`Pass Line wins on ${total}: +${money(w)}`,'w',B.pass+w); B.pass=0; }
+      else if([2,3,12].includes(total)){ add(`Pass Line craps out on ${total}: -${money(B.pass)}`,'l'); B.pass=0; }
+    }
+    // Don't pass
+    if(B.dontpass>0){
+      if(total===2||total===3){ const w=payResolve(B.dontpass,1,1); add(`Don't Pass wins on ${total}: +${money(w)}`,'w',B.dontpass+w); B.dontpass=0; }
+      else if(total===7||total===11){ add(`Don't Pass loses on ${total}: -${money(B.dontpass)}`,'l'); B.dontpass=0; }
+      else if(total===12){ state.bank+=B.dontpass; add(`Don't Pass pushes on 12 (bar).`,'n'); B.dontpass=0; }
+    }
+    // establish point
+    if(BOX_NUMBERS.includes(total)){
+      state.point=total; phaseMsg=`The number <b>${total}</b> is now "the point" (see the white ON puck). Here's the goal: you win your Pass Line bet if the dice show <b>${total}</b> again before they show a <b>7</b>. If a 7 comes first, the Pass Line loses. Keep rolling!`;
+      if(document.getElementById('autoOdds').checked){ autoOdds('pass',total); autoOdds('dontpass',total); }
+    } else {
+      phaseMsg = (total===7||total===11)? `Winner! A ${total} on the very first roll pays the Pass Line even money. We start a fresh round now — place a Pass Line bet and roll again.` :
+                 [2,3,12].includes(total)? `"Craps" — a ${total} on the first roll loses the Pass Line. No point was set, so it's just a fresh first roll next. Bet the Pass Line and roll.` : "";
+    }
+  } else {
+    // point phase
+    if(total===state.point){
+      state.stats.pointsMade++;
+      if(B.pass>0){ const w=payResolve(B.pass,1,1); add(`Pass Line makes the point (${total}): +${money(w)}`,'w',B.pass+w); B.pass=0; }
+      if(B.passodds>0){ const w=payResolve(B.passodds,passOddsPay[total][0],passOddsPay[total][1]); add(`Pass Odds win: +${money(w)}`,'w',B.passodds+w); B.passodds=0; }
+      if(B.dontpass>0){ add(`Don't Pass loses (point made): -${money(B.dontpass)}`,'l'); B.dontpass=0; }
+      if(B.dontpassodds>0){ add(`Lay Odds lose: -${money(B.dontpassodds)}`,'l'); B.dontpassodds=0; }
+      phaseMsg=`The point (${total}) was rolled before a 7 — your Pass Line bet wins! 🎉 A brand-new round starts now. Put a chip on the Pass Line and roll.`;
+      state.point=null;
+    } else if(total===7){
+      state.stats.sevenOuts++;
+      // seven out: pass loses, dontpass wins; place/come already handled above
+      if(B.pass>0){ add(`Seven out — Pass Line loses: -${money(B.pass)}`,'l'); B.pass=0; }
+      if(B.passodds>0){ add(`Pass Odds lose: -${money(B.passodds)}`,'l'); B.passodds=0; }
+      if(B.dontpass>0){ const w=payResolve(B.dontpass,1,1); add(`Don't Pass wins on the seven-out: +${money(w)}`,'w',B.dontpass+w); B.dontpass=0; }
+      if(B.dontpassodds>0){ const w=payResolve(B.dontpassodds,layOddsPay[state.point][0],layOddsPay[state.point][1]); add(`Lay Odds win: +${money(w)}`,'w',B.dontpassodds+w); B.dontpassodds=0; }
+      phaseMsg=`A 7 was rolled before the point — this ends the round and the Pass Line loses ("seven-out"). Everything resets. Place a new Pass Line bet to start again.`;
+      state.point=null;
+    }
+  }
+
+  // ---------- stats & flash ----------
+  const equityAfter = state.bank + totalAtRisk();
+  const roundNet = equityAfter - bankBefore;
+  state.stats.net += roundNet;
+  if(roundNet>state.stats.bigWin) state.stats.bigWin=roundNet;
+  if(state.bank>state.stats.peak) state.stats.peak=state.bank;
+
+  flashDie(total);
+  renderBets();
+  logRoll(total,a,b,results,roundNet);
+  coachAfterRoll(total, comeOut, phaseMsg, roundNet);
+
+  rolling=false;
+  document.getElementById('rollBtn').disabled=false;
+  refreshSuggestion();
+  if(state.bank<=0 && totalAtRisk()===0){
+    coach("You're out of chips! Hit <b>↻ Reset</b> to buy back in for $1,000 and try a lower-edge strategy. Tip: Pass Line + Odds keeps you in the game longest.",true);
+  }
+}
+
+function autoOdds(kind, point){
+  const B=state.bets;
+  if(kind==='pass' && B.pass>0){
+    const want = Math.min(B.pass * maxOddsMult[point], state.bank);
+    if(want>0){ B.passodds+=want; state.bank-=want; }
+  }
+  if(kind==='dontpass' && B.dontpass>0){
+    const [wn,wd]=layOddsPay[point];
+    const winCap=B.dontpass*maxOddsMult[point];
+    const want=Math.min(Math.floor(winCap*wd/wn), state.bank);
+    if(want>0){ B.dontpassodds+=want; state.bank-=want; }
+  }
+  if(kind==='come' && B.come[point]>0){
+    const want=Math.min(B.come[point]*maxOddsMult[point], state.bank);
+    if(want>0){ B.comeOdds[point]+=want; state.bank-=want; }
+  }
+}
+
+function flashDie(total){
+  // flash winning zones subtly by total — light touch
+  const map={};
+  // (kept simple: flash the roll total readout)
+}
+
+function logRoll(total,a,b,results,net){
+  const log=document.getElementById('log');
+  const wrap=document.createElement('div'); wrap.className='row';
+  let inner=`<span class="roll-chip">${total} <small style="opacity:.6">(${a}+${b})</small></span>`;
+  if(results.length){
+    inner += results.map(r=>`<span class="${r.type}">${r.txt}</span>`).join('<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;');
+  } else {
+    inner += `<span class="n">no bets affected</span>`;
+  }
+  const sign = net>0?'w':net<0?'l':'n';
+  inner += `<br><b class="${sign}">Round net: ${money(net)}</b>`;
+  wrap.innerHTML=inner;
+  log.insertBefore(wrap, log.firstChild);
+  while(log.children.length>40) log.removeChild(log.lastChild);
+}
+
+function coachAfterRoll(total, wasComeOut, phaseMsg, net){
+  if(!coachOn) return;
+  let tips=[];
+  if(phaseMsg) tips.push(phaseMsg);
+  // contextual strategy nudge
+  if(state.point && !state.bets.passodds && state.bets.pass>0 && !document.getElementById('autoOdds').checked){
+    tips.push("Tip: now that there's a point, you can add an <span class='tip'>Odds</span> bet on the strip right below the Pass Line. It pays fair value with <b>no house edge</b> — the smartest move in the game. Click <b>Take Odds (Pass Line)</b>.");
+  }
+  if(state.point && state.bets.pass>0 && state.bets.comeMain===0 && Object.values(state.bets.come).every(v=>v===0)){
+    tips.push("Want to have money riding on more numbers? A <span class='tip'>Come bet</span> works exactly like the Pass Line, but you make it right now instead of at the start. Click the big <b>COME</b> box: the next roll's number becomes a second number you're chasing (and a 7 or 11 wins it instantly). Same great odds as the Pass Line.");
+  }
+  if(net>0) tips.push(`<b class="tip">You won ${money(net)} that roll.</b>`);
+  else if(net<0 && total===7 && state.point===null) tips.push("That 7 wiped the table and the round is over — normal part of craps. Just rebuild the same way (Pass Line + Odds). Resist the tempting long-shot bets in the middle of the table; they lose fastest.");
+  if(!tips.length) tips.push("Rolling along — place or press your bets and roll again.");
+  coach(tips.join(' '), true);
+}
+
+/* ============================================================
+   TOOLTIPS
+   ============================================================ */
+function attachTooltips(){
+  document.querySelectorAll('.zone').forEach(z=>{
+    z.onmouseenter=(e)=>showTip(e, z.dataset.bet);
+    z.onmousemove=moveTip;
+    z.onmouseleave=hideTip;
+  });
+}
+function showTip(e, bet){
+  if(!bet) return;
+  if(window.matchMedia && window.matchMedia('(hover: none)').matches) return; // skip on touch devices
+  let key=bet;
+  const info=betInfo[key];
+  if(!info) return;
+  const tt=document.getElementById('tt');
+  tt.innerHTML=`<h5>${info.name}</h5><div>${info.text}</div>
+    <div style="margin-top:6px">House edge: <span class="edge ${info.good?'good':''}">${info.edge}</span></div>`;
+  tt.style.display='block'; moveTip(e);
+}
+function moveTip(e){
+  const tt=document.getElementById('tt');
+  let x=e.clientX+16, y=e.clientY+16;
+  const r=tt.getBoundingClientRect();
+  if(x+r.width>window.innerWidth) x=e.clientX-r.width-16;
+  if(y+r.height>window.innerHeight) y=e.clientY-r.height-16;
+  tt.style.left=x+'px'; tt.style.top=y+'px';
+}
+function hideTip(){ document.getElementById('tt').style.display='none'; }
+
+/* ============================================================
+   TUTORIAL
+   ============================================================ */
+const tutSteps=[
+ {t:"Welcome to Craps 🎲", h:`<p>Craps looks chaotic but the core game is simple. One player (the "shooter") rolls two dice, and everyone bets on the outcome. This tutorial gets you playing in about two minutes.</p>
+   <p>The game moves in two phases: the <b>Come-Out roll</b> and the <b>Point phase</b>. Let's walk through them.</p>
+   <div class="callout">You start with <b>$1,000</b> in chips. Nothing here is real money — experiment freely.</div>`},
+ {t:"Step 1 — The Come-Out Roll", h:`<p>Every round begins with a <b>come-out roll</b>. Before it, you place a <b>Pass Line</b> bet (the most popular bet in craps).</p>
+   <p>On the come-out:</p>
+   <ul><li><b>7 or 11</b> → Pass Line wins even money. 🎉</li>
+   <li><b>2, 3, or 12</b> ("craps") → Pass Line loses.</li>
+   <li><b>4, 5, 6, 8, 9, or 10</b> → that number becomes <b>the Point</b>, and the puck flips to ON.</li></ul>`},
+ {t:"Step 2 — The Point Phase", h:`<p>Once a point is set, the shooter keeps rolling with one goal: <b>roll the point number again before rolling a 7.</b></p>
+   <ul><li>Roll the <b>point</b> → Pass Line wins! 🎉 A new come-out begins.</li>
+   <li>Roll a <b>7</b> first → "seven-out." Pass Line loses and the dice pass to a new shooter.</li>
+   <li>Any other number → nothing happens to the line; roll again.</li></ul>
+   <p>That tension — point vs. seven — is the heartbeat of craps.</p>`},
+ {t:"Step 3 — Odds: the perfect bet", h:`<p>After a point is set, you can bet <b>Odds</b> behind your Pass Line. This is the only bet in the entire casino with a <span class="good"><b>0% house edge</b></span> — it pays the true probability.</p>
+   <table><tr><th>Point</th><th>Odds pay</th></tr><tr><td>4 or 10</td><td>2 : 1</td></tr><tr><td>5 or 9</td><td>3 : 2</td></tr><tr><td>6 or 8</td><td>6 : 5</td></tr></table>
+   <p>Always take odds. Flip on <b>Auto-take odds</b> (bottom bar) and the game backs your line bets automatically.</p>`},
+ {t:"Step 4 — Come, Place & the rest", h:`<p><b>Come bets</b> work exactly like the Pass Line but you make them mid-round; they travel to whatever number rolls next and you can take odds on them too.</p>
+   <p><b>Place bets</b> let you bet a specific box number (6 and 8 are the best value). <b>Field</b> is a one-roll bet. The <b>center</b> of the table (hardways, any seven, horn) holds the flashy long shots — and the worst odds.</p>
+   <div class="callout">Hover any spot on the table to see its payout and exact <b>house edge</b>.</div>`},
+ {t:"Step 5 — How to win long-term", h:`<p>Craps can't be beaten mathematically, but you can play the lowest-edge game on the casino floor:</p>
+   <ol><li>Bet the <b>Pass Line</b> (1.41%).</li><li>Take <b>maximum Odds</b> (0%) — this drags your combined edge under 0.4%.</li><li>Add one or two <b>Come</b> bets with odds (the <b>3-Point Molly</b>).</li><li>Avoid the center props.</li><li>Set a win goal and loss limit — and walk when you hit them.</li></ol>
+   <p>Open the <b>🎯 Strategy</b> panel any time for the full playbook. Now — place a Pass Line bet and roll!</p>`}
+];
+let tutIdx=0;
+function openTutorial(){ tutIdx=0; renderTut(); openModal('tutorialModal'); }
+function renderTut(){
+  const s=tutSteps[tutIdx];
+  document.getElementById('tutTitle').textContent=s.t;
+  document.getElementById('tutBody').innerHTML=s.h;
+  const dots=document.getElementById('tutDots'); dots.innerHTML='';
+  tutSteps.forEach((_,i)=>{ const d=document.createElement('div'); d.className='dot'+(i===tutIdx?' on':''); dots.appendChild(d); });
+  document.getElementById('tutNextBtn').textContent = tutIdx===tutSteps.length-1? "Let's play! ✓" : "Next →";
+}
+function tutNext(){ if(tutIdx<tutSteps.length-1){tutIdx++; renderTut();} else closeModal('tutorialModal'); }
+function tutPrev(){ if(tutIdx>0){tutIdx--; renderTut();} }
+
+/* ============================================================
+   PAYOUT TABLE
+   ============================================================ */
+function buildPayoutTable(){
+  const rows=[
+    ['Pass Line / Come','1 : 1','1.41%','good'],
+    ['Don\'t Pass / Don\'t Come','1 : 1','1.36%','good'],
+    ['Odds — point 4 or 10','2 : 1','0.00%','good'],
+    ['Odds — point 5 or 9','3 : 2','0.00%','good'],
+    ['Odds — point 6 or 8','6 : 5','0.00%','good'],
+    ['Lay Odds — 4/10','1 : 2','0.00%','good'],
+    ['Lay Odds — 5/9','2 : 3','0.00%','good'],
+    ['Lay Odds — 6/8','5 : 6','0.00%','good'],
+    ['Place 6 or 8','7 : 6','1.52%','good'],
+    ['Place 5 or 9','7 : 5','4.00%','mid'],
+    ['Place 4 or 10','9 : 5','6.67%','bad'],
+    ['Field — 3,4,9,10,11','1 : 1','2.78%','mid'],
+    ['Field — 2','2 : 1','—','mid'],
+    ['Field — 12','3 : 1','—','mid'],
+    ['Big 6 / Big 8','1 : 1','9.09%','bad'],
+    ['Hard 6 / Hard 8','9 : 1','9.09%','bad'],
+    ['Hard 4 / Hard 10','7 : 1','11.1%','bad'],
+    ['Any Craps (2,3,12)','7 : 1','11.1%','bad'],
+    ['Ace-Deuce (3) / Yo (11)','15 : 1','11.1–16.7%','bad'],
+    ['Snake Eyes (2) / Boxcars (12)','30 : 1','13.9%','bad'],
+    ['Any Seven','4 : 1','16.67%','bad']
+  ];
+  const t=document.getElementById('payoutTable');
+  t.innerHTML='<tr><th>Bet</th><th>Pays</th><th>House Edge</th></tr>'+
+    rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td class="${r[3]}">${r[2]}</td></tr>`).join('');
+}
+
+/* ============================================================
+   MODALS / MISC
+   ============================================================ */
+function openModal(id){ document.getElementById(id).classList.add('open'); }
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+document.addEventListener('click', e=>{ if(e.target.classList.contains('modal')) e.target.classList.remove('open'); });
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') document.querySelectorAll('.modal.open').forEach(m=>m.classList.remove('open'));
+  if(e.code==='Space' && !document.querySelector('.modal.open')){ e.preventDefault(); rollDice(); } });
+
+function toggleCoach(){ coachOn=!coachOn; document.getElementById('coachToggle').textContent=coachOn?'On':'Off';
+  if(!coachOn) document.getElementById('coachMsg').innerHTML='<span style="color:var(--muted)">Coach is off. Turn it back on for tips and strategy nudges.</span>'; }
+
+function resetGame(){ state=freshState(); takeDownMode=false;
+  document.getElementById('takeDownBtn').style.background=''; document.getElementById('takeDownBtn').textContent='✋ Take Down';
+  document.getElementById('log').innerHTML='<div class="row n">Bought in for $1,000. Place your bets…</div>';
+  drawDie(document.getElementById('die1'),1); drawDie(document.getElementById('die2'),1);
+  document.getElementById('rolltotal').innerHTML='—<span class="rt-sub">roll the dice</span>';
+  buildTable(); renderBets();
+  coach("Fresh $1,000 to play with. A great, low-risk way to play: bet the <b>Pass Line</b>, leave <b>Auto-take odds</b> switched on (bottom bar), and avoid the flashy bets in the middle of the table — those lose the fastest. Click the Pass Line and roll!",true);
+}
+
+/* ============================================================
+   STRATEGY COACH — recommends what to bet next
+   ============================================================ */
+const STRATS=[
+  {id:'passodds', name:'Pass + Odds', desc:'Safest game. Lowest edge.'},
+  {id:'molly',    name:'3-Point Molly', desc:'Pass + 2 Come, all with odds.'},
+  {id:'place68',  name:'Place 6 & 8', desc:'Steady low-edge action.'},
+  {id:'dark',     name:'Dark Side', desc:"Don't Pass + lay odds."},
+  {id:'free',     name:'Free Play', desc:'Just give me nudges.'}
+];
+function betName(k){ return (betInfo[k]&&betInfo[k].name)||k; }
+function unit(){ const bk=state.bank; let u = bk>=200?25 : bk>=40?5 : 1; if(u>bk) u=Math.max(1,bk); return u; }
+function unit6(){ const u=unit(); return u>=24?24 : u>=12?12 : 6; }
+
+function buildStratButtons(){
+  const c=document.getElementById('stratbtns'); c.innerHTML='';
+  STRATS.forEach(s=>{
+    const b=document.createElement('button');
+    b.dataset.id=s.id; b.textContent=s.name; b.title=s.desc;
+    b.className = (strategy===s.id)?'active':'';
+    b.onclick=()=>selectStrategy(s.id);
+    c.appendChild(b);
+  });
+}
+
+function selectStrategy(id){
+  strategy=id;
+  document.querySelectorAll('#stratbtns button').forEach(b=>b.classList.toggle('active', b.dataset.id===id));
+  const intro={
+    passodds:"<b>Pass + Odds</b> — the safest way to play. I'll have you bet the Pass Line, then back it with a free-odds bet that has <span class='tip'>zero house edge</span>. Just follow the prompts in the Strategy Coach box.",
+    molly:"<b>The 3-Point Molly</b> — the classic grind strategy. We'll get money working on three numbers at the table's lowest edge: the Pass Line plus two Come bets, each backed with odds. I'll guide every step.",
+    place68:"<b>Place the 6 &amp; 8</b> — steady action on the two most common numbers (after 7), at only a 1.52% edge. I'll tell you exactly when and how much to bet.",
+    dark:"<b>The Dark Side</b> — betting Don't Pass and laying odds. Slightly better math than the Pass Line, but you'll be quietly rooting against everyone else at the table. Let's give it a try.",
+    free:"<b>Free Play</b> — bet however you like and I'll give you the smartest nudge for each situation. No fixed plan."
+  };
+  coach(intro[id]||'',true);
+  refreshSuggestion();
+}
+
+function computeSuggestion(){
+  const B=state.bets, pt=state.point, auto=document.getElementById('autoOdds').checked;
+  if(state.bank<=0 && totalAtRisk()===0)
+    return {text:"You're out of chips.", why:"Buy back in and stick to a low-edge strategy to make it last.", action:'reset'};
+  if(!strategy)
+    return {text:"Pick a strategy above and I'll tell you the exact next bet — amount and all — step by step.",
+            why:"New to craps? Tap <b>Pass + Odds</b>; it's the safest place to start.", action:'none'};
+  const u=unit();
+
+  if(strategy==='passodds' || strategy==='free'){
+    if(!pt){
+      if(B.pass===0) return {text:`Bet <b>$${u}</b> on the Pass Line to start the round.`, why:"The Pass Line is the backbone bet — only a 1.41% house edge.", key:'pass', amt:u, action:'bet'};
+      return {text:"Roll to set your point number.", why:"7 or 11 wins right now; a 4/5/6/8/9/10 becomes your point.", action:'roll'};
+    }
+    if(!auto && B.pass>0 && B.passodds < B.pass*maxOddsMult[pt])
+      return {text:"Add the <b>Odds</b> bet behind your Pass Line.", why:"Odds pay true value — the only 0% house-edge bet in the casino. Always take the maximum.", key:'passodds', amt:B.pass*maxOddsMult[pt]-B.passodds, action:'bet'};
+    return {text:"You're fully set — roll and try to hit your point before a 7.", why: auto?"Auto-take odds already added your free-odds bet.":"Your odds are down. Nothing more to do.", action:'roll'};
+  }
+
+  if(strategy==='molly'){
+    if(!auto) return {text:"First, turn on <b>Auto-take odds</b>.", why:"The Molly leans on odds behind every number — this adds them automatically so you don't miss any.", action:'auto'};
+    if(!pt){
+      if(B.pass===0) return {text:`Bet <b>$${u}</b> on the Pass Line to begin.`, why:"Step 1 of the 3-Point Molly.", key:'pass', amt:u, action:'bet'};
+      return {text:"Roll to set your first point.", why:"Once a point exists, you'll start adding Come bets.", action:'roll'};
+    }
+    if(B.comeMain>0) return {text:"Roll — your Come bet is waiting to grab a number.", why:"Whatever rolls next (other than 7/11 or craps) becomes another number working for you.", action:'roll'};
+    const cnt=Object.values(B.come).filter(v=>v>0).length;
+    if(cnt<2) return {text:`Make a <b>Come</b> bet ($${u}). That's ${cnt} of 2.`, why:"A Come bet works just like the Pass Line but starts now — spreading low-edge bets across up to three numbers.", key:'come', amt:u, action:'bet'};
+    return {text:"Three numbers working (Pass + 2 Come). Just roll!", why:"You win whenever any of your three numbers hits. Only a 7 hurts you — that's why we stop at three.", action:'roll'};
+  }
+
+  if(strategy==='place68'){
+    if(!pt){
+      if(B.pass===0) return {text:`Bet <b>$${u}</b> on the Pass Line first.`, why:"Place bets sit idle until a point is set, so start a round on the line.", key:'pass', amt:u, action:'bet'};
+      return {text:"Roll to set the point — then we'll place the 6 and 8.", why:"Place bets only pay while a point is active.", action:'roll'};
+    }
+    const p6=unit6();
+    if(B.place[6]===0) return {text:`Place the <b>6</b> for $${p6}.`, why:"Pays 7:6 at just a 1.52% edge — one of the best bets on the table. Always bet it in multiples of $6.", key:'place6', amt:p6, action:'bet'};
+    if(B.place[8]===0) return {text:`Place the <b>8</b> for $${p6}.`, why:"The 8 is exactly as common as the 6. Now you're collecting on two hot numbers.", key:'place8', amt:p6, action:'bet'};
+    return {text:"6 and 8 are working — roll and collect each time either lands before a 7.", why:"Feel the shooter cooling? Use Take Down to pull them back anytime.", action:'roll'};
+  }
+
+  if(strategy==='dark'){
+    if(!pt){
+      if(B.dontpass===0) return {text:`Bet <b>$${u}</b> on Don't Pass.`, why:"The dark side — you win when most of the table loses. Lowest flat edge on the felt (1.36%).", key:'dontpass', amt:u, action:'bet'};
+      return {text:"Roll to see the come-out.", why:"2 or 3 wins now, 7 or 11 loses, 12 ties. If a box number sets the point, you'll then win on a 7.", action:'roll'};
+    }
+    const [wn,wd]=layOddsPay[pt], winCap=B.dontpass*maxOddsMult[pt], maxLay=Math.floor(winCap*wd/wn);
+    if(!auto && B.dontpass>0 && B.dontpassodds<maxLay)
+      return {text:"Lay the <b>Odds</b> behind your Don't Pass.", why:"0% house edge — and after the point, every roll now slightly favors you.", key:'dontpassodds', amt:maxLay-B.dontpassodds, action:'bet'};
+    return {text:"Set — roll. Now a 7 wins for you.", why:"After the point, the dark side is statistically ahead on every roll.", action:'roll'};
+  }
+  return {text:"Roll when ready.", action:'roll'};
+}
+
+function refreshSuggestion(){
+  const box=document.getElementById('suggestion'); if(!box) return;
+  currentSug=computeSuggestion();
+  box.innerHTML = currentSug.text + (currentSug.why?`<span class="why">${currentSug.why}</span>`:'');
+  document.querySelectorAll('.zone.suggest').forEach(z=>z.classList.remove('suggest'));
+  if(currentSug.key){ const z=document.querySelector('[data-bet="'+currentSug.key+'"]'); if(z) z.classList.add('suggest'); }
+  const btn=document.getElementById('sugBtn');
+  if(!btn) return;
+  if(currentSug.action==='none' || rolling){ btn.style.display='none'; return; }
+  btn.style.display='block';
+  if(currentSug.action==='roll') btn.textContent='🎲 Roll the Dice';
+  else if(currentSug.action==='auto') btn.textContent='✓ Turn on Auto-Odds';
+  else if(currentSug.action==='reset') btn.textContent='↻ Buy Back In';
+  else if(currentSug.action==='bet') btn.textContent=`▶ Place $${Math.min(currentSug.amt,state.bank)} · ${betName(currentSug.key)}`;
+}
+
+function doSuggested(){
+  const s=currentSug; if(!s || rolling) return;
+  if(s.action==='reset') return resetGame();
+  if(s.action==='auto'){ document.getElementById('autoOdds').checked=true;
+    coach("Auto-take odds is on — I'll add the free-odds bet behind every number for you automatically.",true); refreshSuggestion(); return; }
+  if(s.action==='roll') return rollDice();
+  if(s.action==='bet'){ placeBet(s.key, Math.min(s.amt, state.bank)); }
+}
+
+/* init */
+state=freshState();
+buildTable();
+buildStratButtons();
+drawDie(document.getElementById('die1'),3);
+drawDie(document.getElementById('die2'),4);
+renderBets();
+buildPayoutTable();
+document.getElementById('autoOdds').addEventListener('change', refreshSuggestion);
+</script>
+</body>
+</html>
