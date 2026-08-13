@@ -245,6 +245,105 @@
     .propgrid{grid-template-columns:repeat(4,1fr)}
     .propgrid .mini .lbl{font-size:9px}
   }
+
+  /* ================= AUTHENTIC CRAPS TABLE ================= */
+  .felt{font-family:"Arial Narrow","Oswald","Helvetica Neue",Arial,sans-serif}
+  /* center stickman / proposition box */
+  .prop-box{background:radial-gradient(120% 140% at 50% 0%, #0e7a42, #073d20);
+    border:3px solid #d8b45a;border-radius:12px;padding:8px;margin-bottom:10px;
+    display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:stretch}
+  .hardways{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;min-width:290px}
+  .hardcell{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+    border:2px solid var(--felt-line);border-radius:8px;background:rgba(0,0,0,.15);min-height:62px;position:relative;cursor:pointer;transition:.1s}
+  .hardcell:hover{background:rgba(255,255,255,.10);box-shadow:0 0 0 2px var(--acc) inset}
+  .hard-dice{display:flex;gap:3px}
+  .mdie{position:relative;width:20px;height:20px;background:#fbfbfb;border-radius:4px;box-shadow:inset 0 0 0 1px #c9c2ad,0 1px 2px rgba(0,0,0,.4)}
+  .mpip{position:absolute;width:4px;height:4px;background:#b0181b;border-radius:50%}
+  .hard-pay{font-size:10px;font-weight:800;color:var(--felt-line);letter-spacing:.5px}
+  .center-props{display:grid;gap:6px;grid-template-columns:repeat(4,1fr);
+    grid-template-areas:"a2 a3 a11 a12" "acr acr ce ce" "sev sev sev hrn"}
+  .propcell{border:2px solid var(--felt-line);border-radius:8px;background:rgba(0,0,0,.15);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:38px;position:relative;cursor:pointer;padding:3px;transition:.1s}
+  .propcell:hover{background:rgba(255,255,255,.10);box-shadow:0 0 0 2px var(--acc) inset}
+  .prop-lbl{font-weight:900;color:#fff;font-size:16px;letter-spacing:.5px;text-shadow:0 1px 2px #000}
+  .prop-pay{font-size:8px;color:#d7ecd8;letter-spacing:.3px}
+  .seven-big{background:radial-gradient(circle at 50% 38%, #e0453a, #9c1c15);border-color:#ffd9a0}
+  .seven-big:hover{box-shadow:0 0 0 2px #ffd9a0 inset,0 0 14px rgba(224,69,58,.6)}
+  .sev-num{font-size:32px;font-weight:900;color:#fff;line-height:1;text-shadow:0 2px 4px rgba(0,0,0,.6)}
+  .sev-lbl{font-size:10px;font-weight:800;color:#fff;letter-spacing:1.5px;margin-top:2px}
+
+  /* player layout grid */
+  .player{display:grid;gap:7px;grid-template-columns:94px repeat(6,1fr);
+    grid-template-areas:
+      "dcome place place place place place place"
+      "dcome come  come  come  come  come  big"
+      "field field field field field field big"
+      "dpass dpass dpass dpass dpass dpass dpass"
+      "dodds dodds dodds take  take  take  take"
+      "pass  pass  pass  pass  pass  pass  pass"}
+  .player .zone{position:relative}
+  .dcome{grid-area:dcome;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    border:2px solid var(--felt-line);border-radius:8px;background:rgba(0,0,0,.16);cursor:pointer;padding:4px}
+  .rot-lbl{font-size:11px;font-weight:800;color:var(--felt-line);text-align:center;line-height:1.35;letter-spacing:.5px}
+  .barnum{display:inline-block;border:2px solid var(--lose);color:var(--lose);border-radius:50%;
+    width:19px;height:19px;line-height:16px;text-align:center;font-size:11px;font-weight:800;position:relative;vertical-align:middle}
+  .barnum:after{content:"";position:absolute;left:-2px;top:8px;width:21px;height:2px;background:var(--lose);transform:rotate(-22deg)}
+
+  .placerow{grid-area:place;display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin:0}
+  .numcell{border:2px solid var(--felt-line);border-radius:8px;background:rgba(0,0,0,.10);min-height:74px;text-align:center;cursor:pointer;position:relative}
+  .numcell .big{font-size:23px;font-weight:900;color:#fff;text-shadow:0 2px 3px #000;padding-top:8px;letter-spacing:1px}
+  .numcell .sub{font-size:8px;color:#cfe6d2;letter-spacing:.5px}
+
+  .come{grid-area:come;border:2px solid var(--felt-line);border-radius:8px;background:rgba(0,0,0,.10);
+    display:flex;align-items:center;justify-content:center;min-height:72px;cursor:pointer}
+  .come-word{font-size:30px;font-weight:900;letter-spacing:8px;color:var(--felt-line);text-shadow:0 2px 3px #000}
+
+  .corner68{grid-area:big;display:flex;flex-direction:column;gap:7px}
+  .bigbet{flex:1;border:2px solid var(--felt-line);border-radius:8px;background:rgba(0,0,0,.13);
+    display:flex;align-items:center;justify-content:center;gap:5px;cursor:pointer;position:relative}
+  .big-word2{font-size:11px;font-weight:800;color:var(--felt-line);letter-spacing:1px}
+  .big-num{font-size:23px;font-weight:900;color:#fff;text-shadow:0 1px 2px #000}
+
+  .field{grid-area:field;border:2px solid var(--felt-line);border-radius:8px;background:rgba(0,0,0,.10);padding:6px;cursor:pointer}
+  .field-title{text-align:center;font-size:13px;font-weight:900;letter-spacing:5px;color:var(--felt-line)}
+  .field .fieldnums{display:flex;justify-content:space-around;align-items:center;font-size:21px;font-weight:900;color:#fff;text-shadow:0 1px 2px #000;padding:3px 6px}
+  .field .fieldnums .dbl{color:var(--acc);border:2px solid var(--acc);border-radius:50%;min-width:32px;height:32px;line-height:28px;text-align:center;font-size:16px}
+  .field-note{text-align:center;font-size:9px;color:#d7ecd8;letter-spacing:1.5px}
+
+  .dontpass{grid-area:dpass;border:2px solid var(--felt-line);border-radius:8px;background:rgba(0,0,0,.16);
+    display:flex;align-items:center;justify-content:center;min-height:40px;cursor:pointer}
+  .band-lbl{font-size:14px;font-weight:800;letter-spacing:2px;color:var(--felt-line)}
+
+  .lay-odds{grid-area:dodds} .take-odds{grid-area:take}
+  .lay-odds,.take-odds{border:1px dashed rgba(244,233,193,.55);border-radius:6px;background:rgba(0,0,0,.10);
+    display:flex;align-items:center;justify-content:center;min-height:28px;cursor:pointer}
+  .odds-lbl{font-size:10px;font-weight:700;letter-spacing:1px;color:#cfe6d2}
+
+  .passline{grid-area:pass;border:3px solid var(--acc);border-radius:10px 10px 50px 50px;
+    background:linear-gradient(180deg, rgba(20,140,90,.35), rgba(10,70,45,.55));
+    display:flex;align-items:center;justify-content:center;min-height:66px;cursor:pointer}
+  .pass-word{font-size:32px;font-weight:900;letter-spacing:10px;color:var(--acc);text-shadow:0 2px 5px #000}
+
+  /* mobile for the real layout */
+  @media(max-width:820px){
+    .prop-box{grid-template-columns:1fr;gap:8px}
+    .hardways{min-width:0}
+    .player{grid-template-columns:1fr;
+      grid-template-areas:"place" "come" "big" "field" "dcome" "dpass" "dodds" "take" "pass"}
+    .corner68{flex-direction:row}
+    .dcome{min-height:46px}
+    .come{min-height:56px}.come-word{font-size:24px;letter-spacing:5px}
+    .passline{min-height:56px}.pass-word{font-size:24px;letter-spacing:6px}
+    .numcell{min-height:62px}.numcell .big{font-size:19px}
+    .field .fieldnums{font-size:18px}
+    .field .fieldnums .dbl{min-width:26px;height:26px;line-height:22px;font-size:14px}
+    .come-word,.pass-word{white-space:nowrap}
+  }
+  @media(max-width:430px){
+    .center-props{grid-template-columns:repeat(4,1fr)}
+    .hard-pay{font-size:9px}
+    .mdie{width:17px;height:17px}
+  }
 </style>
 </head>
 <body>
@@ -274,72 +373,67 @@
         <div class="felt">
           <div class="brand-wm">CRAPS</div>
 
-          <!-- Place numbers -->
-          <div class="placerow" id="placerow"></div>
-
-          <!-- middle: come / dontcome / field   |   center prop box -->
-          <div class="midgrid">
-            <div class="leftcol">
-              <div class="zone comebox" data-bet="come" onclick="clickZone('come')">
-                <div class="lbl">Come</div>
-                <div class="pay">Wins 7/11 · then travels to a box number</div>
-                <div class="chips" id="chips-come"></div>
-              </div>
-              <div class="zone" data-bet="dontcome" onclick="clickZone('dontcome')" style="min-height:54px">
-                <div class="lbl">Don't Come</div>
-                <div class="pay">Bar 12 · wins on 7 after traveling</div>
-                <div class="chips" id="chips-dontcome"></div>
-              </div>
-              <div class="zone field" data-bet="field" onclick="clickZone('field')">
-                <div class="lbl">Field <span style="font-weight:400">(one roll)</span></div>
-                <div class="fieldnums"><span class="hot2">2</span><span>3</span><span>4</span><span>9</span><span>10</span><span>11</span><span class="hot2">12</span></div>
-                <div class="pay" style="text-align:center">2 pays 2:1 · 12 pays 3:1 · rest even</div>
-                <div class="chips" id="chips-field"></div>
-              </div>
-            </div>
-
-            <div class="rightcol">
-              <div class="center">
-                <h4>PROPOSITION &amp; HARDWAYS (center)</h4>
-                <div class="hardgrid" id="hardgrid"></div>
-                <div class="propgrid" id="propgrid"></div>
-              </div>
-            </div>
+          <!-- CENTER proposition / stickman box -->
+          <div class="prop-box">
+            <div class="hardways" id="hardgrid"></div>
+            <div class="center-props" id="propgrid"></div>
           </div>
 
-          <!-- Big 6/8 + line bets -->
-          <div class="midgrid" style="grid-template-columns:0.7fr 1.6fr">
-            <div class="leftcol">
-              <div class="zone mini" data-bet="big6" onclick="clickZone('big6')" style="min-height:44px">
-                <div class="lbl">Big 6</div><div class="pay">even</div>
+          <!-- AUTHENTIC PLAYER LAYOUT -->
+          <div class="player">
+            <!-- Don't Come tall bar (left) -->
+            <div class="zone dcome" data-bet="dontcome" onclick="clickZone('dontcome')">
+              <div class="rot-lbl">DON'T COME<br><span class="bar12">BAR&nbsp;<span class="barnum">12</span></span></div>
+              <div class="chips" id="chips-dontcome"></div>
+            </div>
+
+            <!-- Place-point boxes across the top -->
+            <div class="placerow" id="placerow"></div>
+
+            <!-- COME -->
+            <div class="zone come" data-bet="come" onclick="clickZone('come')">
+              <div class="come-word">COME</div>
+              <div class="chips" id="chips-come"></div>
+            </div>
+
+            <!-- Big 6 / Big 8 corner -->
+            <div class="corner68">
+              <div class="zone bigbet" data-bet="big6" onclick="clickZone('big6')">
+                <span class="big-word2">BIG</span><span class="big-num">6</span>
                 <div class="chips" id="chips-big6"></div>
               </div>
-              <div class="zone mini" data-bet="big8" onclick="clickZone('big8')" style="min-height:44px">
-                <div class="lbl">Big 8</div><div class="pay">even</div>
+              <div class="zone bigbet" data-bet="big8" onclick="clickZone('big8')">
+                <span class="big-word2">BIG</span><span class="big-num">8</span>
                 <div class="chips" id="chips-big8"></div>
               </div>
             </div>
-            <div class="lineband">
-              <div class="zone dontpass" data-bet="dontpass" onclick="clickZone('dontpass')" style="min-height:46px">
-                <div class="lbl">Don't Pass Bar 🚫12</div>
-                <div class="pay">Wins 2/3 · loses 7/11 · bar 12 (push) · pays even</div>
-                <div class="chips" id="chips-dontpass"></div>
-              </div>
-              <div class="zone oddsline" data-bet="dontpassodds" onclick="clickZone('dontpassodds')">
-                <div class="lbl">Lay Odds (Don't Pass)</div>
-                <div class="pay">true odds · 0% edge · lay to win less</div>
-                <div class="chips" id="chips-dontpassodds"></div>
-              </div>
-              <div class="zone passline" data-bet="pass" onclick="clickZone('pass')">
-                <div class="lbl">Pass Line</div>
-                <div class="pay">Wins 7/11 · loses 2/3/12 · else sets the point · pays even</div>
-                <div class="chips" id="chips-pass"></div>
-              </div>
-              <div class="zone oddsline" data-bet="passodds" onclick="clickZone('passodds')">
-                <div class="lbl">Take Odds (Pass Line)</div>
-                <div class="pay">true odds · 0% house edge · best bet on the table</div>
-                <div class="chips" id="chips-passodds"></div>
-              </div>
+
+            <!-- FIELD -->
+            <div class="zone field" data-bet="field" onclick="clickZone('field')">
+              <div class="field-title">F I E L D</div>
+              <div class="fieldnums"><span class="dbl">2</span><span>3</span><span>4</span><span>9</span><span>10</span><span>11</span><span class="dbl">12</span></div>
+              <div class="field-note">2 PAYS DOUBLE &nbsp;·&nbsp; 12 PAYS TRIPLE</div>
+              <div class="chips" id="chips-field"></div>
+            </div>
+
+            <!-- Don't Pass Bar -->
+            <div class="zone dontpass" data-bet="dontpass" onclick="clickZone('dontpass')">
+              <div class="band-lbl">DON'T PASS BAR&nbsp;<span class="barnum">12</span></div>
+              <div class="chips" id="chips-dontpass"></div>
+            </div>
+
+            <!-- Odds strips (behind the line) -->
+            <div class="zone lay-odds" data-bet="dontpassodds" onclick="clickZone('dontpassodds')">
+              <div class="odds-lbl">LAY ODDS</div><div class="chips" id="chips-dontpassodds"></div>
+            </div>
+            <div class="zone take-odds" data-bet="passodds" onclick="clickZone('passodds')">
+              <div class="odds-lbl">ODDS · behind the line</div><div class="chips" id="chips-passodds"></div>
+            </div>
+
+            <!-- PASS LINE (curved band) -->
+            <div class="zone passline" data-bet="pass" onclick="clickZone('pass')">
+              <div class="pass-word">PASS&ensp;LINE</div>
+              <div class="chips" id="chips-pass"></div>
             </div>
           </div>
 
@@ -560,37 +654,55 @@ const betInfo = {
    ============================================================ */
 function money(n){ return (n<0?"-$":"$") + Math.abs(Math.round(n)).toLocaleString(); }
 
+function dieFace(v){ // mini die HTML with pips (matches PIP layout used by the big dice)
+  return `<span class="mdie">`+ (PIP[v]||[]).map(([x,y])=>`<i class="mpip" style="left:${x-9}%;top:${y-9}%"></i>`).join('') +`</span>`;
+}
 function buildTable(){
-  // place numbers row
+  // place-point boxes (6 and 9 spelled out, as on a real table)
   const pr = document.getElementById('placerow');
   pr.innerHTML='';
   BOX_NUMBERS.forEach(n=>{
+    const label = n===6?'SIX' : n===9?'NINE' : n;
     const d=document.createElement('div');
     d.className='zone numcell'; d.id='cell-'+n;
     d.dataset.bet='place'+n;
     d.onclick=()=>clickZone('place'+n);
     d.innerHTML=`<div class="puck off" id="puck-${n}" style="display:none">OFF</div>
-      <div class="big">${n}</div>
-      <div class="sub">Place ${placePay[n][0]}:${placePay[n][1]}</div>
+      <div class="big">${label}</div>
+      <div class="sub">${placePay[n][0]} to ${placePay[n][1]}</div>
       <div class="chips" id="chips-place${n}"></div>
-      <div class="chips" id="chips-come${n}" style="bottom:20px;right:4px"></div>`;
+      <div class="chips" id="chips-come${n}" style="bottom:22px;right:4px"></div>`;
     pr.appendChild(d);
   });
-  // hardways
+  // hardways — rendered as real dice pairs
   const hg=document.getElementById('hardgrid'); hg.innerHTML='';
-  [ ['hard4','Hard 4','⚁⚁'],['hard6','Hard 6','⚂⚂'],['hard8','Hard 8','⚃⚃'],['hard10','Hard 10','⚄⚄'] ].forEach(([k,lbl,f])=>{
+  [4,6,8,10].forEach(n=>{
+    const k='hard'+n, f=n/2;
     const el=document.createElement('div');
-    el.className='zone mini'; el.dataset.bet=k; el.onclick=()=>clickZone(k);
-    el.innerHTML=`<div class="lbl">${lbl}</div><div class="hardface">${f}</div><div class="pay">${hardPay[+k.replace('hard','')][0]}:1</div><div class="chips" id="chips-${k}"></div>`;
+    el.className='zone hardcell'; el.dataset.bet=k; el.onclick=()=>clickZone(k);
+    el.innerHTML=`<div class="hard-dice">${dieFace(f)}${dieFace(f)}</div>
+      <div class="hard-pay">${hardPay[n][0]} : 1</div>
+      <div class="chips" id="chips-${k}"></div>`;
     hg.appendChild(el);
   });
-  // props
+  // center props — authentic arrangement with a big red SEVEN
   const pg=document.getElementById('propgrid'); pg.innerHTML='';
-  [ ['any7','Any 7','4:1'],['anycraps','Any Craps','7:1'],['two','2','30:1'],['three','3','15:1'],
-    ['eleven','11 (Yo)','15:1'],['twelve','12','30:1'],['horn','Horn','split'],['ce','C &amp; E','split'] ].forEach(([k,lbl,p])=>{
+  [ ['two','2','30:1','a2'], ['three','3','15:1','a3'], ['eleven','11','15:1','a11'], ['twelve','12','30:1','a12'],
+    ['anycraps','ANY CRAPS','7:1','acr'], ['ce','C &amp; E','',' ce'],
+    ['any7','7','','sev'], ['horn','HORN','','hrn'] ].forEach(([k,lbl,p,area])=>{
     const el=document.createElement('div');
-    el.className='zone mini'; el.dataset.bet=k; el.onclick=()=>clickZone(k);
-    el.innerHTML=`<div class="lbl">${lbl}</div><div class="pay">${p}</div><div class="chips" id="chips-${k}"></div>`;
+    el.className='zone propcell '+('cell-'+k); el.style.gridArea=area.trim();
+    el.dataset.bet=k; el.onclick=()=>clickZone(k);
+    if(k==='any7'){
+      el.classList.add('seven-big');
+      el.innerHTML=`<div class="sev-num">7</div><div class="sev-lbl">ANY SEVEN · 4 to 1</div><div class="chips" id="chips-${k}"></div>`;
+    } else if(k==='ce'){
+      el.innerHTML=`<div class="prop-lbl">C &amp; E</div><div class="prop-pay">craps 7:1 · 11 15:1</div><div class="chips" id="chips-${k}"></div>`;
+    } else if(k==='horn'){
+      el.innerHTML=`<div class="prop-lbl">HORN</div><div class="prop-pay">2·3·11·12</div><div class="chips" id="chips-${k}"></div>`;
+    } else {
+      el.innerHTML=`<div class="prop-lbl">${lbl}</div><div class="prop-pay">${p}</div><div class="chips" id="chips-${k}"></div>`;
+    }
     pg.appendChild(el);
   });
   // chip tray
