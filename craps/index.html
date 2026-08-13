@@ -132,6 +132,13 @@
   .coach{min-height:120px}
   .coach-msg{font-size:13px;line-height:1.5;color:#e8f3ea}
   .coach-msg .tip{color:var(--acc);font-weight:700}
+  .why-head{font-size:15px;font-weight:800;margin-bottom:5px}
+  .why-head.w{color:var(--win)} .why-head.l{color:var(--lose)} .why-head.n{color:var(--muted)}
+  .why-reason{font-size:13px;line-height:1.5;color:#e8f3ea;margin-bottom:7px}
+  .why-list{background:#0c1d14;border:1px solid #1c3627;border-radius:8px;padding:7px 9px;margin-bottom:7px}
+  .why-list>div{font-size:12px;line-height:1.5;padding:1px 0}
+  .wl-w{color:var(--win)} .wl-l{color:var(--lose)} .wl-n{color:var(--muted)}
+  .why-nudge{font-size:12px;color:var(--acc);line-height:1.45}
   .log{max-height:210px;overflow:auto;font-size:12px;line-height:1.5}
   .log .row{padding:3px 0;border-bottom:1px solid #1c3627}
   .log .w{color:var(--win)} .log .l{color:var(--lose)} .log .n{color:var(--muted)}
@@ -859,8 +866,8 @@ function finishRoll(){
   if(B.field>0){
     if([2,3,4,9,10,11,12].includes(total)){
       const mult = total===2?2 : total===12?3 : 1;
-      const w=payResolve(B.field,mult,1); add(`Field hits ${total}: +${money(w)}`,'w',B.field+w);
-    } else { add(`Field loses on ${total}: -${money(B.field)}`,'l'); }
+      const w=payResolve(B.field,mult,1); add(`Field wins — ${total} is a field number (one-roll bet): +${money(w)}`,'w',B.field+w);
+    } else { add(`Field loses — ${total} isn't a field number (5/6/7/8 lose): -${money(B.field)}`,'l'); }
     B.field=0;
   }
   // Any 7
@@ -901,7 +908,7 @@ function finishRoll(){
   BOX_NUMBERS.forEach(n=>{
     if(B.come[n]>0){
       if(total===n){
-        const w=payResolve(B.come[n],1,1); add(`Come ${n} wins: +${money(w)}`,'w',B.come[n]+w);
+        const w=payResolve(B.come[n],1,1); add(`Come point ${n} wins — ${n} rolled before a 7: +${money(w)}`,'w',B.come[n]+w);
         let ow=0; if(B.comeOdds[n]>0){ ow=payResolve(B.comeOdds[n],passOddsPay[n][0],passOddsPay[n][1]); add(`Come ${n} odds: +${money(ow)}`,'w',B.comeOdds[n]+ow); }
         B.come[n]=0; B.comeOdds[n]=0;
       } else if(total===7){
@@ -933,14 +940,14 @@ function finishRoll(){
   if(placeWorking){
     BOX_NUMBERS.forEach(n=>{
       if(B.place[n]>0){
-        if(total===n){ const w=payStand(B.place[n],placePay[n][0],placePay[n][1]); add(`Place ${n} wins: +${money(w)} (stays up)`,'w',w); }
-        else if(total===7){ add(`Place ${n} loses (seven): -${money(B.place[n])}`,'l'); B.place[n]=0; }
+        if(total===n){ const w=payStand(B.place[n],placePay[n][0],placePay[n][1]); add(`Place ${n} wins — ${n} rolled before a 7: +${money(w)} (stays up)`,'w',w); }
+        else if(total===7){ add(`Place ${n} loses — a 7 came before the ${n}: -${money(B.place[n])}`,'l'); B.place[n]=0; }
       }
     });
   }
   // Big 6 / Big 8 (always working)
-  if(B.big6>0){ if(total===6){const w=payStand(B.big6,1,1); add(`Big 6 wins: +${money(w)}`,'w',w);} else if(total===7){add(`Big 6 loses: -${money(B.big6)}`,'l'); B.big6=0;} }
-  if(B.big8>0){ if(total===8){const w=payStand(B.big8,1,1); add(`Big 8 wins: +${money(w)}`,'w',w);} else if(total===7){add(`Big 8 loses: -${money(B.big8)}`,'l'); B.big8=0;} }
+  if(B.big6>0){ if(total===6){const w=payStand(B.big6,1,1); add(`Big 6 wins — 6 rolled before a 7: +${money(w)}`,'w',w);} else if(total===7){add(`Big 6 loses — a 7 came first: -${money(B.big6)}`,'l'); B.big6=0;} }
+  if(B.big8>0){ if(total===8){const w=payStand(B.big8,1,1); add(`Big 8 wins — 8 rolled before a 7: +${money(w)}`,'w',w);} else if(total===7){add(`Big 8 loses — a 7 came first: -${money(B.big8)}`,'l'); B.big8=0;} }
 
   // ---------- PASS / DON'T PASS + POINT ----------
   let phaseMsg='';
@@ -996,7 +1003,7 @@ function finishRoll(){
   flashDie(total);
   renderBets();
   logRoll(total,a,b,results,roundNet);
-  coachAfterRoll(total, comeOut, phaseMsg, roundNet);
+  coachAfterRoll(total, comeOut, phaseMsg, roundNet, results);
 
   rolling=false;
   document.getElementById('rollBtn').disabled=false;
@@ -1046,21 +1053,51 @@ function logRoll(total,a,b,results,net){
   while(log.children.length>40) log.removeChild(log.lastChild);
 }
 
-function coachAfterRoll(total, wasComeOut, phaseMsg, net){
+function coachAfterRoll(total, wasComeOut, phaseMsg, net, results){
   if(!coachOn) return;
-  let tips=[];
-  if(phaseMsg) tips.push(phaseMsg);
-  // contextual strategy nudge
+  results = results || [];
+
+  // 1) headline — won / lost / no change
+  let head, cls;
+  if(net>0){ head=`✅ You won ${money(net)} this roll.`; cls='w'; }
+  else if(net<0){ head=`❌ You lost ${money(Math.abs(net))} this roll.`; cls='l'; }
+  else { head=`➖ No change this roll.`; cls='n'; }
+
+  // 2) the reason it happened (plain English)
+  let reason = phaseMsg;
+  if(!reason){
+    if(state.point) reason = `The dice showed <b>${total}</b> — not the point (${state.point}) and not a 7 — so your line bets ride and the round keeps going.`;
+    else reason = `The dice showed <b>${total}</b>.`;
+  }
+
+  // 3) per-bet breakdown — WHY each bet won or lost
+  const wins   = results.filter(r=>r.type==='w');
+  const losses = results.filter(r=>r.type==='l');
+  const infos  = results.filter(r=>r.type==='n');
+  let list='';
+  if(wins.length || losses.length || infos.length){
+    list += `<div class="why-list">`;
+    wins.forEach(r=> list += `<div class="wl-w">✓ ${r.txt}</div>`);
+    losses.forEach(r=> list += `<div class="wl-l">✗ ${r.txt}</div>`);
+    infos.forEach(r=> list += `<div class="wl-n">• ${r.txt}</div>`);
+    list += `</div>`;
+  } else {
+    list = `<div class="why-list"><div class="wl-n">• No bets were affected by this roll.</div></div>`;
+  }
+
+  // 4) one strategy nudge (secondary)
+  let nudge='';
   if(state.point && !state.bets.passodds && state.bets.pass>0 && !document.getElementById('autoOdds').checked){
-    tips.push("Tip: now that there's a point, you can add an <span class='tip'>Odds</span> bet on the strip right below the Pass Line. It pays fair value with <b>no house edge</b> — the smartest move in the game. Click <b>Take Odds (Pass Line)</b>.");
+    nudge = "💡 You could back your Pass Line with a free-odds <b>Odds</b> bet (0% house edge) — click <b>Take Odds</b>.";
+  } else if(state.point && state.bets.pass>0 && state.bets.comeMain===0 && Object.values(state.bets.come).every(v=>v===0)){
+    nudge = "💡 Want more numbers working? Try a <b>Come</b> bet — same low edge as the Pass Line.";
   }
-  if(state.point && state.bets.pass>0 && state.bets.comeMain===0 && Object.values(state.bets.come).every(v=>v===0)){
-    tips.push("Want to have money riding on more numbers? A <span class='tip'>Come bet</span> works exactly like the Pass Line, but you make it right now instead of at the start. Click the big <b>COME</b> box: the next roll's number becomes a second number you're chasing (and a 7 or 11 wins it instantly). Same great odds as the Pass Line.");
-  }
-  if(net>0) tips.push(`<b class="tip">You won ${money(net)} that roll.</b>`);
-  else if(net<0 && total===7 && state.point===null) tips.push("That 7 wiped the table and the round is over — normal part of craps. Just rebuild the same way (Pass Line + Odds). Resist the tempting long-shot bets in the middle of the table; they lose fastest.");
-  if(!tips.length) tips.push("Rolling along — place or press your bets and roll again.");
-  coach(tips.join(' '), true);
+
+  let html = `<div class="why-head ${cls}">${head}</div>`+
+             `<div class="why-reason">${reason}</div>`+
+             list;
+  if(nudge) html += `<div class="why-nudge">${nudge}</div>`;
+  coach(html, true);
 }
 
 /* ============================================================
