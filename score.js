@@ -720,6 +720,73 @@
     };
   }
 
+  /*
+   * Build a slip instead of making you click one.
+   *
+   * The slip has always been a calculator on purpose: you pick the legs and
+   * it does the arithmetic and names its own assumptions. Picking for you is
+   * a different promise, and it is only honest under one constraint —
+   *
+   *     every leg comes from a DIFFERENT game.
+   *
+   * That is the one case where multiplying is defensible. Two hitters in the
+   * same game rise and fall together: a slugfest lifts both, a shutout buries
+   * both, so their true joint chance is higher than the product by an amount
+   * nobody here has measured. Rather than guess at a correction or quietly
+   * multiply numbers that do not multiply, the suggester takes at most one
+   * hitter per game — the best one — and refuses the request outright when
+   * the board does not have enough games to fill the slip.
+   *
+   * Refusing matters. Handing back a two-leg slip when you asked for three
+   * answers a question you did not ask, and the number on it would look like
+   * the one you wanted.
+   *
+   * WHAT THIS DOES NOT DO
+   * ---------------------
+   * It does not find value, because it cannot see a price. It ranks by the
+   * model's probability alone, so it returns the slip most likely to CASH,
+   * which is emphatically not the slip most likely to be worth betting. Those
+   * come apart whenever the book prices the favourites efficiently, which is
+   * most of the time. `backtest.mjs --parlay` measures whether the rule holds
+   * up on real days; read that before trusting this.
+   *
+   * The caller filters for bettability. Only pass legs from games that are
+   * still open and outcomes not already decided — this function has no idea
+   * what time it is.
+   */
+  function suggestParlay(candidates, opts) {
+    const o = opts || {};
+    const want = o.legs == null ? 3 : o.legs;
+    // A fractional or negative leg count is a caller bug, not a preference to
+    // round off. Say no rather than silently answering something else.
+    if (!Number.isInteger(want) || want < 1) return null;
+    if (!Array.isArray(candidates) || !candidates.length) return null;
+
+    const idOf = (c) => String(c.key != null ? c.key : c.playerId);
+    const usable = candidates.filter(
+      (c) => c && typeof c.prob === "number" && isFinite(c.prob) && c.prob > 0 && c.prob <= 1,
+    );
+
+    // Best hitter per game. Ties break on a stable id so the same board in a
+    // different order cannot produce a different slip.
+    const bestByGame = new Map();
+    for (const c of usable) {
+      const g = String(c.gamePk);
+      const cur = bestByGame.get(g);
+      if (!cur || c.prob > cur.prob || (c.prob === cur.prob && idOf(c) < idOf(cur))) {
+        bestByGame.set(g, c);
+      }
+    }
+
+    const pool = Array.from(bestByGame.values()).sort(
+      (a, b) => b.prob - a.prob || (idOf(a) < idOf(b) ? -1 : idOf(a) > idOf(b) ? 1 : 0),
+    );
+    if (pool.length < want) return null;
+
+    const legs = pool.slice(0, want);
+    return { legs: legs, combined: combineLegs(legs) };
+  }
+
   /* ------------------------------------------------------------------ *
    * 6. Presentation
    * ------------------------------------------------------------------ */
@@ -800,6 +867,7 @@
     scoreHR: scoreHR,
     scoreTB: scoreTB,
     combineLegs: combineLegs,
+    suggestParlay: suggestParlay,
     tbRates: tbRates,
     tbDistribution: tbDistribution,
     probAtLeastTB: probAtLeastTB,

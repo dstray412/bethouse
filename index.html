@@ -172,6 +172,14 @@ footer{margin-top:22px;color:var(--muted);font-size:12px;line-height:1.7}
     <label id="lab-top">Per team</label>
     <div class="seg" id="top" role="group" aria-labelledby="lab-top"></div>
   </div>
+  <!-- 1+ H/R/RBI only. It is the one prop whose single legs have been through
+       the backtest, and the parlay report only validated cross-game slips of
+       that prop. Offering it on total bases or home runs would be extending a
+       measurement to somewhere it was never taken. -->
+  <div class="ctl" id="sugwrap">
+    <label id="lab-sug">Suggest a parlay</label>
+    <div class="seg" id="sug" role="group" aria-labelledby="lab-sug"></div>
+  </div>
 </div>
 
 <div id="slip"></div>
@@ -217,10 +225,18 @@ var state = {
   perTeam: 3,
   tbThreshold: 2,
   slip: [],
-  slipPrice: null
+  slipPrice: null,
+  sugLegs: null,
+  sugError: null,
+  // Every bettable 1+ H/R/RBI leg currently on the board, refilled on each
+  // render so a suggestion can never contain a row you cannot see or a game
+  // that started while the tab sat open.
+  candidates: [],
+  suggested: false
 };
 
 var VIEWS = [ {id:'hrr', label:'1+ H / R / RBI'}, {id:'tb', label:'Total bases'}, {id:'hr', label:'Home run'} ];
+var SUGGEST = [ {id:3, label:'3 legs'}, {id:4, label:'4 legs'}, {id:5, label:'5 legs'} ];
 var TBN  = [ {id:2, label:'2+'}, {id:3, label:'3+'}, {id:4, label:'4+'} ];
 var SHOW  = [ {id:0,label:'All'}, {id:0.70,label:'70%+'}, {id:0.73,label:'73%+'} ];
 var LU    = [ {id:'all',label:'All games'}, {id:'posted',label:'Lineup posted'} ];
@@ -261,9 +277,32 @@ function propLabel(){
 function renderSlip(){
   var host=document.getElementById('slip');
   host.innerHTML='';
+
+  if(state.sugError){
+    var warn=el('div','slip'); warn.style.borderColor='rgba(224,163,63,.45)';
+    warn.style.background='rgba(224,163,63,.09)';
+    var wh=el('h3',null,'Cannot build that slip'); wh.style.color='var(--warn)';
+    warn.appendChild(wh);
+    warn.appendChild(el('div',null,state.sugError));
+    host.appendChild(warn);
+  }
+
   if(!state.slip.length) return;
   var box=el('div','slip');
-  box.appendChild(el('h3',null,'Parlay slip \u2014 '+state.slip.length+' leg'+(state.slip.length===1?'':'s')));
+  box.appendChild(el('h3',null,(state.suggested?'Suggested parlay \u2014 ':'Parlay slip \u2014 ')+
+    state.slip.length+' leg'+(state.slip.length===1?'':'s')));
+
+  if(state.suggested){
+    /* What the suggestion is, and what it is not. It ranks by the model's
+       probability, which makes it the slip most likely to CASH -- not the
+       slip most likely to be worth betting. It cannot see a price. */
+    var how=el('div');
+    how.style.cssText='font-size:12.5px;color:var(--muted);line-height:1.6;margin:-4px 0 10px';
+    how.innerHTML='The best available hitter from '+state.slip.length+
+      ' different games \u2014 different games so the legs multiply honestly. '+
+      'Ranked by chance to cash, <b>not</b> by price: it cannot see what you are being offered.';
+    box.appendChild(how);
+  }
 
   state.slip.forEach(function(l){
     var row=el('div','leg');
@@ -317,14 +356,41 @@ function renderSlip(){
         'books price same-game parlays with an adjustment that usually takes back more than the correlation is '+
         'worth. How much more has not been measured here.';
     } else {
-      w.innerHTML='All '+c.legs+' legs are from different games, so multiplying them is a reasonable assumption. '+
-        'Everything here has been validated on single legs only, never on joint outcomes.';
+      /* This used to say joint outcomes had never been validated. They have
+         now: `node backtest.mjs --parlay` replays real days and compares the
+         product against how often all the legs actually landed together.
+         Over 8,400 sampled cross-game slips per size, actual came in at
+         1.03-1.08x predicted -- multiplying is sound here, and if anything
+         slightly conservative, because a day's scoring environment lifts
+         every game at once. */
+      w.innerHTML='All '+c.legs+' legs are from different games, so multiplying them is sound. '+
+        'Measured on real days, cross-game slips cashed <b>1.03-1.08\u00d7</b> as often as the product predicts.';
     }
     box.appendChild(w);
 
+    if(state.suggested){
+      /* The one thing that makes a SUGGESTED slip different from one you
+         built yourself: it always picks the top of the board, and the top of
+         the board is the part that runs hot. Measured over 4,957 hitter-games:
+         the 75-80% bucket cashed 74.0%, the 80-85% bucket cashed 78.0%. Three
+         legs of that compounds into a combined number worth shading down.
+         No correction is applied, because fitting one to three weeks of data
+         is how k=0.55 happened. */
+      var hot=el('div','slipwarn moderate');
+      hot.innerHTML='<b>Shade this number down.</b> A suggested slip is built from the very top of the '+
+        'board, which is the part that runs hot: hitters priced 75-80% cashed 74.0%, and 80-85% cashed '+
+        '78.0%. About 3 points of optimism per leg, compounding. The combined chance above is the honest '+
+        'arithmetic on numbers that are themselves a little generous.';
+      box.appendChild(hot);
+    }
+
     var clr=el('button',null,'Clear slip'); clr.type='button';
     clr.style.cssText='font:inherit;font-size:12.5px;color:var(--muted);background:none;border:0;cursor:pointer;margin-top:10px;padding:0';
-    clr.addEventListener('click',function(){ state.slip=[]; state.slipPrice=null; render(); });
+    clr.addEventListener('click',function(){
+      state.slip=[]; state.slipPrice=null;
+      state.suggested=false; state.sugLegs=null; state.sugError=null;
+      render();
+    });
     box.appendChild(clr);
   }
   host.appendChild(box);
@@ -454,11 +520,42 @@ function buildWhy(r, game, side){
 }
 
 function render(){
-  seg(document.getElementById('view'), VIEWS, state.view, function(v){state.view=v; state.open=null; render();});
+  /* Refilled below, as the board draws. Anything stale here would let a
+     suggestion pick a game that has since started. */
+  state.candidates = [];
+
+  seg(document.getElementById('view'), VIEWS, state.view, function(v){
+    state.view=v; state.open=null;
+    // The suggester is 1+ H/R/RBI only, so leaving a slip built by it in
+    // place while the board switches props would mislabel it.
+    if(state.suggested){ state.slip=[]; state.suggested=false; state.sugLegs=null; }
+    state.sugError=null;
+    render();
+  });
   seg(document.getElementById('lu'), LU, state.lineups, function(v){state.lineups=v; render();});
   seg(document.getElementById('tbn'), TBN, state.tbThreshold, function(v){state.tbThreshold=v; state.open=null; render();});
   document.getElementById('tbwrap').hidden = state.view!=='tb';
   seg(document.getElementById('top'), TOP, state.perTeam, function(v){state.perTeam=v; render();});
+
+  /* Suggest a slip. Runs against `state.candidates` from the PREVIOUS draw,
+     which is the board the user is looking at when they click. */
+  seg(document.getElementById('sug'), SUGGEST, state.sugLegs, function(n){
+    var out = S.suggestParlay(state.candidates, {legs:n});
+    if(!out){
+      var games = {};
+      state.candidates.forEach(function(c){ games[c.gamePk]=1; });
+      state.sugError = 'Only '+Object.keys(games).length+' game'+
+        (Object.keys(games).length===1?'':'s')+' still open \u2014 a '+n+
+        '-leg parlay needs '+n+', because every leg has to come from a different game.';
+      state.sugLegs=null; state.suggested=false;
+    } else {
+      state.slip = out.legs.slice();
+      state.slipPrice = null;
+      state.sugLegs = n; state.suggested = true; state.sugError = null;
+    }
+    render();
+  });
+  document.getElementById('sugwrap').hidden = state.view!=='hrr';
 
   document.getElementById('tagline').textContent =
     new Date(D.date+'T12:00:00Z').toLocaleDateString(undefined,{weekday:'long',month:'short',day:'numeric'});
@@ -590,15 +687,20 @@ function render(){
           add.disabled=true; add.style.opacity=.3;
           add.title = r.settled ? 'Already decided' : 'Game is over';
         }
+        var leg = {
+          key: legKey, gamePk: g.gamePk, playerId: r.player.id,
+          name: r.name, team: g[side].abbrev || g[side].team,
+          prop: propKey(), propLabel: propLabel(), prob: r.prob
+        };
+        // Eligible for a suggestion: bettable, undecided, and the one prop
+        // the parlay backtest actually covered.
+        if(!r.settled && openGame && state.view==='hrr') state.candidates.push(leg);
         add.addEventListener('click', function(ev){
           ev.stopPropagation();
           if(r.settled || !openGame) return;
           if(inSlip) state.slip = state.slip.filter(function(x){return x.key!==legKey;});
-          else state.slip.push({
-            key: legKey, gamePk: g.gamePk, playerId: r.player.id,
-            name: r.name, team: g[side].abbrev || g[side].team,
-            prop: propKey(), propLabel: propLabel(), prob: r.prob
-          });
+          else state.slip.push(leg);
+          state.suggested = false;
           render();
         });
         row.appendChild(add);

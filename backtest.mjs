@@ -59,7 +59,7 @@ const has = (f) => args.includes(f);
  * than the one asked is the single worst thing it can do, so an unknown flag
  * is a hard error, not a warning.
  */
-const KNOWN_FLAGS = new Set(["--days", "--fit", "--prop", "--end", "--start"]);
+const KNOWN_FLAGS = new Set(["--days", "--fit", "--prop", "--end", "--start", "--parlay"]);
 for (let i = 0; i < args.length; i++) {
   const a = args[i];
   if (!a.startsWith("--")) continue;
@@ -138,10 +138,15 @@ async function collect() {
   );
 
   const pks = [];
+  // Which day each game belongs to. The parlay report groups by date, because
+  // a slip is built from one evening's board and legs from different days are
+  // not a bet anyone can place.
+  const pkDate = new Map();
   for (const d of sched.dates || []) {
     for (const g of d.games || []) {
       if ((g.status?.detailedState || "") === "Final" || g.status?.codedGameState === "F") {
         pks.push(g.gamePk);
+        pkDate.set(g.gamePk, d.date);
       }
     }
   }
@@ -158,10 +163,10 @@ async function collect() {
         get(`${API}/game/${pk}/boxscore?hydrate=person`, `box ${pk}`).catch(() => null)
       )
     );
-    for (const box of boxes) {
-      if (box) harvest(box, obs);
+    boxes.forEach((box, j) => {
+      if (box) harvest(box, obs, chunk[j], pkDate.get(chunk[j]));
       else lostBoxes++; // a game that failed all 3 retries: ~18 hitters gone
-    }
+    });
     done += chunk.length;
     if (done % 40 === 0 || done === pks.length) {
       process.stdout.write(`\r  boxscores: ${done}/${pks.length}   observations: ${obs.length}   `);
@@ -179,7 +184,7 @@ async function collect() {
 }
 
 /** Pull one game's worth of (prediction inputs, actual outcome) pairs. */
-function harvest(box, obs) {
+function harvest(box, obs, gamePk, date) {
   const sides = ["away", "home"];
   // Opposing starter's line ENTERING this game, for the pitcher factor.
   const starterEntering = {};
@@ -230,6 +235,9 @@ function harvest(box, obs) {
       const actual = num(g.hits) > 0 || num(g.runs) > 0 || num(g.rbi) > 0 ? 1 : 0;
       obs.push({
         name: p.person.fullName,
+        playerId: p.person.id,
+        gamePk,
+        date,
         slot,
         pa,
         hits,
@@ -385,7 +393,15 @@ function predictAll(obs, k, lg, lgAvgAllowed, splits) {
     if (TB_N) s = score.scoreTB(player, ctx);
     else if (PROP === "hr") s = score.scoreHR(player, ctx);
     else s = score.scoreHRR(player, ctx);
-    return { p: s ? s.prob : NaN, actual: actualFor(o), slot: o.slot };
+    return {
+      p: s ? s.prob : NaN,
+      actual: actualFor(o),
+      slot: o.slot,
+      name: o.name,
+      playerId: o.playerId,
+      gamePk: o.gamePk,
+      date: o.date,
+    };
   });
 }
 
@@ -435,6 +451,152 @@ function lift(rows) {
 /* ---------------------------------------------------------------- *
  * Main
  * ---------------------------------------------------------------- */
+
+/* ---------------------------------------------------------------- *
+ * Parlays
+ *
+ * The slip multiplies its legs and the README has always admitted that
+ * nothing here validated the product on real joint outcomes. This does.
+ *
+ * Two separate questions, and they are not the same question:
+ *
+ *   1. IS MULTIPLYING RIGHT? Sample cross-game parlays from all over the
+ *      board and compare the product against how often all the legs
+ *      actually landed together. If independence holds for hitters in
+ *      different games, predicted and actual agree.
+ *
+ *   2. IS THE SUGGESTER ANY GOOD? Build the slip `suggestParlay` would
+ *      have handed you on each day, from pre-game information only, and
+ *      see how often it cashed.
+ *
+ * Question 1 gets a big sample. Question 2 gets one slip per day, which is
+ * a small number no matter how many days are replayed, so it is reported
+ * with that stated plainly rather than dressed up as a rate.
+ * ---------------------------------------------------------------- */
+
+/** Seeded RNG, so a parlay report is reproducible run to run. */
+function mulberry32(seed) {
+  let a = seed >>> 0;
+  return function () {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+const SAMPLES_PER_DAY = 400;
+
+function parlayReport(rows) {
+  const byDate = new Map();
+  for (const r of rows) {
+    if (!(r.p > 0 && r.p <= 1)) continue;
+    if (r.gamePk == null || r.date == null) continue;
+    if (!byDate.has(r.date)) byDate.set(r.date, []);
+    byDate.get(r.date).push({
+      key: `${r.gamePk}|${r.playerId}`,
+      gamePk: r.gamePk,
+      playerId: r.playerId,
+      name: r.name,
+      prob: r.p,
+      actual: r.actual,
+    });
+  }
+  const dates = [...byDate.keys()].sort();
+  if (!dates.length) {
+    console.log("\nno dated observations — cannot build parlays");
+    return;
+  }
+
+  const pct = (x) => (100 * x).toFixed(1) + "%";
+  console.log(`\n${"=".repeat(70)}`);
+  console.log(`PARLAYS — ${dates.length} days`);
+  console.log("=".repeat(70));
+
+  /* ---- 1. does independence hold across games? ---- */
+  const rng = mulberry32(20260814);
+  console.log(`\n  IS MULTIPLYING RIGHT?`);
+  console.log(`  Random cross-game slips, ${SAMPLES_PER_DAY} sampled per day.`);
+  console.log(
+    `  ${"legs".padEnd(6)}${"slips".padStart(8)}${"predicted".padStart(12)}${"actual".padStart(10)}${"actual/pred".padStart(13)}`,
+  );
+
+  for (const n of [3, 4, 5]) {
+    let predSum = 0, actSum = 0, count = 0;
+    for (const d of dates) {
+      // One hitter per game, so legs are independent by construction.
+      const games = new Map();
+      for (const c of byDate.get(d)) {
+        if (!games.has(c.gamePk)) games.set(c.gamePk, []);
+        games.get(c.gamePk).push(c);
+      }
+      const keys = [...games.keys()];
+      if (keys.length < n) continue;
+      for (let s = 0; s < SAMPLES_PER_DAY; s++) {
+        // Partial Fisher-Yates: pick n distinct games without shuffling all.
+        const pool = keys.slice();
+        let p = 1, all = 1;
+        for (let i = 0; i < n; i++) {
+          const j = i + Math.floor(rng() * (pool.length - i));
+          const tmp = pool[i]; pool[i] = pool[j]; pool[j] = tmp;
+          const inGame = games.get(pool[i]);
+          const leg = inGame[Math.floor(rng() * inGame.length)];
+          p *= leg.prob;
+          if (!leg.actual) all = 0;
+        }
+        predSum += p; actSum += all; count++;
+      }
+    }
+    if (!count) continue;
+    const pred = predSum / count, act = actSum / count;
+    console.log(
+      `  ${String(n).padEnd(6)}${String(count).padStart(8)}${pct(pred).padStart(12)}${pct(act).padStart(10)}${(act / pred).toFixed(3).padStart(13)}`,
+    );
+  }
+  console.log(
+    `  Sampled slips share legs, so these are not ${SAMPLES_PER_DAY * dates.length} independent`,
+  );
+  console.log(`  trials — treat the ratio as the estimate, not the precision.`);
+
+  /* ---- 2. the slip the suggester would actually have handed you ---- */
+  console.log(`\n  WOULD THE SUGGESTED SLIP HAVE CASHED?`);
+  console.log(`  One slip per day, the same rule the board uses.`);
+  console.log(
+    `  ${"legs".padEnd(6)}${"slips".padStart(8)}${"expected".padStart(11)}${"cashed".padStart(9)}${"hit rate".padStart(11)}${"fair".padStart(9)}`,
+  );
+
+  const detail = [];
+  for (const n of [3, 4, 5]) {
+    let expected = 0, cashed = 0, slips = 0;
+    for (const d of dates) {
+      const out = score.suggestParlay(byDate.get(d), { legs: n });
+      if (!out) continue;
+      slips++;
+      expected += out.combined.prob;
+      const hit = out.legs.every((l) => l.actual === 1) ? 1 : 0;
+      cashed += hit;
+      if (n === 3) {
+        detail.push({
+          date: d, hit,
+          prob: out.combined.prob,
+          names: out.legs.map((l) => l.name.split(" ").slice(-1)[0]).join(", "),
+        });
+      }
+    }
+    if (!slips) continue;
+    console.log(
+      `  ${String(n).padEnd(6)}${String(slips).padStart(8)}${(expected / slips * 100).toFixed(1).padStart(10)}%${String(cashed).padStart(9)}${pct(cashed / slips).padStart(11)}${score.fairPrice(expected / slips) > 0 ? "+" + Math.round(score.fairPrice(expected / slips)) : Math.round(score.fairPrice(expected / slips))}`.padEnd(0),
+    );
+  }
+  console.log(`  With one slip a day, a handful of days is a handful of trials.`);
+  console.log(`  Expected-vs-cashed here is a sanity check, not a measurement.`);
+
+  console.log(`\n  EVERY 3-LEG SLIP, DAY BY DAY`);
+  for (const r of detail) {
+    console.log(`  ${r.date}  ${pct(r.prob).padStart(6)}  ${r.hit ? "CASH" : "no  "}  ${r.names}`);
+  }
+}
 
 async function main() {
   const obs = await collect();
@@ -606,6 +768,8 @@ async function main() {
   console.log(`\n  Books typically price 1+ H+R+RBI around -250 to -350.`);
   console.log(`  Any slice whose break-even price is SHORTER than what you are`);
   console.log(`  offered is a losing bet no matter how well the model ranks.`);
+
+  if (has("--parlay")) parlayReport(rows);
 }
 
 main().catch((e) => {

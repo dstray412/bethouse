@@ -719,3 +719,167 @@ test("gameIsOpen trusts abstractGameState, not the prose status", () => {
   assert.equal(score.gameIsOpen({ abstract: "Preview", status: "Scheduled", live: true }), false);
   assert.equal(score.gameIsOpen(null), false);
 });
+
+/* ------------------------------------------------------------------ *
+ * suggestParlay
+ *
+ * The slip has always been a calculator: you pick the legs, it does the
+ * arithmetic and names its own assumptions. This picks them for you, which
+ * is only defensible under one constraint -- every leg from a DIFFERENT
+ * game. Same-game legs are correlated by an amount nobody here has
+ * measured, so the suggester refuses to build one rather than quietly
+ * multiplying numbers that do not multiply.
+ *
+ * Oracle for the selection rule: `backtest.mjs --parlay` replays real days,
+ * builds the suggested slip from pre-game information only, and checks
+ * whether it actually cashed. These tests pin the mechanics; that measures
+ * whether the mechanics are worth anything.
+ * ------------------------------------------------------------------ */
+
+/** n candidates, each in its own game, probabilities descending from `top`. */
+const candidates = (n, top = 0.75, step = 0.02) =>
+  Array.from({ length: n }, (_, i) => ({
+    key: `g${i}|p${i}|hrr`,
+    gamePk: 100 + i,
+    playerId: 200 + i,
+    name: `Player ${i}`,
+    prob: top - i * step,
+  }));
+
+test("suggestParlay: returns exactly the number of legs asked for", () => {
+  for (const n of [3, 4, 5]) {
+    const out = score.suggestParlay(candidates(12), { legs: n });
+    assert.equal(out.legs.length, n, `asked for ${n}`);
+  }
+});
+
+test("suggestParlay: takes the best available, in order", () => {
+  const out = score.suggestParlay(candidates(9), { legs: 3 });
+  assert.deepEqual(out.legs.map((l) => l.name), ["Player 0", "Player 1", "Player 2"]);
+  for (let i = 1; i < out.legs.length; i++) {
+    assert.ok(out.legs[i - 1].prob >= out.legs[i].prob, "must come back ranked");
+  }
+});
+
+test("suggestParlay: never two legs from the same game", () => {
+  // Four strong hitters in one game would otherwise dominate the board.
+  const stacked = [
+    { key: "a", gamePk: 1, playerId: 1, name: "A", prob: 0.80 },
+    { key: "b", gamePk: 1, playerId: 2, name: "B", prob: 0.79 },
+    { key: "c", gamePk: 1, playerId: 3, name: "C", prob: 0.78 },
+    { key: "d", gamePk: 2, playerId: 4, name: "D", prob: 0.60 },
+    { key: "e", gamePk: 3, playerId: 5, name: "E", prob: 0.55 },
+  ];
+  const out = score.suggestParlay(stacked, { legs: 3 });
+  const games = out.legs.map((l) => l.gamePk);
+  assert.equal(new Set(games).size, games.length, "duplicate game in the slip");
+  assert.deepEqual(out.legs.map((l) => l.name), ["A", "D", "E"]);
+});
+
+test("suggestParlay: keeps the best hitter from a game, not the first seen", () => {
+  const out = score.suggestParlay(
+    [
+      { key: "a", gamePk: 1, playerId: 1, name: "Worse", prob: 0.61 },
+      { key: "b", gamePk: 1, playerId: 2, name: "Better", prob: 0.72 },
+      { key: "c", gamePk: 2, playerId: 3, name: "Other", prob: 0.65 },
+    ],
+    { legs: 2 },
+  );
+  assert.deepEqual(out.legs.map((l) => l.name), ["Better", "Other"]);
+});
+
+test("suggestParlay: the result really is independent by construction", () => {
+  const out = score.suggestParlay(candidates(8), { legs: 4 });
+  assert.equal(out.combined.correlation, "none");
+  assert.equal(out.combined.independent, true);
+  assert.equal(out.combined.distinctGames, 4);
+  assert.equal(out.combined.duplicatePlayers, 0);
+});
+
+test("suggestParlay: combined chance is the product of the legs", () => {
+  const out = score.suggestParlay(candidates(6), { legs: 3 });
+  const product = out.legs.reduce((a, l) => a * l.prob, 1);
+  close(out.combined.prob, product, 1e-12);
+});
+
+test("suggestParlay: refuses rather than shrink the slip", () => {
+  // Only two games on the board: a 3-leg independent parlay does not exist,
+  // and silently returning two legs would be answering a different question.
+  const thin = [
+    { key: "a", gamePk: 1, playerId: 1, name: "A", prob: 0.7 },
+    { key: "b", gamePk: 1, playerId: 2, name: "B", prob: 0.69 },
+    { key: "c", gamePk: 2, playerId: 3, name: "C", prob: 0.68 },
+  ];
+  const out = score.suggestParlay(thin, { legs: 3 });
+  assert.equal(out, null);
+  assert.ok(score.suggestParlay(thin, { legs: 2 }), "two legs is still possible");
+});
+
+test("suggestParlay: empty and junk input returns null, not a crash", () => {
+  assert.equal(score.suggestParlay([], { legs: 3 }), null);
+  assert.equal(score.suggestParlay(null, { legs: 3 }), null);
+  assert.equal(score.suggestParlay(undefined, { legs: 3 }), null);
+});
+
+test("suggestParlay: candidates without a usable probability are skipped", () => {
+  const messy = [
+    { key: "a", gamePk: 1, playerId: 1, name: "NaN", prob: NaN },
+    { key: "b", gamePk: 2, playerId: 2, name: "Zero", prob: 0 },
+    { key: "c", gamePk: 3, playerId: 3, name: "Good", prob: 0.7 },
+    { key: "d", gamePk: 4, playerId: 4, name: "Fine", prob: 0.66 },
+    { key: "e", gamePk: 5, playerId: 5, name: "Null", prob: null },
+  ];
+  const out = score.suggestParlay(messy, { legs: 2 });
+  assert.deepEqual(out.legs.map((l) => l.name), ["Good", "Fine"]);
+  assert.equal(score.suggestParlay(messy, { legs: 3 }), null, "only two are usable");
+});
+
+test("suggestParlay: does not mutate the caller's array", () => {
+  const input = candidates(6);
+  const before = input.map((c) => c.name);
+  score.suggestParlay(input, { legs: 3 });
+  assert.deepEqual(input.map((c) => c.name), before);
+});
+
+test("suggestParlay: same input, same slip", () => {
+  const input = candidates(10);
+  const a = score.suggestParlay(input, { legs: 4 });
+  const b = score.suggestParlay(input, { legs: 4 });
+  assert.deepEqual(a.legs.map((l) => l.key), b.legs.map((l) => l.key));
+});
+
+test("suggestParlay: ties break deterministically rather than by array order", () => {
+  const tied = [
+    { key: "z", gamePk: 3, playerId: 30, name: "Z", prob: 0.7 },
+    { key: "a", gamePk: 1, playerId: 10, name: "A", prob: 0.7 },
+    { key: "m", gamePk: 2, playerId: 20, name: "M", prob: 0.7 },
+  ];
+  const straight = score.suggestParlay(tied, { legs: 2 });
+  const shuffled = score.suggestParlay([tied[2], tied[0], tied[1]], { legs: 2 });
+  assert.deepEqual(
+    straight.legs.map((l) => l.key),
+    shuffled.legs.map((l) => l.key),
+    "the same board in a different order must give the same slip",
+  );
+});
+
+test("suggestParlay: more legs is always a worse chance", () => {
+  const input = candidates(12);
+  let prev = 1;
+  for (const n of [3, 4, 5]) {
+    const out = score.suggestParlay(input, { legs: n });
+    assert.ok(out.combined.prob < prev, `${n} legs should be worse than ${n - 1}`);
+    prev = out.combined.prob;
+  }
+});
+
+test("suggestParlay: defaults to three legs", () => {
+  assert.equal(score.suggestParlay(candidates(8)).legs.length, 3);
+});
+
+test("suggestParlay: a nonsense leg count is refused, not clamped silently", () => {
+  const input = candidates(8);
+  assert.equal(score.suggestParlay(input, { legs: 0 }), null);
+  assert.equal(score.suggestParlay(input, { legs: -2 }), null);
+  assert.equal(score.suggestParlay(input, { legs: 1.5 }), null);
+});
