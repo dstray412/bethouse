@@ -53,18 +53,24 @@ jobs:
             if (d.games.length && slots < d.games.length * 9) throw new Error("lineups look truncated: " + slots);
             console.log("ok:", d.games.length, "games,", slots, "lineup slots");
           '
-          # The golf board is allowed to be absent (the fetch step is
-          # non-fatal) but never malformed.
+          # The golf board must never fail this job. The fetch step above is
+          # deliberately non-fatal, and on 2026-08-14 this check undid that:
+          # between tournaments the next event has no field posted yet, the
+          # check threw "empty field", and the whole refresh died -- so the
+          # BASEBALL board stopped updating because of golf. Report and carry
+          # on; a malformed golf board is worth knowing about, not worth
+          # taking the daily board down for.
           node -e '
             const fs = require("fs");
-            if (!fs.existsSync("pga-data.js")) { console.log("no pga-data.js yet — skipping"); process.exit(0); }
+            if (!fs.existsSync("pga-data.js")) { console.log("golf: no board yet"); process.exit(0); }
             global.window = {};
             require("./pga-data.js");
             const d = window.BetHousePGAData;
-            if (!d || !d.event) throw new Error("no event");
-            if (!Array.isArray(d.field) || !d.field.length) throw new Error("empty field");
-            console.log("ok:", d.event.name, d.field.length, "players, cut", d.event.cut);
-          '
+            if (!d || !d.event) { console.log("golf: WARNING malformed board"); process.exit(0); }
+            const n = Array.isArray(d.field) ? d.field.length : 0;
+            if (!n) { console.log("golf: field not posted for " + d.event.name + " — board left as-is"); process.exit(0); }
+            console.log("golf ok:", d.event.name, n, "players, cut", d.event.cut);
+          ' || echo "golf sanity check errored — continuing anyway"
           # Name the test files explicitly. `node --test` bare discovery picks
           # up backtest.mjs and backtest-pga.mjs on Node 21+ and would fire
           # ~100 live API calls at statsapi and ESPN on every scheduled run.

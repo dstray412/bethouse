@@ -156,6 +156,16 @@ footer td{padding:1px 14px 1px 0}
   });
   var residuals = D.residuals ? Float64Array.from(D.residuals) : null;
   var noCut = ev.cut == null;
+
+  /* Defence in depth. fetch-pga.mjs will not write a board with an empty
+     field any more, but a page that renders "all 0 players are guaranteed
+     four rounds" is worse than one that says the entry list is not out. */
+  if (!field.length) {
+    app.innerHTML = '<div class="empty"><div class="big">Field not posted yet</div>' +
+      '<div>' + esc(ev.name) + ' has not published its entry list. ' +
+      'It usually lands a few days before the first tee time.</div></div>';
+    return;
+  }
   var sim = G.simulateCut(field, { cutN: ev.cut, residuals: residuals });
 
   /* ---------------------------------------------------------------- *

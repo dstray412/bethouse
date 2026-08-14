@@ -327,6 +327,25 @@ async function main() {
     seasonEvents: history.events.length,
   };
 
+  /*
+   * An empty field is a NORMAL state, not an error. Entry lists post a few
+   * days before a tournament, so between events ESPN returns the next event
+   * with zero competitors -- the BMW Championship six days out has a name, a
+   * course and nobody in it.
+   *
+   * Writing that out would replace a usable board with an empty one, so the
+   * previous board is kept instead. This is what happened on 2026-08-14: the
+   * FedEx St. Jude finished, the fetcher advanced to a field that did not
+   * exist yet, and the refresh workflow's sanity check then failed the whole
+   * run -- taking the BASEBALL board down with it for the rest of the day.
+   */
+  if (!rated.length) {
+    console.log(
+      `  field for ${field.name} is not posted yet — keeping the previous board`,
+    );
+    return;
+  }
+
   // A plain global assignment so the page can <script src> it with no build
   // step, exactly like mlb-data.js.
   writeFileSync(
