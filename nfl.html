@@ -142,36 +142,22 @@ footer td{padding:1px 14px 1px 0}
   var usagePool = D.usagePool && D.usagePool.length ? D.usagePool : null;
   var yardPool  = D.yardPool  && D.yardPool.length  ? D.yardPool  : null;
 
-  /* Which teams are playing, and who they face. */
-  function opponents(){
-    var map={};
-    (D.games||[]).forEach(function(g){
-      // "Away Team at Home Team" — ESPN's own naming.
-      var m=String(g.name||'').split(' at ');
-      if(m.length!==2) return;
-      map[g.id]={away:m[0],home:m[1],date:g.date};
-    });
-    return map;
-  }
-
-  /* Team abbreviations are what the model knows; game names are full names.
-     Match on the tail of the full name so "Los Angeles Chargers" finds LAC. */
-  function teamIndex(){
-    var abbrs=Object.keys(D.teamFactors||{});
-    return function(fullName){
-      var best=null;
-      abbrs.forEach(function(a){
-        if(String(fullName||'').toUpperCase().indexOf(a)>=0) best=a;
-      });
-      return best;
-    };
-  }
+  /* Team codes come from the schedule now. They used to be recovered by
+     searching each abbreviation inside the full team name, which dropped
+     six of sixteen games ("San Francisco 49ers" contains no "SF") and
+     misattributed two more ("Arizona Cardinals" contains "CAR"). */
+  var oppFactorFor=function(team){
+    var f=D.teamFactors[team];
+    return f&&isFinite(f.def)?f.def:1;
+  };
 
   function renderTD(){
     var rows=[];
     (D.players||[]).forEach(function(p){
       var tf=(D.teamFactors[p.team]||{}).off||1;
-      var s=N.scoreAnytimeTD(p,{teamFactor:tf, oppFactor:1, usagePool:usagePool});
+      // The opponent's defence, the same term the backtest used.
+      var of=p.opp?oppFactorFor(p.opp):1;
+      var s=N.scoreAnytimeTD(p,{teamFactor:tf, oppFactor:of, usagePool:usagePool});
       if(!s) return;
       rows.push({p:p,s:s});
     });
@@ -183,7 +169,8 @@ footer td{padding:1px 14px 1px 0}
     rows.forEach(function(r,i){
       html+='<button class="row" aria-expanded="false" data-i="'+i+'">'+
         '<span class="slot">'+(i+1)+'</span>'+
-        '<span class="who">'+esc(r.p.name)+'<span class="pos">'+esc(r.p.team)+'</span></span>'+
+        '<span class="who">'+esc(r.p.name)+'<span class="pos">'+esc(r.p.team)+
+          (r.p.opp?' vs '+esc(r.p.opp):'')+'</span></span>'+
         '<span class="prob">'+pct(r.s.prob,0)+'</span>'+
         '<span class="be">'+sgn(N.fairPrice(r.s.prob))+'<small>fair</small></span>'+
         '<span class="caret">›</span></button>'+
@@ -200,6 +187,11 @@ footer td{padding:1px 14px 1px 0}
       t+='<tr><td>his own rate</td><td><b>'+r.s.observedRate.toFixed(3)+'</b> a game — '+
         'kept <b>'+pct(r.s.shrink,0)+'</b> of it, the rest is workload</td></tr>';
       t+='<tr><td>offence</td><td>×<b>'+r.s.teamFactor.toFixed(2)+'</b></td></tr>';
+      t+='<tr><td>opponent</td><td>'+(r.p.opp
+        ? '<b>'+esc(r.p.opp)+'</b> ×<b>'+r.s.oppFactor.toFixed(2)+'</b> — '+
+          (r.s.oppFactor>1.02?'gives up more touchdowns than average'
+           :r.s.oppFactor<0.98?'gives up fewer than average':'about average')
+        : 'no opponent scheduled')+'</td></tr>';
       t+='<tr><td>expected TDs</td><td><b>'+r.s.lambda.toFixed(3)+'</b> '+
         '(pulled 25% toward the league average, which is what stops the top of the board running hot)</td></tr>';
       t+='<tr><td>chance to score</td><td><b>'+pct(r.s.prob)+'</b>'+
@@ -249,7 +241,6 @@ footer td{padding:1px 14px 1px 0}
   }
 
   function renderGames(){
-    var find=teamIndex(), opp=opponents();
     var html='<div class="banner"><h3>Read this before betting a side</h3>'+
       '<p>These projections were measured against <b>480 real closing lines</b> and did not beat them. '+
       'The spread model won <b>48.1%</b> of the time and the total model <b>52.5%</b>, against the '+
@@ -260,18 +251,17 @@ footer td{padding:1px 14px 1px 0}
       '<div class="gmeta">'+(D.games||[]).length+' games · model projection only, no line attached</div></div>';
     var rows=[];
     (D.games||[]).forEach(function(g){
-      var o=opp[g.id]; if(!o) return;
-      var h=find(o.home), a=find(o.away);
-      if(!h||!a) return;
-      var pr=N.projectGame(D.ratings,h,a);
+      if(!g.home||!g.away) return;
+      var pr=N.projectGame(D.ratings,g.home,g.away);
       if(!pr) return;
-      rows.push({g:g,o:o,h:h,a:a,pr:pr});
+      rows.push({g:g,h:g.home,a:g.away,pr:pr});
     });
     rows.forEach(function(r,i){
       var m=r.pr.margin;
       html+='<button class="row" aria-expanded="false" data-i="'+i+'">'+
         '<span class="slot">'+(i+1)+'</span>'+
-        '<span class="who">'+esc(r.o.away)+' at '+esc(r.o.home)+'</span>'+
+        '<span class="who">'+esc(r.a)+' at '+esc(r.h)+
+          '<span class="pos">'+esc(String(r.g.name||''))+'</span></span>'+
         '<span class="prob">'+esc(m>=0?r.h:r.a)+' -'+Math.abs(m).toFixed(1)+'</span>'+
         '<span class="be">'+r.pr.total.toFixed(1)+'<small>total</small></span>'+
         '<span class="caret">›</span></button>'+
@@ -281,8 +271,8 @@ footer td{padding:1px 14px 1px 0}
     app.__rows=rows;
     app.__detail=function(r){
       var t='<table>';
-      t+='<tr><td>projection</td><td><b>'+esc(r.o.home)+' '+r.pr.homePts.toFixed(1)+
-        '</b> — <b>'+esc(r.o.away)+' '+r.pr.awayPts.toFixed(1)+'</b></td></tr>';
+      t+='<tr><td>projection</td><td><b>'+esc(r.h)+' '+r.pr.homePts.toFixed(1)+
+        '</b> — <b>'+esc(r.a)+' '+r.pr.awayPts.toFixed(1)+'</b></td></tr>';
       t+='<tr><td>margin</td><td><b>'+(r.pr.margin>=0?'+':'')+r.pr.margin.toFixed(1)+'</b> to the home side'+
         ' (home field is worth '+D.ratings.homeField.toFixed(2)+')</td></tr>';
       t+='<tr><td>total</td><td><b>'+r.pr.total.toFixed(1)+'</b></td></tr>';

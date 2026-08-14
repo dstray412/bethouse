@@ -215,18 +215,38 @@ export function wentOver(game) {
  * Collection
  * -------------------------------------------------------------------- */
 
+/**
+ * One scoreboard event → a schedule row, INCLUDING both team codes.
+ *
+ * The codes matter. The board used to recover them by searching each
+ * abbreviation inside the full team name, which is wrong in both directions:
+ * "San Francisco 49ers" does not contain "SF" so the game vanished, and
+ * "Arizona Cardinals" does contain "CAR" so it was projected as Carolina.
+ * Six of sixteen week-1 games were dropped and two were attributed to the
+ * wrong franchise. The scoreboard has carried `team.abbreviation` all along.
+ */
+export function parseScheduleEvent(e, season, week) {
+  const comp = e?.competitions?.[0];
+  const cs = comp?.competitors || [];
+  const home = cs.find((c) => c.homeAway === "home");
+  const away = cs.find((c) => c.homeAway === "away");
+  return {
+    id: String(e?.id ?? ""),
+    week,
+    season,
+    date: e?.date || "",
+    completed: !!e?.status?.type?.completed,
+    name: e?.name || "",
+    home: home?.team?.abbreviation || null,
+    away: away?.team?.abbreviation || null,
+  };
+}
+
 async function weekSchedule(season, week) {
   const d = await getJSON(
     `${SITE}/scoreboard?dates=${season}&seasontype=${REGULAR_SEASON}&week=${week}`,
   );
-  return (d.events || []).map((e) => ({
-    id: String(e.id),
-    week,
-    season,
-    date: e.date,
-    completed: !!e.status?.type?.completed,
-    name: e.name,
-  }));
+  return (d.events || []).map((e) => parseScheduleEvent(e, season, week));
 }
 
 async function fetchGame(id) {
@@ -402,6 +422,16 @@ async function buildBoard(history) {
     };
   }
 
+  /* Who plays whom this week. Built from the schedule's own team codes. */
+  const opponentOf = {};
+  for (const g of up.games) {
+    if (!g.home || !g.away) continue;
+    opponentOf[g.home] = g.away;
+    opponentOf[g.away] = g.home;
+  }
+  const matched = Object.keys(opponentOf).length;
+  console.log(`  matchups resolved for ${matched} teams across ${up.games.length} games`);
+
   const usagePool = nfl.usagePoolFrom([...usageByPlayer.values()], 6);
   const yardPool = [];
   for (const g of current) {
@@ -419,7 +449,10 @@ async function buildBoard(history) {
     generated: new Date().toISOString(),
     season, week: up.week,
     statsSeason: latest,
-    games: up.games.map((g) => ({ id: g.id, date: g.date, name: g.name, completed: g.completed })),
+    games: up.games.map((g) => ({
+      id: g.id, date: g.date, name: g.name, completed: g.completed,
+      home: g.home, away: g.away,
+    })),
     ratings,
     teamFactors,
     players: [...players.values()]
@@ -427,6 +460,10 @@ async function buildBoard(history) {
       .map((p) => ({
         id: p.id, name: p.name, team: p.team, games: p.games, tds: p.tds,
         carries: p.carries, targets: p.targets, recYds: p.recYds, rushYds: p.rushYds, recs: p.recs,
+        // Who he faces this week, so the board can apply the opponent's
+        // defence the same way the backtest does. null = on bye or the
+        // schedule has not placed his team yet.
+        opp: opponentOf[p.team] || null,
       })),
     usagePool: round(usagePool.slice(0, 4000), 3),
     yardPool: round(yardPool.slice(-4000), 3),

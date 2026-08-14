@@ -387,3 +387,81 @@ test("fairPrice: matches the convention used everywhere else", () => {
   assert.equal(fairPrice(1), null);
   assert.equal(fairPrice(0), null);
 });
+
+/* ------------------------------------------------------------------ *
+ * Schedule parsing
+ *
+ * Oracle: the scoreboard's own `team.abbreviation`. These exist because
+ * the board originally recovered team codes by searching each abbreviation
+ * inside the full team name, which is wrong in both directions and shipped
+ * that way: six of sixteen week-1 games silently vanished and two more were
+ * projected against the wrong franchise.
+ * ------------------------------------------------------------------ */
+import { parseScheduleEvent } from "./fetch-nfl.mjs";
+
+const event = (home, away, extra) =>
+  Object.assign({
+    id: "401872656",
+    date: "2026-09-10T00:20Z",
+    name: "Away Team at Home Team",
+    status: { type: { completed: false } },
+    competitions: [{
+      competitors: [
+        { homeAway: "home", team: { abbreviation: home } },
+        { homeAway: "away", team: { abbreviation: away } },
+      ],
+    }],
+  }, extra || {});
+
+test("parseScheduleEvent: takes team codes from the data, not from the name", () => {
+  const g = parseScheduleEvent(event("SEA", "NE"), 2026, 1);
+  assert.equal(g.home, "SEA");
+  assert.equal(g.away, "NE");
+  assert.equal(g.season, 2026);
+  assert.equal(g.week, 1);
+});
+
+test("parseScheduleEvent: the names that broke substring matching", () => {
+  // "San Francisco 49ers" contains no "SF", so the old approach dropped it.
+  const a = parseScheduleEvent(
+    event("LAR", "SF", { name: "San Francisco 49ers at Los Angeles Rams" }), 2026, 1);
+  assert.equal(a.away, "SF");
+  assert.equal(a.home, "LAR");
+  // "Arizona Cardinals" DOES contain "CAR", so the old approach called it
+  // Carolina. Getting a real code is the whole point.
+  const b = parseScheduleEvent(
+    event("ARI", "CAR", { name: "Carolina Panthers at Arizona Cardinals" }), 2026, 1);
+  assert.equal(b.home, "ARI");
+  assert.equal(b.away, "CAR");
+  // "Kansas City Chiefs" contains "CHI".
+  const c = parseScheduleEvent(
+    event("KC", "CHI", { name: "Chicago Bears at Kansas City Chiefs" }), 2026, 1);
+  assert.equal(c.home, "KC");
+  assert.equal(c.away, "CHI");
+});
+
+test("parseScheduleEvent: missing pieces come back null, not undefined-ish junk", () => {
+  const g = parseScheduleEvent({ id: "1", competitions: [{ competitors: [] }] }, 2026, 1);
+  assert.equal(g.home, null);
+  assert.equal(g.away, null);
+  const empty = parseScheduleEvent(null, 2026, 1);
+  assert.equal(empty.home, null);
+  assert.equal(empty.id, "");
+});
+
+test("parseScheduleEvent: reports whether the game has been played", () => {
+  assert.equal(parseScheduleEvent(event("A", "B"), 2026, 1).completed, false);
+  const done = event("A", "B", { status: { type: { completed: true } } });
+  assert.equal(parseScheduleEvent(done, 2026, 1).completed, true);
+});
+
+test("scoreAnytimeTD: a leaky opponent is worth real probability", () => {
+  // Not a tautology check — this pins that the opponent term is actually
+  // wired to something the board can see. Measured 2025 defences ranged
+  // from 0.76 to 1.32 touchdowns allowed against league average.
+  const p = { games: 12, tds: 6, carries: 180, targets: 40 };
+  const soft = scoreAnytimeTD(p, { oppFactor: 1.32 }).prob;
+  const hard = scoreAnytimeTD(p, { oppFactor: 0.76 }).prob;
+  assert.ok(soft - hard > 0.05,
+    `the real spread of NFL defences should be worth more than 5 points, got ${soft - hard}`);
+});

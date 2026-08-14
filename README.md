@@ -33,7 +33,7 @@ means 72% — including the part where 72% loses more than a quarter of the time
 
 ```sh
 node fetch-mlb.mjs      # builds mlb-data.js for today
-node --test edge.test.mjs score.test.mjs golf.test.mjs nfl.test.mjs   # 197 tests
+node --test edge.test.mjs score.test.mjs golf.test.mjs nfl.test.mjs   # 202 tests
 node backtest.mjs --prop tb2               # validate total bases
 node backtest.mjs                          # measures whether the model works
 node backtest.mjs --parlay                 # ...and whether parlays multiply
@@ -620,7 +620,7 @@ column of 100%s is not a board, it is a trap.
 ```sh
 node fetch-nfl.mjs --history   # 2 seasons of box scores + closing lines
 node fetch-nfl.mjs             # ...then this week's board
-node --test nfl.test.mjs       # 39 tests
+node --test nfl.test.mjs       # 44 tests
 node backtest-nfl.mjs          # does any of it work?
 node backtest-nfl.mjs --fit    # re-derive the shrinkage constant
 ```
@@ -676,6 +676,22 @@ That is the third time this project has made the same shape of mistake —
 `mixPow` on the baseball side, continuous scores on the golf side. It is in
 `tasks/lessons.md` now.
 
+### Team codes come from the data
+
+The board resolves each week's matchups from the scoreboard's own
+`team.abbreviation`. It used to recover them by searching each abbreviation
+inside the full team name, which is wrong in both directions and shipped that
+way: **six of sixteen** week-1 games silently vanished because "San Francisco
+49ers" contains no "SF", and two more were projected against the wrong
+franchise because "Arizona Cardinals" contains "CAR" and "Kansas City Chiefs"
+contains "CHI".
+
+Fixing it also wired up the opponent term the touchdown model always accepted
+and the backtest always supplied. Defences ranged from **1.32** touchdowns
+allowed against league average to **0.76** last season, which moves 283 of the
+419 players on the board by more than half a point, and the worst matchup by
+almost eight.
+
 ### Why the NFL cache is not committed
 
 Two seasons of box scores is 1.2 MB and the repo's own pre-commit hook rejects
@@ -688,9 +704,6 @@ anything over 1 MB. `nfl-history.json` is gitignored and rebuildable;
 
 - **The NFL game lines have no edge and the board says so.** They are shown
   because the projections are interesting, not because they are bettable.
-- **NFL opponent adjustment is only half wired.** The touchdown model accepts
-  an opponent factor and the backtest supplies one, but the board passes 1.0
-  because next week's matchups are not joined to the player list yet.
 - **Golf ratings only know 2026 PGA Tour rounds.** A player arriving from LIV,
   the DP World Tour or the Korn Ferry Tour reads as unrated and gets the
   debutant prior, which will underrate a genuinely good player. The board
