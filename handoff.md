@@ -2,13 +2,45 @@
 
 ## Where things are
 
-Two boards, both live on GitHub Pages:
+Three boards. The NFL one is new and uncommitted; the other two are live:
 
 - `index.html` — baseball. Now has a **suggested parlay**.
-- `golf.html` — PGA Tour make-the-cut. Shipped and deployed (commits
-  `1043c5f`, `795a5f7`, `a9fc698`).
+- `golf.html` — PGA Tour make-the-cut. Shipped and deployed.
+- `nfl.html` — NFL: anytime TD, receiving yards, spreads and totals. **New,
+  uncommitted.**
 
-Uncommitted right now: the parlay suggester. Everything below describes it.
+## NFL (new)
+
+`fetch-nfl.mjs`, `nfl.js`, `nfl.test.mjs` (39 tests), `backtest-nfl.mjs`,
+`nfl.html`. Two seasons replayed a week at a time: 544 games, 10,694
+player-games, 543 closing lines.
+
+| bet | measured | verdict |
+|---|---|---|
+| Anytime TD | bias -0.7pp, Brier 0.1590 vs 0.1718, 39.1% vs 9.3% split | calibrated |
+| Receiving yards | bias +1.0pp, Brier 0.2223 vs 0.2459 | calibrated |
+| Spread | 48.1% of 480 (needs 52.4%) | no edge |
+| Total | 52.5% of 478 | inside the noise |
+
+**The game lines failed and the board says so on the page.** Two seasons is 480
+bets; telling a break-even model from a coin flip needs ~1,700.
+
+Three traps worth remembering, all in `tasks/lessons.md`:
+- ESPN serves in-play odds next to closing odds for finished games. Grading
+  against those is grading against the answer.
+- `spread` is always home-relative even though `details` names the favourite.
+  Trusting the label flips every road favourite.
+- The TD model ran 11.6pp hot at the top because it fed *season-average*
+  workload into a concave function. Two other hypotheses were tested and
+  disproved first (the usage model is exactly linear; Poisson beats negative
+  binomial). Fixed by averaging over real workload swings plus a fitted 0.75
+  shrink; the top bucket is now -0.1pp.
+
+`nfl-history.json` is **gitignored** — 1.2 MB, over the repo's own pre-commit
+large-file limit. Rebuild with `node fetch-nfl.mjs --history` (~1,100 requests,
+a few minutes). The board only needs `nfl-data.js` (103 KB), which is committed.
+
+Uncommitted before this: the parlay suggester. Everything below describes it.
 
 ## Suggested parlay
 
@@ -59,7 +91,7 @@ optimistic per leg and a suggested slip is nothing but the top. Top 2% cashed
 
 ## State
 
-- `bash scripts/local-check.sh` → 158 tests, 0 failures, 0 skipped.
+- `bash scripts/local-check.sh` → **197 tests**, 0 failures, 0 skipped.
 - Verified in a real browser on a live slate: 3/4/5 all build, legs always come
   from different games, switching to Total bases clears a suggested slip and
   hides the control, and the refusal path fires correctly on a board with no

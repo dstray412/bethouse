@@ -71,3 +71,41 @@ Monte Carlo noise at 4,000 sims.
 **Rule:** when a constant can be measured directly, measure it, and only take a
 fitted value when the fit is measuring the target question more directly than
 the measurement does. State which one you used and why, in the code.
+
+## Applying a curved function to an average is not the same as averaging it
+
+Three times now, in three sports.
+
+`mixPow` (baseball): raising a per-trip rate to a fractional power, when a
+hitter gets four plate appearances or five and never 4.54.
+
+Ties (golf): drawing continuous scores when a golf score is a whole number of
+strokes, so "low 65 **and ties**" never fired and the model ran 5.75 points
+cold.
+
+Workload (NFL): feeding a player's *season-average* touches into
+`1 - e^-lambda`. One game's workload divided by that player's own average has a
+standard deviation of 0.55 — game script, injuries, blowouts — and the function
+is concave, so evaluating at the mean overstated the top of the board by 4.9
+points at lambda = 1 and by nothing at the bottom. The board ran 11.6 points hot
+where it mattered most.
+
+**Rule:** whenever a model computes `f(average)`, ask whether `f` is curved and
+whether the thing being averaged actually varies. If both, the answer is
+`average of f`, and the fix is to sample the real distribution rather than to
+add a correction factor. The symptom is always the same and always looks like a
+calibration problem at one end of the board only: a bias that grows with the
+prediction is a shape error, not a level error.
+
+## Diagnose before you tune
+
+The NFL touchdown model was hot at the top. Two plausible causes were tested
+and both were WRONG before the real one turned up: the usage model was assumed
+non-linear (a power fit returned exponent 1.00, i.e. perfectly linear) and
+touchdowns were assumed to cluster (a negative-binomial fit was worse than
+Poisson). Reaching for the shrinkage dial first would have papered over a shape
+error with a level correction and left the board wrong in a subtler way.
+
+**Rule:** when calibration fails at one end, measure which assumption is broken
+before adjusting any constant. Two disproved hypotheses cost ten minutes; a
+fitted fudge factor costs a season.

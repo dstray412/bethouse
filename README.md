@@ -1,11 +1,12 @@
 # BetHouse
 
 Ranks MLB hitters for three props, every game, every day: **1+ hits/runs/RBI**,
-**total bases** (2+, 3+, 4+), and **home runs**. And ranks PGA Tour players by
-their chance of **making the cut**.
+**total bases** (2+, 3+, 4+), and **home runs**. Ranks PGA Tour players by their
+chance of **making the cut**. And prices three NFL bets: **anytime touchdown**,
+**receiving yards**, and **spreads and totals**.
 
-Open `index.html` for baseball, `golf.html` for golf. No build step, no server,
-no API key.
+Open `index.html` for baseball, `golf.html` for golf, `nfl.html` for football.
+No build step, no server, no API key.
 
 ---
 
@@ -32,7 +33,7 @@ means 72% — including the part where 72% loses more than a quarter of the time
 
 ```sh
 node fetch-mlb.mjs      # builds mlb-data.js for today
-node --test edge.test.mjs score.test.mjs golf.test.mjs   # 158 tests
+node --test edge.test.mjs score.test.mjs golf.test.mjs nfl.test.mjs   # 197 tests
 node backtest.mjs --prop tb2               # validate total bases
 node backtest.mjs                          # measures whether the model works
 node backtest.mjs --parlay                 # ...and whether parlays multiply
@@ -612,8 +613,84 @@ column of 100%s is not a board, it is a trap.
 
 ---
 
+## NFL
+
+`nfl.html`. Three bets, and they did not all survive contact with the data.
+
+```sh
+node fetch-nfl.mjs --history   # 2 seasons of box scores + closing lines
+node fetch-nfl.mjs             # ...then this week's board
+node --test nfl.test.mjs       # 39 tests
+node backtest-nfl.mjs          # does any of it work?
+node backtest-nfl.mjs --fit    # re-derive the shrinkage constant
+```
+
+Two seasons replayed a week at a time: 544 games, 10,694 player-games, 543
+closing lines. Everything predicting week W comes from weeks already played.
+
+### The results, including the one that failed
+
+| bet | measured | verdict |
+|---|---|---|
+| Anytime touchdown | bias **&minus;0.7pp**, Brier 0.1590 vs 0.1718 | calibrated |
+| Receiving yards | bias **+1.0pp**, Brier 0.2223 vs 0.2459 | calibrated |
+| Spread vs closing line | **48.1%** of 480, needs 52.4% | **no edge** |
+| Total vs closing line | **52.5%** of 478, needs 52.4% | **inside the noise** |
+
+The touchdown model separates hard: top 20% scored 39.1%, bottom 20% scored
+9.3%.
+
+**The game lines are the honest failure.** The NFL closing number is very good
+— across 543 games the home side covered 49.7% and the line's average error was
+0.37 points. The spread model lost to it and the total model landed a tenth of
+a point over break-even, which is not a result: the 95% interval runs from 48.0%
+to 57.0%. Separating a break-even model from a coin flip needs about **1,700**
+bets and two seasons is 480. The board says so on the page rather than printing
+a projection and letting you assume.
+
+### Three bugs the data caught
+
+**Live odds are lookahead.** ESPN's odds endpoint serves the closing line *and*
+an in-play line for finished games. Eagles-Cowboys closed at PHI -7.5 with a
+total of 47.5; the live entry says -4.5 and 44.5, because by then the game had
+happened. Grading against that is grading against the answer.
+
+**The spread's sign does not follow its own label.** `details` says "KC -3.5"
+for a road favourite, but `spread` comes back **+3.5**, because it is always
+home-relative. Reading the sign off the label would have flipped every road
+favourite — about half the dataset — and produced a backtest that looked like
+noise instead of like a bug.
+
+**Averaging the input is not averaging the output.** The touchdown model ran
+11.6 points hot at the top of the board. Not the usage model, which is
+dead-on linear (a power fit converges to exponent 1.00), and not the Poisson
+assumption, which matches within 3 points. It was feeding *season-average*
+workload into a curved function: one game's workload divided by that player's
+own average has a standard deviation of **0.55**, and `1 - e^-lambda` is
+concave, so evaluating at the mean overstates by 4.9 points at lambda = 1 and
+nothing at all at the bottom. Averaging over real workload swings fixed most of
+it; a fitted 0.75 shrink toward the league average fixed the rest, and the top
+bucket went from +11.6pp to -0.1pp.
+
+That is the third time this project has made the same shape of mistake —
+`mixPow` on the baseball side, continuous scores on the golf side. It is in
+`tasks/lessons.md` now.
+
+### Why the NFL cache is not committed
+
+Two seasons of box scores is 1.2 MB and the repo's own pre-commit hook rejects
+anything over 1 MB. `nfl-history.json` is gitignored and rebuildable;
+`nfl-data.js` (103 KB) is what the board actually loads.
+
+---
+
 ## Known gaps
 
+- **The NFL game lines have no edge and the board says so.** They are shown
+  because the projections are interesting, not because they are bettable.
+- **NFL opponent adjustment is only half wired.** The touchdown model accepts
+  an opponent factor and the backtest supplies one, but the board passes 1.0
+  because next week's matchups are not joined to the player list yet.
 - **Golf ratings only know 2026 PGA Tour rounds.** A player arriving from LIV,
   the DP World Tour or the Korn Ferry Tour reads as unrated and gets the
   debutant prior, which will underrate a genuinely good player. The board
