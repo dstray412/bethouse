@@ -109,3 +109,29 @@ error with a level correction and left the board wrong in a subtler way.
 **Rule:** when calibration fails at one end, measure which assumption is broken
 before adjusting any constant. Two disproved hypotheses cost ten minutes; a
 fitted fudge factor costs a season.
+
+## A guard stricter than the thing it guards will break what it protects
+
+`refresh.yml` fetches the golf board with `|| echo`, deliberately, under a
+comment saying golf must never take the refresh down because the baseball
+board is what people open every day. Three lines later a sanity check on the
+same data threw an exception.
+
+So on 2026-08-14 the FedEx St. Jude finished, the fetcher advanced to a
+tournament whose entry list was not out yet, ESPN returned a real event with
+zero competitors, and the check called that "empty field" and failed the run.
+Baseball stopped updating because a golf tournament had not published its
+field. The non-fatal fetch bought exactly nothing, because the fatal check
+sat next to it.
+
+**Rule:** when a step is deliberately non-fatal, everything downstream that
+touches its output has to be non-fatal too — validation included. A `|| true`
+on one line and a `throw` on the next is not a soft dependency, it is a hard
+one wearing a disguise. Check the whole path, not the step you were thinking
+about.
+
+The second half of this is knowing which states are actually errors. An
+unposted entry list is not a malformed board, it is Tuesday. A guard that
+cannot tell "this data is broken" from "this data does not exist yet" will
+eventually fire on the second one, and it will do it at the worst time,
+because that is precisely when the upstream is quiet.
