@@ -68,7 +68,7 @@ jobs:
           # Name the test files explicitly. `node --test` bare discovery picks
           # up backtest.mjs and backtest-pga.mjs on Node 21+ and would fire
           # ~100 live API calls at statsapi and ESPN on every scheduled run.
-          node --test edge.test.mjs score.test.mjs golf.test.mjs
+          node --test edge.test.mjs score.test.mjs golf.test.mjs nfl.test.mjs
 
       - name: Record predictions and grade finished games
         run: |

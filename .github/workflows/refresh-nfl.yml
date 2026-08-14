@@ -1,0 +1,83 @@
+# BetHouse NFL board refresh.
+#
+# SEPARATE FROM refresh.yml, AND DELIBERATELY SO.
+#
+# The baseball refresh runs every 30 minutes because lineups post all
+# afternoon. Football does not work like that: games are Thursday, Sunday and
+# Monday, and a player's season line cannot change in between. Once a day is
+# already more often than the data moves.
+#
+# The other reason is cost. `nfl-history.json` is gitignored (1.2 MB of box
+# scores, over the repo's own pre-commit large-file limit), so a runner that
+# starts cold rebuilds two seasons from scratch: about 1,100 requests taking
+# several minutes. Hanging that off the 30-minute job would have meant roughly
+# 30,000 ESPN requests a day for data that changes weekly, and would have
+# slowed down the board people actually open daily.
+#
+# So: once a day, with the cache carried between runs. A warm cache only
+# fetches games that have finished since last time, which in football is
+# usually zero and never more than sixteen.
+name: Refresh NFL board
+
+on:
+  schedule:
+    - cron: "20 12 * * *" # daily, after Monday night games have settled
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+# Same group as the baseball refresh: both push to main, and two jobs racing
+# to push would leave one of them failing on a non-fast-forward.
+concurrency:
+  group: refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh-nfl:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "20"
+
+      # Carries nfl-history.json between runs so the fetch stays incremental.
+      # The key rolls weekly: if a cache is ever lost the rebuild is one slow
+      # run, not a permanently slow job.
+      - name: Restore the box score cache
+        uses: actions/cache@v4
+        with:
+          path: nfl-history.json
+          key: nfl-history-${{ github.run_id }}
+          restore-keys: |
+            nfl-history-
+
+      - name: Fetch the NFL board
+        run: node fetch-nfl.mjs
+
+      - name: Sanity check before committing
+        run: |
+          node -e '
+            global.window = {};
+            require("./nfl-data.js");
+            const d = window.BetHouseNFLData;
+            if (!d || !Array.isArray(d.players)) throw new Error("no players array");
+            if (!d.players.length) throw new Error("empty player list");
+            if (!d.ratings || !d.ratings.off) throw new Error("no team ratings");
+            console.log("ok:", d.players.length, "players, week", d.week);
+          '
+          node --test edge.test.mjs score.test.mjs golf.test.mjs nfl.test.mjs
+
+      - name: Commit if the board changed
+        run: |
+          git config user.name  "bethouse-bot"
+          git config user.email "bethouse-bot@users.noreply.github.com"
+          git add nfl-data.js
+          if git diff --staged --quiet; then
+            echo "No change."
+          else
+            git commit -m "nfl: $(date -u +%Y-%m-%dT%H:%MZ)"
+            git pull --rebase --autostash origin main
+            git push
+          fi
