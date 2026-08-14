@@ -32,9 +32,10 @@ means 72% — including the part where 72% loses more than a quarter of the time
 
 ```sh
 node fetch-mlb.mjs      # builds mlb-data.js for today
-node --test edge.test.mjs score.test.mjs   # 94 tests
+node --test edge.test.mjs score.test.mjs golf.test.mjs   # 158 tests
 node backtest.mjs --prop tb2               # validate total bases
-node backtest.mjs       # measures whether the model actually works
+node backtest.mjs                          # measures whether the model works
+node backtest.mjs --parlay                 # ...and whether parlays multiply
 ```
 
 That's it. `statsapi.mlb.com` is open: no key, no account, no rate tier. A full
@@ -373,9 +374,24 @@ Tap the **+** on any row to add it to a slip. The slip shows the combined
 chance, the price that would be fair, and, if you type in the price you are
 being offered, your edge at that price.
 
-It deliberately does **not** recommend parlays. Nothing here has been
-validated on joint outcomes, only on single legs, so picking combinations for
-you would mean inventing confidence that does not exist.
+### Suggest a parlay
+
+Or let it build one. **Suggest a parlay** takes 3, 4 or 5 legs and fills the
+slip with the best hitter from that many *different* games.
+
+Different games is the whole constraint. Two hitters in one game rise and fall
+together, and that correlation has never been measured here, so the suggester
+takes at most one hitter per game and **refuses outright** when the board does
+not have enough open games to fill the slip. Handing back a two-leg slip when
+you asked for three would be answering a question you did not ask.
+
+It is offered on **1+ H/R/RBI only**. That is the prop whose single legs went
+through the backtest and the only one whose parlays did.
+
+**It ranks by chance to cash, not by value.** It cannot see a price, so it
+returns the slip most likely to win, which is not the slip most likely to be
+worth betting. Those come apart whenever the book prices favourites properly,
+which is most of the time.
 
 ### What multiplying does and does not tell you
 
@@ -384,7 +400,7 @@ the whole point, so the slip classifies rather than silently swallows:
 
 | legs | correlation | what the slip says |
 |---|---|---|
-| Different games | none | multiplying is a reasonable assumption |
+| Different games | slight, positive | measured: cashes 1.03-1.08x the product |
 | Same game, different hitters | moderate | true chance is somewhat higher |
 | Same player, different props | **severe** | the number is meaningless |
 
@@ -399,16 +415,65 @@ adjustment that normally takes back more than the correlation is worth. How
 much more has not been measured here, so the slip says so rather than guessing
 at a correction.
 
-`track.mjs` will eventually have the data to measure this properly, since it
-records multiple predictions per game. Until the record fills in, the slip
-reports a number and names its own assumption.
+### That used to be unmeasured. It is not any more.
+
+`node backtest.mjs --parlay` replays real days, builds slips from pre-game
+information only, and checks whether all the legs actually landed together.
+
+**Does multiplying work?** Sampling cross-game slips from all over the board,
+400 a day across 21 days:
+
+| legs | slips | predicted | actual | actual/predicted |
+|---|---|---|---|---|
+| 3 | 8,400 | 29.3% | 30.3% | **1.031** |
+| 4 | 8,400 | 19.5% | 21.1% | **1.084** |
+| 5 | 8,400 | 12.9% | 13.8% | **1.069** |
+
+Multiplying is sound across games, and if anything slightly **conservative** —
+cross-game slips cash a few percent more often than the product says. That is
+what a shared scoring environment looks like: a night when the ball is flying
+lifts every game at once, so even hitters in different stadiums are faintly
+correlated. Sampled slips share legs, so read the ratio as an estimate, not a
+precision.
+
+**Would the suggested slip have cashed?** This is the uncomfortable one:
+
+| legs | slips | expected | cashed | hit rate |
+|---|---|---|---|---|
+| 3 | 21 | 52.2% | 8 | 38.1% |
+| 4 | 21 | 41.0% | 6 | 28.6% |
+| 5 | 21 | 32.0% | 5 | 23.8% |
+
+One slip a day is 21 trials, and 8 against an expected 11 is about 1.3 standard
+deviations — noise, formally. But all three sizes miss in the same direction,
+and the single-leg calibration says why: **the top of the board runs hot.**
+
+| bucket | predicted | actual | gap |
+|---|---|---|---|
+| 60-65% | 62.7% | 63.3% | -0.6pp |
+| 70-75% | 72.3% | 71.5% | +0.8pp |
+| 75-80% | 76.9% | 74.0% | **+2.9pp** |
+| 80-85% | 81.1% | 78.0% | **+3.1pp** |
+
+The model is well calibrated through the middle and about three points
+optimistic at the top — and a suggested slip is made of nothing but the top.
+Three legs of that compounds. The top 2% of the board cashed **67.7%**, worse
+than the top 10% at 74.3%.
+
+**No correction is applied.** Fitting one to three weeks of overlapping data is
+exactly how `k = 0.55` happened. The board reports the honest arithmetic and
+tells you to shade it down. Re-measure with `--parlay` when the record grows.
+
+Note what this does *not* justify: picking worse hitters. An 81% leg that truly
+cashes 78% still beats a 74% leg. The selection rule is right; it is the
+printed number that is generous.
 
 ### The arithmetic is unforgiving
 
 Three legs at 63%, 47% and 58% combine to **17.2%**, which needs +481 to break
-even. Four decent legs land under 13%. This is why the honest version of a
-parlay feature is a calculator rather than a recommendation engine: the vig
-compounds faster than any edge the model can find.
+even. Four decent legs land under 13%. The suggester will build you one of these on request, and the
+arithmetic does not care that you asked nicely: the vig compounds faster than
+any edge the model can find.
 
 ---
 

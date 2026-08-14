@@ -1,78 +1,87 @@
 # handoff
 
-## What
+## Where things are
 
-Added a PGA Tour make-the-cut board alongside the baseball one. `golf.html`
-ranks a tournament field by each player's probability of playing the weekend,
-prices it, and shows its work.
+Two boards, both live on GitHub Pages:
+
+- `index.html` — baseball. Now has a **suggested parlay**.
+- `golf.html` — PGA Tour make-the-cut. Shipped and deployed (commits
+  `1043c5f`, `795a5f7`, `a9fc698`).
+
+Uncommitted right now: the parlay suggester. Everything below describes it.
+
+## Suggested parlay
+
+**Suggest a parlay** on the baseball board fills the slip with 3, 4 or 5 legs
+automatically: the best hitter from that many different games.
+
+| File | Change |
+|---|---|
+| `score.js` | `suggestParlay(candidates, {legs})` — pure selection, one leg per game |
+| `score.test.mjs` | 15 tests on the selection rule |
+| `backtest.mjs` | `--parlay` — replays real days and validates joint outcomes |
+| `index.html` | the control, candidate collection, honest warnings |
+| `README.md` | rewrote the parlay section around the measurements |
+
+### Decisions
+
+- **One leg per game, always.** Same-game correlation has never been measured
+  here, so the suggester will not build a slip that depends on it.
+- **It refuses rather than shrinks.** Ask for 5 legs on a 3-game board and you
+  get an explanation, not a 3-leg slip. A short slip would carry a number that
+  looks like the one you asked for.
+- **1+ H/R/RBI only**, per the request and because it is the prop the parlay
+  backtest covers.
+- **No correction applied to the printed probability.** See below — it is known
+  to be a few points optimistic, and the board says so instead of fitting a
+  fudge factor to three weeks of overlapping data. That is how `k = 0.55`
+  happened the first time.
+- **Selection stays max-probability.** The hot-top finding does *not* argue for
+  picking worse hitters: an 81% leg that truly cashes 78% still beats a 74%
+  leg. The rule is right; the printed number is generous.
+
+### What the measurement said
+
+`node backtest.mjs --days 21 --parlay`, 21 days, 4,957 hitter-games.
+
+Multiplying across games is **sound, slightly conservative** — sampled
+cross-game slips cashed 1.03–1.08x the product (8,400 slips per size). A shared
+day-level scoring environment makes even different-stadium legs faintly
+correlated in your favour. This retires the README's old "never validated on
+joint outcomes" caveat.
+
+The suggested slip itself **underperformed**: 3-leg expected 52.2%, cashed 8 of
+21 (38.1%). Formally that is ~1.3 sd, i.e. noise. But all three sizes miss the
+same way and the single-leg calibration explains it: the 75–80% bucket cashed
+74.0% and the 80–85% bucket cashed 78.0%, so the top of the board is ~3 points
+optimistic per leg and a suggested slip is nothing but the top. Top 2% cashed
+67.7%, worse than top 10% at 74.3%.
 
 ## State
 
-Working and measured. Nothing is committed — the working tree is the delivery.
-
-- `bash scripts/local-check.sh` → **143 tests pass, 0 skipped**, gitleaks clean.
-- `node backtest-pga.mjs` → −1.29pp calibration bias, Brier 0.2284 against
-  0.2488 for guessing the base rate, top quintile 72.9% vs bottom 30.5%.
-- `golf.html` verified in a real browser: no console errors, the no-cut banner,
-  the ranked board, row expansion and the EV box all render and compute.
-
-### New files
-
-| File | What |
-|---|---|
-| `golf.js` | The model. UMD like `score.js` — page, tests and backtest run the same code. |
-| `golf.test.mjs` | 41 tests. |
-| `fetch-pga.mjs` | ESPN → `pga-data.js` + `pga-history.json`. Keyless. |
-| `backtest-pga.mjs` | Walk-forward replay, `--fit` re-derives the constants. |
-| `golf.html` | The board. |
-| `pga-data.js`, `pga-history.json` | Generated. 34 events, 4,116 player-events. |
-
-### Touched
-
-`index.html` (link to the golf board + `.navlink` style), `README.md`,
-`scripts/local-check.sh`, `.pre-commit-config.yaml`, `.github/workflows/ci.yml`,
-`.github/workflows/refresh.yml`.
-
-## Decisions
-
-- **Monte Carlo, not a formula.** The cut is an order statistic of the field
-  ("low 65 and ties"), so players' outcomes are coupled and no closed form
-  exists for one man's probability. Simulate the field, find the line, count.
-- **Ratings from a two-way solve**, not scoring average, so course difficulty
-  and weather waves do not read as talent. Split-half reliability 0.443 → 0.684.
-- **Sample the real score distribution**, not a normal. See the ties note below.
-- **Constants are measured where a direct measurement exists** and fitted only
-  where it does not. `priorSkill` is the observed debutant penalty (1.07), not
-  the Brier optimum (1.6) — the Brier gain was 0.0002, which is Monte Carlo
-  noise. `K = 6` is fitted, because there the fit *is* the direct measurement
-  of the thing being asked.
-- **Separate page, not a sport toggle in `index.html`.** Zero risk to a working
-  board, and a weekly leaderboard is a different shape from per-game cards.
-- **Three formats excluded** rather than mis-modelled: Zurich (two-man teams),
-  American Express and Pebble Beach (54-hole cuts over three courses, so a
-  round has three different field averages).
+- `bash scripts/local-check.sh` → 158 tests, 0 failures, 0 skipped.
+- Verified in a real browser on a live slate: 3/4/5 all build, legs always come
+  from different games, switching to Total bases clears a suggested slip and
+  hides the control, and the refusal path fires correctly on a board with no
+  open games.
 
 ## Blockers / what to know
 
-- **No live cut board until 17 September.** The three playoff events and the
-  Presidents Cup have no cut. The fall swing (Biltmore → RSM, eight full-field
-  events) is the first real runway. Until then `golf.html` shows the no-cut
-  banner and a power ranking, which is correct behaviour, not a bug.
-  Use `node fetch-pga.mjs --event <id>` to build the board for any past week.
-- **The top of the board runs hot**: 83.5% predicted, 73.8% actual. The middle
-  is well calibrated. Shade favourites down.
-- **`refresh.yml` still pins `actions/checkout@v4` and `setup-node@v4`** while
-  `ci.yml` was bumped to v7 in c921f5e. Pre-existing, not touched here, but it
-  will bite when v4 is retired.
-- **No make-cut odds feed.** `golf.html` prices any number you type;
-  nothing fetches the market the way `fetch-odds.mjs` does for baseball.
+- **21 days is a thin sample for the suggester.** Re-run `--parlay` on a wider
+  window before treating the 38.1% as a real number rather than a warning.
+- **Golf: no live cut board until 17 September.** The playoffs and the
+  Presidents Cup have no cut; the fall swing (Biltmore onward) is the runway.
+- **`refresh.yml` still pins `actions/checkout@v4`** while `ci.yml` is on v7.
+  Pre-existing, untouched.
+- An untracked `Vegas Craps/` directory is sitting in the working tree. Not
+  mine, not committed, left alone.
 
 ## Next, if wanted
 
-1. Re-run `node backtest-pga.mjs --fit` once the fall events are in — the
-   constants were fitted on 23 tournaments and will move.
-2. Course fit. Currently a bomber and a plotter get the same rating everywhere;
-   `formSD` covers the size of that effect without knowing its direction.
-3. Ratings only know 2026 PGA Tour rounds, so LIV/DP World/Korn Ferry arrivals
-   read as unrated and take the debutant prior. The board labels them
-   `unrated`; a cross-tour rating would fix it properly.
+1. Widen the parlay backtest window and see whether the suggester's shortfall
+   survives a bigger sample.
+2. Measure same-game correlation properly, which is the thing that would let
+   the suggester use more than one hitter per game.
+3. The suggester cannot see a price. Wiring `fetch-odds.mjs` in would let it
+   rank by edge instead of by chance to cash, which is the version that would
+   actually be worth betting.
