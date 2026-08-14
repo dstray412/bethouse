@@ -1,0 +1,349 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>BetHouse — NFL</title>
+<link rel="stylesheet" href="fonts/space-grotesk.css">
+<style>
+:root{
+  --bg:#12161f; --panel:rgba(255,255,255,0.04); --panel2:rgba(255,255,255,0.025);
+  --line:rgba(255,255,255,0.09); --text:#eef1f7; --muted:#a6b0c4;
+  --accent:#38e1ff; --accent2:#7c5cff; --warn:#e0a33f; --bad:#d8434f; --good:#5fce8f;
+  --display:'Space Grotesk',ui-sans-serif,system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font:15px/1.5 ui-sans-serif,system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased;min-height:100vh}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(900px 520px at 88% -8%,rgba(124,92,255,.16),transparent 60%),
+             radial-gradient(760px 480px at 4% 104%,rgba(56,225,255,.11),transparent 60%)}
+.wrap{position:relative;z-index:1;max-width:1080px;margin:0 auto;padding:22px 18px 60px}
+header{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:16px}
+.brand{flex:1 1 auto;min-width:200px}
+.logo{font-family:var(--display);font-size:22px;font-weight:700;letter-spacing:.14em;
+  background:linear-gradient(96deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent;margin:0}
+.tagline{font-family:var(--display);font-size:11px;font-weight:600;letter-spacing:.17em;text-transform:uppercase;color:var(--muted);margin-top:5px}
+.navlink{font-family:var(--display);font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--muted);text-decoration:none;border:1px solid var(--line);border-radius:9px;padding:7px 12px;white-space:nowrap}
+.navlink:hover{color:var(--text);border-color:var(--accent)}
+.note{color:var(--muted);font-size:12.5px;line-height:1.6;margin:0 2px 14px}
+.note b{color:var(--text);font-weight:600}
+.controls{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-end;background:var(--panel);
+  border:1px solid var(--line);border-radius:13px;padding:12px 14px;margin-bottom:14px}
+.ctl{display:flex;flex-direction:column;gap:6px}
+.ctl>label{font-family:var(--display);font-size:10px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.seg{display:flex;gap:4px}
+.seg button{font:inherit;font-size:13px;color:var(--muted);background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:6px 11px;cursor:pointer}
+.seg button:hover{color:var(--text)}
+.seg button[aria-pressed=true]{color:#0a0d14;background:linear-gradient(180deg,#7fe9ff,var(--accent));border-color:transparent;font-weight:600}
+.game{border:1px solid var(--line);border-radius:15px;background:var(--panel2);margin-bottom:14px;overflow:hidden}
+.ghead{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;
+  padding:12px 15px;background:rgba(255,255,255,.03);border-bottom:1px solid var(--line)}
+.gtitle{font-family:var(--display);font-size:15px;font-weight:700;margin:0}
+.gmeta{font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.row{display:grid;grid-template-columns:30px 1fr 74px 62px 20px;gap:10px;align-items:center;
+  width:100%;text-align:left;font:inherit;color:inherit;background:none;border:0;
+  padding:8px 15px;cursor:pointer;border-top:1px solid rgba(255,255,255,.045)}
+.row:hover{background:rgba(255,255,255,.028)}
+.slot{font-family:var(--display);font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+.who{font-weight:600;font-size:14.5px}
+.pos{color:var(--muted);font-weight:400;font-size:12px;margin-left:5px}
+.prob{font-weight:700;font-size:21px;font-variant-numeric:tabular-nums;text-align:right}
+.be{font-variant-numeric:tabular-nums;text-align:right;font-size:14px}
+.be small{display:block;color:var(--muted);font-size:11px}
+.caret{color:var(--muted);text-align:center;transition:transform .16s}
+.row[aria-expanded=true] .caret{transform:rotate(90deg)}
+.why{padding:2px 15px 16px;background:rgba(0,0,0,.16);border-top:1px solid var(--line);font-size:13px;color:var(--muted);line-height:1.75}
+.why b{color:var(--text);font-variant-numeric:tabular-nums}
+.why table{border-collapse:collapse;margin:6px 0 4px;font-variant-numeric:tabular-nums}
+.why td{padding:2px 16px 2px 0;vertical-align:top}
+.why td:first-child{color:var(--muted)}
+.banner{border:1px solid rgba(224,163,63,.45);background:rgba(224,163,63,.09);border-radius:14px;padding:15px 17px;margin-bottom:16px}
+.banner h3{font-family:var(--display);font-size:12px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--warn);margin:0 0 8px}
+.banner p{margin:0 0 7px;font-size:13.5px;line-height:1.65;color:var(--text)}
+.banner b{color:var(--text)}
+.empty{padding:44px 20px;text-align:center;color:var(--muted)}
+.empty .big{font-family:var(--display);font-size:18px;font-weight:600;color:var(--text);margin-bottom:7px}
+footer{margin-top:22px;color:var(--muted);font-size:12px;line-height:1.7}
+footer b{color:var(--text)}
+footer table{border-collapse:collapse;margin:8px 0;font-variant-numeric:tabular-nums;font-size:12px}
+footer td{padding:1px 14px 1px 0}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+@media (max-width:760px){
+  .wrap{padding:14px 11px 40px}
+  .row{grid-template-columns:26px 1fr 64px 56px;gap:8px;padding:8px 12px}
+  .caret{display:none}
+  .prob{font-size:18px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="brand">
+    <h1 class="logo">BETHOUSE</h1>
+    <div class="tagline" id="tagline">NFL</div>
+  </div>
+  <div class="ctl">
+    <label id="lab-view">Bet type</label>
+    <div class="seg" id="view" role="group" aria-labelledby="lab-view"></div>
+  </div>
+  <a class="navlink" href="index.html">Baseball →</a>
+  <a class="navlink" href="golf.html">PGA →</a>
+</header>
+
+<div class="note" id="note"></div>
+<div class="controls" id="controls" hidden>
+  <div class="ctl">
+    <label id="lab-line">Yardage line</label>
+    <div class="seg" id="lineseg" role="group" aria-labelledby="lab-line"></div>
+  </div>
+</div>
+<div id="app"><div class="empty"><div class="big">Loading…</div>
+  <div>If this does not clear, run <code>node fetch-nfl.mjs</code>.</div></div></div>
+<footer id="foot"></footer>
+</div>
+
+<script src="edge.js"></script>
+<script src="nfl.js"></script>
+<script src="nfl-data.js"></script>
+<script>
+(function () {
+  "use strict";
+  var N = window.BetHouseNFL, D = window.BetHouseNFLData;
+  var app = document.getElementById("app");
+  if (!D || !D.players) {
+    app.innerHTML = '<div class="empty"><div class="big">No board yet</div>' +
+      '<div>Run <code>node fetch-nfl.mjs</code> to build <code>nfl-data.js</code>.</div></div>';
+    return;
+  }
+
+  var VIEWS = [{id:'td',label:'Anytime TD'},{id:'yds',label:'Receiving yards'},{id:'game',label:'Spread & total'}];
+  var LINES = [{id:0.7,label:'Low'},{id:1,label:'Projection'},{id:1.3,label:'High'}];
+  var state = { view:'td', lineMult:1, open:null };
+
+  var pct=function(x,d){return (100*x).toFixed(d==null?1:d)+'%';};
+  var sgn=function(n){return n>0?'+'+n:String(n);};
+  var esc=function(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});};
+  var el=function(t,c,txt){var e=document.createElement(t); if(c)e.className=c; if(txt!=null)e.textContent=txt; return e;};
+
+  function seg(host,items,cur,pick){
+    host.innerHTML='';
+    items.forEach(function(it){
+      var b=el('button',null,it.label); b.type='button';
+      b.setAttribute('aria-pressed',String(it.id===cur));
+      b.addEventListener('click',function(){pick(it.id);});
+      host.appendChild(b);
+    });
+  }
+
+  var usagePool = D.usagePool && D.usagePool.length ? D.usagePool : null;
+  var yardPool  = D.yardPool  && D.yardPool.length  ? D.yardPool  : null;
+
+  /* Which teams are playing, and who they face. */
+  function opponents(){
+    var map={};
+    (D.games||[]).forEach(function(g){
+      // "Away Team at Home Team" — ESPN's own naming.
+      var m=String(g.name||'').split(' at ');
+      if(m.length!==2) return;
+      map[g.id]={away:m[0],home:m[1],date:g.date};
+    });
+    return map;
+  }
+
+  /* Team abbreviations are what the model knows; game names are full names.
+     Match on the tail of the full name so "Los Angeles Chargers" finds LAC. */
+  function teamIndex(){
+    var abbrs=Object.keys(D.teamFactors||{});
+    return function(fullName){
+      var best=null;
+      abbrs.forEach(function(a){
+        if(String(fullName||'').toUpperCase().indexOf(a)>=0) best=a;
+      });
+      return best;
+    };
+  }
+
+  function renderTD(){
+    var rows=[];
+    (D.players||[]).forEach(function(p){
+      var tf=(D.teamFactors[p.team]||{}).off||1;
+      var s=N.scoreAnytimeTD(p,{teamFactor:tf, oppFactor:1, usagePool:usagePool});
+      if(!s) return;
+      rows.push({p:p,s:s});
+    });
+    rows.sort(function(a,b){return b.s.prob-a.s.prob;});
+    rows=rows.slice(0,80);
+
+    var html='<div class="game"><div class="ghead"><h2 class="gtitle">Most likely to score</h2>'+
+      '<div class="gmeta">'+rows.length+' players · season '+D.statsSeason+' form</div></div>';
+    rows.forEach(function(r,i){
+      html+='<button class="row" aria-expanded="false" data-i="'+i+'">'+
+        '<span class="slot">'+(i+1)+'</span>'+
+        '<span class="who">'+esc(r.p.name)+'<span class="pos">'+esc(r.p.team)+'</span></span>'+
+        '<span class="prob">'+pct(r.s.prob,0)+'</span>'+
+        '<span class="be">'+sgn(N.fairPrice(r.s.prob))+'<small>fair</small></span>'+
+        '<span class="caret">›</span></button>'+
+        '<div class="why" id="why'+i+'" hidden></div>';
+    });
+    app.innerHTML=html+'</div>';
+    app.__rows=rows;
+    app.__detail=function(r){
+      var t='<table>';
+      t+='<tr><td>workload</td><td><b>'+r.s.perGameCarries.toFixed(1)+'</b> carries and <b>'+
+        r.s.perGameTargets.toFixed(1)+'</b> targets a game over <b>'+r.p.games+'</b> games</td></tr>';
+      t+='<tr><td>from workload</td><td><b>'+r.s.usageRate.toFixed(3)+'</b> touchdowns a game '+
+        '(0.0335 per carry, 0.0473 per target — measured)</td></tr>';
+      t+='<tr><td>his own rate</td><td><b>'+r.s.observedRate.toFixed(3)+'</b> a game — '+
+        'kept <b>'+pct(r.s.shrink,0)+'</b> of it, the rest is workload</td></tr>';
+      t+='<tr><td>offence</td><td>×<b>'+r.s.teamFactor.toFixed(2)+'</b></td></tr>';
+      t+='<tr><td>expected TDs</td><td><b>'+r.s.lambda.toFixed(3)+'</b> '+
+        '(pulled 25% toward the league average, which is what stops the top of the board running hot)</td></tr>';
+      t+='<tr><td>chance to score</td><td><b>'+pct(r.s.prob)+'</b>'+
+        (r.s.usageAveraged?', averaged over real week-to-week workload swings':'')+'</td></tr>';
+      t+='<tr><td>fair price</td><td><b>'+sgn(N.fairPrice(r.s.prob))+'</b></td></tr>';
+      return t+'</table>';
+    };
+  }
+
+  function renderYards(){
+    var rows=[];
+    (D.players||[]).forEach(function(p){
+      if(p.targets<10||p.games<3) return;
+      var exp=N.expectedVolume(p.recYds,p.games,25);
+      if(!(exp>=20)) return;
+      var line=Math.round(exp*state.lineMult)+0.5;
+      var over=N.empiricalOver(exp,line,yardPool);
+      if(over==null) return;
+      rows.push({p:p,exp:exp,line:line,over:over});
+    });
+    rows.sort(function(a,b){return b.exp-a.exp;});
+    rows=rows.slice(0,80);
+    var html='<div class="game"><div class="ghead"><h2 class="gtitle">Receiving yards</h2>'+
+      '<div class="gmeta">'+rows.length+' players · over the line shown</div></div>';
+    rows.forEach(function(r,i){
+      html+='<button class="row" aria-expanded="false" data-i="'+i+'">'+
+        '<span class="slot">'+(i+1)+'</span>'+
+        '<span class="who">'+esc(r.p.name)+'<span class="pos">'+esc(r.p.team)+' · o'+r.line+'</span></span>'+
+        '<span class="prob">'+pct(r.over,0)+'</span>'+
+        '<span class="be">'+sgn(N.fairPrice(r.over))+'<small>fair</small></span>'+
+        '<span class="caret">›</span></button>'+
+        '<div class="why" id="why'+i+'" hidden></div>';
+    });
+    app.innerHTML=html+'</div>';
+    app.__rows=rows;
+    app.__detail=function(r){
+      var t='<table>';
+      t+='<tr><td>season</td><td><b>'+r.p.recYds+'</b> yards on <b>'+r.p.targets+
+        '</b> targets over <b>'+r.p.games+'</b> games</td></tr>';
+      t+='<tr><td>projection</td><td><b>'+r.exp.toFixed(1)+'</b> yards, regressed toward a replacement-level 25</td></tr>';
+      t+='<tr><td>line</td><td><b>'+r.line+'</b></td></tr>';
+      t+='<tr><td>over</td><td><b>'+pct(r.over)+'</b>, read off <b>'+yardPool.length+
+        '</b> real receiver games rather than any bell curve</td></tr>';
+      t+='<tr><td>fair price</td><td><b>'+sgn(N.fairPrice(r.over))+'</b></td></tr>';
+      return t+'</table>';
+    };
+  }
+
+  function renderGames(){
+    var find=teamIndex(), opp=opponents();
+    var html='<div class="banner"><h3>Read this before betting a side</h3>'+
+      '<p>These projections were measured against <b>480 real closing lines</b> and did not beat them. '+
+      'The spread model won <b>48.1%</b> of the time and the total model <b>52.5%</b>, against the '+
+      '<b>52.4%</b> you need at -110 — and both confidence intervals straddle a coin flip. '+
+      'Separating a break-even model from noise would take about <b>1,700</b> games; two seasons is 480.</p>'+
+      '<p>They are here because you asked what the model thinks, not because there is an edge in them.</p></div>';
+    html+='<div class="game"><div class="ghead"><h2 class="gtitle">Week '+D.week+'</h2>'+
+      '<div class="gmeta">'+(D.games||[]).length+' games · model projection only, no line attached</div></div>';
+    var rows=[];
+    (D.games||[]).forEach(function(g){
+      var o=opp[g.id]; if(!o) return;
+      var h=find(o.home), a=find(o.away);
+      if(!h||!a) return;
+      var pr=N.projectGame(D.ratings,h,a);
+      if(!pr) return;
+      rows.push({g:g,o:o,h:h,a:a,pr:pr});
+    });
+    rows.forEach(function(r,i){
+      var m=r.pr.margin;
+      html+='<button class="row" aria-expanded="false" data-i="'+i+'">'+
+        '<span class="slot">'+(i+1)+'</span>'+
+        '<span class="who">'+esc(r.o.away)+' at '+esc(r.o.home)+'</span>'+
+        '<span class="prob">'+esc(m>=0?r.h:r.a)+' -'+Math.abs(m).toFixed(1)+'</span>'+
+        '<span class="be">'+r.pr.total.toFixed(1)+'<small>total</small></span>'+
+        '<span class="caret">›</span></button>'+
+        '<div class="why" id="why'+i+'" hidden></div>';
+    });
+    app.innerHTML=html+'</div>';
+    app.__rows=rows;
+    app.__detail=function(r){
+      var t='<table>';
+      t+='<tr><td>projection</td><td><b>'+esc(r.o.home)+' '+r.pr.homePts.toFixed(1)+
+        '</b> — <b>'+esc(r.o.away)+' '+r.pr.awayPts.toFixed(1)+'</b></td></tr>';
+      t+='<tr><td>margin</td><td><b>'+(r.pr.margin>=0?'+':'')+r.pr.margin.toFixed(1)+'</b> to the home side'+
+        ' (home field is worth '+D.ratings.homeField.toFixed(2)+')</td></tr>';
+      t+='<tr><td>total</td><td><b>'+r.pr.total.toFixed(1)+'</b></td></tr>';
+      t+='<tr><td>ratings</td><td>'+esc(r.h)+' offence <b>'+(D.ratings.off[r.h]||0).toFixed(2)+
+        '</b>, defence <b>'+(D.ratings.def[r.h]||0).toFixed(2)+'</b><br>'+
+        esc(r.a)+' offence <b>'+(D.ratings.off[r.a]||0).toFixed(2)+
+        '</b>, defence <b>'+(D.ratings.def[r.a]||0).toFixed(2)+'</b></td></tr>';
+      t+='<tr><td>honestly</td><td>this did not beat the closing line over two seasons</td></tr>';
+      return t+'</table>';
+    };
+  }
+
+  function render(){
+    seg(document.getElementById('view'),VIEWS,state.view,function(v){state.view=v;state.open=null;render();});
+    seg(document.getElementById('lineseg'),LINES,state.lineMult,function(v){state.lineMult=v;state.open=null;render();});
+    document.getElementById('controls').hidden = state.view!=='yds';
+    document.getElementById('tagline').textContent='NFL — '+D.season+' week '+D.week;
+
+    var note=document.getElementById('note');
+    if(state.view==='td'){
+      note.innerHTML='Chance of <b>scoring a touchdown</b>. Checked against <b>8,470</b> unseen player-games — '+
+        'bias 0.7 points, every band within 3. Tap a player for the work.';
+    } else if(state.view==='yds'){
+      note.innerHTML='Chance of going <b>over</b> a receiving yards line. Checked against <b>22,700</b> unseen '+
+        'player-games — bias 1.0 point. The shape comes from real receiver games, not a bell curve.';
+    } else {
+      note.innerHTML='Model projections for the week. <b>These did not beat the closing line</b> — see the note below.';
+    }
+
+    if(state.view==='td') renderTD();
+    else if(state.view==='yds') renderYards();
+    else renderGames();
+  }
+
+  app.addEventListener('click',function(e){
+    var btn=e.target.closest('.row'); if(!btn) return;
+    var i=+btn.getAttribute('data-i');
+    var box=document.getElementById('why'+i);
+    var open=btn.getAttribute('aria-expanded')==='true';
+    btn.setAttribute('aria-expanded',open?'false':'true');
+    if(open){box.hidden=true;return;}
+    if(!box.innerHTML) box.innerHTML=app.__detail(app.__rows[i]);
+    box.hidden=false;
+  });
+
+  document.getElementById('foot').innerHTML =
+    '<p><b>Does it work?</b> Two seasons replayed a week at a time, each week predicted only from '+
+    'weeks already played:</p><table>'+
+    '<tr><td>anytime touchdown</td><td>bias <b>&minus;0.7pp</b>, Brier <b>0.1590</b> against 0.1718 · '+
+    'top 20% scored <b>39.1%</b>, bottom 20% <b>9.3%</b></td></tr>'+
+    '<tr><td>receiving yards</td><td>bias <b>+1.0pp</b>, Brier <b>0.2223</b> against 0.2459</td></tr>'+
+    '<tr><td>spread</td><td><b>48.1%</b> against the closing line — needs 52.4%</td></tr>'+
+    '<tr><td>total</td><td><b>52.5%</b> against the closing line — inside the noise</td></tr>'+
+    '</table><p>The two player props are calibrated and worth reading. The game lines are not: '+
+    'the NFL closing number is very good, and two seasons is not enough games to prove otherwise '+
+    'either way. Re-check with <code>node backtest-nfl.mjs</code>.</p>'+
+    '<p>Data: ESPN, no key required. Built '+esc((D.generated||'').slice(0,16).replace('T',' '))+
+    ' UTC from '+D.gamesCached+' games.</p>';
+
+  render();
+})();
+</script>
+</body>
+</html>
