@@ -397,6 +397,21 @@ function renderSlip(){
   host.appendChild(box);
 }
 
+/*
+ * Multipliers read as percentages, because that is what they are.
+ *
+ * The panel used to print "factor 0.958", which looks like 95.8% of
+ * something and is actually "knock the rate down 4.2%". Every one of these
+ * is a multiplier around 1, so show the change and keep the raw number in
+ * brackets for anyone reconciling the arithmetic.
+ */
+function fac(x){
+  if(!isFinite(x)) return '—';
+  var d=(x-1)*100;
+  var s=(d>=0?'+':'\u2212')+Math.abs(d).toFixed(1)+'%';
+  return '<b>'+s+'</b> <span style="color:var(--muted)">(\u00d7'+x.toFixed(3)+')</span>';
+}
+
 function ctxFor(game, side){
   var s=game[side], faces=game[side+'Faces'], L=D.league;
   return {
@@ -490,16 +505,16 @@ function buildWhy(r, game, side){
     var pf2 = r.platoonFactor || 1;
     var dir = pf2 > 1.005 ? 'favourable' : pf2 < 0.995 ? 'unfavourable' : 'neutral';
     line('Handedness: <b>'+r.batSide+'HB</b> vs <b>'+r.pitchHand+'HP</b> \u2192 '+dir+
-         ', factor <b>'+pf2.toFixed(3)+'</b>'+
+         ', '+fac(pf2)+
          (state.view==='hr' && r.batSide==='L' && r.pitchHand==='L'
             ? ' <span class="flag">(lefty-on-lefty power suppression, the biggest handedness effect in baseball)</span>' : '')+'.');
   }
-  if(r.homeAwayFactor) line((r.isHome?'At home':'On the road')+': factor <b>'+r.homeAwayFactor.toFixed(3)+'</b>.');
+  if(r.homeAwayFactor) line((r.isHome?'At home':'On the road')+': '+fac(r.homeAwayFactor)+'.');
   if(faces) line('Facing <b>'+esc(faces.name)+'</b>'+(faces.era?' — '+faces.era+' ERA':'')+
     (faces.avgAllowed?', '+faces.avgAllowed.toFixed(3)+' opp AVG':'')+
-    ' → matchup factor <b>'+(r.pitcherFactor||1).toFixed(3)+'</b>.');
+    ' → matchup '+fac(r.pitcherFactor||1)+'.');
   if(state.view==='hrr' && r.offenseFactor)
-    line('Lineup around him: <b>'+(game[side].runsPerGame||0).toFixed(2)+'</b> R/G → factor <b>'+r.offenseFactor.toFixed(3)+'</b>.');
+    line('Lineup around him: <b>'+(game[side].runsPerGame||0).toFixed(2)+'</b> R/G → '+fac(r.offenseFactor)+'.');
 
   line('Model: <b>'+pct(r.prob)+'</b>. A fair price for that is <b>'+amer(S.fairPrice(r.prob))+
        '</b> \u2014 anything longer is good value, anything shorter is not. '+
