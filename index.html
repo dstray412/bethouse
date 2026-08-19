@@ -13,6 +13,12 @@
   --display:'Space Grotesk',ui-sans-serif,system-ui,sans-serif;
 }
 *{box-sizing:border-box}
+/* The `hidden` attribute must actually hide. A class that sets
+   `display` (.ctl and .controls both set display:flex) beats the UA
+   stylesheet's [hidden]{display:none} because author styles win over
+   UA styles, so `el.hidden = true` silently did nothing and left dead
+   controls on screen. Standard reset idiom; !important is the point. */
+[hidden]{display:none!important}
 html,body{margin:0;padding:0}
 body{background:var(--bg);color:var(--text);font:15px/1.5 ui-sans-serif,system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased;min-height:100vh}
 body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
