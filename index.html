@@ -66,6 +66,11 @@ header{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:1
   padding:12px 15px;background:rgba(255,255,255,.03);border-bottom:1px solid var(--line)}
 .gtitle{font-family:var(--display);font-size:16px;font-weight:700;margin:0}
 .gmeta{font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+/* Countdown to first pitch. Brighter than the surrounding meta so the
+   queue is scannable, amber inside 30 minutes so the top of the slate
+   reads as urgent without any extra chrome. */
+.soon{color:var(--text);font-weight:600}
+.soon.urgent{color:var(--warn)}
 .side{padding:4px 0 10px}
 .shead{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;padding:10px 15px 6px}
 .sname{font-family:var(--display);font-size:12.5px;font-weight:600;letter-spacing:.05em}
@@ -273,6 +278,27 @@ function amer(a){ if(!isFinite(a))return '—'; a=Math.round(a); return a>0?'+'+
 function timeStr(iso){
   var d=new Date(iso); if(isNaN(d))return '';
   return d.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'});
+}
+/*
+ * How long until first pitch, in words.
+ *
+ * The board was sorted correctly by start time but every upcoming game
+ * looked the same: "1:10 PM" and "9:40 PM" in identical muted 12.5px type,
+ * leaving the reader to do the arithmetic against a clock that is not on
+ * screen. A slate is not a flat list, it is a queue, and the queue was
+ * invisible.
+ *
+ * Absolute time is still shown for anything more than 90 minutes out --
+ * that far ahead the clock time is the more useful fact. Inside 90 minutes
+ * the countdown is what a bettor is actually reading for.
+ */
+function startsIn(iso){
+  var d=Date.parse(iso); if(!isFinite(d)) return null;
+  var mins=Math.round((d-Date.now())/60000);
+  if(mins<0 || mins>90) return null;
+  if(mins<1) return {text:'starting now', urgent:true};
+  if(mins<60) return {text:'in '+mins+' min', urgent:mins<=30};
+  return {text:'in 1h '+(mins-60)+'m', urgent:false};
 }
 function seg(host,items,cur,pick){
   host.innerHTML='';
@@ -693,7 +719,13 @@ function render(){
      showing confident percentages you could no longer act on. Sort is stable,
      so order within each group is unchanged. */
   games = games.slice().sort(function(a,b){
-    return (S.gameIsOpen(b)?1:0) - (S.gameIsOpen(a)?1:0);
+    var byOpen = (S.gameIsOpen(b)?1:0) - (S.gameIsOpen(a)?1:0);
+    if(byOpen) return byOpen;
+    /* Then soonest first. statsapi happens to return the slate in start
+       order today, so this changes nothing on screen -- but the board was
+       relying on that by accident, and a queue that reads correctly only
+       because of upstream ordering is one API change from reading wrong. */
+    return (Date.parse(a.startTime)||0) - (Date.parse(b.startTime)||0);
   });
 
   var board=document.getElementById('board');
@@ -717,7 +749,14 @@ function render(){
       meta.appendChild(el('span','chip done',/Postpone|Suspend|Cancel/i.test(g.status)?g.status.toUpperCase():'FINAL'));
       meta.appendChild(document.createTextNode(' '+(g.venue||'')));
     } else {
-      meta.textContent = timeStr(g.startTime)+' · '+(g.venue||'');
+      var soon = startsIn(g.startTime);
+      if(soon){
+        var when=el('span', soon.urgent?'soon urgent':'soon', soon.text);
+        meta.appendChild(when);
+        meta.appendChild(document.createTextNode(' · '+timeStr(g.startTime)+' · '+(g.venue||'')));
+      } else {
+        meta.textContent = timeStr(g.startTime)+' · '+(g.venue||'');
+      }
     }
     head.appendChild(meta);
     card.appendChild(head);
