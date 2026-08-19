@@ -418,7 +418,19 @@ function renderSlip(){
  * no punctuation, no Jr/II. ESPN athlete ids are not MLB ids, so the name
  * is the only join available.
  */
-var ODDS = (window.BetHouseOdds && window.BetHouseOdds.markets) || null;
+/* Prices go stale. A number from this morning sitting next to tonight's
+   lineup is worse than no number, because it looks current. Six hours is
+   generous for a board refreshed hourly and still well inside a game day. */
+var ODDS_MAX_AGE_H = 6;
+var ODDS = (function(){
+  var o = window.BetHouseOdds;
+  if(!o || !o.markets) return null;
+  var age = (Date.now() - Date.parse(o.generated)) / 36e5;
+  if(!isFinite(age) || age > ODDS_MAX_AGE_H) return null;
+  return o.markets;
+})();
+var ODDS_AGE_H = window.BetHouseOdds
+  ? (Date.now() - Date.parse(window.BetHouseOdds.generated)) / 36e5 : null;
 
 function normName(s){
   return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'')

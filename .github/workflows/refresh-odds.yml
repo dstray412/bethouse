@@ -1,0 +1,82 @@
+# BetHouse odds refresh.
+#
+# SEPARATE FROM refresh.yml, for the same reason the NFL board is.
+#
+# fetch-odds-espn.mjs walks every scheduled game's prop pages -- roughly 340
+# requests for a full slate -- and resolves player names it has not seen
+# before. Hanging that off the 30-minute baseball refresh would mean about
+# 9,500 requests a day, and because .espn-athletes.json is gitignored a CI
+# runner starts cold every time and re-fetches every name.
+#
+# So: hourly, with the name cache carried between runs. Prices move through
+# the day but not so fast that a board an hour old is misleading, and
+# index.html refuses to show anything older than six hours anyway.
+name: Refresh odds
+
+on:
+  schedule:
+    - cron: "7 * * * *" # hourly, offset off the board refresh
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+# Shares the group with the other refreshers: all of them push to main, and
+# two jobs racing to push leaves one failing on a non-fast-forward.
+concurrency:
+  group: refresh
+  cancel-in-progress: false
+
+jobs:
+  odds:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "20"
+
+      # ESPN athlete id -> name. Grows slowly and never changes, so a warm
+      # cache turns hundreds of requests into none.
+      - name: Restore the athlete name cache
+        uses: actions/cache@v4
+        with:
+          path: .espn-athletes.json
+          key: espn-athletes-${{ github.run_id }}
+          restore-keys: |
+            espn-athletes-
+
+      - name: Fetch prop prices
+        run: node fetch-odds-espn.mjs
+
+      - name: Sanity check before committing
+        run: |
+          node -e '
+            global.window = {};
+            require("./odds-data.js");
+            const d = window.BetHouseOdds;
+            if (!d || !d.markets) throw new Error("no markets object");
+            const n = Object.keys(d.markets).length;
+            // An empty slate is legitimate (no games scheduled); a malformed
+            // file is not. Only the second one should fail the run.
+            if (!n) { console.log("no scheduled games — nothing priced"); process.exit(0); }
+            const bad = Object.values(d.markets).filter(
+              (m) => !(m.noVigOver > 0 && m.noVigOver < 1) || !(m.hold > 0 && m.hold < 0.3),
+            );
+            if (bad.length) throw new Error(bad.length + " markets have impossible prices");
+            console.log("ok:", n, "markets, all prices sane");
+          '
+          node --test edge.test.mjs score.test.mjs golf.test.mjs nfl.test.mjs
+
+      - name: Commit if the prices changed
+        run: |
+          git config user.name  "bethouse-bot"
+          git config user.email "bethouse-bot@users.noreply.github.com"
+          git add odds-data.js
+          if git diff --staged --quiet; then
+            echo "No change."
+          else
+            git commit -m "odds: $(date -u +%Y-%m-%dT%H:%MZ)"
+            git pull --rebase --autostash origin main
+            git push
+          fi
