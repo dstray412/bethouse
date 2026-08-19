@@ -159,3 +159,32 @@ two questions here was the difference between "publish it" and "discard it".
 The same logic is why the NFL spread model is graded against the closing line
 rather than against the base rate. A signal is only worth what it adds to the
 number you would otherwise have used.
+
+## Fit on one window, validate on another, or you have not fitted anything
+
+The temperature investigation found a real residual gradient: two windows
+sharing no games both showed home run predictions running cold in the heat
+and hot in the cold, +4.63pp (z 2.84) in April and +3.32pp (z 1.68) in
+August, monotone across the bands, and absent from H/R/RBI exactly as the
+physics requires.
+
+Fitting a correction on the April window gave a clean interior optimum at
+slope 0.16 -- better Brier, and the cold and hot biases converging on each
+other, which is the right criterion. Everything about it looked finished.
+
+Run on the summer window, that same slope was WORSE than doing nothing, and
+summer's own optimum was zero. One more command was the difference between
+shipping an improvement and shipping a regression to half the season.
+
+The cause was not the physics but the shape of the correction: it pivoted on
+a fixed 72F rather than on the temperature the model was calibrated against,
+so it was not mean-neutral. In a summer sample where nearly every game is
+above the pivot it mostly RAISED predictions, tangling a redistribution with
+a level shift.
+
+**Rule:** a constant fitted on one sample is a hypothesis, not a constant.
+Fit on one window, then test the fitted value on a window that shares no
+data, and require it to help both. And when a correction is meant to
+redistribute rather than to move the average, centre it on the sample mean
+so it arithmetically cannot do the latter -- otherwise every fit will
+silently trade one against the other.

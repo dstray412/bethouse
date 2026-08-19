@@ -59,7 +59,7 @@ const has = (f) => args.includes(f);
  * than the one asked is the single worst thing it can do, so an unknown flag
  * is a hard error, not a warning.
  */
-const KNOWN_FLAGS = new Set(["--days", "--fit", "--prop", "--end", "--start", "--parlay", "--streaks"]);
+const KNOWN_FLAGS = new Set(["--days", "--fit", "--prop", "--end", "--start", "--parlay", "--streaks", "--weather", "--fit-weather"]);
 for (let i = 0; i < args.length; i++) {
   const a = args[i];
   if (!a.startsWith("--")) continue;
@@ -130,6 +130,8 @@ function parseIP(ip) {
  * Collect observations
  * ---------------------------------------------------------------- */
 
+const WEATHER = new Map(); // gamePk -> parsed conditions, filled by --weather
+
 async function collect() {
   console.log(`Backtesting ${START} .. ${END}`);
   const sched = await get(
@@ -173,6 +175,34 @@ async function collect() {
     }
   }
   process.stdout.write("\n");
+
+  /*
+   * Conditions, one tiny request per game. The `fields` filter turns a
+   * 760 kB live feed into 127 bytes, so this is cheap enough to be worth
+   * doing for every game rather than a sample.
+   */
+  if (has("--weather")) {
+    let got = 0;
+    for (let i = 0; i < pks.length; i += BATCH) {
+      const chunk = pks.slice(i, i + BATCH);
+      const feeds = await Promise.all(
+        chunk.map((pk) =>
+          get(
+            `https://statsapi.mlb.com/api/v1.1/game/${pk}/feed/live?fields=gameData,weather,condition,temp,wind,venue,name`,
+            `weather ${pk}`,
+          ).catch(() => null),
+        ),
+      );
+      feeds.forEach((f, j) => {
+        const w = parseWeather(f?.gameData?.weather);
+        if (w) { WEATHER.set(chunk[j], w); got++; }
+      });
+      process.stdout.write(`\r  weather: ${Math.min(i + BATCH, pks.length)}/${pks.length}   `);
+    }
+    process.stdout.write("\n");
+    console.log(`  conditions for ${got} of ${pks.length} games`);
+  }
+
   /* The progress line counts boxscores ATTEMPTED, not harvested, so a game
      lost to a failed fetch used to leave no trace at all -- the run just
      quietly had fewer observations than the game count implied. Say so. */
@@ -359,7 +389,7 @@ function actualFor(o) {
   return o.actual;
 }
 
-function predictAll(obs, k, lg, lgAvgAllowed, splits) {
+function predictAll(obs, k, lg, lgAvgAllowed, splits, tempOpts) {
   const lgTB = predictAll._lgTB;
   return obs.map((o) => {
     const player = {
@@ -381,6 +411,10 @@ function predictAll(obs, k, lg, lgAvgAllowed, splits) {
       leagueHomeAwayHR: splits ? splits.homeAwayHR : null,
       isHome: o.isHome,
       threshold: TB_N || 2,
+      /* Conditions, when --weather or --fit-weather asked for them. Indoor
+         games pass null so the factor stays exactly 1. */
+      tempF: (() => { const w = WEATHER.get(o.gamePk); return w && !w.indoor ? w.tempF : null; })(),
+      tempOpts: tempOpts,
       // NOT supplied, and deliberately so: teamRunsPerGame/leagueRunsPerGame.
       // Reconstructing a team's season-to-date scoring rate as of each past
       // date is not something the boxscore carries, so offenseFactor() runs
@@ -731,6 +765,132 @@ function streakReport(rows) {
   console.log(`  If both are near zero the model is already pricing form correctly.`);
 }
 
+/* ---------------------------------------------------------------- *
+ * Weather
+ *
+ * statsapi carries the conditions for every game, and with a `fields`
+ * filter the request is 127 bytes instead of 760 kB, so asking for four
+ * hundred of them costs nothing.
+ *
+ * The physics is not in doubt: warm air is less dense and wind blowing out
+ * carries a fly ball further. The question is whether any of that survives
+ * into a prop the model already prices -- and whether it survives more for
+ * power than for simply reaching base, which is what it should do if it is
+ * real rather than noise.
+ * ---------------------------------------------------------------- */
+
+/**
+ * "17 mph, Out To RF" -> { mph: 17, out: +17 }
+ * "6 mph, In From CF" -> { mph: 6,  out: -6 }
+ * "4 mph, R To L"     -> { mph: 4,  out: 0 }   crosswind
+ *
+ * `out` is the signed component along the batter-to-outfield axis, which is
+ * the only direction that does anything to a fly ball. Crosswinds, "Varies"
+ * and anything under a closed roof are zero -- not missing, genuinely zero.
+ */
+export function parseWeather(w) {
+  if (!w) return null;
+  const temp = Number(String(w.temp ?? "").replace(/[^0-9.-]/g, ""));
+  const raw = String(w.wind || "");
+  const mph = Number((raw.match(/(-?\d+(?:\.\d+)?)\s*mph/i) || [])[1]);
+  const indoor = /roof closed|dome/i.test(String(w.condition || ""));
+  let out = 0;
+  if (isFinite(mph) && !indoor) {
+    if (/out\s*to/i.test(raw)) out = mph;
+    else if (/in\s*from/i.test(raw)) out = -mph;
+  }
+  return {
+    tempF: isFinite(temp) ? temp : null,
+    mph: isFinite(mph) ? mph : null,
+    out,
+    indoor,
+    condition: String(w.condition || ""),
+  };
+}
+
+function weatherReport(rows, label) {
+  const pct = (x) => (100 * x).toFixed(1) + "%";
+  const mean = (a) => a.reduce((x, y) => x + y, 0) / (a.length || 1);
+  const usable = rows.filter((r) => r.p > 0 && r.p <= 1 && r.weather);
+  if (!usable.length) { console.log("\nno weather attached"); return; }
+
+  console.log(`\n${"=".repeat(72)}`);
+  console.log(`WEATHER — ${label} (${usable.length} player-games)`);
+  console.log("=".repeat(72));
+  console.log(`  Every row is (actual - predicted): what the group beat its own`);
+  console.log(`  number by. Zero means the model already had it.\n`);
+
+  const band = (set) => {
+    const resid = mean(set.map((r) => r.actual - r.p));
+    const sd = Math.sqrt(
+      set.reduce((s2, r) => s2 + Math.pow(r.actual - r.p - resid, 2), 0) / (set.length * (set.length - 1)),
+    );
+    return { resid, se: sd, n: set.length };
+  };
+
+  console.log(`  ${"wind".padEnd(20)}${"n".padStart(7)}${"cashed".padStart(9)}${"model".padStart(9)}${"beat by".padStart(11)}`);
+  const groups = [];
+  for (const [lo, hi, name] of [
+    [-99, -8, "blowing in 8+"], [-8, -3, "blowing in 3-8"], [-3, 3, "cross / calm"],
+    [3, 8, "blowing out 3-8"], [8, 99, "blowing out 8+"],
+  ]) {
+    const g = usable.filter((r) => r.weather.out >= lo && r.weather.out < hi && !r.weather.indoor);
+    if (g.length < 100) continue;
+    const b = band(g); groups.push({ name, ...b });
+    console.log(
+      `  ${name.padEnd(20)}${String(g.length).padStart(7)}${pct(mean(g.map((r) => r.actual))).padStart(9)}${pct(mean(g.map((r) => r.p))).padStart(9)}${((100 * b.resid >= 0 ? "+" : "") + (100 * b.resid).toFixed(2) + "pp").padStart(11)}`,
+    );
+  }
+  const indoor = usable.filter((r) => r.weather.indoor);
+  if (indoor.length >= 100) {
+    const b = band(indoor);
+    console.log(`  ${"indoor".padEnd(20)}${String(indoor.length).padStart(7)}${pct(mean(indoor.map((r) => r.actual))).padStart(9)}${pct(mean(indoor.map((r) => r.p))).padStart(9)}${((100 * b.resid >= 0 ? "+" : "") + (100 * b.resid).toFixed(2) + "pp").padStart(11)}`);
+  }
+
+  if (groups.length >= 2) {
+    const a = groups[groups.length - 1], z0 = groups[0];
+    const diff = a.resid - z0.resid, se = Math.sqrt(a.se * a.se + z0.se * z0.se);
+    console.log(`\n  most out (${a.name}) minus most in (${z0.name}):`);
+    console.log(`    ${((100 * diff >= 0 ? "+" : "") + (100 * diff).toFixed(2))}pp   se ${(100 * se).toFixed(2)}pp   z = ${(diff / se).toFixed(2)}`);
+    console.log(`    ${Math.abs(diff / se) < 1.96 ? "Not distinguishable from zero." : "A real difference."}`);
+  }
+
+  /*
+   * Wind MAGNITUDE, ignoring direction. The direction test found nothing,
+   * but both extremes underperformed, which is a different hypothesis: a
+   * gale makes hitting harder whichever way it blows.
+   */
+  const outdoor = usable.filter((r) => !r.weather.indoor && r.weather.mph != null);
+  const calm = outdoor.filter((r) => r.weather.mph < 5);
+  const gale = outdoor.filter((r) => r.weather.mph >= 12);
+  if (calm.length >= 100 && gale.length >= 100) {
+    const bc = band(calm), bg = band(gale);
+    const diff = bg.resid - bc.resid, se = Math.sqrt(bc.se * bc.se + bg.se * bg.se);
+    console.log(`\n  WIND STRENGTH, direction ignored`);
+    console.log(`    under 5 mph  n=${String(calm.length).padStart(5)}  beat by ${((100 * bc.resid >= 0 ? "+" : "") + (100 * bc.resid).toFixed(2))}pp`);
+    console.log(`    12 mph plus  n=${String(gale.length).padStart(5)}  beat by ${((100 * bg.resid >= 0 ? "+" : "") + (100 * bg.resid).toFixed(2))}pp`);
+    console.log(`    difference ${((100 * diff >= 0 ? "+" : "") + (100 * diff).toFixed(2))}pp   se ${(100 * se).toFixed(2)}pp   z = ${(diff / se).toFixed(2)}`);
+    console.log(`    ${Math.abs(diff / se) < 1.96 ? "Not distinguishable from zero." : "A REAL EFFECT."}`);
+  }
+
+  console.log(`\n  ${"temperature".padEnd(20)}${"n".padStart(7)}${"beat by".padStart(11)}`);
+  const tbands = [];
+  for (const [lo, hi, name] of [
+    [-99, 70, "under 70F"], [70, 78, "70-78F"], [78, 86, "78-86F"], [86, 999, "86F+"],
+  ]) {
+    const g = usable.filter((r) => r.weather.tempF != null && r.weather.tempF >= lo && r.weather.tempF < hi && !r.weather.indoor);
+    if (g.length < 100) continue;
+    const b = band(g); tbands.push({ name, ...b });
+    console.log(`  ${name.padEnd(20)}${String(g.length).padStart(7)}${((100 * b.resid >= 0 ? "+" : "") + (100 * b.resid).toFixed(2) + "pp").padStart(11)}`);
+  }
+  if (tbands.length >= 2) {
+    const hot = tbands[tbands.length - 1], cold = tbands[0];
+    const diff = hot.resid - cold.resid, se = Math.sqrt(hot.se * hot.se + cold.se * cold.se);
+    console.log(`    hottest minus coldest: ${((100 * diff >= 0 ? "+" : "") + (100 * diff).toFixed(2))}pp   se ${(100 * se).toFixed(2)}pp   z = ${(diff / se).toFixed(2)}`);
+    console.log(`    ${Math.abs(diff / se) < 1.96 ? "Not distinguishable from zero." : "A REAL EFFECT — the model is missing temperature."}`);
+  }
+}
+
 async function main() {
   const obs = await collect();
   if (obs.length < 200) {
@@ -902,8 +1062,43 @@ async function main() {
   console.log(`  Any slice whose break-even price is SHORTER than what you are`);
   console.log(`  offered is a losing bet no matter how well the model ranks.`);
 
+  if (has("--fit-weather")) {
+    /*
+     * Sweep the temperature slope. Zero is the old model, so if zero wins
+     * the effect was not worth building and this should say so.
+     */
+    console.log(`\nFITTING the temperature slope (multiplier change per 10F)`);
+    console.log(`  ${"slope".padEnd(8)}${"brier".padStart(11)}${"bias".padStart(10)}${"cold bias".padStart(12)}${"hot bias".padStart(11)}`);
+    let best = null;
+    for (const slope of [0, 0.04, 0.08, 0.12, 0.16, 0.20, 0.26]) {
+      const rs = predictAll(obs, score.DEFAULT_K, lg, lgAvgAllowed, splits, { slope });
+      const ok = rs.filter((r) => isFinite(r.p));
+      const m = (a) => a.reduce((x, y) => x + y, 0) / (a.length || 1);
+      const brier = m(ok.map((r) => (r.p - r.actual) ** 2));
+      const bias = m(ok.map((r) => r.p)) - m(ok.map((r) => r.actual));
+      const cold = ok.filter((r, i) => { const w = WEATHER.get(obs[rs.indexOf(r)]?.gamePk); return false; });
+      // bias within cold and hot games, recomputed directly
+      const withT = ok.map((r) => ({ ...r, t: (WEATHER.get(r.gamePk) || {}).tempF, ind: (WEATHER.get(r.gamePk) || {}).indoor }));
+      const c = withT.filter((r) => !r.ind && r.t != null && r.t < 70);
+      const h = withT.filter((r) => !r.ind && r.t != null && r.t >= 82);
+      const cb = c.length ? m(c.map((r) => r.p)) - m(c.map((r) => r.actual)) : NaN;
+      const hb = h.length ? m(h.map((r) => r.p)) - m(h.map((r) => r.actual)) : NaN;
+      console.log(
+        `  ${String(slope).padEnd(8)}${brier.toFixed(5).padStart(11)}${((100 * bias >= 0 ? "+" : "") + (100 * bias).toFixed(2) + "pp").padStart(10)}${((100 * cb >= 0 ? "+" : "") + (100 * cb).toFixed(2) + "pp").padStart(12)}${((100 * hb >= 0 ? "+" : "") + (100 * hb).toFixed(2) + "pp").padStart(11)}`,
+      );
+      if (!best || brier < best.brier) best = { slope, brier };
+    }
+    console.log(`  -> best Brier at slope ${best.slope}`);
+    console.log(`  (cold/hot bias columns matter more than Brier here: the point`);
+    console.log(`   is to flatten them, not to move the fourth decimal place.)`);
+  }
+
   if (has("--parlay")) parlayReport(rows);
   if (has("--streaks")) streakReport(rows);
+  if (has("--weather")) {
+    for (const r of rows) r.weather = WEATHER.get(r.gamePk) || null;
+    weatherReport(rows, TB_N ? `${TB_N}+ total bases` : PROP === "hr" ? "home runs" : "1+ H/R/RBI");
+  }
 }
 
 main().catch((e) => {

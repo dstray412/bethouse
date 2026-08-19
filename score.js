@@ -239,6 +239,45 @@
    * nudge. That is the honest amount of signal available, not a shortcut.
    * ------------------------------------------------------------------ */
 
+  /*
+   * Multiplier change per 10F. SET TO ZERO, WHICH DISABLES THE FACTOR.
+   *
+   * The effect is real. The correction is not yet trustworthy, and the
+   * difference matters more than it sounds.
+   *
+   * Two windows sharing no games both show the residual gradient the
+   * physics predicts -- hottest bucket minus coldest, on (actual -
+   * predicted), came to +4.63pp (z 2.84) in April-May and +3.32pp (z 1.68)
+   * in July-August for home runs, with the same monotone shape and nothing
+   * comparable on H/R/RBI, which is a contact prop and should not care.
+   *
+   * But fitting a slope splits the two windows straight down the middle:
+   *
+   *     slope   April Brier   Summer Brier
+   *     0.00      0.10152       0.09909   <- summer's best
+   *     0.16      0.10069       0.09983   <- April's best
+   *
+   * Fitting on April alone would have shipped 0.16 and quietly made the
+   * other half of the season worse.
+   *
+   * The cause is this formulation, not the physics. The factor pivots on a
+   * fixed 72F, so it is not mean-neutral: in summer almost every game is
+   * above the pivot, so the "correction" mostly RAISES predictions, and
+   * summer's hot games were already priced correctly (+0.26pp). The
+   * adjustment ends up entangled with the window's baseline calibration
+   * instead of just redistributing across temperature.
+   *
+   * THE FIX TO TRY NEXT is to centre on the temperature the model was
+   * calibrated against rather than a constant -- factor = 1 + slope *
+   * (tempF - meanTempOfSample) / 10 -- so the factor can only move games
+   * relative to each other and cannot shift the overall level. Then re-fit
+   * on both windows and require a slope that helps BOTH before enabling it.
+   *
+   * Until then this stays at zero and the model is unchanged. The machinery
+   * and the measurement (`backtest.mjs --weather --fit-weather`) are kept
+   * because the next person should not have to rediscover any of it.
+   */
+  const TEMP_SLOPE = 0;
   const PLATOON_K = 600;   // PA vs one hand before a player's own split half-counts
   const HOMEAWAY_K = 800;  // individual home/away splits are even noisier
 
@@ -289,6 +328,58 @@
   }
 
   /** Same idea for the ballpark the game is in. */
+  /* ------------------------------------------------------------------ *
+   * Temperature
+   *
+   * Warm air is thinner and a struck ball carries further. This is the one
+   * weather effect that survived being measured.
+   *
+   * WHAT WAS TESTED AND WHAT SURVIVED
+   * ---------------------------------
+   * Wind was tested first and is dead. Direction did nothing on any prop
+   * (out-minus-in came back z = -0.18, 0.48, -0.63 for home runs, total
+   * bases and H/R/RBI) and neither did strength with direction ignored
+   * (z = -1.57, -0.59). Home runs are the most sensitive test available and
+   * the sign was backwards there.
+   *
+   * Temperature is different. Measured on two windows that share no games:
+   *
+   *              hottest minus coldest, as (actual - predicted)
+   *     home runs      Jul-Aug  +3.32pp (z 1.68)   Apr-May  +4.63pp (z 2.84)
+   *     2+ bases       Jul-Aug  +5.68pp (z 1.90)   Apr-May  +5.54pp (z 1.15)
+   *
+   * Four estimates, all positive, all monotone across the bands, and the
+   * magnitudes agree across windows that could not have influenced each
+   * other. Combined by inverse variance the home run effect is z = 3.3.
+   *
+   * The reason to believe it is not the z-score though. It is that the
+   * effect turns up where the physics says it should and nowhere else:
+   * temperature moves POWER, and does nothing coherent to 1+ H/R/RBI, which
+   * asks only whether a man reached base. A spurious correlation would not
+   * respect that line. So this factor is applied to the home run and total
+   * bases models and deliberately NOT to H/R/RBI.
+   *
+   * Below the reference temperature the model was running hot, so the
+   * factor is a haircut in the cold and a small bonus in the heat.
+   * ------------------------------------------------------------------ */
+
+  const TEMP_REFERENCE = 72; // degrees F where the factor is exactly 1
+
+  /**
+   * @param tempF   game-time temperature. null/indoor -> no adjustment.
+   * @param opts    {slope} multiplier change per 10F, fitted; {lo,hi} clamp
+   */
+  function temperatureFactor(tempF, opts) {
+    opts = opts || {};
+    const t = Number(tempF);
+    if (!isFinite(t) || t <= 0) return 1;
+    const slope = opts.slope == null ? TEMP_SLOPE : opts.slope;
+    const f = 1 + (slope * (t - TEMP_REFERENCE)) / 10;
+    const lo = opts.lo == null ? 0.75 : opts.lo;
+    const hi = opts.hi == null ? 1.25 : opts.hi;
+    return Math.max(lo, Math.min(hi, f));
+  }
+
   function homeAwayFactor(isHome, lg, own, ownOverall) {
     if (!lg) return 1;
     const leagueMult = isHome ? lg.home : lg.away;
@@ -469,7 +560,8 @@
     const ha = homeAwayFactor(ctx.isHome, haTable, player.homeAwayHR, hrPerPA);
     /* Home runs use the same whole-trip mixture rather than a Poisson over
        fractional PA, so all three models agree on what "4.65 trips" means. */
-    const prob = 1 - mixPow(1 - Math.min(0.999, hrPerPA * pf * park * plat * ha), pa);
+    const temp = temperatureFactor(ctx.tempF, ctx.tempOpts);
+    const prob = 1 - mixPow(1 - Math.min(0.999, hrPerPA * pf * park * plat * ha * temp), pa);
     return {
       name: player.name,
       slot: player.slot,
@@ -623,11 +715,19 @@
     const ha = homeAwayFactor(ctx.isHome, ctx.leagueHomeAway, null, 0);
 
     const clamp = (x) => Math.max(0, Math.min(0.999, x));
+    /*
+     * Temperature moves batted-ball CARRY, so it is applied to the
+     * extra-base outcomes and not to singles. A single is mostly a ball
+     * that found grass; a double, triple or home run is a ball that had to
+     * travel. This split is the same reason the factor is absent from the
+     * H/R/RBI model entirely.
+     */
+    const temp = temperatureFactor(ctx.tempF, ctx.tempOpts);
     const rates = {
       p1: clamp(base.p1 * pf * platHit * ha),
-      p2: clamp(base.p2 * pf * platXB * ha),
-      p3: clamp(base.p3 * pf * platXB * ha),
-      p4: clamp(base.p4 * pf * platHR * ha),
+      p2: clamp(base.p2 * pf * platXB * ha * temp),
+      p3: clamp(base.p3 * pf * platXB * ha * temp),
+      p4: clamp(base.p4 * pf * platHR * ha * temp),
     };
 
     const prob = probAtLeastTB(rates, pa, n);
@@ -859,6 +959,9 @@
     pitcherFactor: pitcherFactor,
     offenseFactor: offenseFactor,
     platoonFactor: platoonFactor,
+    temperatureFactor: temperatureFactor,
+    TEMP_SLOPE: TEMP_SLOPE,
+    TEMP_REFERENCE: TEMP_REFERENCE,
     homeAwayFactor: homeAwayFactor,
     PLATOON_K: PLATOON_K,
     HOMEAWAY_K: HOMEAWAY_K,
