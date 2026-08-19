@@ -210,3 +210,29 @@ information. What matters is its spread AFTER conditioning on what the model
 already uses. Before building a feature, ask what it is correlated with that is
 already in there -- and if the answer is "the biggest term in the model",
 expect nothing and test cheaply.
+
+## Verifying a re-rendering UI needs a fresh query, not a held reference
+
+The odds board was shipped with a "KNOWN DEFECT" in its commit message
+saying the detail panel never rendered the market comparison. The panel
+rendered it correctly the whole time. There was no defect.
+
+The fault was the test. Clicking a row makes the app re-render, which
+replaces the DOM nodes; the reference held from before the click points at
+a detached element. Reading `aria-expanded` off it returns the old value,
+and searching `document.body.innerText` at that moment finds nothing because
+the click never registered against the live tree.
+
+The evidence looked conclusive -- three separate checks all said the line
+was missing -- and all three shared the same broken assumption.
+
+**Rule:** after any action that causes a re-render, re-query the document
+for what you want to inspect. Never assert against a node reference captured
+before the action. And when several checks agree that something is broken,
+confirm they are not all downstream of one shared assumption before writing
+the finding down as fact.
+
+The wider version: a defect claim is a claim like any other and deserves the
+same standard of proof as a fix. Recording a bug that does not exist costs
+the next person real time, and it went into a commit message on main where
+it cannot be edited.
