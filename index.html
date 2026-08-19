@@ -59,6 +59,9 @@ header{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:1
   padding:2px 7px;border-radius:999px;border:1px solid var(--line);color:var(--muted);margin-left:7px;vertical-align:1px}
 .chip.live{color:var(--good);border-color:rgba(95,206,143,.4)}
 .chip.proj{color:var(--warn);border-color:rgba(224,163,63,.4)}
+/* Market price from odds-data.js. Its own class so it never gets confused
+   with the THIN sample-size chip, which is what happened first time. */
+.chip.mkt{font-variant-numeric:tabular-nums;letter-spacing:.04em}
 .chip.livegame{color:#8fd9ff;border-color:rgba(56,225,255,.45)}
 .chip.delayed{color:var(--warn);border-color:rgba(224,163,63,.55)}
 .chip.done{color:var(--muted)}
@@ -193,6 +196,7 @@ footer{margin-top:22px;color:var(--muted);font-size:12px;line-height:1.7}
 <script src="edge.js"></script>
 <script src="score.js"></script>
 <script src="mlb-data.js"></script>
+<script src="odds-data.js" onerror="void 0"></script>
 <!-- Written by track.mjs. Absent until a day has been graded. -->
 <script src="record.js"></script>
 <script>
@@ -405,6 +409,43 @@ function renderSlip(){
  * is a multiplier around 1, so show the change and keep the raw number in
  * brackets for anyone reconciling the arithmetic.
  */
+/* ---------------- market prices ----------------
+ * odds-data.js is written by fetch-odds-espn.mjs from ESPN's DraftKings
+ * feed, no API key. It may be absent or stale; everything below degrades to
+ * "no price" rather than to a wrong one.
+ *
+ * Names are matched the same way the fetcher normalises them: no accents,
+ * no punctuation, no Jr/II. ESPN athlete ids are not MLB ids, so the name
+ * is the only join available.
+ */
+var ODDS = (window.BetHouseOdds && window.BetHouseOdds.markets) || null;
+
+function normName(s){
+  return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .toLowerCase().replace(/\b(jr|sr|ii|iii|iv)\b/g,'')
+    .replace(/[^a-z ]/g,'').replace(/\s+/g,' ').trim();
+}
+
+/* Which market answers the prop currently on screen. The home run board has
+   no matching market in the feed, so it gets nothing rather than a guess. */
+function marketKeyFor(name){
+  if(!ODDS) return null;
+  if(state.view==='hrr') return normName(name)+'|hrr|0.5';
+  if(state.view==='tb')  return normName(name)+'|tb|'+(state.tbThreshold-0.5);
+  return null;
+}
+function marketFor(name){
+  var k=marketKeyFor(name);
+  return k && ODDS[k] ? ODDS[k] : null;
+}
+
+/* Expected value per $1 staked, at the price actually on offer. */
+function evAt(prob, american){
+  var dec=E.americanToDecimal(american);
+  if(!isFinite(dec)) return NaN;
+  return prob*(dec-1)-(1-prob);
+}
+
 function fac(x){
   if(!isFinite(x)) return '—';
   var d=(x-1)*100;
@@ -516,6 +557,19 @@ function buildWhy(r, game, side){
   if(state.view==='hrr' && r.offenseFactor)
     line('Lineup around him: <b>'+(game[side].runsPerGame||0).toFixed(2)+'</b> R/G → '+fac(r.offenseFactor)+'.');
 
+  var mk = marketFor(r.name);
+  if(mk){
+    var ev=evAt(r.prob, mk.over);
+    var edge=r.prob-mk.noVigOver;
+    line('Market: <b>'+(mk.over>0?'+':'')+mk.over+'</b> over '+mk.line+
+      ' (DraftKings). That price implies <b>'+pct(mk.impliedOver)+'</b>, or <b>'+pct(mk.noVigOver)+
+      '</b> once the '+(100*mk.hold).toFixed(1)+'% hold is removed.');
+    line('Model says <b>'+pct(r.prob)+'</b> \u2014 '+
+      (edge>0?'<b>'+(100*edge).toFixed(1)+'pp above</b>':'<b>'+(100*Math.abs(edge)).toFixed(1)+'pp below</b>')+
+      ' the no-vig number, worth <b class="'+(ev>0?'v-ok':'v-no')+'">'+
+      (ev>=0?'+':'')+(100*ev).toFixed(1)+'% EV</b> at the offered price.'+
+      (ev>0 ? '' : ' <span style="color:var(--muted)">Not a bet.</span>'));
+  }
   line('Model: <b>'+pct(r.prob)+'</b>. A fair price for that is <b>'+amer(S.fairPrice(r.prob))+
        '</b> \u2014 anything longer is good value, anything shorter is not. '+
        (state.view==='tb'
@@ -689,6 +743,17 @@ function render(){
           row.appendChild(el('div','prob', pct(r.prob, 0)));
         }
 
+        var mkt = marketFor(r.name);
+        if(mkt && !r.settled){
+          var ev=evAt(r.prob, mkt.over);
+          var tag=el('span','chip mkt');
+          tag.textContent=(mkt.over>0?'+':'')+mkt.over;
+          if(isFinite(ev)){
+            tag.style.color = ev>0.02 ? 'var(--good)' : ev<-0.05 ? 'var(--bad)' : 'var(--muted)';
+            tag.title='Market '+mkt.over+', model '+pct(r.prob,1)+', EV '+(100*ev).toFixed(1)+'%';
+          }
+          who.appendChild(tag);
+        }
         var legKey = g.gamePk+'|'+r.player.id+'|'+propKey();
         var inSlip = state.slip.some(function(x){return x.key===legKey;});
         var add=el('button','addleg', inSlip?'\u2713':'+');
