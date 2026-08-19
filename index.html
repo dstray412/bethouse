@@ -172,7 +172,7 @@ footer{margin-top:22px;color:var(--muted);font-size:12px;line-height:1.7}
     <div class="seg" id="view" role="group" aria-labelledby="lab-view"></div>
   </div>
   <a class="navlink" href="nfl.html">NFL →</a>
-  <a class="navlink" href="golf.html">PGA — the cut →</a>
+  <a class="navlink" href="golf.html">PGA →</a>
 </header>
 
 <div class="note" id="note"></div>
@@ -653,7 +653,11 @@ function render(){
   });
   document.getElementById('sugwrap').hidden = state.view!=='hrr';
 
-  document.getElementById('tagline').textContent =
+  /* Name the board, then the date. golf.html and nfl.html both put the
+     section first ("PGA Tour — who makes the cut", "NFL — 2026 week 1");
+     this one showed only a date, so the baseball board was the one page
+     that never said which board it was. */
+  document.getElementById('tagline').textContent = 'Baseball — ' +
     new Date(D.date+'T12:00:00Z').toLocaleDateString(undefined,{weekday:'long',month:'short',day:'numeric'});
 
   /* honest header */
