@@ -393,7 +393,12 @@ function renderSlip(){
     box.appendChild(sum);
 
     var w=el('div','slipwarn '+c.correlation);
-    if(c.correlation==='severe'){
+    if(c.legs<2){
+      /* One leg is not a parlay. There is no product, so there is nothing to
+         say about whether multiplying is sound -- and "All 1 legs are from
+         different games" was saying it anyway. */
+      w=null;
+    } else if(c.correlation==='severe'){
       w.innerHTML='<b>These legs are nearly the same bet.</b> You have the same player on more than one prop. '+
         'If he has a quiet night they all die together, so multiplying them is not an approximation, it is wrong. '+
         'Treat this number as meaningless.';
@@ -413,7 +418,7 @@ function renderSlip(){
       w.innerHTML='All '+c.legs+' legs are from different games, so multiplying them is sound. '+
         'Measured on real days, cross-game slips cashed <b>1.03-1.08\u00d7</b> as often as the product predicts.';
     }
-    box.appendChild(w);
+    if(w) box.appendChild(w);
 
     if(state.suggested){
       /* The one thing that makes a SUGGESTED slip different from one you
