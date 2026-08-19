@@ -59,7 +59,7 @@ const has = (f) => args.includes(f);
  * than the one asked is the single worst thing it can do, so an unknown flag
  * is a hard error, not a warning.
  */
-const KNOWN_FLAGS = new Set(["--days", "--fit", "--prop", "--end", "--start", "--parlay"]);
+const KNOWN_FLAGS = new Set(["--days", "--fit", "--prop", "--end", "--start", "--parlay", "--streaks"]);
 for (let i = 0; i < args.length; i++) {
   const a = args[i];
   if (!a.startsWith("--")) continue;
@@ -598,6 +598,139 @@ function parlayReport(rows) {
   }
 }
 
+/* ---------------------------------------------------------------- *
+ * Streaks
+ *
+ * The premise sold by trend sites: a player who has hit this prop in ten
+ * straight games is a better bet than one who has not. Every such site
+ * leads with it -- "hit in 10 of last 10, 100%" -- next to a price.
+ *
+ * There are two separate questions and only the second one matters.
+ *
+ *   1. Do hot players cash more often?  Almost certainly yes, and it
+ *      proves nothing: good hitters have long streaks BECAUSE they are
+ *      good hitters. Their streak and their quality are the same fact.
+ *
+ *   2. Do hot players beat what a model already expects of them? That is
+ *      the only version that could make money, because a book prices the
+ *      quality. If streaks add nothing here, the cheatsheets are selling
+ *      you information the market already has.
+ *
+ * So: bucket by the model's own probability, then compare hot against
+ * cold WITHIN each bucket. Same expected chance, different recent form.
+ * Any difference is what the streak is worth.
+ * ---------------------------------------------------------------- */
+
+function streakReport(rows) {
+  const pct = (x) => (100 * x).toFixed(1) + "%";
+  const usable = rows.filter(
+    (r) => r.p > 0 && r.p <= 1 && r.playerId != null && r.date,
+  );
+  if (!usable.length) { console.log("\nno dated rows for streaks"); return; }
+
+  // Chronological walk per player. `streak` is games hit in a row BEFORE
+  // this one; `cold` is games missed in a row before it. Both count only
+  // what had already happened, which is the whole point.
+  const byPlayer = new Map();
+  for (const r of usable) {
+    if (!byPlayer.has(r.playerId)) byPlayer.set(r.playerId, []);
+    byPlayer.get(r.playerId).push(r);
+  }
+  const scored = [];
+  for (const [, games] of byPlayer) {
+    games.sort((a, b) => String(a.date).localeCompare(String(b.date)));
+    let hot = 0, cold = 0, seen = 0;
+    for (const g of games) {
+      scored.push({ ...g, streak: hot, cold, priorGames: seen });
+      if (g.actual === 1) { hot++; cold = 0; } else { cold++; hot = 0; }
+      seen++;
+    }
+  }
+
+  const mean = (a) => a.reduce((x, y) => x + y, 0) / (a.length || 1);
+  console.log(`\n${"=".repeat(72)}`);
+  console.log(`STREAKS — does recent form predict? (${scored.length} player-games)`);
+  console.log("=".repeat(72));
+
+  /* ---- 1. the version trend sites sell ---- */
+  console.log(`\n  1. RAW: cash rate by current hitting streak`);
+  console.log(`  ${"streak".padEnd(12)}${"n".padStart(7)}${"cashed".padStart(10)}${"model said".padStart(13)}`);
+  for (const [lo, hi, label] of [
+    [0, 0, "0 (missed)"], [1, 1, "1 game"], [2, 2, "2"], [3, 4, "3-4"],
+    [5, 7, "5-7"], [8, 9, "8-9"], [10, 99, "10 or more"],
+  ]) {
+    const b = scored.filter((r) => r.streak >= lo && r.streak <= hi);
+    if (b.length < 40) continue;
+    console.log(
+      `  ${label.padEnd(12)}${String(b.length).padStart(7)}${pct(mean(b.map((r) => r.actual))).padStart(10)}${pct(mean(b.map((r) => r.p))).padStart(13)}`,
+    );
+  }
+  console.log(`  Rising numbers here are mostly "good hitters hit". Keep reading.`);
+
+  /* ---- 2. the version that would make money ---- */
+  console.log(`\n  2. CONTROLLED: same model probability, hot vs cold`);
+  console.log(
+    `  ${"model says".padEnd(12)}${"hot n".padStart(7)}${"hot cashed".padStart(12)}${"cold n".padStart(8)}${"cold cashed".padStart(13)}${"edge".padStart(9)}`,
+  );
+  let hotAll = [], coldAll = [];
+  for (const [lo, hi] of [[0.5, 0.6], [0.6, 0.65], [0.65, 0.7], [0.7, 0.75], [0.75, 0.85]]) {
+    const inB = scored.filter((r) => r.p >= lo && r.p < hi && r.priorGames >= 5);
+    const hot = inB.filter((r) => r.streak >= 5);
+    const cold = inB.filter((r) => r.streak === 0);
+    if (hot.length < 25 || cold.length < 25) continue;
+    hotAll = hotAll.concat(hot); coldAll = coldAll.concat(cold);
+    const h = mean(hot.map((r) => r.actual)), c = mean(cold.map((r) => r.actual));
+    console.log(
+      `  ${(pct(lo) + "-" + pct(hi)).padEnd(12)}${String(hot.length).padStart(7)}${pct(h).padStart(12)}${String(cold.length).padStart(8)}${pct(c).padStart(13)}${((100 * (h - c) >= 0 ? "+" : "") + (100 * (h - c)).toFixed(1) + "pp").padStart(9)}`,
+    );
+  }
+  if (hotAll.length && coldAll.length) {
+    /*
+     * The right statistic is EXCESS OVER THE MODEL, not the raw gap.
+     *
+     * Hot players cash more, but the model already expects them to -- it
+     * has their season rate, their lineup slot and their matchup. Comparing
+     * raw cash rates credits the streak for everything the model knew.
+     * What is actually being asked is: given two players the model rates
+     * identically, does the hot one beat his number by more?
+     *
+     * So compare (actual - predicted) between the groups. That is a
+     * difference in differences, and it is the only version a bettor can
+     * spend, because the price already contains the model's part.
+     */
+    const resid = (set) => mean(set.map((r) => r.actual - r.p));
+    const rh = resid(hotAll), rc = resid(coldAll);
+    const varOf = (set, m) =>
+      set.reduce((s2, r) => s2 + Math.pow(r.actual - r.p - m, 2), 0) / (set.length * (set.length - 1));
+    const se = Math.sqrt(varOf(hotAll, rh) + varOf(coldAll, rc));
+    const z = (rh - rc) / se;
+    const h = mean(hotAll.map((r) => r.actual)), c = mean(coldAll.map((r) => r.actual));
+    const hp = mean(hotAll.map((r) => r.p)), cp = mean(coldAll.map((r) => r.p));
+    console.log(`\n  hot  ${hotAll.length} games: cashed ${pct(h)}, model said ${pct(hp)}  -> beat it by ${((100 * rh >= 0 ? "+" : "") + (100 * rh).toFixed(2))}pp`);
+    console.log(`  cold ${coldAll.length} games: cashed ${pct(c)}, model said ${pct(cp)}  -> beat it by ${((100 * rc >= 0 ? "+" : "") + (100 * rc).toFixed(2))}pp`);
+    console.log(`\n  raw gap between them            ${((100 * (h - c) >= 0 ? "+" : "") + (100 * (h - c)).toFixed(1))}pp`);
+    console.log(`  of which the model predicted    ${((100 * (hp - cp) >= 0 ? "+" : "") + (100 * (hp - cp)).toFixed(1))}pp`);
+    console.log(`  LEFT OVER FOR THE STREAK        ${((100 * (rh - rc) >= 0 ? "+" : "") + (100 * (rh - rc)).toFixed(2))}pp   (se ${(100 * se).toFixed(2)}pp, z = ${z.toFixed(3)})`);
+    console.log(
+      `  ${Math.abs(z) < 1.96
+        ? "Indistinguishable from zero. The streak is not telling you anything\n  the model did not already have -- and the book has it too."
+        : "A real residual. Worth a closer look before believing it."}`,
+    );
+    const need = Math.ceil(2 * Math.pow(1.96 / Math.max(1e-9, Math.abs(rh - rc)), 2) * 0.22);
+    if (Math.abs(z) < 1.96)
+      console.log(`  To resolve an effect this small you would need roughly ${need} games per group.`);
+  }
+
+  /* ---- 3. does the model already beat the streak? ---- */
+  console.log(`\n  3. BEATING THE BASE RATE: model error, hot vs cold`);
+  for (const [label, set] of [["hot (5+)", hotAll], ["cold (0)", coldAll]]) {
+    if (!set.length) continue;
+    const bias = mean(set.map((r) => r.p)) - mean(set.map((r) => r.actual));
+    console.log(`  ${label.padEnd(10)} model ran ${((100 * bias >= 0 ? "+" : "") + (100 * bias).toFixed(2))}pp vs reality`);
+  }
+  console.log(`  If both are near zero the model is already pricing form correctly.`);
+}
+
 async function main() {
   const obs = await collect();
   if (obs.length < 200) {
@@ -770,6 +903,7 @@ async function main() {
   console.log(`  offered is a losing bet no matter how well the model ranks.`);
 
   if (has("--parlay")) parlayReport(rows);
+  if (has("--streaks")) streakReport(rows);
 }
 
 main().catch((e) => {

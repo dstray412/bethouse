@@ -37,6 +37,7 @@ node --test edge.test.mjs score.test.mjs golf.test.mjs nfl.test.mjs   # 202 test
 node backtest.mjs --prop tb2               # validate total bases
 node backtest.mjs                          # measures whether the model works
 node backtest.mjs --parlay                 # ...and whether parlays multiply
+node backtest.mjs --streaks                # ...and whether hot streaks mean anything
 ```
 
 That's it. `statsapi.mlb.com` is open: no key, no account, no rate tier. A full
@@ -144,7 +145,7 @@ should be re-fitted when the run environment shifts.
 | `score.js` | The model. Loads in both browser and Node so the app, tests and backtest run identical code. |
 | `score.test.mjs` | 43 tests on model shape, clamping, regression, handedness and the total-bases distribution. |
 | `fetch-mlb.mjs` | Five keyless requests to statsapi → `mlb-data.js`. |
-| `backtest.mjs` | Replays real games, measures calibration, fits `k`. |
+| `backtest.mjs` | Replays real games, measures calibration, fits `k`, and tests parlays (`--parlay`) and hot streaks (`--streaks`). |
 | `track.mjs` | Records each day's pregame predictions, grades them once games end, keeps the running record. |
 | `edge.js` | De-vig and EV math for the odds side. 36 tests. |
 | `fetch-odds.mjs` | The Odds API client. Needs a key; not required for the board. |
@@ -475,6 +476,73 @@ Three legs at 63%, 47% and 58% combine to **17.2%**, which needs +481 to break
 even. Four decent legs land under 13%. The suggester will build you one of these on request, and the
 arithmetic does not care that you asked nicely: the vig compounds faster than
 any edge the model can find.
+
+---
+
+## Does a hot streak mean anything?
+
+Every prop-trend site leads with the same thing: a player who has hit this
+bet in ten straight games, a "100% cheatsheet", a hit rate against tonight's
+opponent. It is the most intuitive idea in betting and it is worth exactly
+one afternoon to check.
+
+`node backtest.mjs --streaks` replays real days, and for every hitter tracks
+how many games in a row he had already cashed **before** the one being
+predicted. 30 days, 405 games, 7,037 player-games.
+
+### The number they sell you
+
+| current streak | n | actually cashed |
+|---|---|---|
+| 0 — missed last game | 2,570 | 66.1% |
+| 5-7 straight | 557 | **72.7%** |
+| 10 or more | 110 | 71.8% |
+
+Six and a half points. Looks like free money.
+
+### The number that survives
+
+It is the wrong comparison. Hot players cash more *because they are better
+players*, and the model already knows that — it has their season rate, their
+lineup slot and their matchup. Asking whether the streak helps means asking
+whether a hot player beats **what he was already expected to do**.
+
+```
+raw gap between hot and cold      +3.9pp
+of which the model predicted      +2.6pp
+LEFT OVER FOR THE STREAK          +1.36pp   (se 1.97pp, z = 0.69)
+```
+
+**Two thirds of a hot streak is just "good hitters hit."** What is left is
+1.36 points with a standard error of 1.97 — indistinguishable from zero.
+Resolving an effect that small would take about 9,000 games per group; this
+has 797.
+
+The bucket-by-bucket breakdown is the giveaway. Holding the model's
+probability fixed, the hot-minus-cold edge runs **+4.7, −3.6, +5.7, −0.1,
++10.7**. No pattern, no direction, no monotonicity. That is what noise looks
+like when you slice it five ways.
+
+### Why it was never going to work
+
+A streak is visible to everybody. A hitter on a ten-game run is priced at
+−141 *because* of the run. The information is in the number before you get
+there, which is the same reason the NFL spread model here cannot beat a
+closing line.
+
+There is also a selection problem baked into the cheatsheets. Searching a few
+hundred hitters across several prop types and several splits — overall, versus
+opponent, home, away — is thousands of combinations. At a true 70% hit rate,
+**roughly a hundred of them go 10-for-10 on chance alone.** A list of players
+who have hit ten in a row is partly a list of good hitters and partly a list
+of coin flips that landed heads ten times.
+
+### What this does not prove
+
+One prop, one 30-day window, and the thing doing the controlling is this
+model — a worse model would leave a bigger residual and a better one might
+leave none. It says the streak adds nothing *this model has not already
+priced*. That is the only version a bettor can spend.
 
 ---
 

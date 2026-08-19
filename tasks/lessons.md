@@ -135,3 +135,27 @@ unposted entry list is not a malformed board, it is Tuesday. A guard that
 cannot tell "this data is broken" from "this data does not exist yet" will
 eventually fire on the second one, and it will do it at the worst time,
 because that is precisely when the upstream is quiet.
+
+## Ask what the model did not already know, not what correlates
+
+Trend sites sell hitting streaks: "hit in 10 of last 10". Measured over 7,037
+player-games, hot hitters (five or more straight) cashed 72.3% against 68.3%
+for cold ones — a 3.9 point gap that looks like an edge.
+
+It is not one. The model already expected the hot group to do 2.6 points
+better, because a streak and a good hitter are largely the same fact. The
+residual was 1.36 points against a standard error of 1.97: zero.
+
+The first version of this analysis compared raw cash rates and produced
+z = 2.00, right on the significance line, and would have been reported as a
+finding. Comparing (actual − predicted) instead of actual gave z = 0.69.
+
+**Rule:** when testing whether some new signal helps, never compare outcomes
+between groups. Compare **residuals** — how much each group beat what was
+already predicted for it. Raw comparisons credit the new signal for
+everything the existing model already knew, and the difference between those
+two questions here was the difference between "publish it" and "discard it".
+
+The same logic is why the NFL spread model is graded against the closing line
+rather than against the base rate. A signal is only worth what it adds to the
+number you would otherwise have used.
