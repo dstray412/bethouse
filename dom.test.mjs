@@ -296,3 +296,51 @@ test("the add-to-parlay button is built inside the eligibility guard", () => {
     "more than one place builds an addleg button; only one of them is guarded",
   );
 });
+
+/* ------------------------------------------------------------------ *
+ * A price that already carries its sign must not be given a second one
+ *
+ * fetch-odds-espn.mjs stores American prices as SIGNED STRINGS: "+111",
+ * "-103". index.html rendered them as `(mkt.over>0?'+':'')+mkt.over`, and
+ * "+111" > 0 coerces to 111 > 0, which is true — so every positively
+ * priced row on total bases showed `++111`, in the chip and again in the
+ * detail panel's "Market: ++111 over 1.5". Negative prices looked fine,
+ * which is why it survived: half the rows were correct.
+ *
+ * index.html already has amer() for exactly this. Math.round("+111") is
+ * 111, so it takes the string or a number and emits one sign either way.
+ * ------------------------------------------------------------------ */
+
+test("the odds feed stores prices with their sign attached", () => {
+  const file = resolve(DIR, "odds-data.js");
+  assert.ok(existsSync(file), "odds-data.js is missing");
+
+  const win = {};
+  new Function("window", readFileSync(file, "utf8"))(win);
+  const markets = (win.BetHouseOdds || {}).markets;
+  assert.ok(markets && typeof markets === "object", "odds-data.js defines no markets");
+
+  const prices = Object.values(markets).flatMap((m) => [m.over, m.under]);
+  assert.ok(prices.length > 0, "odds-data.js has no priced markets to check");
+  for (const p of prices) {
+    assert.match(
+      String(p),
+      /^[+-]\d+$/,
+      `price ${JSON.stringify(p)} is not a signed American string — the render path assumes it is`,
+    );
+  }
+});
+
+test("no board hand-prefixes a sign onto a market price", () => {
+  /* The bug in the form it was written in: a truthiness test on a value
+     that is already signed, used to decide whether to add a sign. */
+  for (const f of BOARDS) {
+    const js = src(f);
+    const offenders = js.match(/\.(over|under)\s*>\s*0\s*\?\s*'\+'/g) || [];
+    assert.deepEqual(
+      offenders,
+      [],
+      `${f} prefixes '+' onto an already-signed market price — use amer()`,
+    );
+  }
+});

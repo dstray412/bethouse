@@ -615,7 +615,7 @@ function buildWhy(r, game, side){
   if(mk){
     var ev=evAt(r.prob, mk.over);
     var edge=r.prob-mk.noVigOver;
-    line('Market: <b>'+(mk.over>0?'+':'')+mk.over+'</b> over '+mk.line+
+    line('Market: <b>'+amer(mk.over)+'</b> over '+mk.line+
       ' (DraftKings). That price implies <b>'+pct(mk.impliedOver)+'</b>, or <b>'+pct(mk.noVigOver)+
       '</b> once the '+(100*mk.hold).toFixed(1)+'% hold is removed.');
     line('Model says <b>'+pct(r.prob)+'</b> \u2014 '+
@@ -818,7 +818,10 @@ function render(){
         if(mkt && !r.settled){
           var ev=evAt(r.prob, mkt.over);
           var tag=el('span','chip mkt');
-          tag.textContent=(mkt.over>0?'+':'')+mkt.over;
+          /* The feed already signs its prices, so prefixing another '+'
+             printed ++111. amer() rounds first, which takes the signed
+             string or a bare number and emits exactly one sign. */
+          tag.textContent=amer(mkt.over);
           if(isFinite(ev)){
             tag.style.color = ev>0.02 ? 'var(--good)' : ev<-0.05 ? 'var(--bad)' : 'var(--muted)';
             tag.title='Market '+mkt.over+', model '+pct(r.prob,1)+', EV '+(100*ev).toFixed(1)+'%';
