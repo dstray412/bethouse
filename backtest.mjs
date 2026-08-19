@@ -59,7 +59,7 @@ const has = (f) => args.includes(f);
  * than the one asked is the single worst thing it can do, so an unknown flag
  * is a hard error, not a warning.
  */
-const KNOWN_FLAGS = new Set(["--days", "--fit", "--prop", "--end", "--start", "--parlay", "--streaks", "--weather", "--fit-weather"]);
+const KNOWN_FLAGS = new Set(["--days", "--fit", "--prop", "--end", "--start", "--parlay", "--streaks", "--weather", "--fit-weather", "--defense"]);
 for (let i = 0; i < args.length; i++) {
   const a = args[i];
   if (!a.startsWith("--")) continue;
@@ -213,9 +213,24 @@ async function collect() {
   return obs;
 }
 
+/* Every game's team batting line, which is also the OPPOSING defence's
+   line of what it gave up. Filled by harvest, consumed by --defense. */
+const TEAMGAMES = [];
+
 /** Pull one game's worth of (prediction inputs, actual outcome) pairs. */
 function harvest(box, obs, gamePk, date) {
   const sides = ["away", "home"];
+  for (const side of sides) {
+    const bat = box.teams[side]?.teamStats?.batting || {};
+    const other = side === "away" ? "home" : "away";
+    const def = box.teams[other]?.team?.abbreviation;
+    if (!def) continue;
+    // What `def` allowed in this game.
+    TEAMGAMES.push({
+      gamePk, date, def,
+      hits: num(bat.hits), ab: num(bat.atBats), runs: num(bat.runs),
+    });
+  }
   // Opposing starter's line ENTERING this game, for the pitcher factor.
   const starterEntering = {};
   for (const side of sides) {
@@ -266,6 +281,8 @@ function harvest(box, obs, gamePk, date) {
       obs.push({
         name: p.person.fullName,
         playerId: p.person.id,
+        team: box.teams[side]?.team?.abbreviation || null,
+        oppTeam: box.teams[side === "away" ? "home" : "away"]?.team?.abbreviation || null,
         gamePk,
         date,
         slot,
@@ -432,6 +449,7 @@ function predictAll(obs, k, lg, lgAvgAllowed, splits, tempOpts) {
       actual: actualFor(o),
       slot: o.slot,
       name: o.name,
+      oppTeam: o.oppTeam,
       playerId: o.playerId,
       gamePk: o.gamePk,
       date: o.date,
@@ -891,6 +909,84 @@ function weatherReport(rows, label) {
   }
 }
 
+/* ---------------------------------------------------------------- *
+ * Opponent defence
+ *
+ * The model already knows the opposing STARTER: `pitcherFactor` is built
+ * from his opponent batting average. What it does not know is the rest of
+ * the run-prevention -- the bullpen a hitter sees for roughly a third of
+ * his trips, and the fielders behind everyone.
+ *
+ * Team opponent-AVG spans about .218 to .288 across a season, which is a
+ * far wider spread than the handedness effect. But most of that spread is
+ * the starters, whom the model already prices. So the question is the same
+ * one the streak test asked: does the TEAM number move the residual once
+ * the starter has been accounted for?
+ *
+ * Built by accumulating what each defence gave up, game by game, in date
+ * order -- so a team's number entering a game contains only games already
+ * played.
+ * ---------------------------------------------------------------- */
+
+function defenseReport(rows) {
+  const pct = (x) => (100 * x).toFixed(1) + "%";
+  const mean = (a) => a.reduce((x, y) => x + y, 0) / (a.length || 1);
+  if (!TEAMGAMES.length) { console.log("\nno team lines collected"); return; }
+
+  // Chronological accumulation of what each defence allowed.
+  const seen = new Map();
+  TEAMGAMES.sort((a, b) => String(a.date).localeCompare(String(b.date)) || a.gamePk - b.gamePk);
+  const entering = new Map(); // `${gamePk}|${team}` -> opponent AVG before this game
+  for (const g of TEAMGAMES) {
+    const acc = seen.get(g.def) || { hits: 0, ab: 0, games: 0 };
+    if (acc.ab >= 300) entering.set(`${g.gamePk}|${g.def}`, acc.hits / acc.ab);
+    acc.hits += g.hits; acc.ab += g.ab; acc.games++;
+    seen.set(g.def, acc);
+  }
+
+  const usable = rows
+    .map((r) => ({ ...r, oppAvg: entering.get(`${r.gamePk}|${r.oppTeam}`) }))
+    .filter((r) => r.p > 0 && r.p <= 1 && r.oppAvg != null);
+  if (usable.length < 200) { console.log("\nnot enough games with a settled defensive number"); return; }
+
+  const lgAvg = mean(usable.map((r) => r.oppAvg));
+  console.log(`\n${"=".repeat(72)}`);
+  console.log(`OPPONENT DEFENCE — beyond the starter (${usable.length} player-games)`);
+  console.log("=".repeat(72));
+  console.log(`  League opponent AVG across these games: ${lgAvg.toFixed(4)}`);
+  console.log(`  Rows are (actual - predicted). Zero means the starter already`);
+  console.log(`  told the model everything the team number would have.\n`);
+
+  const band = (set) => {
+    const resid = mean(set.map((r) => r.actual - r.p));
+    const se = Math.sqrt(
+      set.reduce((s2, r) => s2 + Math.pow(r.actual - r.p - resid, 2), 0) / (set.length * (set.length - 1)),
+    );
+    return { resid, se, n: set.length };
+  };
+
+  console.log(`  ${"opponent defence".padEnd(22)}${"n".padStart(7)}${"cashed".padStart(9)}${"model".padStart(9)}${"beat by".padStart(11)}`);
+  const bands = [];
+  const cuts = [[0, 0.235, "elite (under .235)"], [0.235, 0.245, ".235-.245"],
+                [0.245, 0.255, ".245-.255"], [0.255, 1, "leaky (.255+)"]];
+  for (const [lo, hi, name] of cuts) {
+    const g = usable.filter((r) => r.oppAvg >= lo && r.oppAvg < hi);
+    if (g.length < 100) continue;
+    const b = band(g); bands.push({ name, ...b });
+    console.log(
+      `  ${name.padEnd(22)}${String(g.length).padStart(7)}${pct(mean(g.map((r) => r.actual))).padStart(9)}${pct(mean(g.map((r) => r.p))).padStart(9)}${((100 * b.resid >= 0 ? "+" : "") + (100 * b.resid).toFixed(2) + "pp").padStart(11)}`,
+    );
+  }
+  if (bands.length >= 2) {
+    const leaky = bands[bands.length - 1], elite = bands[0];
+    const diff = leaky.resid - elite.resid, se = Math.sqrt(leaky.se * leaky.se + elite.se * elite.se);
+    console.log(`\n  leakiest minus stingiest: ${((100 * diff >= 0 ? "+" : "") + (100 * diff).toFixed(2))}pp   se ${(100 * se).toFixed(2)}pp   z = ${(diff / se).toFixed(2)}`);
+    console.log(`  ${Math.abs(diff / se) < 1.96
+      ? "Indistinguishable from zero. The starter already carries it."
+      : "A REAL RESIDUAL — the bullpen and the fielders are worth pricing."}`);
+  }
+}
+
 async function main() {
   const obs = await collect();
   if (obs.length < 200) {
@@ -1093,6 +1189,7 @@ async function main() {
     console.log(`   is to flatten them, not to move the fourth decimal place.)`);
   }
 
+  if (has("--defense")) defenseReport(rows);
   if (has("--parlay")) parlayReport(rows);
   if (has("--streaks")) streakReport(rows);
   if (has("--weather")) {

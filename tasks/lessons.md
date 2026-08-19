@@ -188,3 +188,25 @@ data, and require it to help both. And when a correction is meant to
 redistribute rather than to move the average, centre it on the sample mean
 so it arithmetically cannot do the latter -- otherwise every fit will
 silently trade one against the other.
+
+## A wide spread is not the same as new information
+
+Team opponent batting average runs from about .218 to .288 across a season.
+That is a far bigger range than the handedness effect the board prints next to
+every hitter, and it is the headline number on every "exploit favourable
+defensive matchups" tool.
+
+It is worth nothing here. Across 7,291 player-games the leakiest defences beat
+their predictions by 0.23pp more than the stingiest (z = 0.16), with the
+buckets in between running +1.20, +1.89, -0.90, +1.42 -- no direction at all.
+
+The reason is that the model already has the opposing starter, who is two
+thirds of the run prevention and most of the correlation. The team number is
+mostly a restatement of the rotation with the bullpen and the gloves attached,
+and those turned out to be small.
+
+**Rule:** the size of a variable's spread says nothing about whether it adds
+information. What matters is its spread AFTER conditioning on what the model
+already uses. Before building a feature, ask what it is correlated with that is
+already in there -- and if the answer is "the biggest term in the model",
+expect nothing and test cheaply.

@@ -546,6 +546,39 @@ priced*. That is the only version a bettor can spend.
 
 ---
 
+## Three things that turned out not to matter
+
+The project keeps a list of ideas that sounded good and did not survive being
+measured, because knowing what to ignore is worth as much as knowing what to
+use. Each was tested the same way: not "does it correlate", but **does it move
+the residual** -- what a group beat its own prediction by. A signal is only
+worth what it adds to the number you would otherwise have used.
+
+| idea | test | verdict |
+|---|---|---|
+| Hot streaks | `--streaks` | +1.36pp, z = 0.69 |
+| Wind, direction | `--weather` | z = -0.18, 0.48, -0.63 |
+| Wind, strength | `--weather` | z = -1.57, -0.59 |
+| Opponent team defence | `--defense` | z = 0.16, -0.28 |
+| Temperature | `--weather` | real, but see below |
+
+**Opponent defence** deserves a note because the raw spread is so tempting.
+Team opponent-AVG runs from about .218 to .288 across a season, several times
+wider than the handedness effect the board already shows. It adds nothing:
+across 7,291 player-games the leakiest defences beat their prediction by
+0.23pp more than the stingiest, z = 0.16, with no monotone pattern in between.
+The opposing STARTER is already in the model, he faces the hitter for two
+thirds of his trips, and team run prevention is mostly the rotation. The
+bullpen and the fielders are real, and they are already priced.
+
+**Temperature** is the one that is real and still not shipped: the residual
+gradient replicates across two windows that share no games (+4.63pp, z 2.84 in
+April; +3.32pp, z 1.68 in August, on home runs) and is correctly absent from
+H/R/RBI, which is a contact prop. But a fitted correction helped one window
+and hurt the other, so `TEMP_SLOPE` is zero. See the note in `score.js`.
+
+---
+
 ## Golf: who makes the cut
 
 `golf.html` is a second board, for the PGA Tour. Open it. Same deal — no build
