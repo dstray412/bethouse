@@ -117,3 +117,45 @@ optimistic per leg and a suggested slip is nothing but the top. Top 2% cashed
 3. The suggester cannot see a price. Wiring `fetch-odds.mjs` in would let it
    rank by edge instead of by chance to cash, which is the version that would
    actually be worth betting.
+
+---
+
+# /qa — 2026-08-19
+
+Full QA of all three boards, desktop and mobile. **Four issues found, four
+fixed and verified; health 95 → 99.** Full report with repro steps and
+before/after evidence: `.gstack/qa-reports/qa-report-bethouse-2026-08-19.md`.
+
+The three boards were checked byte-for-byte against the live Pages site first,
+so all four defects were live in production rather than local artefacts.
+
+| id | severity | what | commit |
+|---|---|---|---|
+| 001 | High | parlay slip buildable on total bases and home runs | `a44cceb` |
+| 002 | Medium | positive prices printed `++111` | `84acdf8` |
+| 003 | Medium | NFL spread rows changed height with the team abbreviation | `c52efcc` |
+| 004 | Low | a one-leg slip said "All 1 legs are from different games" | `ece5e76` |
+
+## The one that matters
+
+**The parlay scope rule was enforced on the control and not on the button.**
+The section above records "switching to Total bases clears a suggested slip and
+hides the control" — true, and it was the wrong thing to check. The suggester
+was scoped; the per-row `+` was not. 93 live add buttons on Total bases, 60 on
+Home run, each one building a slip that closed by quoting a measurement taken
+only on 1+ H/R/RBI.
+
+The rule is now `S.parlayEligible` in score.js, default-closed, asked by both
+call sites instead of `state.view==='hrr'` typed out twice. Two prevention
+rules went into `tasks/lessons.md`.
+
+## State
+
+- Suite **218 tests, 0 failures, 0 skipped**; `bash scripts/local-check.sh`
+  green including gitleaks. Test count 212 → 218 (5 new regression tests, each
+  confirmed failing against pre-fix source).
+- Nothing deferred as unfixable. One low-severity a11y item is carried: rows
+  are `role="button"` wrapping a nested `<button>`, so the row's accessible
+  name absorbs the child's label. Fixing it means restructuring the row.
+- The `refresh.yml` / `actions/checkout@v4` pin noted above is still open,
+  untouched — outside the scope of a QA pass.

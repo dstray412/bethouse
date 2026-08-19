@@ -270,3 +270,42 @@ DOM id: the regex was reading JS as if it were HTML. Strip script bodies
 before scanning markup, keep style bodies because the CSS assertions need
 them. The test was wrong, not the code, and it took a false positive on run
 one to notice.
+
+---
+
+## Hiding the control is not removing the capability
+
+`/qa`, 2026-08-19.
+
+The parlay is 1+ H/R/RBI only, and index.html said so in a comment: the
+cross-game measurement it quotes was taken on that prop and nowhere else, so
+offering it elsewhere would be "extending a measurement to somewhere it was
+never taken". The enforcement was one line — hide the SUGGEST control on the
+other two views.
+
+Every row still rendered a live `+` button. A total-bases slip was two clicks
+away, and it arrived carrying the same closing reassurance: cross-game slips
+"cashed 1.03-1.08x as often as the product predicts". About a number that
+measurement had never seen.
+
+**Scope the action, not the menu.** A hidden control removes the suggestion;
+it does not remove the capability. Ask which affordances reach the feature and
+gate every one of them.
+
+**And make the rule one named thing.** The scope lived as `state.view==='hrr'`
+typed out at each site, so the two sites could disagree — and did. It is
+`S.parlayEligible` now, default-closed, for the same reason `cutRuleFor` is one
+table: two copies of a rule stay in sync until they don't.
+
+## A value that already carries its sign still passes `> 0`
+
+The odds feed stores American prices as signed strings: `"+111"`, `"-103"`.
+index.html rendered them as `(mkt.over>0?'+':'')+mkt.over`. `"+111" > 0`
+coerces to `111 > 0`, which is true, so the board printed `++111`.
+
+Negative prices came out right, so half the rows looked fine and it shipped.
+
+**Do not re-derive formatting the source already applied.** `amer()` existed
+for exactly this and rounds first, so it takes the string or a bare number and
+emits one sign either way. When a feed hands you a formatted value, either
+route it through the one formatter or store it unformatted — never both.
