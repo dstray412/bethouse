@@ -54,6 +54,28 @@ const FROM = Number(flag("--from", 0));
 const mean = (a) => a.reduce((x, y) => x + y, 0) / (a.length || 1);
 const pct = (x) => (100 * x).toFixed(1) + "%";
 
+/*
+ * Every fitted constant in this project is one window away from being
+ * wrong. This is printed under every sweep result so the number never
+ * leaves the terminal wearing more authority than it earned.
+ */
+const UNVALIDATED = [
+  "",
+  "  ^ CANDIDATE, NOT A CONSTANT.",
+  "",
+  "  This value won on ONE window. That is a hypothesis. On 2026-08-19 a",
+  "  temperature slope fitted this way had a clean interior optimum, better",
+  "  Brier, and converging cold/hot bias -- everything about it looked",
+  "  finished -- and it was WORSE than doing nothing on the other half of",
+  "  the season, whose own optimum was zero.",
+  "",
+  "  Before adopting it, re-run on a window that shares no games:",
+  "      --start / --end for a different date range",
+  "  and require the value to help BOTH. If the two windows disagree, the",
+  "  disagreement is the finding.",
+  "",
+].join("\n");
+
 /* ---------------------------------------------------------------- *
  * Rolling state, rebuilt from prior games only
  * ---------------------------------------------------------------- */
@@ -292,7 +314,8 @@ if (args.includes("--fit")) {
     );
     if (!best || brier < best.brier) best = { sh, brier };
   }
-  console.log(`  -> tdShrink = ${best.sh}\n`);
+  console.log(`  -> tdShrink = ${best.sh}`);
+  console.log(UNVALIDATED);
 }
 
 console.log(`loaded ${ALL.length} games (${JSON.stringify(history.seasons)})`);

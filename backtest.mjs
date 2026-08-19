@@ -126,6 +126,28 @@ function parseIP(ip) {
   return (Number(w) || 0) + (f === "1" ? 1 / 3 : f === "2" ? 2 / 3 : 0);
 }
 
+/*
+ * Every fitted constant in this project is one window away from being
+ * wrong. This is printed under every sweep result so the number never
+ * leaves the terminal wearing more authority than it earned.
+ */
+const UNVALIDATED = [
+  "",
+  "  ^ CANDIDATE, NOT A CONSTANT.",
+  "",
+  "  This value won on ONE window. That is a hypothesis. On 2026-08-19 a",
+  "  temperature slope fitted this way had a clean interior optimum, better",
+  "  Brier, and converging cold/hot bias -- everything about it looked",
+  "  finished -- and it was WORSE than doing nothing on the other half of",
+  "  the season, whose own optimum was zero.",
+  "",
+  "  Before adopting it, re-run on a window that shares no games:",
+  "      --start / --end for a different date range",
+  "  and require the value to help BOTH. If the two windows disagree, the",
+  "  disagreement is the finding.",
+  "",
+].join("\n");
+
 /* ---------------------------------------------------------------- *
  * Collect observations
  * ---------------------------------------------------------------- */
@@ -1185,6 +1207,7 @@ async function main() {
       if (!best || brier < best.brier) best = { slope, brier };
     }
     console.log(`  -> best Brier at slope ${best.slope}`);
+    console.log(UNVALIDATED);
     console.log(`  (cold/hot bias columns matter more than Brier here: the point`);
     console.log(`   is to flatten them, not to move the fourth decimal place.)`);
   }

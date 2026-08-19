@@ -66,7 +66,7 @@ jobs:
             if (bad.length) throw new Error(bad.length + " markets have impossible prices");
             console.log("ok:", n, "markets, all prices sane");
           '
-          node --test edge.test.mjs score.test.mjs golf.test.mjs nfl.test.mjs
+          node --test edge.test.mjs score.test.mjs golf.test.mjs nfl.test.mjs dom.test.mjs
 
       - name: Commit if the prices changed
         run: |

@@ -42,6 +42,28 @@ const {
 const HISTORY_FILE = "pga-history.json";
 const MIN_PRIOR_EVENTS = 6; // before this, ratings are noise
 
+/*
+ * Every fitted constant in this project is one window away from being
+ * wrong. This is printed under every sweep result so the number never
+ * leaves the terminal wearing more authority than it earned.
+ */
+const UNVALIDATED = [
+  "",
+  "  ^ CANDIDATE, NOT A CONSTANT.",
+  "",
+  "  These values won on ONE window. That is a hypothesis. On 2026-08-19 a",
+  "  temperature slope fitted this way had a clean interior optimum, better",
+  "  Brier, and converging cold/hot bias -- everything about it looked",
+  "  finished -- and it was WORSE than doing nothing on the other half of",
+  "  the season, whose own optimum was zero.",
+  "",
+  "  Before adopting them, re-run on a window that shares no events:",
+  "      --start / --end for a different date range",
+  "  and require the values to help BOTH. If the two windows disagree, the",
+  "  disagreement is the finding.",
+  "",
+].join("\n");
+
 function load() {
   if (!existsSync(HISTORY_FILE)) {
     console.error(`no ${HISTORY_FILE} — run: node fetch-pga.mjs --history-only`);
@@ -297,6 +319,7 @@ function fit(events, sims) {
       }
     }
   }
+  console.log(UNVALIDATED);
   console.log("fitted constants:");
   for (const [name] of sweeps) console.log(`  ${name}: ${current[name]}`);
   return current;

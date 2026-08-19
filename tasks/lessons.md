@@ -236,3 +236,37 @@ The wider version: a defect claim is a claim like any other and deserves the
 same standard of proof as a fix. Recording a bug that does not exist costs
 the next person real time, and it went into a commit message on main where
 it cannot be edited.
+
+## A green suite that never looks at the page is not covering the product
+
+The suite had 202 tests and not one rendered a board. score.js, edge.js,
+golf.js and nfl.js were covered to the decimal place; the three HTML pages,
+which are the entire thing a user sees, had nothing. A design review then
+found five defects on a fully green suite, two of them controls that showed
+on every view and did nothing when clicked.
+
+The gate and the failures did not overlap anywhere.
+
+`dom.test.mjs` closes it without a dependency: no jsdom, no headless
+browser, no package.json, because "no build step, no server, no API key" is
+a property worth keeping and a test dependency is the first crack in it. It
+asserts SOURCE INVARIANTS drawn from the actual defects -- the [hidden]
+override guard is present, prose has a ch-capped measure, the :root tokens
+are byte-identical across the three copied stylesheets, every nav link
+resolves and every destination has one name, every script and stylesheet a
+page loads exists.
+
+Two rules out of building it.
+
+**Prove a regression test fails on the broken code before believing it.**
+All ten passed on first run against fixed source, which says nothing. Run
+against the pre-fix commit, eight of them failed -- that is what made them
+regression tests rather than decoration.
+
+**A test that scans source needs to know what it is scanning.** The
+duplicate-id check reported nfl.html defining `why'+i+'` three times. That
+is a JavaScript string concatenation inside a script block, not a repeated
+DOM id: the regex was reading JS as if it were HTML. Strip script bodies
+before scanning markup, keep style bodies because the CSS assertions need
+them. The test was wrong, not the code, and it took a false positive on run
+one to notice.

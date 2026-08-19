@@ -31,8 +31,8 @@ repos:
   - repo: local
     hooks:
       - id: node-tests
-        name: node --test (edge + score + golf + nfl)
+        name: node --test (edge + score + golf + nfl + dom)
         language: system
-        entry: node --test edge.test.mjs score.test.mjs golf.test.mjs nfl.test.mjs
+        entry: node --test edge.test.mjs score.test.mjs golf.test.mjs nfl.test.mjs dom.test.mjs
         pass_filenames: false
         stages: [pre-push]
