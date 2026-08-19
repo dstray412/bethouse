@@ -33,7 +33,15 @@ header{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:1
 .navlink{font-family:var(--display);font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;
   color:var(--muted);text-decoration:none;border:1px solid var(--line);border-radius:9px;padding:7px 12px;white-space:nowrap}
 .navlink:hover{color:var(--text);border-color:var(--accent)}
-.note{color:var(--muted);font-size:12.5px;line-height:1.6;margin:0 2px 14px}
+/* Measure, not just size. At 12.5px across the full 1040px column this
+   line ran 166 characters wide -- more than double the 75-character
+   maximum, and long measure is what actually breaks readability: the
+   eye loses the start of the next line on the return sweep. Capping at
+   56ch brings it to 72 real characters (1ch is the width of "0", which
+   is wider than average prose -- 72ch measured 93 chars, not 72), and
+   14px makes the one paragraph
+   carrying the calibration caveats no longer the smallest prose here. */
+.note{color:var(--muted);font-size:14px;line-height:1.65;margin:0 2px 14px;max-width:56ch}
 .note b{color:var(--text);font-weight:600}
 .controls{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-end;background:var(--panel);
   border:1px solid var(--line);border-radius:13px;padding:12px 14px;margin-bottom:14px}
