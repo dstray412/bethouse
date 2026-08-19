@@ -821,6 +821,26 @@
   }
 
   /*
+   * Which bet types may be parlayed at all.
+   *
+   * `backtest.mjs --parlay` replayed cross-game slips of 1+ H/R/RBI on real
+   * days and found they cashed 1.03-1.08x as often as the product predicts.
+   * That sentence is on the slip. It is true about the prop it was measured
+   * on and about nothing else: no equivalent replay has ever been run for
+   * total bases or for home runs, and the correlation structure is not the
+   * same shape, so the result does not carry across on argument.
+   *
+   * Default-closed on purpose. A bet type added later gets no parlay until
+   * someone measures one for it and names it here — which is a smaller
+   * mistake than a new view silently inheriting a claim about a number that
+   * was never checked.
+   */
+  const PARLAY_PROPS = ["hrr"];
+  function parlayEligible(view) {
+    return PARLAY_PROPS.indexOf(view) !== -1;
+  }
+
+  /*
    * Build a slip instead of making you click one.
    *
    * The slip has always been a calculator on purpose: you pick the legs and
@@ -971,6 +991,8 @@
     scoreTB: scoreTB,
     combineLegs: combineLegs,
     suggestParlay: suggestParlay,
+    parlayEligible: parlayEligible,
+    PARLAY_PROPS: PARLAY_PROPS,
     tbRates: tbRates,
     tbDistribution: tbDistribution,
     probAtLeastTB: probAtLeastTB,

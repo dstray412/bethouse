@@ -233,3 +233,66 @@ test("no board defines the same id twice", () => {
     );
   }
 });
+
+/* ------------------------------------------------------------------ *
+ * The parlay may only be built on the prop it was measured on
+ *
+ * index.html hid the SUGGEST control on total bases and home runs, which
+ * looked like the scope rule was enforced. It was not: every row still
+ * rendered a live + button, so a total-bases slip was two clicks away and
+ * arrived carrying "cross-game slips cashed 1.03-1.08x as often as the
+ * product predicts" — a measurement taken on 1+ H/R/RBI and nowhere else.
+ *
+ * A gate on the control alone cannot catch that, so this checks the thing
+ * that was actually wrong: the button itself must sit INSIDE the guard.
+ * ------------------------------------------------------------------ */
+
+/* The body of the first `if (<needle>) { ... }` in `js`, brace-matched.
+   Braces inside strings, template literals, regex literals and comments
+   would break a naive counter; the render code has none inside this block,
+   and the assertion below fails loudly rather than silently passing if
+   that ever stops being true. */
+function guardedBody(js, needle) {
+  const at = js.indexOf(needle);
+  if (at < 0) return null;
+  /* The needle ends with its own `{`; scanning from `at` finds that brace
+     and not the next one down. Getting this wrong once already cost a
+     confusing failure, which is the good outcome — the assertion below is
+     written so a broken scan reports "outside the guard" rather than
+     quietly passing. */
+  const open = js.indexOf("{", at);
+  if (open < 0) return null;
+  let depth = 0;
+  for (let i = open; i < js.length; i++) {
+    if (js[i] === "{") depth++;
+    else if (js[i] === "}" && --depth === 0) return js.slice(open, i);
+  }
+  return null;
+}
+
+test("the add-to-parlay button is built inside the eligibility guard", () => {
+  const js = src("index.html");
+  assert.ok(
+    js.includes("S.parlayEligible("),
+    "index.html must ask score.js which views may build a parlay, not re-derive it",
+  );
+
+  const body = guardedBody(js, "if(S.parlayEligible(state.view)){");
+  assert.ok(body, "no `if(S.parlayEligible(state.view)){` block found in index.html");
+
+  assert.ok(
+    body.includes("'addleg'"),
+    "the + button is rendered OUTSIDE the eligibility guard — it was reachable on total bases and home runs",
+  );
+  assert.ok(
+    body.includes("state.candidates.push"),
+    "suggestion candidates are collected outside the eligibility guard",
+  );
+
+  /* And nowhere else. One + button, one guard. */
+  assert.equal(
+    (js.match(/'addleg'/g) || []).length,
+    1,
+    "more than one place builds an addleg button; only one of them is guarded",
+  );
+});

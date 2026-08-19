@@ -92,6 +92,7 @@ header{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:1
 .row{display:grid;grid-template-columns:32px 1fr 78px 30px 20px;gap:10px;align-items:center;
   width:100%;text-align:left;font:inherit;color:inherit;background:none;border:0;
   padding:8px 15px;cursor:pointer;border-top:1px solid rgba(255,255,255,.045)}
+.row.noadd{grid-template-columns:32px 1fr 78px 20px}
 .row:hover{background:rgba(255,255,255,.028)}
 .slot{font-family:var(--display);font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
 .who{font-weight:600;font-size:14.5px}
@@ -156,6 +157,7 @@ footer{margin-top:22px;color:var(--muted);font-size:12px;line-height:1.7}
   .ctl .seg{flex:1 1 auto}
   .ctl .seg button{flex:1 1 0;min-height:40px;padding:6px}
   .row{grid-template-columns:28px 1fr 72px 44px;gap:8px}
+  .row.noadd{grid-template-columns:28px 1fr 72px}
   .caret{display:none}
   /* 28px fails the 44px touch minimum, and this is the primary action on the
      page: it is how a leg gets into the parlay slip. */
@@ -677,7 +679,7 @@ function render(){
     }
     render();
   });
-  document.getElementById('sugwrap').hidden = state.view!=='hrr';
+  document.getElementById('sugwrap').hidden = !S.parlayEligible(state.view);
 
   /* Name the board, then the date. golf.html and nfl.html both put the
      section first ("PGA Tour — who makes the cut", "NFL — 2026 week 1");
@@ -823,37 +825,49 @@ function render(){
           }
           who.appendChild(tag);
         }
-        var legKey = g.gamePk+'|'+r.player.id+'|'+propKey();
-        var inSlip = state.slip.some(function(x){return x.key===legKey;});
-        var add=el('button','addleg', inSlip?'\u2713':'+');
-        add.type='button';
-        add.setAttribute('aria-pressed', String(inSlip));
-        add.setAttribute('aria-label', (inSlip?'Remove ':'Add ')+r.name+' to parlay slip');
-        // A finished game is not bettable, whatever the model still says about
-        // it. `settled` only covers live games whose outcome already landed, so
-        // without the gameIsOpen check a FINAL card kept a live + button.
-        var openGame = S.gameIsOpen(g);
-        if(r.settled || !openGame) {
-          add.disabled=true; add.style.opacity=.3;
-          add.title = r.settled ? 'Already decided' : 'Game is over';
+        /* The parlay belongs to one prop -- see the note by #sugwrap, and
+           S.parlayEligible for why. Hiding the SUGGEST control on the other
+           two views was only half of that rule: this + button stayed live, so
+           a total-bases slip was two clicks away, and it arrived quoting
+           "cross-game slips cashed 1.03-1.08x as often as the product
+           predicts" -- a measurement taken on 1+ H/R/RBI and nowhere else.
+           The affordance has to be absent, not merely unsuggested. */
+        if(S.parlayEligible(state.view)){
+          var legKey = g.gamePk+'|'+r.player.id+'|'+propKey();
+          var inSlip = state.slip.some(function(x){return x.key===legKey;});
+          var add=el('button','addleg', inSlip?'\u2713':'+');
+          add.type='button';
+          add.setAttribute('aria-pressed', String(inSlip));
+          add.setAttribute('aria-label', (inSlip?'Remove ':'Add ')+r.name+' to parlay slip');
+          // A finished game is not bettable, whatever the model still says about
+          // it. `settled` only covers live games whose outcome already landed, so
+          // without the gameIsOpen check a FINAL card kept a live + button.
+          var openGame = S.gameIsOpen(g);
+          if(r.settled || !openGame) {
+            add.disabled=true; add.style.opacity=.3;
+            add.title = r.settled ? 'Already decided' : 'Game is over';
+          }
+          var leg = {
+            key: legKey, gamePk: g.gamePk, playerId: r.player.id,
+            name: r.name, team: g[side].abbrev || g[side].team,
+            prop: propKey(), propLabel: propLabel(), prob: r.prob
+          };
+          // Eligible for a suggestion: bettable and undecided. Which prop is
+          // the guard above.
+          if(!r.settled && openGame) state.candidates.push(leg);
+          add.addEventListener('click', function(ev){
+            ev.stopPropagation();
+            if(r.settled || !openGame) return;
+            if(inSlip) state.slip = state.slip.filter(function(x){return x.key!==legKey;});
+            else state.slip.push(leg);
+            state.suggested = false;
+            render();
+          });
+          row.appendChild(add);
+        } else {
+          // No + column to reserve, so the caret must not drift into its slot.
+          row.classList.add('noadd');
         }
-        var leg = {
-          key: legKey, gamePk: g.gamePk, playerId: r.player.id,
-          name: r.name, team: g[side].abbrev || g[side].team,
-          prop: propKey(), propLabel: propLabel(), prob: r.prob
-        };
-        // Eligible for a suggestion: bettable, undecided, and the one prop
-        // the parlay backtest actually covered.
-        if(!r.settled && openGame && state.view==='hrr') state.candidates.push(leg);
-        add.addEventListener('click', function(ev){
-          ev.stopPropagation();
-          if(r.settled || !openGame) return;
-          if(inSlip) state.slip = state.slip.filter(function(x){return x.key!==legKey;});
-          else state.slip.push(leg);
-          state.suggested = false;
-          render();
-        });
-        row.appendChild(add);
 
         row.appendChild(el('div','caret','›'));
 

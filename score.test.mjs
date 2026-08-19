@@ -883,3 +883,33 @@ test("suggestParlay: a nonsense leg count is refused, not clamped silently", () 
   assert.equal(score.suggestParlay(input, { legs: -2 }), null);
   assert.equal(score.suggestParlay(input, { legs: 1.5 }), null);
 });
+
+/* ---------------------------------------------------------------- *
+ * Which prop the parlay is allowed on
+ *
+ * `backtest.mjs --parlay` replayed cross-game slips of 1+ H/R/RBI and
+ * nothing else. The slip closes by telling you those slips "cashed
+ * 1.03-1.08x as often as the product predicts" — a sentence that is only
+ * true about the prop it was measured on. The board hid the SUGGEST
+ * control on total bases and home runs but left the per-row + button
+ * live, so you could still build a total-bases slip and be handed that
+ * reassurance about a number nobody had ever checked.
+ *
+ * The rule is one function now rather than a string comparison repeated
+ * at each call site, for the same reason cutRuleFor is one table: two
+ * copies of a rule disagree eventually.
+ * ---------------------------------------------------------------- */
+
+test("the parlay is offered on the one prop it was measured on, and no other", () => {
+  assert.equal(score.parlayEligible("hrr"), true);
+  assert.equal(score.parlayEligible("tb"), false);
+  assert.equal(score.parlayEligible("hr"), false);
+});
+
+test("an unrecognised view is not a licence to offer the parlay", () => {
+  /* Default-closed. A new bet type added later gets no parlay until
+     someone measures one for it and adds it here deliberately. */
+  for (const v of [undefined, null, "", "tb2", "HRR", " hrr", 0, {}]) {
+    assert.equal(score.parlayEligible(v), false, `view ${JSON.stringify(v)} must not qualify`);
+  }
+});
