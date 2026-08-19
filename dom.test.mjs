@@ -344,3 +344,31 @@ test("no board hand-prefixes a sign onto a market price", () => {
     );
   }
 });
+
+/* ------------------------------------------------------------------ *
+ * A fixed-width cell must not let its content decide the row height
+ *
+ * nfl.html's spread board put "SEA -7.2" inside .prob, a 74px grid column
+ * styled for one 21px number. Fifteen of sixteen rows wrapped to two lines
+ * and "TB -0.7" did not, so row heights alternated 63px and 32px on
+ * nothing but the length of a team abbreviation. The board read as ragged
+ * for a reason carrying no information.
+ *
+ * The file already had the answer in .be: number, then a <small> block
+ * label under it ("43.3 / total"). The invariant is that a sublabel inside
+ * one of these cells is a block, never inline text that can wrap.
+ * ------------------------------------------------------------------ */
+
+test("a sublabel inside a fixed-width row cell is a block, not wrappable text", () => {
+  const css = src("nfl.html");
+  const rule = css.match(/^([^\n{]*\bsmall\b[^\n{]*)\{([^}]*display:\s*block[^}]*)\}/m);
+  assert.ok(rule, "nfl.html has no display:block rule for row sublabels");
+
+  const selectors = rule[1].split(",").map((s) => s.trim());
+  for (const cell of [".be", ".prob"]) {
+    assert.ok(
+      selectors.includes(`${cell} small`),
+      `${cell} small is not blocked — content can wrap and set the row height`,
+    );
+  }
+});
