@@ -415,3 +415,27 @@ test("a sublabel inside a fixed-width row cell is a block, not wrappable text", 
     );
   }
 });
+
+/* ------------------------------------------------------------------ *
+ * One age computation, not two
+ *
+ * index.html used to compute the feed's age twice: once inside the ODDS
+ * gate to decide whether to show prices, and again into an ODDS_AGE_H
+ * that nothing ever read. Two copies of the same arithmetic, one of them
+ * dead — which is why the board could withhold prices without being able
+ * to say it was withholding them.
+ * ------------------------------------------------------------------ */
+
+test("the board asks edge.js how old the odds are, and asks once", () => {
+  const js = src("index.html");
+  assert.ok(
+    js.includes("E.oddsFreshness("),
+    "index.html must get odds age from edge.js, not re-derive it",
+  );
+  const inlined = js.match(/Date\.parse\([^)]*generated[^)]*\)/g) || [];
+  assert.deepEqual(
+    inlined,
+    [],
+    "index.html re-derives the feed's age inline; that is the duplication oddsFreshness replaced",
+  );
+});

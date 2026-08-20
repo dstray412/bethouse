@@ -469,15 +469,22 @@ function renderSlip(){
    lineup is worse than no number, because it looks current. Six hours is
    generous for a board refreshed hourly and still well inside a game day. */
 var ODDS_MAX_AGE_H = 6;
-var ODDS = (function(){
-  var o = window.BetHouseOdds;
-  if(!o || !o.markets) return null;
-  var age = (Date.now() - Date.parse(o.generated)) / 36e5;
-  if(!isFinite(age) || age > ODDS_MAX_AGE_H) return null;
-  return o.markets;
-})();
-var ODDS_AGE_H = window.BetHouseOdds
-  ? (Date.now() - Date.parse(window.BetHouseOdds.generated)) / 36e5 : null;
+var ODDS_FEED = window.BetHouseOdds || null;
+var ODDS_AGE = E.oddsFreshness(ODDS_FEED && ODDS_FEED.generated, Date.now(), ODDS_MAX_AGE_H);
+var ODDS = (ODDS_FEED && ODDS_FEED.markets && ODDS_AGE.fresh) ? ODDS_FEED.markets : null;
+
+/* Withheld is not the same as absent, and the board used to draw them the
+   same way: nothing. On 2026-08-20 the odds refresher failed 13 runs in a
+   row and the only symptom anywhere was chips quietly not appearing, so it
+   ran most of a day before anyone looked. A feed that HAS prices and is too
+   old to show them should say so. */
+function withheldMarkets(){
+  if(!ODDS_FEED || !ODDS_FEED.markets || ODDS_AGE.fresh) return 0;
+  var prop = state.view==='tb' ? 'tb' : state.view;
+  return Object.keys(ODDS_FEED.markets).filter(function(k){
+    return k.split('|')[1]===prop;
+  }).length;
+}
 
 function normName(s){
   return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'')
@@ -713,6 +720,18 @@ function render(){
   var liveN=(D.games||[]).filter(function(g){return g.live;}).length;
   if(liveN){
     note.innerHTML += ' <b>'+liveN+' game'+(liveN===1?' is':'s are')+' underway</b> \u2014 those numbers count only the plate appearances a hitter has left.';
+  }
+
+  /* Only when this prop actually has prices in the feed. The home run board
+     carries none even on a good day, so telling you they were hidden would
+     be inventing a loss. */
+  if(withheldMarkets()){
+    var ageH = ODDS_AGE.ageH;
+    var how = ageH===null ? 'of unknown age'
+            : Math.round(ageH)+' hour'+(Math.round(ageH)===1?'':'s')+' old';
+    note.innerHTML += ' <b class="hot">Prices are '+how+' and hidden</b> \u2014 '+
+      'a stale price sitting next to tonight\'s lineup looks current and is not. '+
+      'They return when the hourly refresh lands.';
   }
 
   renderSlip();

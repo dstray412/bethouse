@@ -342,3 +342,44 @@ test("formatting", () => {
   assert.equal(edge.formatPct(0.042), "+4.2%");
   assert.equal(edge.formatPct(-0.018), "-1.8%");
 });
+
+/* ------------------------------------------------------------------ *
+ * Odds freshness
+ *
+ * A price from this morning next to tonight's lineup is worse than no
+ * price, because it looks current. index.html withholds anything past
+ * the cutoff — and, since the refresher can fail silently for a day
+ * without anyone noticing, has to be able to SAY that it is withholding.
+ * ------------------------------------------------------------------ */
+
+const T0 = Date.parse("2026-08-20T12:00:00.000Z");
+const hoursAgo = (h) => new Date(T0 - h * 36e5).toISOString();
+
+test("oddsFreshness: inside the window is fresh, outside is not", () => {
+  assert.deepEqual(edge.oddsFreshness(hoursAgo(1), T0, 6), { ageH: 1, fresh: true });
+  assert.deepEqual(edge.oddsFreshness(hoursAgo(14.5), T0, 6), { ageH: 14.5, fresh: false });
+});
+
+test("oddsFreshness: the cutoff itself still counts as fresh", () => {
+  /* Six hours old on a board refreshed hourly is the last good number,
+     not the first bad one. Exclusive here would blink prices out early. */
+  assert.equal(edge.oddsFreshness(hoursAgo(6), T0, 6).fresh, true);
+  assert.equal(edge.oddsFreshness(hoursAgo(6.0001), T0, 6).fresh, false);
+});
+
+test("oddsFreshness: an unreadable timestamp is not trusted", () => {
+  /* Default-closed. If the age cannot be established the price cannot be
+     shown, and ageH is null rather than NaN so the caller can tell "no
+     odds at all" apart from "odds of unknown vintage". */
+  for (const bad of [undefined, null, "", "yesterday", {}]) {
+    assert.deepEqual(edge.oddsFreshness(bad, T0, 6), { ageH: null, fresh: false });
+  }
+});
+
+test("oddsFreshness: a timestamp from the future is fresh, not negative", () => {
+  /* Runner and viewer clocks disagree by seconds. A file stamped slightly
+     ahead is the newest one there is; reporting "-0 hours old" or hiding
+     it would both be wrong. */
+  const r = edge.oddsFreshness(new Date(T0 + 90e3).toISOString(), T0, 6);
+  assert.deepEqual(r, { ageH: 0, fresh: true });
+});

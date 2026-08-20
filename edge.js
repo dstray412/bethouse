@@ -72,6 +72,29 @@
    * ------------------------------------------------------------------ */
 
   /** Total implied probability. 1.048 means the book holds 4.8%. */
+  /*
+   * How old a price feed is, and whether that is still usable.
+   *
+   * A stale price is worse than no price: it sits next to tonight's lineup
+   * looking current. So the board withholds anything past the cutoff — and
+   * because the refresher can fail for a day without anyone noticing (it did,
+   * 13 runs on 2026-08-20), the caller needs the age back as well as the
+   * verdict, so the page can say what it is withholding instead of just
+   * showing nothing.
+   *
+   * ageH is null, never NaN, when the stamp cannot be read: "no feed" and
+   * "feed of unknown vintage" are different states and the caller has to be
+   * able to tell them apart. Unknown is not fresh.
+   */
+  function oddsFreshness(generatedIso, nowMs, maxAgeH) {
+    const t = Date.parse(generatedIso);
+    if (!isFinite(t)) return { ageH: null, fresh: false };
+    // Clamp: a stamp slightly ahead of the viewer's clock is the newest
+    // there is, not negatively old.
+    const ageH = Math.max(0, (nowMs - t) / 36e5);
+    return { ageH, fresh: ageH <= maxAgeH };
+  }
+
   function overround(rawProbs) {
     return rawProbs.reduce((s, q) => s + q, 0);
   }
@@ -389,6 +412,7 @@
     probToDecimal,
     probToAmerican,
     formatAmerican,
+    oddsFreshness,
     overround,
     holdPct,
     devigAmerican,
