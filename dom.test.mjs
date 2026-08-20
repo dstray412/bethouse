@@ -311,24 +311,67 @@ test("the add-to-parlay button is built inside the eligibility guard", () => {
  * 111, so it takes the string or a number and emits one sign either way.
  * ------------------------------------------------------------------ */
 
-test("the odds feed stores prices with their sign attached", () => {
+/* The prices that break the contract. An empty market set yields none, which
+   is the entire point: see the note below. */
+const unsignedPrices = (markets) =>
+  Object.values(markets)
+    .flatMap((m) => [m.over, m.under])
+    .filter((p) => !/^[+-]\d+$/.test(String(p)));
+
+/*
+ * An empty slate is a legitimate state and must never fail a run.
+ *
+ * The first version of the test below asserted `prices.length > 0`. That is
+ * a claim about the live feed, and this file runs inside all three refresh
+ * workflows against data they have just fetched. At 13:51 UTC on 2026-08-20
+ * no MLB props were posted yet, refresh-odds.yml printed its own "no
+ * scheduled games — nothing priced" and exited 0 as designed, then handed
+ * the same empty file to `node --test` and this assertion failed the run.
+ * Thirteen consecutive refreshes died on it and the board sat past its
+ * six-hour cutoff showing no prices at all.
+ *
+ * The rule was already written, three lines above the call site: "An empty
+ * slate is legitimate (no games scheduled); a malformed file is not. Only
+ * the second one should fail the run."
+ *
+ * So: nothing in this file may assert that live data is non-empty. Check the
+ * shape of what is there; say how much that was.
+ */
+
+test("an empty slate is not a contract violation", () => {
+  assert.deepEqual(unsignedPrices({}), [], "an empty market set must pass");
+  assert.deepEqual(
+    unsignedPrices({ a: { over: "+108", under: "-144" } }),
+    [],
+    "signed strings are the contract",
+  );
+  assert.deepEqual(
+    unsignedPrices({ a: { over: 108, under: "-144" } }),
+    [108],
+    "a bare number is a violation — it is what made index.html print ++108",
+  );
+});
+
+test("the odds feed stores prices with their sign attached", (t) => {
   const file = resolve(DIR, "odds-data.js");
   assert.ok(existsSync(file), "odds-data.js is missing");
 
   const win = {};
   new Function("window", readFileSync(file, "utf8"))(win);
   const markets = (win.BetHouseOdds || {}).markets;
-  assert.ok(markets && typeof markets === "object", "odds-data.js defines no markets");
+  assert.ok(markets && typeof markets === "object", "odds-data.js defines no markets object");
 
-  const prices = Object.values(markets).flatMap((m) => [m.over, m.under]);
-  assert.ok(prices.length > 0, "odds-data.js has no priced markets to check");
-  for (const p of prices) {
-    assert.match(
-      String(p),
-      /^[+-]\d+$/,
-      `price ${JSON.stringify(p)} is not a signed American string — the render path assumes it is`,
-    );
-  }
+  assert.deepEqual(
+    unsignedPrices(markets),
+    [],
+    "a price is not a signed American string — the render path assumes it is",
+  );
+
+  /* Vacuous on an empty slate, by design. Reported so that a file which is
+     empty forever is visible in the run output rather than silently green. */
+  t.diagnostic(
+    `${Object.keys(markets).length} markets, ${Object.values(markets).length * 2} prices checked`,
+  );
 });
 
 test("no board hand-prefixes a sign onto a market price", () => {

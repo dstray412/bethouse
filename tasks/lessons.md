@@ -309,3 +309,37 @@ Negative prices came out right, so half the rows looked fine and it shipped.
 for exactly this and rounds first, so it takes the string or a bare number and
 emits one sign either way. When a feed hands you a formatted value, either
 route it through the one formatter or store it unformatted — never both.
+
+## A test wired into a refresher must not assert that live data is non-empty
+
+`/qa` follow-up, 2026-08-20. My own defect, introduced the day before.
+
+`dom.test.mjs` runs inside all three refresh workflows, against data those
+workflows have just fetched. A test I added to pin the odds contract asserted
+`prices.length > 0` — a claim about the live feed, not about the code.
+
+At 13:51 UTC no MLB props were posted yet. `refresh-odds.yml` printed its own
+`no scheduled games — nothing priced` and exited 0 exactly as designed, then
+handed the same empty file to `node --test` and my assertion failed the run.
+**Thirteen consecutive refreshes died on it**, and because index.html hides
+odds older than `ODDS_MAX_AGE_H = 6`, the board quietly stopped showing prices
+altogether. A green suite locally, a dead feature in production.
+
+The rule was already written three lines above the call site:
+
+> An empty slate is legitimate (no games scheduled); a malformed file is not.
+> Only the second one should fail the run.
+
+**Nothing in a file a refresher runs may require live data to be present.**
+Check the shape of what is there; report how much that was, so a permanently
+empty file is visible rather than silently green.
+
+**And put a content-bearing check where content is guaranteed.** The
+signed-price assertion now also runs in `refresh-odds.yml`'s sanity step,
+inside the `n > 0` branch, where an empty slate has already exited. Same rule,
+two places, each able to be strict about exactly what it can see.
+
+**Reproduce before fixing.** The empty file was written locally and the test
+watched to fail the same way CI failed, then watched to pass, then watched to
+still catch a bare number. Reading the log and inferring the cause would have
+got the diagnosis right and the fix untested.

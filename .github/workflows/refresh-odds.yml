@@ -64,7 +64,21 @@ jobs:
               (m) => !(m.noVigOver > 0 && m.noVigOver < 1) || !(m.hold > 0 && m.hold < 0.3),
             );
             if (bad.length) throw new Error(bad.length + " markets have impossible prices");
-            console.log("ok:", n, "markets, all prices sane");
+            // index.html renders these straight through amer(), which trusts
+            // that ESPN already signed them ("+111", "-103"). If that ever
+            // stops being true the board prints nonsense, so check it HERE,
+            // where a non-empty slate is guaranteed -- the same check in the
+            // test suite has to stay silent on an empty one.
+            const unsigned = Object.values(d.markets)
+              .flatMap((m) => [m.over, m.under])
+              .filter((p) => !/^[+-]\d+$/.test(String(p)));
+            if (unsigned.length) {
+              throw new Error(
+                unsigned.length + " prices are not signed American strings, e.g. " +
+                JSON.stringify(unsigned.slice(0, 3)),
+              );
+            }
+            console.log("ok:", n, "markets, all prices sane and signed");
           '
           node --test edge.test.mjs score.test.mjs golf.test.mjs nfl.test.mjs dom.test.mjs
 
