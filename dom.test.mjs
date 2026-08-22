@@ -34,7 +34,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const DIR = dirname(fileURLToPath(import.meta.url));
-const BOARDS = ["index.html", "golf.html", "nfl.html"];
+const BOARDS = ["index.html", "golf.html", "nfl.html", "bets.html"];
 const src = (f) => readFileSync(resolve(DIR, f), "utf8");
 
 /*
@@ -124,13 +124,13 @@ test("the measure cap is set in ch, and low enough to mean it", () => {
 /* ------------------------------------------------------------------ *
  * Copy-paste drift — the root cause behind FINDING-001 and FINDING-004
  *
- * The three boards do not share a stylesheet, they share a copy of one.
+ * The boards do not share a stylesheet, they share a copy of one.
  * Two separate findings this session were the copies diverging. Pin the
  * design tokens so a change to one board that should apply to all cannot
  * silently apply to one.
  * ------------------------------------------------------------------ */
 
-test("the design tokens are identical across all three boards", () => {
+test("the design tokens are identical across every board", () => {
   const blocks = BOARDS.map((f) => {
     const m = src(f).match(/:root\{[^}]*\}/);
     assert.ok(m, `${f} has no :root token block`);
@@ -155,7 +155,7 @@ test("the design tokens are identical across all three boards", () => {
  * was which nav link happened to be absent.
  * ------------------------------------------------------------------ */
 
-test("every board links to the other two, and nowhere broken", () => {
+test("every board links to every other board, and nowhere broken", () => {
   for (const f of BOARDS) {
     const hrefs = [...src(f).matchAll(/class="navlink"\s+href="([^"]+)"/g)].map((m) => m[1]);
     const others = BOARDS.filter((b) => b !== f);

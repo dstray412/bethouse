@@ -1,0 +1,562 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>BetHouse — your bets</title>
+<link rel="stylesheet" href="fonts/space-grotesk.css">
+<style>
+:root{
+  --bg:#12161f; --panel:rgba(255,255,255,0.04); --panel2:rgba(255,255,255,0.025);
+  --line:rgba(255,255,255,0.09); --text:#eef1f7; --muted:#a6b0c4;
+  --accent:#38e1ff; --accent2:#7c5cff; --warn:#e0a33f; --bad:#d8434f; --good:#5fce8f;
+  --display:'Space Grotesk',ui-sans-serif,system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+/* The `hidden` attribute must actually hide. A class that sets
+   `display` (.ctl and .controls both set display:flex) beats the UA
+   stylesheet's [hidden]{display:none} because author styles win over
+   UA styles, so `el.hidden = true` silently did nothing and left dead
+   controls on screen. Standard reset idiom; !important is the point. */
+[hidden]{display:none!important}
+html,body{margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font:15px/1.5 ui-sans-serif,system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased;min-height:100vh}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(900px 520px at 88% -8%,rgba(124,92,255,.16),transparent 60%),
+             radial-gradient(760px 480px at 4% 104%,rgba(56,225,255,.11),transparent 60%)}
+.wrap{position:relative;z-index:1;max-width:1080px;margin:0 auto;padding:22px 18px 60px}
+
+header{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:16px}
+.brand{flex:1 1 auto;min-width:200px}
+.logo{font-family:var(--display);font-size:22px;font-weight:700;letter-spacing:.14em;
+  background:linear-gradient(96deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent;margin:0}
+.tagline{font-family:var(--display);font-size:11px;font-weight:600;letter-spacing:.17em;text-transform:uppercase;color:var(--muted);margin-top:5px}
+.navlink{font-family:var(--display);font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--muted);text-decoration:none;border:1px solid var(--line);border-radius:9px;padding:7px 12px;white-space:nowrap}
+.navlink:hover{color:var(--text);border-color:var(--accent)}
+
+.note{color:var(--muted);font-size:14px;line-height:1.65;margin:0 2px 14px;max-width:56ch}
+.note b{color:var(--text);font-weight:600}
+.note .hot{color:var(--warn)}
+
+.controls{display:flex;flex-wrap:wrap;gap:14px 26px;align-items:flex-end;
+  background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:13px 15px;margin-bottom:16px}
+.ctl{display:flex;flex-direction:column;gap:6px}
+.ctl>label{font-family:var(--display);font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.seg{display:flex;gap:6px;flex-wrap:wrap}
+.seg button{font:inherit;font-size:13px;color:var(--muted);background:var(--panel2);
+  border:1px solid var(--line);border-radius:9px;padding:7px 12px;cursor:pointer;white-space:nowrap}
+.seg button:hover{color:var(--text)}
+.seg button[aria-pressed=true]{color:#0a0d14;background:linear-gradient(180deg,#7fe9ff,var(--accent));border-color:transparent;font-weight:600}
+
+/* The headline record */
+.record{border:1px solid rgba(95,206,143,.32);background:rgba(95,206,143,.06);
+  border-radius:14px;padding:15px 17px;margin-bottom:16px}
+.record h2{font-family:var(--display);font-size:12px;font-weight:700;letter-spacing:.18em;
+  text-transform:uppercase;color:var(--good);margin:0 0 12px}
+.stats{display:flex;gap:26px;flex-wrap:wrap;align-items:baseline}
+.stats .big{font-family:var(--display);font-size:26px;font-weight:700;font-variant-numeric:tabular-nums}
+.stats .lbl{display:block;color:var(--muted);font-size:11.5px;margin-top:2px}
+.verdict{margin-top:13px;font-size:13.5px;line-height:1.65;color:var(--muted);max-width:56ch}
+.verdict b{color:var(--text)}
+
+table.bdown{border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums;
+  width:100%;max-width:520px;margin-top:15px}
+table.bdown th{text-align:right;font-weight:600;color:var(--muted);font-size:10.5px;
+  letter-spacing:.08em;text-transform:uppercase;padding:0 0 6px 16px}
+table.bdown th:first-child{text-align:left;padding-left:0}
+table.bdown td{text-align:right;padding:4px 0 4px 16px;border-top:1px solid var(--line)}
+table.bdown td.bl{text-align:left;color:var(--text);padding-left:0}
+table.bdown .gap{font-size:11.5px}
+table.bdown .gap.up{color:var(--good)} table.bdown .gap.down{color:var(--bad)}
+.bnote{margin-top:8px;font-size:11.5px;color:var(--muted);line-height:1.55;max-width:56ch}
+
+/* The history itself */
+.daygroup{background:var(--panel);border:1px solid var(--line);border-radius:14px;
+  overflow:hidden;margin-bottom:14px}
+.dhead{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;
+  padding:11px 15px;background:rgba(255,255,255,.03);border-bottom:1px solid var(--line)}
+.dtitle{font-family:var(--display);font-size:14px;font-weight:700;margin:0}
+.dmeta{font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+
+.bet{display:flex;justify-content:space-between;gap:12px;align-items:baseline;
+  padding:9px 15px;border-top:1px solid rgba(255,255,255,.045);font-size:14.5px}
+.bet:first-of-type{border-top:0}
+.bet .lp{color:var(--muted);font-size:12.5px;font-variant-numeric:tabular-nums}
+.bet .right{display:flex;align-items:baseline;gap:11px;flex:0 0 auto}
+.bet .out{font-family:var(--display);font-size:11px;font-weight:700;letter-spacing:.06em}
+.bet .out.win{color:var(--good)} .bet .out.lost{color:var(--bad)} .bet .out.open{color:var(--muted)}
+.bet button{background:none;border:0;color:var(--muted);cursor:pointer;font:inherit;font-size:15px;padding:0 2px}
+.bet button:hover{color:var(--bad)}
+.retro{font-size:10px;font-family:var(--display);font-weight:700;letter-spacing:.06em;color:var(--warn);margin-left:7px}
+.leg-line{display:flex;gap:9px;align-items:baseline;padding:3px 15px 3px 32px;font-size:12.5px;color:var(--muted)}
+.leg-line .nm{color:var(--text)}
+.leg-line .out{margin-left:auto;font-family:var(--display);font-size:10px;font-weight:700;letter-spacing:.06em}
+.leg-line .out.win{color:var(--good)} .leg-line .out.lost{color:var(--bad)} .leg-line .out.open{color:var(--muted)}
+
+.empty{padding:44px 20px;text-align:center;color:var(--muted);
+  background:var(--panel);border:1px solid var(--line);border-radius:14px}
+.empty .big{font-family:var(--display);font-size:18px;font-weight:600;color:var(--text);margin-bottom:7px}
+
+footer{margin-top:22px;color:var(--muted);font-size:12px;line-height:1.7;max-width:56ch}
+footer button{background:none;border:0;color:var(--muted);text-decoration:underline;
+  cursor:pointer;font:inherit;font-size:12px;padding:0}
+footer button:hover{color:var(--text)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+
+@media (max-width:760px){
+  .wrap{padding:14px 11px 40px}
+  .ctl{flex:0 0 100%;flex-direction:row;align-items:center;gap:9px}
+  .ctl>label{flex:0 0 58px;font-size:9.5px;letter-spacing:.10em}
+  .ctl .seg{flex:1 1 auto}
+  .ctl .seg button{flex:1 1 0;min-height:40px;padding:6px}
+  .bet{flex-wrap:wrap}
+  .bet .lp{display:block;white-space:nowrap;margin-top:1px}
+  .bet .right{align-self:flex-start}
+  .leg-line{flex-wrap:wrap;padding-left:24px}
+  .leg-line .meta{flex:1 0 100%;order:3}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="brand">
+    <h1 class="logo">BETHOUSE</h1>
+    <div class="tagline" id="tagline">Your bets — wins and losses</div>
+  </div>
+  <a class="navlink" href="index.html">Baseball →</a>
+  <a class="navlink" href="nfl.html">NFL →</a>
+  <a class="navlink" href="golf.html">PGA →</a>
+</header>
+
+<div class="note" id="note"></div>
+
+<div class="controls" id="controls">
+  <div class="ctl">
+    <label id="lab-out">Result</label>
+    <div class="seg" id="fout" role="group" aria-labelledby="lab-out"></div>
+  </div>
+  <div class="ctl">
+    <label id="lab-kind">Kind</label>
+    <div class="seg" id="fkind" role="group" aria-labelledby="lab-kind"></div>
+  </div>
+</div>
+
+<div id="record"></div>
+<main id="history"></main>
+<footer id="footer"></footer>
+</div>
+
+<script src="bets.js"></script>
+<script>
+(function(){
+"use strict";
+var T = window.BetHouseBets;
+
+/* ------------------------------------------------------------------ *
+ * The log
+ *
+ * Same storage the board writes to — this page is a different view of it,
+ * not a second copy. Reading it must never be able to take the page down,
+ * so a corrupt value costs the log and nothing else.
+ * ------------------------------------------------------------------ */
+var BETS = (function(){
+  try {
+    var held = T.parse(localStorage.getItem(T.STORAGE_KEY));
+    if(held.length) return held;
+    var legacy = localStorage.getItem(T.LEGACY_KEY);
+    if(legacy){
+      var moved = T.migrate(JSON.parse(legacy));
+      localStorage.setItem(T.STORAGE_KEY, T.serialise(moved));
+      localStorage.removeItem(T.LEGACY_KEY);
+      return moved;
+    }
+    return held;
+  } catch(e){ return []; }
+})();
+var WRITABLE = true;
+
+function persist(){
+  try { localStorage.setItem(T.STORAGE_KEY, T.serialise(BETS)); WRITABLE = true; }
+  catch(e){ WRITABLE = false; }
+}
+
+var state = { out: 'all', kind: 'all' };
+var OUT  = [{id:'all',label:'All'},{id:'won',label:'Won'},{id:'lost',label:'Lost'},{id:'open',label:'Open'}];
+var KIND = [{id:'all',label:'All'},{id:'straight',label:'Straight'},{id:'parlay',label:'Parlay'}];
+
+function el(tag, cls, text){
+  var e = document.createElement(tag);
+  if(cls) e.className = cls;
+  if(text != null) e.textContent = text;
+  return e;
+}
+function pct(x, d){
+  return (x == null || !isFinite(x)) ? '—' : (100*x).toFixed(d == null ? 1 : d) + '%';
+}
+function fmtDay(iso){
+  if(!iso) return '';
+  var d = new Date(iso + 'T12:00:00Z');
+  return isNaN(d) ? iso
+    : d.toLocaleDateString(undefined, {weekday:'long', month:'long', day:'numeric'});
+}
+
+function seg(host, items, current, onPick){
+  host.innerHTML = '';
+  items.forEach(function(it){
+    var b = el('button', null, it.label);
+    b.type = 'button';
+    b.setAttribute('aria-pressed', String(it.id === current));
+    b.addEventListener('click', function(){ onPick(it.id); });
+    host.appendChild(b);
+  });
+}
+
+/* Grades come from history/<date>.json, exactly as on the board: track.mjs
+   writes it on every refresh with the real outcome for every player it
+   snapshotted. This page decides nothing, it only reads. A date is fetched
+   only while it still holds something unsettled. */
+function gradeBets(){
+  var dates = T.ungradedDates(BETS);
+  if(!dates.length || typeof fetch !== 'function') return;
+  var left = dates.length, changed = false;
+  var before = T.summarise(BETS).graded;
+  dates.forEach(function(d){
+    fetch('history/' + d + '.json')
+      .then(function(res){ return res.ok ? res.json() : null; })
+      .catch(function(){ return null; })
+      .then(function(day){
+        if(day){
+          BETS = T.applyResults(BETS, T.resultsFrom(day));
+          if(T.summarise(BETS).graded !== before) changed = true;
+        }
+        /* Only write and redraw when a grade actually landed — an
+           unconditional save here would re-enter through render. */
+        if(--left === 0 && changed){ persist(); render(); }
+      });
+  });
+}
+
+function matches(b){
+  if(state.kind === 'straight' && b.legs.length !== 1) return false;
+  if(state.kind === 'parlay'   && b.legs.length < 2)   return false;
+  if(state.out === 'won'  && b.actual !== 1) return false;
+  if(state.out === 'lost' && b.actual !== 0) return false;
+  if(state.out === 'open' && b.actual != null) return false;
+  return true;
+}
+
+/* ------------------------------------------------------------------ *
+ * The record
+ *
+ * Summed over EVERY bet in the log, never over what the filters happen to
+ * be showing. A win rate that moves when you click "Won" is not a record,
+ * it is a mirror.
+ * ------------------------------------------------------------------ */
+function renderRecord(){
+  var host = document.getElementById('record');
+  host.innerHTML = '';
+  var s = T.summarise(BETS);
+  if(!s.tracked) return;
+
+  var box = el('div','record');
+  box.appendChild(el('h2', null, 'Record'));
+
+  var stats = el('div','stats');
+  function stat(value, label){
+    var d = el('div');
+    d.appendChild(el('span','big', value));
+    d.appendChild(el('span','lbl', label));
+    stats.appendChild(d);
+  }
+  stat(String(s.graded ? s.hits : 0), 'won');
+  stat(String(s.graded ? s.graded - s.hits : 0), 'lost');
+  if(s.pending) stat(String(s.pending), 'open');
+  if(s.graded){
+    stat(pct(s.hitRate, 0), 'win rate');
+    stat(s.expected.toFixed(1), 'model expected');
+  }
+  box.appendChild(stats);
+  box.appendChild(el('div','verdict', verdict(s)));
+  box.appendChild(breakdown(s));
+  host.appendChild(box);
+}
+
+function verdict(s){
+  if(!s.graded) return 'Nothing has settled yet. Grades arrive within about half an hour of a game ending.';
+  var diff = s.hits - s.expected;
+  var head = 'You are ' + s.hits + '–' + (s.graded - s.hits) + '. The model expected ' +
+    s.expected.toFixed(1) + ' wins from those same ' + s.graded + ' bets.';
+  var tail = '';
+  if(s.sharedLegs){
+    tail = ' Note that ' + s.sharedLegs + ' player' + (s.sharedLegs === 1 ? ' rides' : 's ride') +
+      ' in more than one of these bets, so those outcomes move together and the spread ' +
+      'quoted here is narrower than the truth.';
+  }
+  if(s.sd < 1e-9) return head + tail;
+  var z = diff / s.sd;
+  if(Math.abs(z) < 2){
+    return head + ' That is ' + (diff >= 0 ? '+' : '') + diff.toFixed(1) +
+      ' against a spread of ' + s.sd.toFixed(1) + ' — inside the noise, which is what ' +
+      'almost every honest sample this size looks like.' + tail;
+  }
+  return head + ' That is ' + (diff >= 0 ? '+' : '') + diff.toFixed(1) + ', about ' +
+    Math.abs(z).toFixed(1) + ' standard deviations ' + (diff > 0 ? 'above' : 'below') +
+    ' expectation — large enough to be worth a second look, on ' + s.graded + ' bets.' + tail;
+}
+
+var PROP_LABELS = {hrr:'1+ H/R/RBI', hr:'1+ home run', tb2:'2+ total bases',
+                   tb3:'3+ total bases', tb4:'4+ total bases'};
+
+/*
+ * Win rate by kind of bet.
+ *
+ * A single combined number answers nothing: a 73% straight and a 41%
+ * three-leg slip are different wagers with different break-evens, and the
+ * whole reason to keep a log is to find out which one you are good at.
+ * MODEL SAID is what the board expected from those same bets, so a good row
+ * is one that BEAT its expectation rather than one that merely cleared 50%.
+ */
+function breakdown(s){
+  var box = el('div','breakdown');
+  if(!s.graded) return box;
+
+  var rows = [['Straight', s.singles], ['Parlay', s.parlays]];
+  Object.keys(s.byProp).forEach(function(k){
+    rows.push([PROP_LABELS[k] || k, s.byProp[k], true]);
+  });
+  if(s.retro.graded) rows.push(['Entered after the result', s.retro]);
+
+  var tbl = el('table','bdown');
+  var head = el('tr');
+  ['', 'record', 'rate', 'model said'].forEach(function(h){ head.appendChild(el('th', null, h)); });
+  tbl.appendChild(head);
+
+  var any = false;
+  rows.forEach(function(r){
+    var t = r[1];
+    if(!t || !t.graded) return;
+    any = true;
+    var tr = el('tr');
+    tr.appendChild(el('td','bl', r[0] + (r[2] ? ' *' : '')));
+    tr.appendChild(el('td', null, t.hits + '–' + (t.graded - t.hits)));
+    tr.appendChild(el('td', null, pct(t.hitRate, 0)));
+    var said = el('td');
+    said.textContent = pct(t.expectedRate, 0);
+    var gap = t.hits - t.expected;
+    said.appendChild(el('span','gap ' + (gap >= 0 ? 'up' : 'down'),
+      '  ' + (gap >= 0 ? '+' : '') + gap.toFixed(1)));
+    tr.appendChild(said);
+    tbl.appendChild(tr);
+  });
+  if(!any) return box;
+  box.appendChild(tbl);
+  if(Object.keys(s.byProp).length){
+    box.appendChild(el('div','bnote',
+      '* Prop rows count LEGS, not wagers — a three-leg slip contributes three of them. ' +
+      'The two rows above count wagers, which is why they will not add up.'));
+  }
+  return box;
+}
+
+/* ------------------------------------------------------------------ *
+ * The history, newest day first
+ * ------------------------------------------------------------------ */
+function renderHistory(){
+  var host = document.getElementById('history');
+  host.innerHTML = '';
+
+  if(!BETS.length){
+    var e = el('div','empty');
+    e.appendChild(el('div','big','No bets recorded yet.'));
+    e.appendChild(document.createTextNode(
+      'Tap the circle beside any player on the baseball board, or press "I bet this parlay" on a slip. ' +
+      'Pick an earlier date from Day to record something you placed then.'));
+    host.appendChild(e);
+    return;
+  }
+
+  var shown = BETS.filter(matches);
+  if(!shown.length){
+    host.appendChild(el('div','empty','Nothing in the log matches that filter.'));
+    return;
+  }
+
+  var byDay = {};
+  shown.forEach(function(b){ (byDay[b.date || ''] = byDay[b.date || ''] || []).push(b); });
+  var days = Object.keys(byDay).sort().reverse();
+
+  days.forEach(function(d){
+    var list = byDay[d].slice().sort(function(a, b){
+      return String(b.addedAt || '').localeCompare(String(a.addedAt || ''));
+    });
+    var settled = list.filter(function(b){ return b.actual != null; });
+    var won = settled.filter(function(b){ return b.actual === 1; }).length;
+
+    var card = el('div','daygroup');
+    var head = el('div','dhead');
+    head.appendChild(el('h2','dtitle', fmtDay(d) || 'Undated'));
+    head.appendChild(el('div','dmeta', settled.length
+      ? won + '–' + (settled.length - won) + ' settled' +
+        (list.length > settled.length ? ' · ' + (list.length - settled.length) + ' open' : '')
+      : list.length + ' open'));
+    card.appendChild(head);
+
+    /* betLine returns a fragment: the bet, then its legs if it has any. */
+    list.forEach(function(b){ card.appendChild(betLine(b)); });
+    host.appendChild(card);
+  });
+}
+
+function betLine(b){
+  var multi = b.legs.length > 1;
+  var wrap = document.createDocumentFragment();
+
+  var line = el('div','bet');
+  var left = el('div');
+  if(multi){
+    left.appendChild(document.createTextNode(b.legs.length + '-leg parlay'));
+  } else {
+    left.appendChild(document.createTextNode(b.legs[0].name));
+  }
+  if(b.retro) left.appendChild(el('span','retro','ENTERED LATER'));
+  left.appendChild(el('span','lp', ' ' + (multi
+    ? legsIn(b)
+    : [b.legs[0].team, b.legs[0].propLabel].filter(Boolean).join(' · '))));
+  line.appendChild(left);
+
+  var right = el('div','right');
+  if(isFinite(b.prob)) right.appendChild(el('span','lp', pct(b.prob, 0)));
+  right.appendChild(el('span','out ' + (b.actual == null ? 'open' : b.actual ? 'win' : 'lost'),
+    b.actual == null ? 'OPEN' : b.actual ? 'WON' : 'LOST'));
+  var x = el('button', null, '✕');
+  x.type = 'button';
+  x.title = 'Remove';
+  x.setAttribute('aria-label', 'Remove this bet from your log');
+  x.addEventListener('click', function(){
+    BETS = T.remove(BETS, b.key);
+    persist();
+    render();
+  });
+  right.appendChild(x);
+  line.appendChild(right);
+  wrap.appendChild(line);
+
+  if(multi){
+    b.legs.forEach(function(l){
+      var sub = el('div','leg-line');
+      sub.appendChild(el('span','nm', l.name));
+      sub.appendChild(el('span','meta', [l.team, l.propLabel].filter(Boolean).join(' · ')));
+      sub.appendChild(el('span','out ' + (l.actual == null ? 'open' : l.actual ? 'win' : 'lost'),
+        l.actual == null ? '–' : l.actual ? 'WON' : 'LOST'));
+      wrap.appendChild(sub);
+    });
+  }
+  return wrap;
+}
+
+function legsIn(b){
+  var done = b.legs.filter(function(l){ return l.actual != null; }).length;
+  return b.actual != null ? b.legs.length + ' legs' : done + ' of ' + b.legs.length + ' legs in';
+}
+
+/* ------------------------------------------------------------------ *
+ * Keeping a copy
+ * ------------------------------------------------------------------ */
+function exportBets(){
+  var blob = new Blob([JSON.stringify(BETS, null, 2)], {type:'application/json'});
+  var a = el('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'bethouse-bets.json';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(function(){ URL.revokeObjectURL(a.href); }, 1000);
+}
+
+function importBets(){
+  var inp = el('input'); inp.type = 'file'; inp.accept = 'application/json,.json';
+  inp.addEventListener('change', function(){
+    var f = inp.files && inp.files[0];
+    if(!f) return;
+    var fr = new FileReader();
+    fr.onload = function(){
+      var rows;
+      try { rows = JSON.parse(String(fr.result)); } catch(e){ rows = null; }
+      if(!Array.isArray(rows)) return;
+      /* Merged, not replaced, and rebuilt through migrate() so a file in
+         either shape loads. Anything already held wins, so an import cannot
+         overwrite a grade you already have. */
+      T.migrate(rows).forEach(function(b){ BETS = T.add(BETS, b); });
+      persist(); gradeBets(); render();
+    };
+    fr.readAsText(f);
+  });
+  inp.click();
+}
+
+function renderFooter(){
+  var f = document.getElementById('footer');
+  f.innerHTML = '';
+  var s = T.summarise(BETS);
+
+  f.appendChild(el('div', null,
+    'This log lives in this browser only. Nothing is sent anywhere and there is no account, ' +
+    'so clearing site data clears it — which is what Export is for.'));
+  f.appendChild(el('div', null,
+    'There is no stake and no price here, so this cannot tell you whether you made money. ' +
+    'It tells you whether your bets landed as often as the model said they would.'));
+
+  var line = el('div');
+  line.style.marginTop = '9px';
+  var ex = el('button', null, 'Export'); ex.type = 'button';
+  ex.addEventListener('click', exportBets);
+  var im = el('button', null, 'Import'); im.type = 'button';
+  im.addEventListener('click', importBets);
+  var cl = el('button', null, 'Clear all'); cl.type = 'button';
+  cl.addEventListener('click', function(){
+    /* No confirm() dialog: it blocks the page. Two deliberate clicks. */
+    if(cl.dataset.armed){ BETS = []; persist(); render(); return; }
+    cl.dataset.armed = '1';
+    cl.textContent = 'Clear all — tap again';
+  });
+  line.appendChild(ex); line.appendChild(document.createTextNode(' · '));
+  line.appendChild(im); line.appendChild(document.createTextNode(' · '));
+  line.appendChild(cl);
+  f.appendChild(line);
+
+  if(!WRITABLE){
+    f.appendChild(el('div', null,
+      'This browser is refusing to save — private mode, most likely. Changes here will not ' +
+      'survive a reload. Export if you want to keep the log.'));
+  }
+  if(s.retro.tracked){
+    f.appendChild(el('div', null,
+      s.retro.tracked + ' of these ' + s.tracked + ' were entered after the result was known ' +
+      'and are counted on their own row above.'));
+  }
+}
+
+function render(){
+  seg(document.getElementById('fout'), OUT, state.out, function(v){ state.out = v; render(); });
+  seg(document.getElementById('fkind'), KIND, state.kind, function(v){ state.kind = v; render(); });
+  document.getElementById('controls').hidden = !BETS.length;
+
+  var note = document.getElementById('note');
+  note.innerHTML = BETS.length
+    ? 'Every bet you have recorded, newest day first, with what the model gave it at the time. ' +
+      'The record below covers <b>all</b> of them — filtering the list does not move it.'
+    : 'Nothing here yet. This page shows every bet you record on the boards, won and lost, ' +
+      'and how your results compare to what the model predicted.';
+
+  renderRecord();
+  renderHistory();
+  renderFooter();
+}
+
+render();
+gradeBets();
+})();
+</script>
+</body>
+</html>

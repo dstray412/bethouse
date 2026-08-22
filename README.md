@@ -148,7 +148,8 @@ should be re-fitted when the run environment shifts.
 | `backtest.mjs` | Replays real games, measures calibration, fits `k`, and tests parlays (`--parlay`) and hot streaks (`--streaks`). |
 | `track.mjs` | Records each day's pregame predictions, grades them once games end, keeps the running record. |
 | `edge.js` | De-vig and EV math for the odds side. 36 tests. |
-| `bets.js` | Your bet log, singles and parlays. What you tracked, how it graded, and how that compares to what the model said. 36 tests. |
+| `bets.js` | Your bet log, singles and parlays. What you tracked, how it graded, and how that compares to what the model said. 46 tests. |
+| `bets.html` | The history: every bet, won and lost, grouped by day, with win rate by kind of bet. Open it. |
 | `fetch-odds.mjs` | The Odds API client. Needs a key; not required for the board. |
 | `golf.html` | The PGA board: who makes the cut. Open it. |
 | `golf.js` | The cut model. Two-way ratings solve plus a field-wide Monte Carlo. |
@@ -373,7 +374,8 @@ bias only means something once the sample is in the thousands.
 
 ## Your bets
 
-The running record above is the *model's*. This is yours.
+The running record above is the *model's*. This is yours, and it lives on its
+own page — **`bets.html`**, linked as **Bets** from every board.
 
 Tap the **circle** on any row before first pitch and that pick goes into a log
 in your browser. Nothing is sent anywhere, there is no account, and it works on
@@ -425,6 +427,20 @@ The panel then says the only thing it is in a position to say:
 > Your picks hit 6 of 10. The model expected 6.6 from those same 10. That is
 > −0.6 against a spread of 1.5 — inside the noise, which is what almost every
 > honest sample this size looks like.
+
+### The history page
+
+`bets.html` is the whole log: every bet grouped by day, newest first, won and
+lost, with each parlay's legs underneath so a loss names the leg that killed
+it. Filter by result (won / lost / open) or by kind (straight / parlay).
+
+**The record does not move when you filter.** It is summed over every bet in
+the log, always. A win rate that climbs when you click "Won" is not a record,
+it is a mirror.
+
+The board keeps only what is useful while you are still betting: what is riding
+right now, one line on how the record stands, and a link here. Two full copies
+of the same list would be two things to keep in step.
 
 ### Win rate by kind of bet
 

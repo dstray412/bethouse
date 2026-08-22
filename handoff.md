@@ -248,3 +248,41 @@ sharp enough to be worth admitting.
 - No NFL or golf tracking — those boards have no `history/*.json` to grade
   against.
 - Still no stake and no price, so no P&L and no CLV.
+
+---
+
+# Bet history page — 2026-08-22
+
+`bets.html`, linked as **Bets** from every board. Every bet grouped by day,
+won and lost, parlay legs underneath, filters by result and by kind, and the
+win-rate breakdown.
+
+**The record is summed over the whole log, never over the filtered view.** A
+win rate that moves when you click "Won" is a mirror, not a record.
+
+**The board's panel was trimmed rather than duplicated.** index.html now shows
+only what is riding right now plus a one-line record and a link here; the full
+list, the breakdown table, verdict(), exportBets() and importBets() moved out,
+and the orphaned CSS went with them. Two copies of the same list is two things
+to keep in step, which this repo has paid for four times.
+
+**bets.html is a fourth board as far as the tests are concerned.** It was added
+to `BOARDS` in dom.test.mjs, so it is held to the same contract: byte-identical
+`:root` tokens, the `[hidden]` guard, a ch-capped measure, links to every
+sibling with consistent labels, a tagline that names the page, every asset
+present, no duplicate ids. The link test already generalised — it asserts one
+nav link per sibling board — so adding the fourth required every other board to
+link to it and they now do.
+
+## State
+
+- 271 tests green, full gate clean.
+- Verified in a browser: empty state; 12 seeded bets across 3 days grading to
+  5–7; filters narrow the list while the record holds at 5 won; parlay filter
+  shows 3 bets and 9 legs; the retro chip renders; no console errors and no
+  horizontal scroll at 375px on either page.
+
+## Still not done
+
+- NFL and golf bets. Those boards have no `history/*.json`, so nothing grades.
+- No stake, no price, so no P&L and no CLV.
