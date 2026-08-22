@@ -147,6 +147,7 @@ should be re-fitted when the run environment shifts.
 | `fetch-mlb.mjs` | Five keyless requests to statsapi → `mlb-data.js`. |
 | `backtest.mjs` | Replays real games, measures calibration, fits `k`, and tests parlays (`--parlay`) and hot streaks (`--streaks`). |
 | `track.mjs` | Records each day's pregame predictions, grades them once games end, keeps the running record. |
+| `lineup-context.mjs` | Replays committed board snapshots to test whether on-base ahead of a hitter moves the residual. It does not. |
 | `edge.js` | De-vig and EV math for the odds side. 36 tests. |
 | `bets.js` | Your bet log, singles and parlays. What you tracked, how it graded, and how that compares to what the model said. 46 tests. |
 | `bets.html` | The history: every bet, won and lost, grouped by day, with win rate by kind of bet. Open it. |
@@ -679,7 +680,7 @@ priced*. That is the only version a bettor can spend.
 
 ---
 
-## Three things that turned out not to matter
+## Five things that turned out not to matter
 
 The project keeps a list of ideas that sounded good and did not survive being
 measured, because knowing what to ignore is worth as much as knowing what to
@@ -693,6 +694,7 @@ worth what it adds to the number you would otherwise have used.
 | Wind, direction | `--weather` | z = -0.18, 0.48, -0.63 |
 | Wind, strength | `--weather` | z = -1.57, -0.59 |
 | Opponent team defence | `--defense` | z = 0.16, -0.28 |
+| Who bats ahead of him | `lineup-context.mjs` | z = -0.26; halves disagree |
 | Temperature | `--weather` | real, but see below |
 
 **Opponent defence** deserves a note because the raw spread is so tempting.
@@ -703,6 +705,24 @@ across 7,291 player-games the leakiest defences beat their prediction by
 The opposing STARTER is already in the model, he faces the hitter for two
 thirds of his trips, and team run prevention is mostly the rotation. The
 bullpen and the fielders are real, and they are already priced.
+
+**Who bats ahead of him** was the most plausible of the five, because 1+
+H/R/RBI has three ways to cash and two of them — the run and the RBI — are
+barely about the hitter. The model gets team runs per game and nothing about
+the three men who will actually bat in front of him tonight. So it should run
+cold on hitters stuck behind three automatic outs.
+
+It does not. Across 3,557 player-games with **confirmed** batting orders, the
+quarter with the worst on-base ahead of them (.293) beat their prediction by
++0.92pp and the best quarter (.352) by +0.35pp — the wrong way round, and
+z = -0.26. The two halves of the window then disagree in *direction*
+(-3.03pp and +0.67pp), which is what noise looks like.
+
+The reason is visible in the table's third column: the model's own number
+already climbs from 65.1% to 67.2% across those quarters. It is not blind to
+lineup quality, it just gets there through the hitter's own season line and
+his team's scoring rather than through the men in front of him. There is no
+gap left to fill.
 
 **Temperature** is the one that is real and still not shipped: the residual
 gradient replicates across two windows that share no games (+4.63pp, z 2.84 in
