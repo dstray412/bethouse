@@ -201,3 +201,50 @@ first grade wins, expectation covers exactly the graded picks.
   so there is nothing to grade against yet.
 - Still no CLV. It is the measure that would tell you whether you are actually
   good, and it needs a closing-price capture that does not exist.
+
+---
+
+# Parlay tracking — 2026-08-21
+
+The tracker now records parlays as well as singles. Press **I bet this parlay**
+on the slip; the row circles still handle singles.
+
+**The model changed: a single is a parlay with one leg.** Every bet is now
+`{legs:[...], prob, date}`. Keeping the old one-pick-per-entry shape would have
+meant a second shape, a second grading path and a second summary — two of
+everything, and this repo has now been bitten four times by two copies of a
+rule drifting apart. Storage went `bethouse.bets.v1` → `v2` with a migration
+that runs on read and on import; the v1 key is deleted after a successful move
+so a later "Clear all" cannot resurrect it. Verified in a real browser.
+
+**A parlay dies on the first missed leg** and settles then, without waiting for
+the rest — an early leg that missed has already decided a slip whose other legs
+are night games. It pays only when every leg is in and every leg hit. Legs
+carry their own outcome even while the bet is open, so the panel shows "2 of 3
+legs in" and a MISS names the leg that killed it.
+
+**The combined probability is stored as shown, never recomputed.** Recomputing
+later from legs the model has revised would compare your decision against
+evidence you never had.
+
+## The honesty problem parlays introduced
+
+`sd` sums p(1-p), which assumes the bets are independent **of each other**. Bet
+a single on a hitter and a parlay containing him and they are not. The panel
+counts shared legs and says so rather than quoting a spread it cannot stand
+behind. This was already latent with singles in the same game; parlays made it
+sharp enough to be worth admitting.
+
+## State
+
+- 261 tests, `bets.test.mjs` is 36 of them. Full gate green.
+- Verified in a browser: a suggested 3-leg slip logs once and the button
+  disables; a seeded winner graded to HIT, a seeded loser to MISS with the
+  right leg flagged; a planted v1 log migrated and the old key vanished; the
+  overlap caveat fires on a single and a parlay sharing a player.
+
+## Still not done
+
+- No NFL or golf tracking — those boards have no `history/*.json` to grade
+  against.
+- Still no stake and no price, so no P&L and no CLV.

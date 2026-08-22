@@ -148,7 +148,7 @@ should be re-fitted when the run environment shifts.
 | `backtest.mjs` | Replays real games, measures calibration, fits `k`, and tests parlays (`--parlay`) and hot streaks (`--streaks`). |
 | `track.mjs` | Records each day's pregame predictions, grades them once games end, keeps the running record. |
 | `edge.js` | De-vig and EV math for the odds side. 36 tests. |
-| `bets.js` | Your bet log: what you tracked, how it graded, and how that compares to what the model said. 28 tests. |
+| `bets.js` | Your bet log, singles and parlays. What you tracked, how it graded, and how that compares to what the model said. 36 tests. |
 | `fetch-odds.mjs` | The Odds API client. Needs a key; not required for the board. |
 | `golf.html` | The PGA board: who makes the cut. Open it. |
 | `golf.js` | The cut model. Two-way ratings solve plus a field-wide Monte Carlo. |
@@ -379,6 +379,10 @@ Tap the **circle** on any row before first pitch and that pick goes into a log
 in your browser. Nothing is sent anywhere, there is no account, and it works on
 all three bet types. Tap again to remove it.
 
+For a parlay, build or suggest one and press **I bet this parlay** on the slip.
+The slip is a calculator until you say otherwise; that button is the moment it
+becomes a wager, and it is the only way a parlay enters the log.
+
 Grades arrive on their own. `track.mjs` already writes `history/<date>.json` on
 every refresh with the real outcome for every player it snapshotted, on all five
 props, so a pick you tapped is already in that file and settles within about
@@ -386,11 +390,35 @@ half an hour of the game ending. The board fetches a day only while that day
 still has something unsettled, so a finished day is fetched once and never
 again.
 
+**A single is a parlay with one leg.** That is the actual data model, not a
+turn of phrase: one shape, one grading path, one summary. A parlay is stored
+with all its legs and the combined number the slip showed you at the time —
+not a recomputation from legs the model has since revised, which would compare
+your decision against evidence you never had.
+
+A parlay **dies on the first missed leg** and settles immediately. A 3.05pm leg
+that missed has already decided a slip whose other legs are 10pm starts, so
+holding it OPEN for another seven hours would be withholding a result the board
+already knows. It pays only when every leg is in and every leg hit, and the
+panel lists the legs so a MISS says which one killed it.
+
 The panel then says the only thing it is in a position to say:
 
 > Your picks hit 6 of 10. The model expected 6.6 from those same 10. That is
 > −0.6 against a spread of 1.5 — inside the noise, which is what almost every
 > honest sample this size looks like.
+
+Singles and parlays are also counted apart, because an 81% single and a 41%
+three-leg slip are not the same kind of bet and one combined hit rate hides
+which is carrying the record.
+
+### The spread assumes your bets do not overlap
+
+Adding variances treats the bets as independent of each other. Bet a single on
+a hitter *and* a parlay containing him and they are anything but — those two
+outcomes move together, so the spread is narrower than the truth. The panel
+cannot fix that honestly without modelling the joint distribution, so it counts
+the shared players and says so.
 
 ### What it deliberately does not do
 
@@ -405,7 +433,9 @@ capture that does not exist yet.
 
 **Pregame only.** The button is disabled the moment a game goes live, the same
 rule `track.mjs` enforces on itself. Marking a bet in the seventh inning is not
-recording a bet, it is recording an outcome.
+recording a bet, it is recording an outcome. For a parlay this is checked when
+you press the button, not when you built the slip: a slip assembled at 3pm and
+bet at 4pm may have had a game start underneath it.
 
 **First grade wins.** Once a pick has settled it is never rewritten, so
 rebuilding a history file cannot turn a loss into a win.
