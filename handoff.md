@@ -159,3 +159,45 @@ rules went into `tasks/lessons.md`.
   name absorbs the child's label. Fixing it means restructuring the row.
 - The `refresh.yml` / `actions/checkout@v4` pin noted above is still open,
   untouched — outside the scope of a QA pass.
+
+---
+
+# Bet tracker — 2026-08-21
+
+Tap the circle on any row before first pitch; the pick goes into a log in your
+browser and grades itself. New: `bets.js` (28 tests), `bets.test.mjs`, a panel
+in `index.html`, and a README section.
+
+**It reuses the grading that already ran.** `track.mjs` has been writing
+`history/<date>.json` on every refresh for 19 days, with `actual` for every
+player it snapshotted on all five props. A tapped pick is already in that file.
+So the tracker fetches a result, it never decides one — and a date is fetched
+only while it still holds something unsettled, so a finished day is fetched
+once. Pages serves those files with `max-age=600` and an ETag, which is why
+there is no throttle of my own.
+
+**No stake, no price**, so it does not claim to know whether you made money.
+It reports whether your picks landed as often as the model said, with the
+spread luck alone would produce, so a +0.4 gap does not read as skill.
+
+Three rules are in `bets.js`'s header and enforced by tests: pregame only,
+first grade wins, expectation covers exactly the graded picks.
+
+## Two things worth knowing
+
+- The row grid flipped. `.row` now defaults to **slot | who | prob | track |
+  caret**, and the parlay `+` is the variant (`.row.parlay`), because tracking
+  exists on all three bet types and the parlay exists on one. The `.noadd`
+  class from 2026-08-19 is gone.
+- **`dom.test.mjs` now checks that every `*.test.mjs` is wired into all six
+  gates.** The `node --test` file list is explicit (bare discovery would fire
+  the backtests' live API calls), so it lives in six files and adding a
+  seventh test file means remembering all six. Verified by un-wiring one and
+  watching it fail.
+
+## Not done
+
+- No NFL or golf tracking. Those boards have no equivalent of `history/*.json`,
+  so there is nothing to grade against yet.
+- Still no CLV. It is the measure that would tell you whether you are actually
+  good, and it needs a closing-price capture that does not exist.

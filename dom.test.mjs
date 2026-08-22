@@ -29,7 +29,7 @@
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync, existsSync } from "node:fs";
+import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -438,4 +438,45 @@ test("the board asks edge.js how old the odds are, and asks once", () => {
     [],
     "index.html re-derives the feed's age inline; that is the duplication oddsFreshness replaced",
   );
+});
+
+/* ------------------------------------------------------------------ *
+ * Every test file is actually wired into every gate
+ *
+ * `node --test` is invoked with an explicit file list, not bare discovery,
+ * because discovery would fire the backtest scripts and their live API
+ * calls. The cost of that is the list existing in SIX places, and adding a
+ * seventh test file means remembering all six. Miss one and the gap is
+ * silent: the suite still passes, just without the new file.
+ *
+ * This is the same duplication that put the parlay scope rule in two places
+ * and let them disagree. Here it cannot be deduplicated away — the CI files
+ * are YAML and the hook config is its own format — so it gets checked
+ * instead.
+ * ------------------------------------------------------------------ */
+
+test("every test file runs in every gate that runs tests", () => {
+  const GATES = [
+    "scripts/local-check.sh",
+    ".pre-commit-config.yaml",
+    ".github/workflows/ci.yml",
+    ".github/workflows/refresh.yml",
+    ".github/workflows/refresh-nfl.yml",
+    ".github/workflows/refresh-odds.yml",
+  ];
+
+  const files = readdirSync(DIR)
+    .filter((f) => f.endsWith(".test.mjs"))
+    .sort();
+  assert.ok(files.length >= 6, `expected the suite's test files, found ${files.join(", ")}`);
+
+  for (const gate of GATES) {
+    const path = resolve(DIR, gate);
+    assert.ok(existsSync(path), `${gate} is missing`);
+    const text = readFileSync(path, "utf8");
+    assert.ok(/node --test/.test(text), `${gate} no longer runs the suite`);
+    for (const f of files) {
+      assert.ok(text.includes(f), `${gate} does not run ${f}`);
+    }
+  }
 });

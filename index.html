@@ -89,10 +89,12 @@ header{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:1
 .vs{font-size:12.5px;color:var(--muted)}
 .vs b{color:var(--text);font-weight:600}
 
+/* slot | who | prob | track | caret. The parlay + is the variant, not the
+   default: it exists on one bet type, tracking exists on all three. */
 .row{display:grid;grid-template-columns:32px 1fr 78px 30px 20px;gap:10px;align-items:center;
   width:100%;text-align:left;font:inherit;color:inherit;background:none;border:0;
   padding:8px 15px;cursor:pointer;border-top:1px solid rgba(255,255,255,.045)}
-.row.noadd{grid-template-columns:32px 1fr 78px 20px}
+.row.parlay{grid-template-columns:32px 1fr 78px 30px 30px 20px}
 .row:hover{background:rgba(255,255,255,.028)}
 .slot{font-family:var(--display);font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
 .who{font-weight:600;font-size:14.5px}
@@ -107,6 +109,38 @@ header{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:1
   border:1px solid var(--line);border-radius:8px;width:28px;height:28px;cursor:pointer;padding:0}
 .addleg:hover{color:var(--text);border-color:var(--accent)}
 .addleg[aria-pressed=true]{color:#0a0d14;background:linear-gradient(180deg,#7fe9ff,var(--accent));border-color:transparent;font-weight:700}
+/* The track button. Deliberately NOT the parlay's cyan: one is "add to a
+   slip I am considering", the other is "I put money on this", and two
+   identical-looking buttons side by side on the same row would be a
+   coin-flip every time. Green is the board's --good. */
+.trk{font:inherit;font-size:13px;line-height:1;color:var(--muted);background:var(--panel2);
+  border:1px solid var(--line);border-radius:8px;width:28px;height:28px;cursor:pointer;padding:0}
+.trk:hover{color:var(--good);border-color:var(--good)}
+.trk[aria-pressed=true]{color:#0a0d14;background:var(--good);border-color:transparent;font-weight:700}
+.betlog{border:1px solid rgba(95,206,143,.32);background:rgba(95,206,143,.06);border-radius:14px;
+  padding:14px 16px;margin-bottom:16px}
+.betlog h3{font-family:var(--display);font-size:12px;font-weight:700;letter-spacing:.18em;
+  text-transform:uppercase;color:var(--good);margin:0 0 10px}
+.bet{display:flex;justify-content:space-between;gap:10px;align-items:baseline;
+  padding:6px 0;border-top:1px solid var(--line);font-size:14px}
+/* The right-hand cluster is percentage, outcome, remove. Without a gap they
+   ran together as "74% OPEN\u2715". */
+.bet .right{display:flex;align-items:baseline;gap:9px;flex:0 0 auto}
+.bet:first-of-type{border-top:0}
+.bet .lp{color:var(--muted);font-size:12.5px;font-variant-numeric:tabular-nums}
+.bet>div:first-child{min-width:0}
+.bet .out{font-family:var(--display);font-size:11px;font-weight:700;letter-spacing:.06em}
+.bet .out.win{color:var(--good)} .bet .out.lost{color:var(--bad)} .bet .out.open{color:var(--muted)}
+.bet button{background:none;border:0;color:var(--muted);cursor:pointer;font:inherit;font-size:14px;padding:0 2px}
+.bet button:hover{color:var(--bad)}
+.betsum{display:flex;gap:22px;flex-wrap:wrap;align-items:baseline;
+  margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
+.betsum .big{font-family:var(--display);font-size:21px;font-weight:700;font-variant-numeric:tabular-nums}
+.betsum .lbl{display:block;color:var(--muted);font-size:11.5px;margin-top:2px}
+.betfoot{margin-top:11px;font-size:12.5px;color:var(--muted);line-height:1.6}
+.betfoot button{background:none;border:0;color:var(--muted);text-decoration:underline;
+  cursor:pointer;font:inherit;font-size:12.5px;padding:0}
+.betfoot button:hover{color:var(--text)}
 .slip{border:1px solid rgba(56,225,255,.3);background:rgba(56,225,255,.06);border-radius:14px;
   padding:14px 16px;margin-bottom:16px}
 .slip h3{font-family:var(--display);font-size:11.5px;font-weight:700;letter-spacing:.18em;
@@ -156,12 +190,18 @@ footer{margin-top:22px;color:var(--muted);font-size:12px;line-height:1.7}
   .ctl>label{flex:0 0 58px;font-size:9.5px;letter-spacing:.10em}
   .ctl .seg{flex:1 1 auto}
   .ctl .seg button{flex:1 1 0;min-height:40px;padding:6px}
-  .row{grid-template-columns:28px 1fr 72px 44px;gap:8px}
-  .row.noadd{grid-template-columns:28px 1fr 72px}
+  .row{grid-template-columns:26px 1fr 64px 44px;gap:7px}
+  .row.parlay{grid-template-columns:26px 1fr 58px 44px 44px}
   .caret{display:none}
   /* 28px fails the 44px touch minimum, and this is the primary action on the
      page: it is how a leg gets into the parlay slip. */
   .addleg{width:44px;height:44px;font-size:20px}
+  .trk{width:44px;height:44px;font-size:17px}
+  /* One line for the name, one for everything about it. Free wrapping split
+     "Gleyber Torres" and "Aug 19" mid-unit; nowrap alone just moved the
+     break onto the name. */
+  .bet .lp{display:block;white-space:nowrap;margin-top:1px}
+  .bet .right{align-self:flex-start}
 }
 @media (pointer:coarse){ .seg button{min-height:42px} }
 </style>
@@ -207,6 +247,7 @@ footer{margin-top:22px;color:var(--muted);font-size:12px;line-height:1.7}
   </div>
 </div>
 
+<div id="betlog"></div>
 <div id="slip"></div>
 <div class="summary" id="summary"></div>
 <main id="board"></main>
@@ -216,6 +257,7 @@ footer{margin-top:22px;color:var(--muted);font-size:12px;line-height:1.7}
 
 <script src="edge.js"></script>
 <script src="score.js"></script>
+<script src="bets.js"></script>
 <script src="mlb-data.js"></script>
 <script src="odds-data.js" onerror="void 0"></script>
 <!-- Written by track.mjs. Absent until a day has been graded. -->
@@ -225,6 +267,7 @@ footer{margin-top:22px;color:var(--muted);font-size:12px;line-height:1.7}
 "use strict";
 var S = window.BetHouseScore;
 var E = window.BetHouseEdge;
+var T = window.BetHouseBets;
 var D = window.BETHOUSE_MLB;
 
 if (!D) {
@@ -319,6 +362,174 @@ function propLabel(){
   return state.view==='hrr' ? '1+ H/R/RBI'
        : state.view==='hr'  ? '1+ home run'
        : (state.tbThreshold+'+ total bases');
+}
+
+/* ------------------------------------------------------------------ *
+ * Your bets
+ *
+ * Deliberately not a profit-and-loss statement. There is no stake and no
+ * price here, so this cannot say whether you made money and does not
+ * pretend to. What it can say is whether your picks landed as often as the
+ * model said they would -- which is the question the rest of this board is
+ * built to answer about itself.
+ * ------------------------------------------------------------------ */
+function renderBetLog(){
+  var host = document.getElementById('betlog');
+  host.innerHTML='';
+  if(!BETS.length) return;
+
+  var box = el('div','betlog');
+  box.appendChild(el('h3',null,'Your bets'));
+
+  /* Newest first, and unsettled above settled: the ones still live are the
+     ones you are actually watching. */
+  var order = BETS.slice().sort(function(a,b){
+    var open = (a.actual==null?0:1) - (b.actual==null?0:1);
+    if(open) return open;
+    return String(b.date||'').localeCompare(String(a.date||'')) ||
+           String(b.addedAt||'').localeCompare(String(a.addedAt||''));
+  });
+
+  /* A season's worth of settled bets would make this panel taller than the
+     board it sits on. Everything unsettled is always shown -- those are the
+     ones you are watching -- plus enough recent history to see how it is
+     going. The rest is counted, not listed, and Export still has all of it. */
+  var SETTLED_SHOWN = 8;
+  var settledTotal = order.filter(function(b){ return b.actual!=null; }).length;
+  var settledSeen = 0;
+  var shown = order.filter(function(b){
+    if(b.actual==null) return true;
+    return ++settledSeen <= SETTLED_SHOWN;
+  });
+
+  shown.forEach(function(b){
+    var line = el('div','bet');
+    var left = el('div');
+    left.appendChild(document.createTextNode(b.name));
+    left.appendChild(el('span','lp',' '+[b.team, b.propLabel, fmtDay(b.date)]
+      .filter(Boolean).join(' \u00b7 ')));
+    line.appendChild(left);
+
+    var right = el('div','right');
+    if(isFinite(b.prob)) right.appendChild(el('span','lp', pct(b.prob,0)));
+    right.appendChild(el('span','out '+(b.actual==null?'open':b.actual?'win':'lost'),
+      b.actual==null ? 'OPEN' : b.actual ? 'HIT' : 'MISS'));
+    var x = el('button',null,'\u2715');
+    x.type='button';
+    x.setAttribute('aria-label','Remove '+b.name+' from your bet log');
+    x.title='Remove';
+    x.addEventListener('click', function(){
+      BETS = T.remove(BETS, b.key); saveBets(); render();
+    });
+    right.appendChild(x);
+    line.appendChild(right);
+    box.appendChild(line);
+  });
+
+  if(settledTotal > SETTLED_SHOWN){
+    box.appendChild(el('div','betfoot',
+      (settledTotal - SETTLED_SHOWN)+' older settled bet'+
+      (settledTotal - SETTLED_SHOWN===1?'':'s')+' not listed. All of them count below, '+
+      'and Export writes out every one.'));
+  }
+
+  var s = T.summarise(BETS);
+  var sum = el('div','betsum');
+  function stat(node, label){
+    var d=el('div'); d.appendChild(node); d.appendChild(el('span','lbl',label)); sum.appendChild(d);
+  }
+  stat(el('span','big', String(s.tracked)), 'tracked');
+  if(s.graded){
+    stat(el('span','big', String(s.hits)), 'hit');
+    stat(el('span','big', s.expected.toFixed(1)), 'model expected');
+  }
+  if(s.pending) stat(el('span','big', String(s.pending)), 'still open');
+  box.appendChild(sum);
+
+  box.appendChild(el('div','betfoot', verdict(s)));
+
+  /* Export and import, because a cleared cache should not be the end of a
+     season's record. */
+  var foot = el('div','betfoot');
+  var ex = el('button',null,'Export'); ex.type='button';
+  ex.addEventListener('click', exportBets);
+  var im = el('button',null,'Import'); im.type='button';
+  im.addEventListener('click', importBets);
+  var cl = el('button',null,'Clear all'); cl.type='button';
+  cl.addEventListener('click', function(){
+    /* No confirm() dialog: it blocks the page and this is recoverable by
+       re-tapping. Two deliberate clicks instead. */
+    if(cl.dataset.armed){ BETS=[]; saveBets(); render(); return; }
+    cl.dataset.armed='1'; cl.textContent='Clear all \u2014 tap again';
+  });
+  foot.appendChild(ex); foot.appendChild(document.createTextNode(' \u00b7 '));
+  foot.appendChild(im); foot.appendChild(document.createTextNode(' \u00b7 '));
+  foot.appendChild(cl);
+  if(!BETS_WRITABLE){
+    foot.appendChild(el('div',null,
+      'This browser is refusing to save \u2014 private mode, most likely. '+
+      'The log will not survive a reload. Export it if you want to keep it.'));
+  }
+  box.appendChild(foot);
+  host.appendChild(box);
+}
+
+/* The sentence the panel exists for. Everything above it is bookkeeping. */
+function verdict(s){
+  if(!s.graded) return 'Nothing has settled yet. Grades arrive within about half an hour of a game ending.';
+  var diff = s.hits - s.expected;
+  var head = 'Your picks hit '+s.hits+' of '+s.graded+'. The model expected '+
+    s.expected.toFixed(1)+' from those same '+s.graded+'.';
+  /* Same bar the rest of the project uses before calling anything real: is
+     the gap bigger than the spread luck alone would produce? */
+  if(s.sd < 1e-9) return head;
+  var z = diff / s.sd;
+  if(Math.abs(z) < 2){
+    return head+' That is '+(diff>=0?'+':'')+diff.toFixed(1)+' against a spread of '+
+      s.sd.toFixed(1)+' \u2014 inside the noise, which is what almost every honest '+
+      'sample this size looks like.';
+  }
+  return head+' That is '+(diff>=0?'+':'')+diff.toFixed(1)+', about '+
+    Math.abs(z).toFixed(1)+' standard deviations '+(diff>0?'above':'below')+
+    ' expectation \u2014 large enough to be worth a second look, on '+s.graded+' bets.';
+}
+
+function fmtDay(iso){
+  if(!iso) return '';
+  var d = new Date(iso+'T12:00:00Z');
+  return isNaN(d) ? iso : d.toLocaleDateString(undefined,{month:'short',day:'numeric'});
+}
+
+function exportBets(){
+  var blob = new Blob([JSON.stringify(BETS,null,2)], {type:'application/json'});
+  var a = el('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'bethouse-bets.json';
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a);
+  setTimeout(function(){ URL.revokeObjectURL(a.href); }, 1000);
+}
+
+function importBets(){
+  var inp = el('input'); inp.type='file'; inp.accept='application/json,.json';
+  inp.addEventListener('change', function(){
+    var f = inp.files && inp.files[0];
+    if(!f) return;
+    var fr = new FileReader();
+    fr.onload = function(){
+      var rows;
+      try { rows = JSON.parse(String(fr.result)); }
+      catch(e){ rows = null; }
+      if(!Array.isArray(rows)) return;
+      /* Merged, not replaced, and rebuilt through add() so a hand-edited
+         file without keys still loads. Anything already held wins, so an
+         import cannot overwrite a grade you already have. */
+      rows.forEach(function(r){ BETS = T.add(BETS, r); });
+      saveBets(); gradeBets(); render();
+    };
+    fr.readAsText(f);
+  });
+  inp.click();
 }
 
 function renderSlip(){
@@ -484,6 +695,50 @@ function withheldMarkets(){
   return Object.keys(ODDS_FEED.markets).filter(function(k){
     return k.split('|')[1]===prop;
   }).length;
+}
+
+/* ------------------------------------------------------------------ *
+ * The bet log
+ *
+ * Yours, not the model's. Lives in this browser; nothing is sent anywhere
+ * and there is no account. Export writes it out as JSON so a cleared cache
+ * is not the end of the record.
+ * ------------------------------------------------------------------ */
+var BETS = (function(){
+  /* Safari in private mode throws on the mere act of reading localStorage,
+     and a throw out here would take the board down with it. A missing log
+     costs the user their history; a dead page costs them the whole site. */
+  try { return T.parse(localStorage.getItem(T.STORAGE_KEY)); }
+  catch(e){ return []; }
+})();
+var BETS_WRITABLE = true;
+
+function saveBets(){
+  try { localStorage.setItem(T.STORAGE_KEY, T.serialise(BETS)); BETS_WRITABLE = true; }
+  catch(e){ BETS_WRITABLE = false; }
+}
+
+/* Grades come from history/<date>.json, which track.mjs writes on every
+   board refresh and which already carries `actual` for every player it
+   snapshotted, on all five props. Nothing here decides an outcome.
+
+   A date is fetched only while it still holds something unsettled, so a
+   finished day is fetched once and then never again. Within a day, Pages
+   serves these with `cache-control: max-age=600` and an ETag, so repeat
+   loads cost a 304 rather than 450KB. */
+function gradeBets(){
+  var dates = T.ungradedDates(BETS);
+  if(!dates.length || typeof fetch !== 'function') return;
+  var left = dates.length;
+  dates.forEach(function(d){
+    fetch('history/'+d+'.json')
+      .then(function(res){ return res.ok ? res.json() : null; })
+      .catch(function(){ return null; })
+      .then(function(day){
+        if(day) BETS = T.applyResults(BETS, T.resultsFrom(day));
+        if(--left === 0){ saveBets(); renderBetLog(); }
+      });
+  });
 }
 
 function normName(s){
@@ -735,6 +990,7 @@ function render(){
   }
 
   renderSlip();
+  renderBetLog();
 
   var games=(D.games||[]).filter(function(g){
     if(state.lineups==='posted') return g.away.confirmed||g.home.confirmed;
@@ -852,6 +1108,41 @@ function render(){
           }
           who.appendChild(tag);
         }
+        /* "I bet this." Available on every bet type, unlike the parlay:
+           nothing about tracking a pick depends on the measurement that
+           scopes the slip.
+
+           Pregame only, and disabled the moment a game goes live -- the
+           same rule track.mjs enforces on itself. Marking a bet in the
+           seventh inning is not recording a bet, it is recording an
+           outcome, and a log that lets you do that is worth nothing. */
+        var betKey = g.gamePk+'|'+r.player.id+'|'+propKey();
+        var betOn = T.has(BETS, betKey);
+        var trk = el('button','trk', betOn?'\u2713':'\u25cb');
+        trk.type='button';
+        trk.setAttribute('aria-pressed', String(betOn));
+        trk.setAttribute('aria-label', (betOn?'Remove ':'Record ')+r.name+
+          ' '+propLabel()+(betOn?' from':' in')+' your bet log');
+        if(!S.gameIsOpen(g)){
+          trk.disabled = true; trk.style.opacity = .3;
+          trk.title = betOn ? 'Recorded before first pitch' : 'Too late \u2014 this game has started';
+        } else {
+          trk.title = betOn ? 'Recorded. Tap to remove.' : 'Record that you bet this';
+        }
+        trk.addEventListener('click', function(ev){
+          ev.stopPropagation();
+          if(!S.gameIsOpen(g)) return;
+          BETS = betOn ? T.remove(BETS, betKey) : T.add(BETS, {
+            gamePk: g.gamePk, playerId: r.player.id, prop: propKey(),
+            propLabel: propLabel(), name: r.name,
+            team: g[side].abbrev || g[side].team,
+            prob: r.prob, date: D.date
+          });
+          saveBets();
+          render();
+        });
+        row.appendChild(trk);
+
         /* The parlay belongs to one prop -- see the note by #sugwrap, and
            S.parlayEligible for why. Hiding the SUGGEST control on the other
            two views was only half of that rule: this + button stayed live, so
@@ -860,6 +1151,7 @@ function render(){
            predicts" -- a measurement taken on 1+ H/R/RBI and nowhere else.
            The affordance has to be absent, not merely unsuggested. */
         if(S.parlayEligible(state.view)){
+          row.classList.add('parlay');
           var legKey = g.gamePk+'|'+r.player.id+'|'+propKey();
           var inSlip = state.slip.some(function(x){return x.key===legKey;});
           var add=el('button','addleg', inSlip?'\u2713':'+');
@@ -891,9 +1183,6 @@ function render(){
             render();
           });
           row.appendChild(add);
-        } else {
-          // No + column to reserve, so the caret must not drift into its slot.
-          row.classList.add('noadd');
         }
 
         row.appendChild(el('div','caret','›'));
@@ -956,6 +1245,7 @@ function render(){
 }
 
 render();
+gradeBets();
 })();
 </script>
 </body>

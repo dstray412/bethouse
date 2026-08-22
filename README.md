@@ -148,6 +148,7 @@ should be re-fitted when the run environment shifts.
 | `backtest.mjs` | Replays real games, measures calibration, fits `k`, and tests parlays (`--parlay`) and hot streaks (`--streaks`). |
 | `track.mjs` | Records each day's pregame predictions, grades them once games end, keeps the running record. |
 | `edge.js` | De-vig and EV math for the odds side. 36 tests. |
+| `bets.js` | Your bet log: what you tracked, how it graded, and how that compares to what the model said. 28 tests. |
 | `fetch-odds.mjs` | The Odds API client. Needs a key; not required for the board. |
 | `golf.html` | The PGA board: who makes the cut. Open it. |
 | `golf.js` | The cut model. Two-way ratings solve plus a field-wide Monte Carlo. |
@@ -369,6 +370,55 @@ the summary the board displays. Expect it to say nothing useful for a while:
 bias only means something once the sample is in the thousands.
 
 ---
+
+## Your bets
+
+The running record above is the *model's*. This is yours.
+
+Tap the **circle** on any row before first pitch and that pick goes into a log
+in your browser. Nothing is sent anywhere, there is no account, and it works on
+all three bet types. Tap again to remove it.
+
+Grades arrive on their own. `track.mjs` already writes `history/<date>.json` on
+every refresh with the real outcome for every player it snapshotted, on all five
+props, so a pick you tapped is already in that file and settles within about
+half an hour of the game ending. The board fetches a day only while that day
+still has something unsettled, so a finished day is fetched once and never
+again.
+
+The panel then says the only thing it is in a position to say:
+
+> Your picks hit 6 of 10. The model expected 6.6 from those same 10. That is
+> −0.6 against a spread of 1.5 — inside the noise, which is what almost every
+> honest sample this size looks like.
+
+### What it deliberately does not do
+
+**There is no stake and no price.** So it cannot tell you whether you made
+money, and it does not pretend to. It answers the narrower question the rest of
+this board is built around: did your picks land as often as the model said they
+would. Adding price would let it answer the money question and also the better
+one — whether you beat the closing line — but that needs a closing-price
+capture that does not exist yet.
+
+### Three rules that keep it honest
+
+**Pregame only.** The button is disabled the moment a game goes live, the same
+rule `track.mjs` enforces on itself. Marking a bet in the seventh inning is not
+recording a bet, it is recording an outcome.
+
+**First grade wins.** Once a pick has settled it is never rewritten, so
+rebuilding a history file cannot turn a loss into a win.
+
+**Expectation covers exactly the graded picks.** A pending 90% bet counts toward
+neither "hit" nor "model expected". Letting it count toward one and not the
+other would make every open slate look like a losing one.
+
+### It is in your browser, so keep a copy
+
+`Export` writes the whole log out as JSON; `Import` merges a file back in,
+grades and all, and cannot overwrite an outcome you already hold. Clearing site
+data clears the log, which is what Export is for.
 
 ## The parlay checker
 

@@ -67,7 +67,7 @@ jobs:
             if (!d.ratings || !d.ratings.off) throw new Error("no team ratings");
             console.log("ok:", d.players.length, "players, week", d.week);
           '
-          node --test edge.test.mjs score.test.mjs golf.test.mjs nfl.test.mjs dom.test.mjs
+          node --test edge.test.mjs score.test.mjs golf.test.mjs nfl.test.mjs bets.test.mjs dom.test.mjs
 
       - name: Commit if the board changed
         run: |
