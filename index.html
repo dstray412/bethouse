@@ -108,8 +108,6 @@ header{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:1
 .prob{font-weight:700;font-size:22px;font-variant-numeric:tabular-nums;text-align:right;letter-spacing:-.01em}
 .be{font-variant-numeric:tabular-nums;text-align:right;font-size:14px}
 .be small{display:block;color:var(--muted);font-size:11px}
-.verdict{font-size:11px;font-family:var(--display);font-weight:600;letter-spacing:.06em;text-align:right}
-.v-ok{color:var(--good)} .v-thin{color:var(--warn)} .v-no{color:var(--muted)}
 .caret{color:var(--muted);text-align:center;transition:transform .16s}
 .addleg{font:inherit;font-size:16px;line-height:1;color:var(--muted);background:var(--panel2);
   border:1px solid var(--line);border-radius:8px;width:28px;height:28px;cursor:pointer;padding:0}
@@ -178,6 +176,21 @@ select#day:hover{border-color:var(--accent)}
 .row[aria-expanded=true] .caret{transform:rotate(90deg)}
 .why{padding:2px 15px 16px;background:rgba(0,0,0,.16);border-top:1px solid var(--line);font-size:13px;color:var(--muted);line-height:1.75}
 .why b{color:var(--text);font-variant-numeric:tabular-nums}
+/* The waterfall. One row per thing that moved the number, biggest first,
+   with the arithmetic visibly adding up to the answer at the bottom. */
+.whylead{display:block;color:var(--text);font-size:14px;line-height:1.6;margin:4px 0 12px;max-width:56ch}
+table.waterfall{border-collapse:collapse;width:100%;max-width:460px;margin:0 0 4px;font-variant-numeric:tabular-nums}
+table.waterfall td{padding:6px 0;border-top:1px solid rgba(255,255,255,.055);vertical-align:baseline}
+table.waterfall tr:first-child td{border-top:0}
+table.waterfall td.wl{font-size:13.5px;color:var(--text);line-height:1.4}
+table.waterfall td.wv{text-align:right;font-family:var(--display);font-weight:700;font-size:16px;white-space:nowrap;padding-left:16px}
+table.waterfall .wn{display:block;color:var(--muted);font-size:12px;font-weight:400;margin-top:2px;line-height:1.45}
+table.waterfall .wup{color:var(--good)} table.waterfall .wdn{color:var(--bad)}
+table.waterfall tr.wtot td{border-top:1px solid var(--line);font-size:15px}
+table.waterfall tr.wtot td.wl{color:var(--muted);font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-family:var(--display);font-weight:700}
+.whymkt{margin-top:11px;padding:10px 12px;background:rgba(255,255,255,.03);
+  border:1px solid var(--line);border-radius:10px;font-size:13px;line-height:1.6;max-width:56ch}
+.whymkt .wup{color:var(--good)} .whymkt .wdn{color:var(--bad)}
 .flag{color:var(--warn)}
 /* Finished games stay on the board (seeing what happened is useful) but must
    not compete with what you can still bet. */
@@ -391,7 +404,6 @@ function seg(host,items,cur,pick){
 }
 
 /* ---------------- scoring ---------------- */
-function expectedFull(r){ return S.expectedPA(r.slot).toFixed(2); }
 function propKey(){ return state.view==='tb' ? ('tb'+state.tbThreshold) : state.view; }
 function propLabel(){
   return state.view==='hrr' ? '1+ H/R/RBI'
@@ -489,6 +501,19 @@ function gameOf(gamePk){
   var gs = D.games || [];
   for(var i=0;i<gs.length;i++) if(gs[i].gamePk===gamePk) return gs[i];
   return null;
+}
+
+/* "Washington Nationals" -> "Washington". The full name is already in the
+   card header; repeating it inside a sentence just costs width. */
+function shortTeam(name){
+  var parts = String(name||'').split(' ');
+  return parts.length > 1 ? parts.slice(0, parts.length-1).join(' ') : name;
+}
+
+function ordinal(n){
+  if(n===1) return 'leadoff';
+  var s=['th','st','nd','rd'], v=n%100;
+  return n+(s[(v-20)%10]||s[v]||s[0]);
 }
 
 function fmtDay(iso){
@@ -845,13 +870,6 @@ function evAt(prob, american){
   return prob*(dec-1)-(1-prob);
 }
 
-function fac(x){
-  if(!isFinite(x)) return '—';
-  var d=(x-1)*100;
-  var s=(d>=0?'+':'\u2212')+Math.abs(d).toFixed(1)+'%';
-  return '<b>'+s+'</b> <span style="color:var(--muted)">(\u00d7'+x.toFixed(3)+')</span>';
-}
-
 function ctxFor(game, side){
   var s=game[side], faces=game[side+'Faces'], L=D.league;
   return {
@@ -902,6 +920,87 @@ function scoreSide(game, side){
 }
 
 /* ---------------- render ---------------- */
+/* ------------------------------------------------------------------ *
+ * Why this number
+ *
+ * The panel used to list the model's inputs: nine lines of equal weight,
+ * three notations for the same idea ("+2.8% (x1.028)"), the word
+ * "regression", and no way to tell which input actually did the work. On
+ * a typical hitter the lineup was worth +15% and the pitcher -12% and you
+ * could not see that they nearly cancelled.
+ *
+ * So: decompose the number instead of describing it. Start from the
+ * hitter alone, then add each piece of context and show what it MOVED THE
+ * ANSWER BY, in points of the final percentage, biggest first.
+ *
+ * The decomposition is exact rather than approximate, because it re-runs
+ * the real model with one factor neutralised at a time rather than
+ * reimplementing the arithmetic. Every factor has a documented neutral
+ * input (an absent opponent average, an absent team R/G, an unknown
+ * pitching hand, an absent league split), so "off" is a real state the
+ * model already handles and not a special case invented here.
+ *
+ * Ordering: each factor's effect is first measured on its own from the
+ * baseline, and the steps are then applied in descending order of that
+ * effect. Sequential deltas sum to the final exactly, and the row at the
+ * top is genuinely the one that mattered most rather than whichever
+ * happened to be applied first.
+ * ------------------------------------------------------------------ */
+
+function scorerFor(){
+  return state.view==='hr' ? S.scoreHR : state.view==='tb' ? S.scoreTB : S.scoreHRR;
+}
+
+/* Each key names the ctx fields that switch one factor off. These are the
+   model's own documented "no information" inputs, not sentinels. */
+var WHY_FACTORS = [
+  { key:'pitcher',  off:{oppAvgAllowed:null, pitcherHr9:null} },
+  { key:'offense',  off:{teamRunsPerGame:null} },
+  { key:'platoon',  off:{pitchHand:null} },
+  { key:'homeaway', off:{leagueHomeAway:null, leagueHomeAwayHR:null} }
+];
+
+function ctxWith(ctx, offKeys){
+  var out={}, k;
+  for(k in ctx) out[k]=ctx[k];
+  offKeys.forEach(function(key){
+    var spec = WHY_FACTORS.filter(function(f){return f.key===key;})[0];
+    if(spec) for(var kk in spec.off) out[kk]=spec.off[kk];
+  });
+  return out;
+}
+
+function explain(player, ctx){
+  var score = scorerFor();
+  var allKeys = WHY_FACTORS.map(function(f){return f.key;});
+
+  var full = score(player, ctx);
+  var base = score(player, ctxWith(ctx, allKeys));
+  if(!full || !base) return null;
+
+  /* 1. what each factor is worth ON ITS OWN, so the ordering is honest */
+  var solo = {};
+  allKeys.forEach(function(k){
+    var others = allKeys.filter(function(x){return x!==k;});
+    var only = score(player, ctxWith(ctx, others));
+    solo[k] = only ? only.prob - base.prob : 0;
+  });
+
+  /* 2. apply in that order; sequential deltas add up to the answer exactly */
+  var order = allKeys.slice().sort(function(a,b){ return Math.abs(solo[b])-Math.abs(solo[a]); });
+  var applied = [], steps = [], prev = base.prob;
+  order.forEach(function(k){
+    applied.push(k);
+    var off = allKeys.filter(function(x){ return applied.indexOf(x)===-1; });
+    var here = score(player, ctxWith(ctx, off));
+    if(!here) return;
+    steps.push({ key:k, delta: here.prob - prev, after: here.prob });
+    prev = here.prob;
+  });
+
+  return { base: base.prob, final: full.prob, steps: steps };
+}
+
 function buildWhy(r, game, side){
   var faces=game[side+'Faces'];
   var w=el('div','why');
@@ -918,62 +1017,134 @@ function buildWhy(r, game, side){
       : '<span style="color:var(--bad)">No plate appearances left. This bet is done.</span>');
     return w;
   }
-  line('Batting <b>#'+r.slot+'</b> → '+
-    (r.remainingPA!=null && r.sofar && r.sofar.pa>0
-      ? 'about <b>'+r.remainingPA.toFixed(2)+'</b> plate appearances LEFT (of '+expectedFull(r)+' expected)'
-      : 'about <b>'+r.expectedPA.toFixed(2)+'</b> plate appearances')+'.');
+  /* The answer first, in a sentence. */
+  var ex = explain(r.player, ctxFor(game, side));
+  var faces2 = faces;
+
+  function driverLabel(k){
+    if(k==='pitcher')  return faces2 ? 'Facing '+esc(faces2.name) : 'The pitcher he draws';
+    if(k==='offense')  return esc(shortTeam(game[side].team))+"'s lineup";
+    if(k==='platoon')  return r.batSide && r.pitchHand
+      ? (r.batSide==='L'?'Left':'Right')+'-handed against a '+(r.pitchHand==='L'?'lefty':'righty') : 'Handedness';
+    if(k==='homeaway') return r.isHome ? 'Playing at home' : 'Playing on the road';
+    return k;
+  }
+  function driverNote(k){
+    if(k==='pitcher' && faces2){
+      var era = faces2.era ? Number(faces2.era) : null;
+      var how = era==null ? '' : era >= 5 ? 'one of the easier arms he could draw'
+              : era <= 3.5 ? 'one of the tougher arms he could draw' : 'a middling starter';
+      return (faces2.era ? faces2.era+' ERA' : '') + (how ? ' \u2014 '+how : '');
+    }
+    if(k==='offense'){
+      var rpg = game[side].runsPerGame || 0, lg = D.league.runsPerGame || 4.3;
+      return rpg.toFixed(1)+' runs a game, '+(rpg>=lg?'above':'below')+' the '+lg.toFixed(1)+' average'+
+        (state.view==='hrr' ? ' \u2014 runs and RBI need team-mates on base' : '');
+    }
+    if(k==='platoon') return 'the '+((r.platoonFactor||1)>=1?'favourable':'unfavourable')+' side of the platoon';
+    if(k==='homeaway') return '';
+    return '';
+  }
+
+  if(ex){
+    /* Round FIRST, then difference the rounded running totals, so the
+       column adds up on screen. Differencing first and rounding after
+       gives rows that are individually right and visibly do not sum,
+       which is worse than either. */
+    var dp = 1;
+    var rnd = function(x){ return Number((100*x).toFixed(dp)); };
+    var running = rnd(ex.base), shown = [];
+    ex.steps.forEach(function(st){
+      var next = rnd(st.after);
+      shown.push({ key: st.key, delta: Number((next - running).toFixed(dp)) });
+      running = next;
+    });
+
+    var big = shown.slice().sort(function(a,b){ return Math.abs(b.delta)-Math.abs(a.delta); });
+    var lead = 'Most of this is his own bat.';
+    var notable = big.filter(function(x){ return Math.abs(x.delta) >= 1; });
+    if(notable.length){
+      var one = notable[0];
+      lead += ' ' + driverLabel(one.key) + (one.delta < 0 ? ' pulls it down ' : ' pushes it up ') +
+        'about ' + Math.abs(one.delta).toFixed(0) + ' point' + (Math.abs(one.delta) >= 1.5 ? 's' : '') + '.';
+      if(notable.length > 1){
+        var two = notable[1];
+        lead += ' ' + driverLabel(two.key) + (two.delta < 0 ? ' costs him ' : ' adds ') +
+          'about ' + Math.abs(two.delta).toFixed(0) + ' more.';
+      } else {
+        lead += ' Nothing else moves it much.';
+      }
+    } else {
+      lead += ' Nothing about tonight moves it much either way.';
+    }
+    line('<span class="whylead">'+lead+'</span>');
+
+    var tbl = el('table','waterfall');
+    function row(label, note, valueHtml, cls){
+      var tr=el('tr'); if(cls) tr.className=cls;
+      var td1=el('td','wl'); td1.innerHTML = '<b>'+label+'</b>'+(note?'<span class="wn">'+note+'</span>':'');
+      var td2=el('td','wv'); td2.innerHTML = valueHtml;
+      tr.appendChild(td1); tr.appendChild(td2); tbl.appendChild(tr);
+    }
+
+    var trips = 'about '+r.expectedPA.toFixed(1)+' trips, batting '+ordinal(r.slot);
+    var baseNote;
+    if(state.view==='tb'){
+      baseNote = 'about '+(r.expectedTB!=null?r.expectedTB.toFixed(1):'?')+
+        ' total bases expected over '+trips+' \u2014 he needs '+r.threshold;
+    } else if(state.view==='hr'){
+      /* r.hrRate IS the per-trip home run chance, so this one can be said
+         plainly. */
+      baseNote = 'a '+((r.hrRate||0)*100).toFixed(1)+'% chance of a homer each time up, over '+trips;
+    } else {
+      /* NOT r.hitRate here. That is hits per trip only, and quoting it as
+         the chance of a hit OR run OR RBI understates the bet by the two
+         paths it leaves out. His actual season line says it honestly. */
+      baseNote = (r.player.avg||'') && (r.player.obp||'')
+        ? 'a '+r.player.avg+' hitter getting on base at '+r.player.obp+', over '+trips
+        : 'his season line over '+trips;
+    }
+    row('His own bat', baseNote, rnd(ex.base).toFixed(dp)+'%');
+
+    shown.forEach(function(st){
+      if(st.delta === 0) return;                    // rounds to nothing; say so below
+      row(driverLabel(st.key), driverNote(st.key),
+        '<span class="'+(st.delta>0?'wup':'wdn')+'">'+
+        (st.delta>0?'+':'\u2212')+Math.abs(st.delta).toFixed(dp)+'</span>');
+    });
+
+    var nil = shown.filter(function(st){ return st.delta === 0; });
+    row('Model', nil.length
+      ? nil.map(function(st){ return driverLabel(st.key); }).join(' and ')+
+        (nil.length>1?' change':' changes')+' it by less than a tenth of a point'
+      : '', '<b>'+rnd(ex.final).toFixed(dp)+'%</b>', 'wtot');
+    w.appendChild(tbl);
+  } else {
+    /* No decomposition available (a settled or unscoreable row). Say the
+       number rather than silently showing nothing. */
+    line('Model: <b>'+pct(r.prob)+'</b>.');
+  }
+
   if(state.view==='tb' && r.stillNeeds!=null && r.stillNeeds!==r.threshold){
-    line('Already has <b>'+(r.threshold-r.stillNeeds)+'</b> base'+((r.threshold-r.stillNeeds)===1?'':'s')+
+    line('He already has <b>'+(r.threshold-r.stillNeeds)+'</b> base'+((r.threshold-r.stillNeeds)===1?'':'s')+
          ', so he needs <b>'+r.stillNeeds+'</b> more.');
   }
-  if(state.view==='hrr'){
-    line('Season: <b>'+r.player.hits+'</b> H, <b>'+r.player.runs+'</b> R, <b>'+r.player.rbi+
-         '</b> RBI in <b>'+r.player.pa+'</b> PA'+(r.player.avg?' (AVG '+r.player.avg+', OBP '+r.player.obp+')':'')+'.');
-    line('Rate used after regression and matchup: <b>'+(r.hitRate*100).toFixed(1)+'%</b> hits per PA'+
-         (Math.abs(r.rawHitRate-r.hitRate)>0.002 ? ' (raw '+(r.rawHitRate*100).toFixed(1)+'%)' : '')+'.');
-  } else if(state.view==='tb'){
-    var pl=r.player;
-    var singles=Math.max(0,(pl.hits||0)-(pl.doubles||0)-(pl.triples||0)-(pl.hr||0));
-    line('Season: <b>'+singles+'</b> singles, <b>'+(pl.doubles||0)+'</b> doubles, <b>'+(pl.triples||0)+
-         '</b> triples, <b>'+(pl.hr||0)+'</b> home runs in <b>'+pl.pa+'</b> PA.');
-    line('Expected total bases tonight: <b>'+r.expectedTB.toFixed(2)+'</b>, and he needs <b>'+
-         r.threshold+'</b> to cash.');
-  } else {
-    line('Season: <b>'+r.player.hr+'</b> HR in <b>'+r.player.pa+'</b> PA → <b>'+(r.hrRate*100).toFixed(2)+'%</b> per PA after regression.');
-  }
-  if(r.batSide && r.pitchHand){
-    var pf2 = r.platoonFactor || 1;
-    var dir = pf2 > 1.005 ? 'favourable' : pf2 < 0.995 ? 'unfavourable' : 'neutral';
-    line('Handedness: <b>'+r.batSide+'HB</b> vs <b>'+r.pitchHand+'HP</b> \u2192 '+dir+
-         ', '+fac(pf2)+
-         (state.view==='hr' && r.batSide==='L' && r.pitchHand==='L'
-            ? ' <span class="flag">(lefty-on-lefty power suppression, the biggest handedness effect in baseball)</span>' : '')+'.');
-  }
-  if(r.homeAwayFactor) line((r.isHome?'At home':'On the road')+': '+fac(r.homeAwayFactor)+'.');
-  if(faces) line('Facing <b>'+esc(faces.name)+'</b>'+(faces.era?' — '+faces.era+' ERA':'')+
-    (faces.avgAllowed?', '+faces.avgAllowed.toFixed(3)+' opp AVG':'')+
-    ' → matchup '+fac(r.pitcherFactor||1)+'.');
-  if(state.view==='hrr' && r.offenseFactor)
-    line('Lineup around him: <b>'+(game[side].runsPerGame||0).toFixed(2)+'</b> R/G → '+fac(r.offenseFactor)+'.');
 
   var mk = marketFor(r.name);
   if(mk){
     var ev=evAt(r.prob, mk.over);
     var edge=r.prob-mk.noVigOver;
-    line('Market: <b>'+amer(mk.over)+'</b> over '+mk.line+
-      ' (DraftKings). That price implies <b>'+pct(mk.impliedOver)+'</b>, or <b>'+pct(mk.noVigOver)+
-      '</b> once the '+(100*mk.hold).toFixed(1)+'% hold is removed.');
-    line('Model says <b>'+pct(r.prob)+'</b> \u2014 '+
-      (edge>0?'<b>'+(100*edge).toFixed(1)+'pp above</b>':'<b>'+(100*Math.abs(edge)).toFixed(1)+'pp below</b>')+
-      ' the no-vig number, worth <b class="'+(ev>0?'v-ok':'v-no')+'">'+
-      (ev>=0?'+':'')+(100*ev).toFixed(1)+'% EV</b> at the offered price.'+
-      (ev>0 ? '' : ' <span style="color:var(--muted)">Not a bet.</span>'));
+    var box = el('div','whymkt');
+    box.innerHTML = '<b>DraftKings has him at '+amer(mk.over)+'.</b> Strip the bookmaker\'s cut and that '+
+      'is a '+pct(mk.noVigOver,0)+' chance in their eyes, against this model\'s '+pct(r.prob,0)+'. '+
+      (ev>0
+        ? '<span class="wup">That is a bet worth '+(100*ev).toFixed(1)+' cents on the dollar</span>, if you trust the model over the book.'
+        : '<span class="wdn">The price is shorter than the model justifies</span> \u2014 not a bet.');
+    w.appendChild(box);
+  } else {
+    line('A fair price for '+pct(r.prob,0)+' is <b>'+amer(S.fairPrice(r.prob))+
+         '</b>. Anything longer than that is value, anything shorter is not.');
   }
-  line('Model: <b>'+pct(r.prob)+'</b>. A fair price for that is <b>'+amer(S.fairPrice(r.prob))+
-       '</b> \u2014 anything longer is good value, anything shorter is not. '+
-       (state.view==='tb'
-         ? '<span style="color:var(--muted)">This model runs about 1 point hot against real results, so shade it down slightly.</span>'
-         : '<span style="color:var(--muted)">For reference: -300 needs 75.0%, -250 needs 71.4%.</span>'));
 
   if(r.confidence < 0.65){
     line('<span class="flag">Small sample.</span> Only <b>'+r.player.pa+'</b> PA, so this estimate is mostly the league average, not this hitter.');

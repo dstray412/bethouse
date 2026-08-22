@@ -913,3 +913,104 @@ test("an unrecognised view is not a licence to offer the parlay", () => {
     assert.equal(score.parlayEligible(v), false, `view ${JSON.stringify(v)} must not qualify`);
   }
 });
+
+/* ---------------------------------------------------------------- *
+ * The detail panel decomposes the number by re-running this model with
+ * one context factor neutralised at a time. That rests on two things
+ * being true, and neither is obvious from reading index.html:
+ *
+ *   1. Every factor has a documented "no information" input that turns it
+ *      off exactly, not approximately.
+ *   2. The panel knows about ALL of them. Add a fifth factor here and
+ *      forget to list it there, and the panel's rows silently stop adding
+ *      up to the total printed beneath them — a wrong explanation, which
+ *      is worse than none.
+ * ---------------------------------------------------------------- */
+
+const PANEL_KNOWS = ["pitcherFactor", "offenseFactor", "platoonFactor", "homeAwayFactor"];
+
+const hitter = () => ({
+  name: "Test Hitter", slot: 3, pa: 400, hits: 108, runs: 55, rbi: 52,
+  hr: 12, doubles: 22, triples: 2, totalBases: 170, avg: ".270", obp: ".330",
+  vsHand: { hits: 40, pa: 150 }, homeAway: { hits: 52, pa: 195 },
+});
+
+const league = {
+  // Singular keys, as the feed emits them: hit/run/rbi, not hits/runs/rbi.
+  rates: { hit: 0.245, run: 0.125, rbi: 0.12, hr: 0.03 },
+  avgAllowed: 0.248, runsPerGame: 4.4, hr9: 1.2,
+  platoon: { R: { R: 0.96, L: 1.06 }, L: { R: 1.05, L: 0.9 } },
+  homeAway: { home: 1.02, away: 0.98 },
+};
+
+const liveCtx = () => ({
+  leagueRates: league.rates,
+  oppAvgAllowed: 0.275, leagueAvgAllowed: league.avgAllowed,
+  teamRunsPerGame: 5.2, leagueRunsPerGame: league.runsPerGame,
+  pitchHand: "R", leaguePlatoon: league.platoon,
+  leagueHomeAway: league.homeAway, isHome: false,
+});
+
+/* The same neutral inputs index.html uses to switch each factor off. */
+const NEUTRAL = {
+  oppAvgAllowed: null, pitcherHr9: null,
+  teamRunsPerGame: null,
+  pitchHand: null,
+  leagueHomeAway: null, leagueHomeAwayHR: null,
+};
+
+test("scoreHRR applies exactly the context factors the detail panel knows about", () => {
+  const r = score.scoreHRR(hitter(), liveCtx());
+  const applied = Object.keys(r).filter((k) => /Factor$/.test(k)).sort();
+  assert.deepEqual(
+    applied,
+    PANEL_KNOWS.slice().sort(),
+    "score.js applies a context factor the detail panel does not neutralise. Its " +
+      "waterfall rows will no longer sum to the total printed under them — add the " +
+      "new factor to WHY_FACTORS in index.html.",
+  );
+});
+
+test("every context factor has a neutral input that turns it off exactly", () => {
+  const r = score.scoreHRR(hitter(), { ...liveCtx(), ...NEUTRAL });
+  for (const k of PANEL_KNOWS) {
+    assert.equal(r[k], 1, `${k} is ${r[k]} under the documented neutral input, not 1`);
+  }
+});
+
+test("neutralising the factors and reapplying them returns the original number", () => {
+  /* The decomposition is only honest if the pieces reassemble into the
+     answer they claim to explain. */
+  const ctx = liveCtx();
+  const full = score.scoreHRR(hitter(), ctx);
+  const base = score.scoreHRR(hitter(), { ...ctx, ...NEUTRAL });
+
+  const steps = [
+    { oppAvgAllowed: null, pitcherHr9: null },
+    { teamRunsPerGame: null },
+    { pitchHand: null },
+    { leagueHomeAway: null, leagueHomeAwayHR: null },
+  ];
+  // Peel the neutral inputs off one at a time, back to the live context.
+  let off = { ...NEUTRAL };
+  let prev = base.prob;
+  let sum = 0;
+  for (const s of steps) {
+    for (const k of Object.keys(s)) delete off[k];
+    const here = score.scoreHRR(hitter(), { ...ctx, ...off });
+    sum += here.prob - prev;
+    prev = here.prob;
+  }
+  close(base.prob + sum, full.prob, 1e-12);
+});
+
+test("a factor with nothing to say leaves the number untouched", () => {
+  /* Neutral must mean neutral: base with everything off is the same number
+     whether the caller omits the fields or passes the documented nulls. */
+  const omitted = score.scoreHRR(hitter(), {
+    leagueRates: league.rates, leagueAvgAllowed: league.avgAllowed,
+    leagueRunsPerGame: league.runsPerGame, isHome: false,
+  });
+  const nulled = score.scoreHRR(hitter(), { ...liveCtx(), ...NEUTRAL });
+  close(omitted.prob, nulled.prob, 1e-12);
+});

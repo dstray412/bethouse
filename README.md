@@ -504,6 +504,58 @@ other would make every open slate look like a losing one.
 grades and all, and cannot overwrite an outcome you already hold. Clearing site
 data clears the log, which is what Export is for.
 
+## Why this number
+
+Tap a player and the panel decomposes his percentage instead of describing it.
+
+```
+Most of this is his own bat. Facing Eury Pérez pulls it down about 5 points.
+Right-handed against a righty costs him about 3 more.
+
+  His own bat                                              68.4%
+    a .238 hitter getting on base at .297, over about 4.3 trips, batting 3rd
+  Facing Eury Pérez                                         −5.2
+    3.23 ERA — one of the tougher arms he could draw
+  Right-handed against a righty                             −2.5
+    the unfavourable side of the platoon
+  Playing on the road                                       −1.4
+  Washington's lineup                                       +0.6
+    5.2 runs a game, above the 4.5 average — runs and RBI need team-mates on base
+  ─────────────────────────────────────────────────────────────
+  MODEL                                                    59.9%
+```
+
+The old panel listed the model's inputs: nine lines of equal weight, three
+notations for the same idea (`+2.8% (×1.028)`), the word "regression", and no
+way to tell which input did the work.
+
+Worse, it actively misled. It showed the lineup as `+15.0%` — the largest
+number on screen — when that factor is worth **six tenths of a point** on the
+answer. It only lifts the run and RBI paths, and a hitter who scores a run has
+usually already got his hit. The waterfall makes that visible; the old list hid
+it behind a multiplier.
+
+### It is exact, not illustrative
+
+Each row is produced by re-running the real model with one factor switched off,
+using that factor's own documented "no information" input — an absent opponent
+average, an absent team R/G, an unknown pitching hand, an absent league split.
+Nothing is reimplemented, so the rows cannot drift from the number they explain.
+
+Ordering is by each factor's effect measured **on its own** from the baseline;
+the rows are then applied in that order, so the sequential deltas sum exactly
+*and* the top row is genuinely the one that mattered.
+
+Rounding is done before differencing, not after. Differencing first gives rows
+that are each individually right and visibly do not add up, which is worse than
+either.
+
+`score.test.mjs` pins the two assumptions this rests on: that every factor has
+a neutral input turning it off *exactly*, and that the panel knows about **all**
+of them. Add a fifth factor to `score.js` without listing it in `WHY_FACTORS`
+and the suite fails, naming the file to edit — because rows that silently stop
+summing are a wrong explanation, which is worse than no explanation.
+
 ## The parlay checker
 
 Tap the **+** on any row to add it to a slip. The slip shows the combined
