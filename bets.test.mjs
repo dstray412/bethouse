@@ -383,3 +383,118 @@ test("an exported log survives a round trip through import with its grades", () 
   assert.equal(after.hits, before.hits);
   assert.ok(Math.abs(after.expected - before.expected) < 1e-12);
 });
+
+/* ---------------------------------------------------------------- *
+ * Recording after the fact
+ *
+ * The first version refused any bet on a game that had started, borrowing
+ * track.mjs's pregame-only rule. That rule exists to stop the MODEL grading
+ * itself on lookahead. Applied to the user's own log it was just wrong: it
+ * made it impossible to write down a bet you actually placed, which is the
+ * entire point of a bet log.
+ *
+ * So retro entry is allowed and MARKED. "Entered after the result was
+ * known" is a fact about the entry, not an accusation, and the record needs
+ * it to stay meaningful.
+ * ---------------------------------------------------------------- */
+
+test("a bet can be recorded after the fact, and says so", () => {
+  const b = bets.single(leg(), "2026-08-19", { retro: true });
+  assert.equal(b.retro, true);
+});
+
+test("a bet recorded before first pitch carries no retro mark at all", () => {
+  /* Absent rather than false, so the flag means something when it is there
+     and old entries do not need rewriting. */
+  const b = bets.single(leg(), "2026-08-19");
+  assert.equal("retro" in b, false);
+});
+
+test("summarise: counts what was entered after the result was known", () => {
+  let list = bets.add([], bets.single(leg({ playerId: 1 }), "2026-08-19"));
+  list = bets.add(list, bets.single(leg({ playerId: 2 }), "2026-08-19", { retro: true }));
+  list = bets.applyResults(list, { "823342|1|hrr": 1, "823342|2|hrr": 1 });
+
+  const s = bets.summarise(list);
+  assert.equal(s.graded, 2);
+  assert.equal(s.retro.graded, 1, "one of the two was entered afterwards");
+  assert.equal(s.live.graded, 1, "and one was there before first pitch");
+  assert.equal(s.retro.hits, 1);
+});
+
+test("summarise: with nothing back-filled, the retro tally is empty", () => {
+  const list = bets.applyResults(
+    bets.add([], bets.single(leg(), "2026-08-19")),
+    { "823342|690993|hrr": 1 },
+  );
+  assert.equal(bets.summarise(list).retro.tracked, 0);
+  assert.equal(bets.summarise(list).live.tracked, 1);
+});
+
+test("summarise: straight and parlay each report their own win rate", () => {
+  /* The thing the panel is asked for: how am I doing on straights, how am I
+     doing on parlays. A combined rate answers neither. */
+  let list = bets.add([], single({ playerId: 1, prob: 0.8 }));
+  list = bets.add(list, single({ playerId: 2, prob: 0.8 }));
+  list = bets.add(list, bets.parlay([leg({ playerId: 3 }), leg({ playerId: 4 })], 0.4, "2026-08-19"));
+  list = bets.applyResults(list, {
+    "823342|1|hrr": 1, "823342|2|hrr": 0,
+    "823342|3|hrr": 1, "823342|4|hrr": 1,
+  });
+
+  const s = bets.summarise(list);
+  assert.equal(s.singles.hitRate, 0.5);
+  assert.equal(s.parlays.hitRate, 1);
+});
+
+test("parlay: can also be recorded after the fact", () => {
+  const b = bets.parlay([leg({ playerId: 1 }), leg({ playerId: 2 })], 0.4, "2026-08-19", {
+    retro: true,
+  });
+  assert.equal(b.retro, true);
+  assert.equal(b.legs.length, 2);
+});
+
+test("the retro mark survives storage and import", () => {
+  let list = bets.add([], bets.single(leg(), "2026-08-19", { retro: true }));
+  assert.equal(bets.parse(bets.serialise(list))[0].retro, true);
+  assert.equal(bets.migrate(JSON.parse(bets.serialise(list)))[0].retro, true);
+});
+
+/* ---------------------------------------------------------------- *
+ * The regression that shipped
+ *
+ * When every bet became {legs:[...]}, add() started requiring `legs` and
+ * silently returned the list unchanged for anything else. The board's row
+ * button still passed a flat pick, so tapping a player did nothing at all:
+ * no error, no console warning, an empty log. It reached production.
+ *
+ * The unit tests did not catch it because they build through single(),
+ * which is not what the board called. So the fix is not "call single()" —
+ * it is that a flat pick IS a one-leg bet and add() must take it, the same
+ * way migrate() already does. A shape this module understands everywhere
+ * else cannot be a silent no-op here.
+ * ---------------------------------------------------------------- */
+
+test("add: takes a bare pick and stores it as a one-leg bet", () => {
+  const list = bets.add([], leg());
+  assert.equal(list.length, 1, "a flat pick must not be silently dropped");
+  assert.equal(list[0].legs.length, 1);
+  assert.equal(list[0].legs[0].name, "Colt Keith");
+  assert.equal(list[0].prob, 0.73);
+  assert.equal(list[0].key, "823342|690993|hrr");
+});
+
+test("add: a bare pick and the same pick via single() are the same bet", () => {
+  const viaPick = bets.add([], leg({ date: "2026-08-19" }));
+  const viaSingle = bets.add([], single());
+  assert.equal(viaPick[0].key, viaSingle[0].key);
+  /* And adding both must not log twice. */
+  assert.equal(bets.add(viaPick, single()).length, 1);
+});
+
+test("add: still refuses something that is neither a bet nor a pick", () => {
+  assert.deepEqual(bets.add([], { name: "nobody" }), []);
+  assert.deepEqual(bets.add([], null), []);
+  assert.deepEqual(bets.add([], { legs: [] }), []);
+});

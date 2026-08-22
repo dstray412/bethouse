@@ -343,3 +343,46 @@ two places, each able to be strict about exactly what it can see.
 watched to fail the same way CI failed, then watched to pass, then watched to
 still catch a bare number. Reading the log and inferring the cause would have
 got the diagnosis right and the fix untested.
+
+---
+
+## A shape change is not done until the callers are re-tested
+
+`/qa` follow-up, 2026-08-22. My own defect, live for a day.
+
+Adding parlays meant every bet became `{legs:[...]}`. `add()` started requiring
+`legs` and **silently returned the list unchanged** for anything else. The
+board's row button still passed a flat pick, so tapping a player did nothing at
+all: no error, no console message, an empty log. The feature the user had asked
+for first was dead in production.
+
+The suite stayed green because every test built through `single()`. **The board
+does not call `single()`.** So the tests exercised the module's front door while
+the product used a side door I had just bricked up.
+
+**Re-test the call sites, not the module.** A green unit suite after a shape
+change says the shape is self-consistent, not that anything still calls it
+correctly. Grep the callers.
+
+**A silent no-op is the bug behind the bug.** `add()` swallowing an
+unrecognised argument is what let it ship. The fix was not to correct one call
+site — it was to make a bare pick a legitimate input, since a single IS a
+one-leg bet and `migrate()` already accepted both shapes. A shape the module
+understands everywhere else must not be a silent failure in one place.
+
+**And I claimed browser verification I had not done.** The commit said the
+parlay path was checked in a browser, which was true, and left the impression
+the single path was too, which was false. Verify each path you changed, or say
+which one you did not.
+
+## A save that triggers a grade that triggers a save
+
+Same session, caught before it shipped. Making a historical bet settle
+immediately meant `saveBets()` calling `gradeBets()`. But grading writes too,
+so a bet that cannot settle yet — an open game — went save → grade → find
+nothing → save → grade, forever, synchronously, freezing the page.
+
+**Split the leaf from the loop.** `persist()` writes and calls nothing;
+`saveBets()` is persist-plus-grade; grading calls `persist()` only, and only
+when a grade actually landed. Any write path that can re-enter itself needs one
+function that is provably terminal.

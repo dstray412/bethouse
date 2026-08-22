@@ -95,6 +95,12 @@ header{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:1
   width:100%;text-align:left;font:inherit;color:inherit;background:none;border:0;
   padding:8px 15px;cursor:pointer;border-top:1px solid rgba(255,255,255,.045)}
 .row.parlay{grid-template-columns:32px 1fr 78px 30px 30px 20px}
+/* Replay rows have no reasoning panel to open, so no caret column. */
+.row.hist{grid-template-columns:32px 1fr 78px 30px;cursor:default}
+.row.hist.parlay{grid-template-columns:32px 1fr 78px 30px 30px}
+.row.hist:hover{background:none}
+/* The outcome chip sits inline after the name, like .pos does. */
+.who .settled{margin-left:7px}
 .row:hover{background:rgba(255,255,255,.028)}
 .slot{font-family:var(--display);font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
 .who{font-weight:600;font-size:14.5px}
@@ -139,6 +145,10 @@ header{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:1
   border:1px solid rgba(95,206,143,.45);border-radius:9px;padding:7px 13px;cursor:pointer;margin-right:10px}
 .betbet:hover{background:rgba(95,206,143,.18)}
 .betbet[disabled]{opacity:.45;cursor:default}
+select#day{font:inherit;font-size:13px;color:var(--text);background:var(--panel2);
+  border:1px solid var(--line);border-radius:9px;padding:7px 9px;cursor:pointer;min-height:34px}
+select#day:hover{border-color:var(--accent)}
+.retro{font-size:10px;font-family:var(--display);font-weight:700;letter-spacing:.06em;color:var(--warn)}
 .bet button{background:none;border:0;color:var(--muted);cursor:pointer;font:inherit;font-size:14px;padding:0 2px}
 .bet button:hover{color:var(--bad)}
 .betsum{display:flex;gap:22px;flex-wrap:wrap;align-items:baseline;
@@ -149,6 +159,16 @@ header{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:1
 .betfoot button{background:none;border:0;color:var(--muted);text-decoration:underline;
   cursor:pointer;font:inherit;font-size:12.5px;padding:0}
 .betfoot button:hover{color:var(--text)}
+.breakdown{margin-top:12px}
+table.bdown{border-collapse:collapse;font-size:12.5px;font-variant-numeric:tabular-nums;width:100%;max-width:420px}
+table.bdown th{text-align:right;font-weight:600;color:var(--muted);font-size:10.5px;
+  letter-spacing:.08em;text-transform:uppercase;padding:0 0 5px 14px}
+table.bdown th:first-child{text-align:left;padding-left:0}
+table.bdown td{text-align:right;padding:3px 0 3px 14px;border-top:1px solid var(--line)}
+table.bdown td.bl{text-align:left;color:var(--text);padding-left:0}
+table.bdown .gap{font-size:11px}
+table.bdown .gap.up{color:var(--good)} table.bdown .gap.down{color:var(--bad)}
+.bnote{margin-top:7px;font-size:11.5px;color:var(--muted);line-height:1.55;max-width:56ch}
 .slip{border:1px solid rgba(56,225,255,.3);background:rgba(56,225,255,.06);border-radius:14px;
   padding:14px 16px;margin-bottom:16px}
 .slip h3{font-family:var(--display);font-size:11.5px;font-weight:700;letter-spacing:.18em;
@@ -200,6 +220,8 @@ footer{margin-top:22px;color:var(--muted);font-size:12px;line-height:1.7}
   .ctl .seg button{flex:1 1 0;min-height:40px;padding:6px}
   .row{grid-template-columns:26px 1fr 64px 44px;gap:7px}
   .row.parlay{grid-template-columns:26px 1fr 58px 44px 44px}
+  .row.hist{grid-template-columns:26px 1fr 64px 44px}
+  .row.hist.parlay{grid-template-columns:26px 1fr 58px 44px 44px}
   .caret{display:none}
   /* 28px fails the 44px touch minimum, and this is the primary action on the
      page: it is how a leg gets into the parlay slip. */
@@ -210,6 +232,11 @@ footer{margin-top:22px;color:var(--muted);font-size:12px;line-height:1.7}
      break onto the name. */
   .bet .lp{display:block;white-space:nowrap;margin-top:1px}
   .bet .right{align-self:flex-start}
+  /* History stores full team names ("Washington Nationals"), not the live
+     board's abbreviations, so a leg line has far more to fit. Name and
+     result on the first line, everything about it on the second. */
+  .leg-line{flex-wrap:wrap}
+  .leg-line .lp{flex:1 0 100%;order:3;padding-left:0}
 }
 @media (pointer:coarse){ .seg button{min-height:42px} }
 </style>
@@ -244,6 +271,13 @@ footer{margin-top:22px;color:var(--muted);font-size:12px;line-height:1.7}
   <div class="ctl">
     <label id="lab-top">Per team</label>
     <div class="seg" id="top" role="group" aria-labelledby="lab-top"></div>
+  </div>
+  <!-- Today, or any day track.mjs has already recorded. Picking a past day
+       redraws the board from history/<date>.json so a bet you placed then can
+       still be written down. -->
+  <div class="ctl" id="daywrap">
+    <label for="day">Day</label>
+    <select id="day"></select>
   </div>
   <!-- 1+ H/R/RBI only. It is the one prop whose single legs have been through
        the backtest, and the parlay report only validated cross-game slips of
@@ -300,6 +334,8 @@ var state = {
   minProb: 0,
   lineups: 'all',
   perTeam: 3,
+  day: null,   // null = today's live board; a date string = replay from history
+
   tbThreshold: 2,
   slip: [],
   slipPrice: null,
@@ -474,14 +510,7 @@ function renderBetLog(){
 
   box.appendChild(el('div','betfoot', verdict(s)));
 
-  /* Singles and parlays are different animals -- an 81% single and a 41%
-     three-leg slip do not belong in one hit rate without saying so. */
-  if(s.singles.graded && s.parlays.graded){
-    box.appendChild(el('div','betfoot',
-      'Singles: '+s.singles.hits+' of '+s.singles.graded+', expected '+
-      s.singles.expected.toFixed(1)+'. Parlays: '+s.parlays.hits+' of '+
-      s.parlays.graded+', expected '+s.parlays.expected.toFixed(1)+'.'));
-  }
+  box.appendChild(breakdown(s));
 
   /* Export and import, because a cleared cache should not be the end of a
      season's record. */
@@ -507,6 +536,70 @@ function renderBetLog(){
   box.appendChild(foot);
   host.appendChild(box);
 }
+
+/*
+ * Win rate by kind of bet.
+ *
+ * A single combined number answers nothing: an 81% straight and a 41%
+ * three-leg slip are different wagers with different break-evens, and the
+ * whole reason to keep a log is to find out which one you are actually good
+ * at. Each row carries what the model expected alongside what happened, so a
+ * good row is one that BEAT its expectation, not merely one above 50%.
+ */
+function breakdown(s){
+  var box = el('div','breakdown');
+  if(!s.graded) return box;
+
+  var rows = [
+    ['Straight', s.singles],
+    ['Parlay',   s.parlays]
+  ];
+  Object.keys(s.byProp).forEach(function(k){
+    rows.push([PROP_LABELS[k] || k, s.byProp[k], true]);
+  });
+  /* Entered-afterwards is a different claim about the world, not a different
+     kind of bet, so it sits at the bottom under its own heading. */
+  if(s.retro.graded) rows.push(['Entered after the result', s.retro]);
+
+  var tbl = el('table','bdown');
+  var head = el('tr');
+  ['', 'won', 'rate', 'model said'].forEach(function(h){
+    head.appendChild(el('th',null,h));
+  });
+  tbl.appendChild(head);
+
+  var any = false;
+  rows.forEach(function(r){
+    var label = r[0], t = r[1], isLeg = r[2];
+    if(!t || !t.graded) return;
+    any = true;
+    var tr = el('tr');
+    tr.appendChild(el('td','bl', label + (isLeg ? ' *' : '')));
+    tr.appendChild(el('td',null, t.hits+' of '+t.graded));
+    tr.appendChild(el('td',null, pct(t.hitRate,0)));
+    /* The comparison, on the same row as the claim. */
+    var said = el('td');
+    said.textContent = pct(t.expectedRate,0);
+    var gap = t.hits - t.expected;
+    said.appendChild(el('span','gap '+(gap>=0?'up':'down'),
+      '  '+(gap>=0?'+':'')+gap.toFixed(1)));
+    tr.appendChild(said);
+    tbl.appendChild(tr);
+  });
+  if(!any) return box;
+  box.appendChild(tbl);
+
+  if(Object.keys(s.byProp).length){
+    box.appendChild(el('div','bnote',
+      '* Prop rows count LEGS, not wagers — a three-leg slip contributes three '+
+      'of them. The two rows above it count wagers, which is why they will not '+
+      'add up to the same thing.'));
+  }
+  return box;
+}
+
+var PROP_LABELS = {hrr:'1+ H/R/RBI', hr:'1+ home run', tb2:'2+ total bases',
+                   tb3:'3+ total bases', tb4:'4+ total bases'};
 
 /* "2 of 3 legs in" while a slip is still live. */
 function legsIn(b){
@@ -717,17 +810,18 @@ function renderSlip(){
       return !g || !S.gameIsOpen(g);
     });
 
-    var betIt = el('button','betbet', already ? '\u2713 In your bet log' :
-      stale.length ? 'Too late \u2014 a game has started' : 'I bet this parlay');
+    var betIt = el('button','betbet', already ? '\u2713 In your bet log' : 'I bet this parlay');
     betIt.type='button';
-    if(already || stale.length){
+    if(already){
       betIt.disabled = true;
-      betIt.title = already ? 'Already recorded. Remove it from Your bets above.'
-        : stale.length+' of these '+state.slip.length+' games have started.';
+      betIt.title = 'Already recorded. Remove it from Your bets above.';
+    } else if(stale.length){
+      betIt.title = stale.length+' of these '+state.slip.length+
+        ' games have started, so this will be marked as entered after the result.';
     }
     betIt.addEventListener('click', function(){
-      if(already || stale.length) return;
-      BETS = T.add(BETS, T.parlay(state.slip, c.prob, D.date));
+      if(already) return;
+      BETS = T.add(BETS, T.parlay(state.slip, c.prob, boardDate(), {retro: stale.length>0}));
       saveBets();
       render();
     });
@@ -814,9 +908,21 @@ var BETS = (function(){
 })();
 var BETS_WRITABLE = true;
 
-function saveBets(){
+/* The raw write. Kept separate from saveBets because grading writes too, and
+   a write that re-triggers grading would recurse forever on any bet that
+   cannot settle yet -- an open game is graded, finds nothing, saves, grades
+   again. persist() is the leaf; nothing calls back out of it. */
+function persist(){
   try { localStorage.setItem(T.STORAGE_KEY, T.serialise(BETS)); BETS_WRITABLE = true; }
   catch(e){ BETS_WRITABLE = false; }
+}
+
+function saveBets(){
+  persist();
+  /* A bet recorded for a day that already finished can settle immediately,
+     usually from a file already in memory. Waiting for the next reload to
+     show HIT or MISS made the whole historical path feel broken. */
+  gradeBets();
 }
 
 /* Grades come from history/<date>.json, which track.mjs writes on every
@@ -830,16 +936,70 @@ function saveBets(){
 function gradeBets(){
   var dates = T.ungradedDates(BETS);
   if(!dates.length || typeof fetch !== 'function') return;
-  var left = dates.length;
+  var left = dates.length, changed = false;
+  var before = T.summarise(BETS).graded;
   dates.forEach(function(d){
-    fetch('history/'+d+'.json')
-      .then(function(res){ return res.ok ? res.json() : null; })
-      .catch(function(){ return null; })
-      .then(function(day){
-        if(day) BETS = T.applyResults(BETS, T.resultsFrom(day));
-        if(--left === 0){ saveBets(); renderBetLog(); }
-      });
+    /* Shares the replay cache, so a bet recorded while looking at a past
+       day settles from the file already in memory rather than fetching it
+       again. Without this a historical bet sat on OPEN until a reload. */
+    historyFor(d, function(day){
+      if(day && day !== 'error'){
+        BETS = T.applyResults(BETS, T.resultsFrom(day));
+        if(T.summarise(BETS).graded !== before) changed = true;
+      }
+      /* Only write and redraw when a grade actually landed. Doing it
+         unconditionally is what would make this recurse. */
+      if(--left === 0 && changed){ persist(); renderBetLog(); }
+    });
   });
+}
+
+/* ------------------------------------------------------------------ *
+ * Replaying a past day
+ *
+ * history/<date>.json already holds every player the board showed that day,
+ * on all five props, with the model's number at the time and the outcome.
+ * That is enough to redraw the board for any day track.mjs has recorded --
+ * which is what makes writing down a bet you placed last Tuesday possible
+ * without typing anything.
+ * ------------------------------------------------------------------ */
+var HISTORY = {};          // date -> parsed file, or 'loading', or 'error'
+
+function boardDate(){ return state.day || D.date; }
+function isReplay(){ return !!state.day && state.day !== D.date; }
+
+/* The days worth offering: whatever track.mjs has actually recorded. That
+   list is already on the page in record.js, so there is nothing to fetch and
+   nothing new to generate. */
+function replayDays(){
+  var r = window.BETHOUSE_RECORD;
+  var days = (r && Array.isArray(r.days)) ? r.days.slice() : [];
+  return days.filter(function(d){ return d !== D.date; }).sort().reverse();
+}
+
+var HISTORY_WAITING = {};  // date -> callbacks queued behind an in-flight fetch
+
+function historyFor(date, then){
+  var held = HISTORY[date];
+  if(held !== undefined && held !== 'loading'){ then(held); return; }
+  /* Queue rather than drop. Two callers can want the same day at once --
+     the replay board and gradeBets, on the very first draw -- and the
+     second one used to get no answer at all. */
+  if(held === 'loading'){
+    (HISTORY_WAITING[date] = HISTORY_WAITING[date] || []).push(then);
+    return;
+  }
+  HISTORY[date] = 'loading';
+  fetch('history/'+date+'.json')
+    .then(function(res){ return res.ok ? res.json() : null; })
+    .catch(function(){ return null; })
+    .then(function(day){
+      HISTORY[date] = day || 'error';
+      then(HISTORY[date]);
+      var queued = HISTORY_WAITING[date] || [];
+      delete HISTORY_WAITING[date];
+      queued.forEach(function(cb){ cb(HISTORY[date]); });
+    });
 }
 
 function normName(s){
@@ -1011,6 +1171,132 @@ function buildWhy(r, game, side){
   return w;
 }
 
+/* ------------------------------------------------------------------ *
+ * The board, as it stood on a past day
+ *
+ * Drawn from history/<date>.json, which carries the model's number from the
+ * time and the outcome. Deliberately plainer than the live board: history
+ * does not store the opposing pitcher, the venue or the handedness split, so
+ * there is no reasoning panel to open and no pretending otherwise.
+ * ------------------------------------------------------------------ */
+function renderReplay(day){
+  var board = document.getElementById('board');
+  var summary = document.getElementById('summary');
+  board.innerHTML = '';
+
+  if(day === 'loading'){ board.appendChild(el('div','empty','Loading that day…')); return; }
+  if(day === 'error' || !day || !Array.isArray(day.predictions)){
+    var e = el('div','empty');
+    e.appendChild(el('div','big','That day did not load.'));
+    e.appendChild(document.createTextNode(
+      'history/'+state.day+'.json is missing or unreadable. Pick another day, or go back to today.'));
+    board.appendChild(e);
+    summary.innerHTML = '';
+    return;
+  }
+
+  var prop = propKey();
+  var rows = day.predictions.filter(function(p){ return p.prop === prop; });
+
+  /* Group by game, then by team inside it, so it reads like the live board. */
+  var games = {};
+  rows.forEach(function(p){
+    var g = (games[p.gamePk] = games[p.gamePk] || {gamePk:p.gamePk, teams:{}});
+    (g.teams[p.team] = g.teams[p.team] || []).push(p);
+  });
+
+  var order = Object.keys(games).sort(function(a,b){ return Number(a)-Number(b); });
+  var shown = 0, hits = 0, graded = 0;
+
+  order.forEach(function(pk){
+    var g = games[pk];
+    var card = el('div','game closed');
+    var head = el('div','ghead');
+    head.appendChild(el('h2','gtitle', Object.keys(g.teams).join('  vs  ')));
+    card.appendChild(head);
+
+    Object.keys(g.teams).forEach(function(team){
+      var list = g.teams[team].slice().sort(function(a,b){ return b.prob-a.prob; })
+        .slice(0, state.perTeam);
+      if(!list.length) return;
+
+      var sh = el('div','shead');
+      var nm = el('div','sname'); nm.textContent = team;
+      sh.appendChild(nm);
+      card.appendChild(sh);
+
+      list.forEach(function(p){
+        shown++;
+        if(p.actual != null){ graded++; hits += p.actual ? 1 : 0; }
+
+        var row = el('div','row hist');
+        row.appendChild(el('div','slot', p.slot ? '#'+p.slot : ''));
+
+        var who = el('div','who');
+        who.appendChild(document.createTextNode(p.name));
+        if(p.actual != null){
+          who.appendChild(el('span','settled '+(p.actual?'win':'lost'), p.actual?'HIT':'NO'));
+        }
+        row.appendChild(who);
+        row.appendChild(el('div','prob', pct(p.prob,0)));
+
+        var leg = {
+          gamePk: p.gamePk, playerId: p.playerId, prop: prop,
+          propLabel: propLabel(), name: p.name, team: team, prob: p.prob
+        };
+        var key = T.legKey(leg);
+        var on = T.has(BETS, key);
+
+        var trk = el('button','trk', on?'\u2713':'\u25cb');
+        trk.type = 'button';
+        trk.setAttribute('aria-pressed', String(on));
+        trk.setAttribute('aria-label', (on?'Remove ':'Record ')+p.name+' '+propLabel()+
+          (on?' from':' in')+' your bet log');
+        trk.title = on ? 'Recorded. Tap to remove.'
+          : 'Record this \u2014 will be marked as entered after the result';
+        trk.addEventListener('click', function(){
+          /* Always retro: this day is over by definition. */
+          BETS = on ? T.remove(BETS, key) : T.add(BETS, T.single(leg, state.day, {retro:true}));
+          saveBets();
+          render();
+        });
+        row.appendChild(trk);
+
+        if(S.parlayEligible(state.view)){
+          row.classList.add('parlay');
+          var legKey2 = p.gamePk+'|'+p.playerId+'|'+prop;
+          var inSlip = state.slip.some(function(x){ return T.legKey(x)===legKey2; });
+          var add = el('button','addleg', inSlip?'\u2713':'+');
+          add.type='button';
+          add.setAttribute('aria-pressed', String(inSlip));
+          add.setAttribute('aria-label', (inSlip?'Remove ':'Add ')+p.name+' to parlay slip');
+          add.addEventListener('click', function(ev){
+            ev.stopPropagation();
+            if(inSlip) state.slip = state.slip.filter(function(x){ return T.legKey(x)!==legKey2; });
+            else state.slip.push(leg);
+            state.suggested = false;
+            render();
+          });
+          row.appendChild(add);
+        }
+        card.appendChild(row);
+      });
+    });
+
+    if(card.querySelector('.row')) board.appendChild(card);
+  });
+
+  if(!shown){
+    board.appendChild(el('div','empty','Nothing recorded for that day on this bet type.'));
+  }
+
+  summary.innerHTML = '';
+  function stat(v,l){ var d=el('div'); d.appendChild(el('b',null,v)); d.appendChild(document.createTextNode(' '+l)); summary.appendChild(d); }
+  stat(String(order.length), order.length===1?'game':'games');
+  stat(String(shown), 'shown');
+  if(graded) stat(pct(hits/graded,1), 'of these actually hit');
+}
+
 function render(){
   /* Refilled below, as the board draws. Anything stale here would let a
      suggestion pick a game that has since started. */
@@ -1028,6 +1314,35 @@ function render(){
   seg(document.getElementById('tbn'), TBN, state.tbThreshold, function(v){state.tbThreshold=v; state.open=null; render();});
   document.getElementById('tbwrap').hidden = state.view!=='tb';
   seg(document.getElementById('top'), TOP, state.perTeam, function(v){state.perTeam=v; render();});
+
+  /* Day picker. A native select rather than a row of buttons: there are
+     twenty-odd days and it has to work on a phone. */
+  var daySel = document.getElementById('day');
+  var days = replayDays();
+  var wantOpts = [D.date].concat(days).join('|');
+  if(daySel.dataset.built !== wantOpts){
+    daySel.innerHTML = '';
+    var todayOpt = el('option', null, 'Today');
+    todayOpt.value = '';
+    daySel.appendChild(todayOpt);
+    days.forEach(function(d){
+      var o = el('option', null, new Date(d+'T12:00:00Z')
+        .toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'}));
+      o.value = d;
+      daySel.appendChild(o);
+    });
+    daySel.dataset.built = wantOpts;
+    daySel.addEventListener('change', function(){
+      state.day = daySel.value || null;
+      state.open = null;
+      /* A slip built on one day cannot be carried to another: the legs are
+         other people's games. */
+      state.slip = []; state.suggested = false; state.sugLegs = null; state.sugError = null;
+      render();
+    });
+  }
+  daySel.value = state.day || '';
+  document.getElementById('daywrap').hidden = !days.length;
 
   /* Suggest a slip. Runs against `state.candidates` from the PREVIOUS draw,
      which is the board the user is looking at when they click. */
@@ -1047,14 +1362,18 @@ function render(){
     }
     render();
   });
-  document.getElementById('sugwrap').hidden = !S.parlayEligible(state.view);
+  /* No suggesting on a past day: "the best bet still available" is not a
+     thing you can offer for a slate that finished. Building one by hand
+     still works, because that is what you did at the time. */
+  document.getElementById('sugwrap').hidden = !S.parlayEligible(state.view) || isReplay();
 
   /* Name the board, then the date. golf.html and nfl.html both put the
      section first ("PGA Tour — who makes the cut", "NFL — 2026 week 1");
      this one showed only a date, so the baseball board was the one page
      that never said which board it was. */
   document.getElementById('tagline').textContent = 'Baseball — ' +
-    new Date(D.date+'T12:00:00Z').toLocaleDateString(undefined,{weekday:'long',month:'short',day:'numeric'});
+    new Date(boardDate()+'T12:00:00Z').toLocaleDateString(undefined,{weekday:'long',month:'short',day:'numeric'}) +
+    (isReplay() ? ' · replay' : '');
 
   /* honest header */
   var note=document.getElementById('note');
@@ -1073,7 +1392,17 @@ function render(){
       'because homers are rare. Tap a player for detail.';
   }
 
+  if(isReplay()){
+    note.innerHTML = 'This day is over. The board is redrawn from what it '+
+      'predicted at the time, with the results attached, so you can write down '+
+      'a bet you placed then. <b class="hot">Anything recorded here is marked as '+
+      'entered after the result was known</b> and counted separately — not '+
+      'because you are suspected of anything, but because a record that mixes '+
+      'the two stops meaning anything.';
+  }
+
   var liveN=(D.games||[]).filter(function(g){return g.live;}).length;
+  if(isReplay()) liveN = 0;
   if(liveN){
     note.innerHTML += ' <b>'+liveN+' game'+(liveN===1?' is':'s are')+' underway</b> \u2014 those numbers count only the plate appearances a hitter has left.';
   }
@@ -1092,6 +1421,20 @@ function render(){
 
   renderSlip();
   renderBetLog();
+
+  /* A past day is drawn from history and nothing below applies: no live
+     games, no lineup filter, no odds, no reasoning panels. */
+  if(isReplay()){
+    var cached = HISTORY[state.day];
+    if(cached === undefined){
+      historyFor(state.day, function(){ render(); });
+      renderReplay('loading');
+    } else {
+      renderReplay(cached);
+    }
+    document.getElementById('footer').innerHTML = '';
+    return;
+  }
 
   var games=(D.games||[]).filter(function(g){
     if(state.lineups==='posted') return g.away.confirmed||g.home.confirmed;
@@ -1224,21 +1567,23 @@ function render(){
         trk.setAttribute('aria-pressed', String(betOn));
         trk.setAttribute('aria-label', (betOn?'Remove ':'Record ')+r.name+
           ' '+propLabel()+(betOn?' from':' in')+' your bet log');
-        if(!S.gameIsOpen(g)){
-          trk.disabled = true; trk.style.opacity = .3;
-          trk.title = betOn ? 'Recorded before first pitch' : 'Too late \u2014 this game has started';
-        } else {
-          trk.title = betOn ? 'Recorded. Tap to remove.' : 'Record that you bet this';
-        }
+        /* Never disabled. The first version blocked any game that had
+           started, borrowing track.mjs's pregame-only rule -- which exists to
+           stop the MODEL grading itself on lookahead and has no business
+           deciding what you are allowed to write in your own log. A bet
+           entered once the result was known is marked, not refused. */
+        var late = !S.gameIsOpen(g);
+        trk.title = betOn ? 'Recorded. Tap to remove.'
+          : late ? 'Record this \u2014 will be marked as entered after the result'
+          : 'Record that you bet this';
         trk.addEventListener('click', function(ev){
           ev.stopPropagation();
-          if(!S.gameIsOpen(g)) return;
-          BETS = betOn ? T.remove(BETS, betKey) : T.add(BETS, {
+          BETS = betOn ? T.remove(BETS, betKey) : T.add(BETS, T.single({
             gamePk: g.gamePk, playerId: r.player.id, prop: propKey(),
             propLabel: propLabel(), name: r.name,
             team: g[side].abbrev || g[side].team,
-            prob: r.prob, date: D.date
-          });
+            prob: r.prob
+          }, D.date, {retro: late}));
           saveBets();
           render();
         });

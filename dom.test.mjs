@@ -252,48 +252,67 @@ test("no board defines the same id twice", () => {
    would break a naive counter; the render code has none inside this block,
    and the assertion below fails loudly rather than silently passing if
    that ever stops being true. */
-function guardedBody(js, needle) {
-  const at = js.indexOf(needle);
-  if (at < 0) return null;
-  /* The needle ends with its own `{`; scanning from `at` finds that brace
-     and not the next one down. Getting this wrong once already cost a
-     confusing failure, which is the good outcome — the assertion below is
-     written so a broken scan reports "outside the guard" rather than
-     quietly passing. */
-  const open = js.indexOf("{", at);
-  if (open < 0) return null;
-  let depth = 0;
-  for (let i = open; i < js.length; i++) {
-    if (js[i] === "{") depth++;
-    else if (js[i] === "}" && --depth === 0) return js.slice(open, i);
+function guardedRanges(js, needle) {
+  const out = [];
+  let from = 0;
+  for (;;) {
+    const at = js.indexOf(needle, from);
+    if (at < 0) return out;
+    /* The needle ends with its own `{`; scanning from `at` finds that brace
+       and not the next one down. Getting this wrong once already cost a
+       confusing failure, which is the good outcome — the assertions below
+       are written so a broken scan reports "outside the guard" rather than
+       quietly passing. */
+    const open = js.indexOf("{", at);
+    if (open < 0) return out;
+    let depth = 0;
+    let close = -1;
+    for (let i = open; i < js.length; i++) {
+      if (js[i] === "{") depth++;
+      else if (js[i] === "}" && --depth === 0) {
+        close = i;
+        break;
+      }
+    }
+    if (close < 0) return out;
+    out.push([open, close]);
+    from = close;
   }
-  return null;
 }
 
-test("the add-to-parlay button is built inside the eligibility guard", () => {
+test("every add-to-parlay button is built inside the eligibility guard", () => {
   const js = src("index.html");
   assert.ok(
     js.includes("S.parlayEligible("),
     "index.html must ask score.js which views may build a parlay, not re-derive it",
   );
 
-  const body = guardedBody(js, "if(S.parlayEligible(state.view)){");
-  assert.ok(body, "no `if(S.parlayEligible(state.view)){` block found in index.html");
+  const guards = guardedRanges(js, "if(S.parlayEligible(state.view)){");
+  assert.ok(guards.length, "no `if(S.parlayEligible(state.view)){` block found in index.html");
 
+  /* There is one row renderer for today and one for a replayed day, and both
+     build a + button. Counting call sites would have to be edited every time
+     a renderer is added; what actually matters is that NONE of them sits
+     outside a guard. */
+  const sites = [];
+  for (let i = js.indexOf("'addleg'"); i >= 0; i = js.indexOf("'addleg'", i + 1)) sites.push(i);
+  assert.ok(sites.length, "index.html no longer builds an addleg button");
+
+  for (const at of sites) {
+    const inside = guards.some(([open, close]) => at > open && at < close);
+    assert.ok(
+      inside,
+      `an addleg button at index ${at} is built OUTSIDE the eligibility guard — ` +
+        "that is how it became reachable on total bases and home runs",
+    );
+  }
+
+  /* And the suggestion candidates, which only the live board collects. */
+  const push = js.indexOf("state.candidates.push");
+  assert.ok(push > 0, "the live board no longer collects suggestion candidates");
   assert.ok(
-    body.includes("'addleg'"),
-    "the + button is rendered OUTSIDE the eligibility guard — it was reachable on total bases and home runs",
-  );
-  assert.ok(
-    body.includes("state.candidates.push"),
+    guards.some(([open, close]) => push > open && push < close),
     "suggestion candidates are collected outside the eligibility guard",
-  );
-
-  /* And nowhere else. One + button, one guard. */
-  assert.equal(
-    (js.match(/'addleg'/g) || []).length,
-    1,
-    "more than one place builds an addleg button; only one of them is guarded",
   );
 });
 

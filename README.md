@@ -383,6 +383,24 @@ For a parlay, build or suggest one and press **I bet this parlay** on the slip.
 The slip is a calculator until you say otherwise; that button is the moment it
 becomes a wager, and it is the only way a parlay enters the log.
 
+### Bets you placed on a past day
+
+Pick a date from **Day** and the board is redrawn as it stood then — every
+player it showed, the model's number at the time, and the result. Tap circles
+and build parlays exactly as you would today. There is nothing to type.
+
+That works because `history/<date>.json` already holds all of it, written by
+`track.mjs` on every refresh for as far back as the running record goes. The
+day list comes from `record.js`, which is already on the page, so the feature
+added no new generated file and no new request on load.
+
+Two things are deliberately absent on a replayed day. There is no reasoning
+panel, because history does not store the opposing pitcher or the handedness
+split and inventing one would be worse than omitting it. And there is no
+**Suggest a parlay**: "the best bet still available" is not something you can
+offer for a slate that already finished. Building one by hand still works,
+because that is what you did at the time.
+
 Grades arrive on their own. `track.mjs` already writes `history/<date>.json` on
 every refresh with the real outcome for every player it snapshotted, on all five
 props, so a pick you tapped is already in that file and settles within about
@@ -408,9 +426,26 @@ The panel then says the only thing it is in a position to say:
 > −0.6 against a spread of 1.5 — inside the noise, which is what almost every
 > honest sample this size looks like.
 
-Singles and parlays are also counted apart, because an 81% single and a 41%
-three-leg slip are not the same kind of bet and one combined hit rate hides
-which is carrying the record.
+### Win rate by kind of bet
+
+The table under the record is the point of keeping one:
+
+```
+                          WON      RATE   MODEL SAID
+Straight                  2 of 6   33%    73%   −2.4
+Parlay                    0 of 1    0%    43%   −0.4
+1+ H/R/RBI *              4 of 9   44%    74%   −2.7
+Entered after the result  2 of 7   29%    69%   −2.8
+```
+
+`MODEL SAID` is what the board expected from those same bets, and the number
+beside it is the gap. A good row is one that **beat** its expectation, not
+merely one above 50% — a 73% straight book that comes in at 33% is a bad run
+however healthy the raw rate might look on some other prop.
+
+Prop rows count **legs**, not wagers, so a three-leg slip contributes three of
+them and the prop rows will not add up to the straight and parlay rows above.
+The table says so too.
 
 ### The spread assumes your bets do not overlap
 
@@ -431,11 +466,13 @@ capture that does not exist yet.
 
 ### Three rules that keep it honest
 
-**Pregame only.** The button is disabled the moment a game goes live, the same
-rule `track.mjs` enforces on itself. Marking a bet in the seventh inning is not
-recording a bet, it is recording an outcome. For a parlay this is checked when
-you press the button, not when you built the slip: a slip assembled at 3pm and
-bet at 4pm may have had a game start underneath it.
+**After-the-fact entry is marked, not forbidden.** The first version refused any
+bet on a game that had started, borrowing `track.mjs`'s pregame-only rule. That
+rule exists to stop the *model* grading itself on lookahead; applied to your own
+log it was simply wrong, because it made writing down a bet you actually placed
+impossible. Anything entered once the result was known carries a flag and gets
+its own row in the breakdown — a fact about the entry, not a suspicion about
+you, and the record needs it to keep meaning anything.
 
 **First grade wins.** Once a pick has settled it is never rewritten, so
 rebuilding a history file cannot turn a loss into a win.

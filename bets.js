@@ -24,9 +24,14 @@
  * The data is your own claim, so the rules that stop a bet log flattering its
  * owner have to be written down:
  *
- *   1. PREGAME ONLY. The board refuses to record a game that has started, the
- *      same rule track.mjs enforces on itself. Marking a bet in the seventh
- *      inning is not recording a bet, it is recording an outcome.
+ *   1. AFTER-THE-FACT ENTRY IS MARKED, NOT FORBIDDEN. The first version
+ *      refused any bet on a game that had started, borrowing track.mjs's
+ *      pregame-only rule. That rule exists to stop the MODEL grading itself
+ *      on lookahead; applied to the user's own log it was simply wrong,
+ *      because it made writing down a bet you actually placed impossible.
+ *      A bet entered once the result was known carries `retro` and is
+ *      tallied separately. That is a fact about the entry, not a suspicion
+ *      about the person, and the record needs it to keep meaning anything.
  *   2. FIRST GRADE WINS. Once a bet has an outcome it is never rewritten, so
  *      rebuilding a history file cannot turn a loss into a win.
  *   3. EXPECTATION AND SPREAD COVER EXACTLY THE GRADED BETS. "9 hit, model
@@ -108,6 +113,9 @@
         date: date || "",
         addedAt: (extra && extra.addedAt) || new Date().toISOString(),
       },
+      // Present only when true, so the flag means something wherever it
+      // appears and entries written before it existed need no rewriting.
+      extra && extra.retro ? { retro: true } : {},
       extra && extra.actual != null
         ? { actual: Number(extra.actual), gradedAt: extra.gradedAt || new Date().toISOString() }
         : {},
@@ -118,20 +126,26 @@
     return bet;
   }
 
-  function single(pick, date) {
+  function single(pick, date, opts) {
     if (!pick) return null;
-    return build([pick], pick.prob, date || pick.date, pick);
+    return build([pick], pick.prob, date || pick.date, Object.assign({}, pick, opts));
   }
 
-  function parlay(legs, combinedProb, date) {
-    return build(legs, combinedProb, date);
+  function parlay(legs, combinedProb, date, opts) {
+    return build(legs, combinedProb, date, opts);
   }
 
   function add(list, bet) {
     if (!bet) return list.slice();
-    // Accept an already-built bet, or rebuild one that came from storage or
-    // a hand-edited export.
-    const made = bet.legs ? build(bet.legs, bet.prob, bet.date, bet) : null;
+    /* Three shapes arrive here and all of them are legitimate: a built bet,
+       an entry rebuilt from storage or a hand-edited export, and a BARE PICK
+       straight off a board row. The last one is a one-leg bet — that is the
+       module's whole premise — and treating it as unrecognisable is how the
+       row button silently did nothing for a day in production. migrate()
+       already accepted both shapes; this now matches it. */
+    const made = bet.legs
+      ? build(bet.legs, bet.prob, bet.date, bet)
+      : build([bet], bet.prob, bet.date, bet);
     if (!made) return list.slice();
     if (has(list, made.key)) return list.slice();
     return list.concat([made]);
@@ -267,12 +281,15 @@
     const total = blankTally();
     const singles = blankTally();
     const parlays = blankTally();
+    const live = blankTally();
+    const retro = blankTally();
     const byProp = {};
     const legSeen = {};
 
     for (const b of list) {
       count(total, b);
       count(b.legs.length > 1 ? parlays : singles, b);
+      count(b.retro ? retro : live, b);
 
       // A prop bucket per leg, so a mixed parlay shows up under each prop
       // it touches. Bets, not legs, are what `total` counts.
@@ -296,6 +313,8 @@
     const out = finish(total);
     out.singles = finish(singles);
     out.parlays = finish(parlays);
+    out.live = finish(live);
+    out.retro = finish(retro);
     out.byProp = byProp;
 
     /* Adding variances assumes the bets are independent OF EACH OTHER. Bet a
