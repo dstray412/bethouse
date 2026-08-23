@@ -459,3 +459,23 @@ a point.
   gone because they are no longer true.
 - CAL.tbBias / CAL.hrBias removed from index.html — they existed only to carry
   those warnings.
+
+---
+
+# NFL calibration checked — 2026-08-22
+
+Ran the band-by-band test on both NFL props before the season, looking for the
+over-dispersion that caught baseball. **It is not there.**
+
+- Anytime TD: gaps +0.2, −0.7, −0.1, −3.0, −1.4, −0.3, +2.8, −0.1pp across
+  eight buckets. No direction.
+- Receiving yards: +1.0, +2.5, +1.6, −0.4, +0.8pp. A mild uniform hot bias,
+  which is a level error rather than a spread one.
+
+**Nothing corrected, deliberately.** It is backtest evidence, and a point of
+level bias is not worth a constant fitted to the same data the model's
+constants came from. The forward record starting week 1 is the test that
+counts.
+
+Also verified every week-1 game gets a pregame snapshot: the daily 12:20 UTC
+run lands 12–36 hours ahead of all sixteen kickoffs, Thursday through Monday.

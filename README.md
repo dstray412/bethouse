@@ -578,6 +578,35 @@ backtest grades a model against history the model was fitted to.
 The NFL model has *less* evidence behind it, not more. So it gets measured
 from the first week rather than the first doubt.
 
+### The NFL models were checked for the defect baseball had, and do not have it
+
+Before the season starts, both props were put through the same band-by-band
+test that caught baseball's over-dispersion. Aggregate bias hides it — baseball
+looked fine on aggregate too — so what matters is whether the gaps march in one
+direction.
+
+```
+anytime TD                       receiving yards over
+  0-10%    +0.2pp                  0-20%    +1.0pp
+ 10-15%    -0.7pp                 20-35%    +2.5pp
+ 15-20%    -0.1pp                 35-50%    +1.6pp
+ 20-25%    -3.0pp                 50-65%    -0.4pp
+ 25-30%    -1.4pp                 65-80%    +0.8pp
+ 30-40%    -0.3pp
+ 40-50%    +2.8pp
+ 50-100%   -0.1pp
+```
+
+Touchdowns bounce either side of zero with no pattern. Receiving yards runs
+about a point hot fairly evenly, which is a small **level** error rather than
+the spread error baseball had, and a point is not worth a correction fitted to
+a backtest.
+
+So nothing is being corrected here. That is a decision, not an oversight: this
+is backtest evidence, and the whole lesson of the baseball calibration is that
+a backtest grades a model against history the model was fitted to. The forward
+record is the test that counts, and it starts in week 1.
+
 ### It has to be running before kickoff
 
 A week that is not recorded before it starts cannot be recovered. Reconstructing
