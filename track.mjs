@@ -30,6 +30,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import score from "./score.js";
+import * as core from "./track-core.mjs";
 
 const DIR = path.dirname(fileURLToPath(import.meta.url));
 const HIST = path.join(DIR, "history");
@@ -64,33 +65,12 @@ async function get(url, label) {
   }
 }
 
-function loadDay(date) {
-  const f = path.join(HIST, `${date}.json`);
-  if (!fs.existsSync(f)) return { date, predictions: [], graded: false };
-  try {
-    return JSON.parse(fs.readFileSync(f, "utf8"));
-  } catch {
-    return { date, predictions: [], graded: false };
-  }
-}
-
-function saveDay(day) {
-  fs.mkdirSync(HIST, { recursive: true });
-  fs.writeFileSync(path.join(HIST, `${day.date}.json`), JSON.stringify(day, null, 1));
-}
-
-function listDays() {
-  if (!fs.existsSync(HIST)) return [];
-  return fs
-    .readdirSync(HIST)
-    .filter((f) => /^\d{4}-\d{2}-\d{2}\.json$/.test(f))
-    .map((f) => f.replace(".json", ""))
-    .sort();
-}
-
-/* ---------------------------------------------------------------- *
- * snapshot
- * ---------------------------------------------------------------- */
+/* The day file, the pregame clock rule and the report arithmetic are the
+   same for every sport and live in track-core.mjs, so baseball and the NFL
+   cannot drift apart on what "honest" means. */
+const loadDay = (date) => core.loadDay(HIST, date);
+const saveDay = (day) => core.saveDay(HIST, day);
+const listDays = () => core.listDays(HIST);
 
 function scoreOne(prop, player, ctx) {
   if (prop === "hrr") return score.scoreHRR(player, ctx);
@@ -134,7 +114,7 @@ function snapshot() {
        the record for a game that had already finished. A wall clock cannot
        be misread the way a status string can, so refuse anything at or past
        its own first pitch regardless of what the status says. */
-    if (g.startTime && Date.now() >= new Date(g.startTime).getTime()) {
+    if (g.startTime && core.startedAlready(g.startTime)) {
       skippedLive++;
       continue;
     }
@@ -308,76 +288,11 @@ async function grade() {
  * report
  * ---------------------------------------------------------------- */
 
-function evaluate(rows) {
-  const n = rows.length;
-  if (!n) return null;
-  const meanP = rows.reduce((s, r) => s + r.prob, 0) / n;
-  const meanA = rows.reduce((s, r) => s + r.actual, 0) / n;
-  const brier = rows.reduce((s, r) => s + (r.prob - r.actual) ** 2, 0) / n;
-  const buckets = [];
-  for (let lo = 0; lo < 1; lo += 0.1) {
-    const inB = rows.filter((r) => r.prob >= lo && r.prob < lo + 0.1);
-    if (inB.length < 15) continue;
-    buckets.push({
-      lo,
-      n: inB.length,
-      pred: inB.reduce((s, r) => s + r.prob, 0) / inB.length,
-      act: inB.reduce((s, r) => s + r.actual, 0) / inB.length,
-    });
-  }
-  return { n, meanP, meanA, bias: meanP - meanA, brier, buckets };
-}
-
-function report() {
-  const days = listDays();
-  const all = [];
-  for (const d of days) {
-    for (const p of loadDay(d).predictions) {
-      if (p.actual == null) continue;
-      all.push({ ...p, date: d });
-    }
-  }
-  if (!all.length) {
-    console.log("No graded predictions yet.");
-    console.log("Run: node fetch-mlb.mjs && node track.mjs snapshot   (then grade after games end)");
-    return null;
-  }
-
-  const gradedDays = [...new Set(all.map((r) => r.date))];
-  console.log(`\nBetHouse running record — ${gradedDays.length} day(s), ${all.length} graded predictions`);
-  console.log(`Days: ${gradedDays.join(", ")}\n`);
-
-  const out = { days: gradedDays, total: all.length, props: {} };
-
-  for (const prop of PROPS) {
-    const rows = all.filter((r) => r.prop === prop.id);
-    const e = evaluate(rows);
-    if (!e) continue;
-    out.props[prop.id] = {
-      label: prop.label, n: e.n,
-      predicted: Math.round(e.meanP * 1000) / 10,
-      actual: Math.round(e.meanA * 1000) / 10,
-      bias: Math.round(e.bias * 1000) / 10,
-      brier: Math.round(e.brier * 10000) / 10000,
-    };
-    console.log(`${prop.label}`);
-    console.log(`  n=${e.n}   predicted ${(e.meanP * 100).toFixed(1)}%   actual ${(e.meanA * 100).toFixed(1)}%   ` +
-      `bias ${(e.bias * 100 >= 0 ? "+" : "")}${(e.bias * 100).toFixed(2)}pp   Brier ${e.brier.toFixed(4)}`);
-    if (e.buckets.length) {
-      for (const b of e.buckets) {
-        console.log(`    ${(b.lo * 100).toFixed(0)}-${((b.lo + 0.1) * 100).toFixed(0)}%  n=${String(b.n).padStart(4)}   ` +
-          `predicted ${(b.pred * 100).toFixed(1)}%  actual ${(b.act * 100).toFixed(1)}%  ` +
-          `${((b.pred - b.act) * 100 >= 0 ? "+" : "")}${((b.pred - b.act) * 100).toFixed(1)}pp`);
-      }
-    } else {
-      console.log(`    (not enough yet for a calibration table)`);
-    }
-    console.log();
-  }
-
-  console.log("A day or two proves nothing. Bias only means something once n is in the thousands.");
-  return out;
-}
+const report = () =>
+  core.report(HIST, PROPS, {
+    title: "BetHouse running record",
+    hint: "Run: node fetch-mlb.mjs && node track.mjs snapshot   (then grade after games end)",
+  });
 
 /* ---------------------------------------------------------------- *
  * main

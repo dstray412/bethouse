@@ -67,13 +67,34 @@ jobs:
             if (!d.ratings || !d.ratings.off) throw new Error("no team ratings");
             console.log("ok:", d.players.length, "players, week", d.week);
           '
-          node --test edge.test.mjs score.test.mjs golf.test.mjs nfl.test.mjs bets.test.mjs dom.test.mjs
+          node --test edge.test.mjs score.test.mjs golf.test.mjs nfl.test.mjs bets.test.mjs track.test.mjs dom.test.mjs
+
+      # The forward record. Snapshot reads the local board and costs nothing,
+      # so it runs every time; grade only fetches games that have finished
+      # since last run, which in football is zero on most days and never more
+      # than sixteen.
+      #
+      # Once a day is enough BECAUSE of when it runs: 12:20 UTC is ahead of
+      # every kickoff in the week, so each slate is recorded before any of it
+      # starts. A week that is not recorded pregame cannot be recovered, so if
+      # this cron ever moves, check it still lands before Thursday night.
+      - name: Record predictions and grade finished games
+        run: |
+          node track-nfl.mjs snapshot
+          node track-nfl.mjs grade
+          node track-nfl.mjs report --write-record
 
       - name: Commit if the board changed
         run: |
           git config user.name  "bethouse-bot"
           git config user.email "bethouse-bot@users.noreply.github.com"
+          # nfl-record.js only exists once a week has been graded, and
+          # nfl-record/ only once something has been snapshotted. Adding a
+          # path that is not there is a fatal error, which is what took down
+          # every scheduled baseball run for a day.
           git add nfl-data.js
+          [ -d nfl-record ] && git add nfl-record || true
+          [ -f nfl-record.js ] && git add nfl-record.js || true
           if git diff --staged --quiet; then
             echo "No change."
           else

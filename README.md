@@ -147,6 +147,8 @@ should be re-fitted when the run environment shifts.
 | `fetch-mlb.mjs` | Five keyless requests to statsapi → `mlb-data.js`. |
 | `backtest.mjs` | Replays real games, measures calibration, fits `k`, and tests parlays (`--parlay`) and hot streaks (`--streaks`). |
 | `track.mjs` | Records each day's pregame predictions, grades them once games end, keeps the running record. |
+| `track-core.mjs` | The rules a forward record needs, shared by both sports so they cannot drift apart. |
+| `track-nfl.mjs` | The same for the NFL board: records each week before kickoff, grades from ESPN box scores. |
 | `lineup-context.mjs` | Replays committed board snapshots to test whether on-base ahead of a hitter moves the residual. It does not. |
 | `calibrate.mjs` | Rebuilds the model from committed snapshots and measures it against its own shipped predictions. Found and fitted the spread correction. |
 | `edge.js` | De-vig and EV math for the odds side. 36 tests. |
@@ -556,6 +558,37 @@ a neutral input turning it off *exactly*, and that the panel knows about **all**
 of them. Add a fifth factor to `score.js` without listing it in `WHY_FACTORS`
 and the suite fails, naming the file to edit — because rows that silently stop
 summing are a wrong explanation, which is worse than no explanation.
+
+## The NFL board keeps a forward record too
+
+From week 1 of the 2026 season, `track-nfl.mjs` records what the NFL board
+predicted **before kickoff** and grades it from ESPN box scores afterwards.
+It covers the two props the board says are worth reading — anytime touchdown
+and receiving yards — and deliberately not the spread or total, because the
+board itself says those do not beat the closing line and a record of them
+would be measuring something nobody should bet.
+
+This exists because of what happened to the baseball board. `backtest-nfl.mjs`
+replayed two seasons and pronounced the player props calibrated. Baseball said
+exactly the same thing, from exactly that kind of evidence, and its forward
+record then showed it was over-confident in a way no backtest could see — a
+backtest grades a model against history the model was fitted to.
+
+The NFL model has *less* evidence behind it, not more. So it gets measured
+from the first week rather than the first doubt.
+
+### It has to be running before kickoff
+
+A week that is not recorded before it starts cannot be recovered. Reconstructing
+it afterwards is indistinguishable from choosing it afterwards, so nothing is
+backfilled — ever. The refresh runs daily at 12:20 UTC, which is ahead of every
+kickoff in an NFL week; if that cron ever moves, check it still lands before
+Thursday night.
+
+The three rules live in `track-core.mjs` and are shared with baseball rather
+than copied: first prediction wins, pregame only by the wall clock, nothing
+backfilled. This repo has been bitten four times by one rule living in two
+files, so it lives in one.
 
 ## The parlay checker
 

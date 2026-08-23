@@ -330,3 +330,50 @@ Every prop improves on both halves on both Brier and log loss.
   with the correction in place.
 - The correction is 19 August days. Re-run `node calibrate.mjs` after a wider
   window and move the constant if ten fits still say so.
+
+---
+
+# NFL forward record — 2026-08-22
+
+The NFL board now records what it predicts before kickoff and grades it after.
+Live before week 1 (2026-09-10), which was the deadline: a week not recorded
+pregame cannot be recovered.
+
+New: `track-core.mjs` (the sport-agnostic rules), `track-nfl.mjs`,
+`track.test.mjs` (17 tests), `nfl-record/`, `nfl-record.js`, and a live-record
+block in nfl.html's footer under the backtest table.
+
+**track.mjs was refactored onto the shared core and its output is byte-identical
+— report, record.js and the day file all verified unchanged.** That mattered:
+the first version of `saveDay` wrote compact JSON with a trailing newline
+instead of indent-1 without one, which would have put an 18,000-line
+reformatting diff into every scheduled commit. Caught by diffing the day file,
+not by reading the code.
+
+## Verified
+
+- 623 week-1 predictions recorded across 419 players.
+- Grading tested end to end against a real completed game (BAL @ PIT): a
+  2-TD receiver graded HIT, a 0-TD quarterback MISS, 138 yards over a 127.5
+  line HIT, and an unknown player id marked "did not play" rather than scored
+  as a loss.
+- The empty state renders on the board; a populated record renders as a table.
+- 300 tests, full gate green.
+
+## Things to know
+
+- `nfl-record/` is ~152KB a week and IS committed. That is the record; losing
+  it loses the evidence.
+- A player who does not appear in the box score is marked `scratched`, never
+  graded as a miss — a bet on an inactive player is voided, not lost — and the
+  flag stops `grade` re-fetching him forever.
+- `nfl-record.js` is written even when empty, so the board can load it from day
+  one and say "nothing graded yet" instead of omitting the section.
+- Golf has no forward record. Same shape would work; `track-core.mjs` is
+  already sport-agnostic.
+
+## Next
+
+- After week 1, run `node calibrate.mjs`-style analysis on the NFL record. It
+  will not have the sample for a while — n needs to be in the thousands.
+- The baseball calibration is 19 August days. Re-fit on a wider window.

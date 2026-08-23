@@ -80,7 +80,7 @@ jobs:
             }
             console.log("ok:", n, "markets, all prices sane and signed");
           '
-          node --test edge.test.mjs score.test.mjs golf.test.mjs nfl.test.mjs bets.test.mjs dom.test.mjs
+          node --test edge.test.mjs score.test.mjs golf.test.mjs nfl.test.mjs bets.test.mjs track.test.mjs dom.test.mjs
 
       - name: Commit if the prices changed
         run: |

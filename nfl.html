@@ -123,6 +123,8 @@ footer td{padding:1px 14px 1px 0}
 <script src="edge.js"></script>
 <script src="nfl.js"></script>
 <script src="nfl-data.js"></script>
+<!-- Written by track-nfl.mjs. Empty until a week has been graded. -->
+<script src="nfl-record.js"></script>
 <script>
 (function () {
   "use strict";
@@ -338,6 +340,32 @@ footer td{padding:1px 14px 1px 0}
     box.hidden=false;
   });
 
+  /* The forward record: what this board actually predicted, graded after the
+     fact. The table above it is a backtest, and a backtest grades a model
+     against history the model was then fitted to. The baseball board looked
+     calibrated by that standard right up until its forward record showed it
+     was over-confident, so this one gets measured from week 1. */
+  function liveRecord(){
+    var R = window.BETHOUSE_NFL_RECORD;
+    if(!R) return '';
+    if(!R.total){
+      return '<p><b>Live record:</b> nothing graded yet. Predictions are recorded '+
+        'before kickoff each week and graded once the games are final \u2014 the first '+
+        'numbers arrive after week 1.</p>';
+    }
+    var rows='';
+    Object.keys(R.props||{}).forEach(function(k){
+      var p=R.props[k];
+      rows+='<tr><td>'+esc(p.label)+'</td><td>n <b>'+p.n+'</b> \u00b7 predicted <b>'+
+        p.predicted+'%</b>, actual <b>'+p.actual+'%</b> \u00b7 off by <b>'+
+        (p.bias>=0?'+':'')+p.bias+'pp</b> \u00b7 Brier <b>'+p.brier+'</b></td></tr>';
+    });
+    return '<p><b>Live record</b> \u2014 '+R.total+' graded prediction'+(R.total===1?'':'s')+
+      ' over '+R.days.length+' week'+(R.days.length===1?'':'s')+', measured against what this '+
+      'board actually published:</p><table>'+rows+'</table>'+
+      (R.total<400?'<p>Far too few to mean anything yet. Bias needs n in the thousands.</p>':'');
+  }
+
   document.getElementById('foot').innerHTML =
     '<p><b>Does it work?</b> Two seasons replayed a week at a time, each week predicted only from '+
     'weeks already played:</p><table>'+
@@ -349,6 +377,7 @@ footer td{padding:1px 14px 1px 0}
     '</table><p>The two player props are calibrated and worth reading. The game lines are not: '+
     'the NFL closing number is very good, and two seasons is not enough games to prove otherwise '+
     'either way. Re-check with <code>node backtest-nfl.mjs</code>.</p>'+
+    liveRecord()+
     '<p>Data: ESPN, no key required. Built '+esc((D.generated||'').slice(0,16).replace('T',' '))+
     ' UTC from '+D.gamesCached+' games.</p>';
 
