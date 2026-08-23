@@ -243,7 +243,11 @@ test("home run probability uses the same whole-trip mixture as the others", () =
   // on what "4.65 trips" means; without that, P(1+ TB) and P(1+ hit) diverge.
   const p = { hr: 20, pa: 400, slot: 1, name: "x" };
   const s = score.scoreHR(p, {});
-  close(s.prob, 1 - score.mixPow(1 - 20 / 400, score.expectedPA(1)), 1e-12);
+  /* rawProb, not prob: the mixture is what this invariant is about, and the
+     calibration layer sits on top of it. Asserting the calibrated number
+     here would make an honest change to the correction look like a broken
+     model. */
+  close(s.rawProb, 1 - score.mixPow(1 - 20 / 400, score.expectedPA(1)), 1e-12);
 });
 
 test("all three models agree that 1+ total bases is 1+ hits", () => {
@@ -1013,4 +1017,95 @@ test("a factor with nothing to say leaves the number untouched", () => {
   });
   const nulled = score.scoreHRR(hitter(), { ...liveCtx(), ...NEUTRAL });
   close(omitted.prob, nulled.prob, 1e-12);
+});
+
+/* ---------------------------------------------------------------- *
+ * Calibration
+ *
+ * The model's numbers were spread too wide. Measured on the board's own
+ * forward record -- 4,330 confirmed-lineup player-games rebuilt from
+ * committed snapshots -- predictions below the centre came in too low and
+ * predictions above it came in too high, on all five props. 1+ H/R/RBI
+ * under 65% ran +4.79pp cold (z = 4.32); 65-75% ran -2.86pp hot.
+ *
+ * `node calibrate.mjs` reproduces the measurement and the fit.
+ * ---------------------------------------------------------------- */
+
+test("calibrate: the centre is the one point it does not move", () => {
+  for (const [key, centre] of Object.entries(score.CALIBRATION_CENTRE)) {
+    close(score.calibrate(centre, key), centre, 1e-12);
+  }
+});
+
+test("calibrate: pulls both tails toward the centre, never past it", () => {
+  const c = score.CALIBRATION_CENTRE.hrr;
+  const high = score.calibrate(0.92, "hrr");
+  const low = score.calibrate(0.30, "hrr");
+  assert.ok(high < 0.92 && high > c, `0.92 -> ${high}, should sit between the centre and itself`);
+  assert.ok(low > 0.30 && low < c, `0.30 -> ${low}, should sit between itself and the centre`);
+});
+
+test("calibrate: never reorders two hitters", () => {
+  /* A monotone transform, so the board's ranking is untouched. If this ever
+     fails, the correction has stopped being a calibration and become an
+     opinion about who is better. */
+  let prev = -1;
+  for (let p = 0.02; p < 0.99; p += 0.01) {
+    const got = score.calibrate(p, "hrr");
+    assert.ok(got > prev, `not monotone at ${p.toFixed(2)}`);
+    prev = got;
+  }
+});
+
+test("calibrate: leaves certainties and impossibilities alone", () => {
+  /* A settled bet is a fact, not a prediction. Shrinking 1 toward 66% would
+     turn a hit that already happened into a maybe. */
+  for (const key of Object.keys(score.CALIBRATION_CENTRE)) {
+    assert.equal(score.calibrate(1, key), 1);
+    assert.equal(score.calibrate(0, key), 0);
+  }
+});
+
+test("calibrate: an unknown prop is returned untouched, not mangled", () => {
+  /* Default-open here, unlike everywhere else: a prop with no measured
+     centre has no correction to apply, and inventing one would be worse
+     than leaving the number as the model made it. */
+  assert.equal(score.calibrate(0.7, "tb9"), 0.7);
+  assert.equal(score.calibrate(0.7, undefined), 0.7);
+});
+
+test("every scorer applies the correction, and keeps the raw number", () => {
+  /* rawProb exists so the mixture stays testable at its own layer and the
+     correction is auditable from outside. */
+  const hrr = score.scoreHRR(hitter(), liveCtx());
+  close(hrr.prob, score.calibrate(hrr.rawProb, "hrr"), 1e-12);
+
+  const hr = score.scoreHR({ hr: 20, pa: 400, slot: 1, name: "x" }, {});
+  close(hr.prob, score.calibrate(hr.rawProb, "hr"), 1e-12);
+
+  const tb = score.scoreTB(
+    { name: "x", hits: 120, doubles: 28, triples: 2, hr: 20, pa: 500, slot: 2 },
+    { leagueTB: { single: 0.152, double: 0.043, triple: 0.004, hr: 0.031 }, threshold: 2 },
+  );
+  close(tb.prob, score.calibrate(tb.rawProb, "tb2"), 1e-12);
+});
+
+test("a settled bet keeps its 1 or 0 through the scorer", () => {
+  /* The settled paths return before the correction, and must keep doing so. */
+  const cashed = score.scoreHRR(
+    Object.assign(hitter(), { sofar: { pa: 2, hits: 1, runs: 0, rbi: 0, tb: 1 } }),
+    liveCtx(),
+  );
+  assert.equal(cashed.settled, true);
+  assert.equal(cashed.prob, 1);
+});
+
+test("the shrink is documented as a real fraction, not switched off", () => {
+  /* Guards against the correction being quietly neutralised the way
+     TEMP_SLOPE was zeroed -- that was the right call there and would be the
+     wrong one here, so make removing it a deliberate, visible edit. */
+  assert.ok(
+    score.CALIBRATION_SHRINK > 0.5 && score.CALIBRATION_SHRINK < 1,
+    `shrink is ${score.CALIBRATION_SHRINK}; 1 means no correction and this was measured to need one`,
+  );
 });

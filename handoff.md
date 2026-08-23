@@ -286,3 +286,47 @@ link to it and they now do.
 
 - NFL and golf bets. Those boards have no `history/*.json`, so nothing grades.
 - No stake, no price, so no P&L and no CLV.
+
+---
+
+# The model was over-confident — 2026-08-22
+
+Investigating a user's four-leg parlay that lost every leg. The legs turned out
+to be fairly priced, but the investigation found a real defect the backtests
+had never seen.
+
+**The probabilities were spread too wide.** Measured against the board's own
+4,330 shipped predictions: under 65% ran +4.79pp cold (z = 4.32), 65-75% ran
+2.86pp hot (z = -2.77). Both halves of the window agree independently, on all
+five props.
+
+`backtest.mjs` could not see this because it replays history the model is then
+fitted on. `calibrate.mjs` (new) measures the board against what it actually
+published, graded by track.mjs at the time.
+
+**Fix:** `CALIBRATION_SHRINK = 0.8` in score.js pulls log-odds toward a
+per-prop centre. Ten independent fits (five props x two directions) landed
+between 0.43 and 0.78, all saying shrink; 0.80 is the timid end on purpose.
+Every prop improves on both halves on both Brier and log loss.
+
+## Things to know
+
+- `rawProb` is now on every scorer, so the mixture stays testable at its own
+  layer and the correction is auditable from outside. One existing test moved
+  to it rather than being weakened.
+- `calibrate.mjs` rebuilds inputs from committed `mlb-data.js` snapshots and
+  reproduces each recorded prediction to 0.003pp. That fidelity check runs
+  every time and should stay above ~0.01pp; if it drifts, the re-fit is fitting
+  something other than the shipped model.
+- The board's on-page claims now cite the forward record (4,330 graded
+  predictions) rather than the July backtest of a model that no longer exists.
+- Total bases still runs ~2.5pp hot after correction, down from ~3. Said on the
+  page. Worth a second look when there is more season.
+
+## Not done
+
+- `backtest.mjs --fit` still fits `k` against the UNCALIBRATED number. It is not
+  wrong, but the two layers now interact and a future re-fit of k should be done
+  with the correction in place.
+- The correction is 19 August days. Re-run `node calibrate.mjs` after a wider
+  window and move the constant if ten fits still say so.

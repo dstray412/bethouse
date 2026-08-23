@@ -386,3 +386,36 @@ nothing → save → grade, forever, synchronously, freezing the page.
 `saveBets()` is persist-plus-grade; grading calls `persist()` only, and only
 when a grade actually landed. Any write path that can re-enter itself needs one
 function that is provably terminal.
+
+---
+
+## Measure the model against what it actually published
+
+2026-08-22. A user's four-leg parlay lost, every leg. Investigating it found
+the legs had been fairly priced — but the investigation kept going and found
+something two months of backtesting had missed.
+
+`backtest.mjs` replays history and fits constants to it. It said the model was
+calibrated. **It was measuring the model against the same data that shaped it.**
+
+Measuring the board against its OWN SHIPPED PREDICTIONS — 4,330 numbers it had
+published, graded by `track.mjs` at the time — showed textbook over-dispersion:
+predictions under 65% ran +4.79pp cold (z = 4.32), 65-75% ran 2.86pp hot. On
+all five props. In both halves of the window, independently.
+
+**A backtest and a forward record are different questions.** The first asks
+whether the shape is right; the second asks whether the published numbers were
+true. Only the second is un-gameable, and it needs no new data collection —
+`track.mjs` had been recording it for three weeks.
+
+**Rebuild the inputs, do not just read the outputs.** `history/` stores the
+probability but not the season line behind it, so the model could not be re-run
+from it. The committed board snapshots could: `git log mlb-data.js` keeps every
+half hour, and the earliest one holding a player reproduces the recorded
+pregame number to 0.003pp. That fidelity check came first — a re-fit on inputs
+that do not reproduce the original outputs is fitting something else.
+
+**Ship the timid end of a validated range.** Ten independent fits landed
+between 0.43 and 0.78, all saying shrink. Shipped 0.80. The single held-out
+failure among the ten was the most aggressive fit, and the asymmetry is real:
+under-correcting costs accuracy, over-correcting costs money.

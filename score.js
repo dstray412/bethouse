@@ -171,6 +171,60 @@
   }
 
   /** The core: combine three per-PA rates into one game probability. */
+  /* ------------------------------------------------------------------ *
+   * Calibration: the model's numbers are spread too wide
+   *
+   * Measured on the board's OWN forward record -- 4,330 confirmed-lineup
+   * player-games over 2026-08-02..2026-08-21, rebuilt from committed
+   * snapshots so every input is the one the board actually used. The
+   * pattern was the same on all five props: predictions below the centre
+   * came in too low, predictions above it came in too high.
+   *
+   *   1+ H/R/RBI, as shipped:  under 65% ran +4.79pp cold (z = 4.32)
+   *                            65-75%    ran -2.86pp hot  (z = -2.77)
+   *
+   * That is textbook over-dispersion, and the fix is to pull the log-odds
+   * toward a centre. `node calibrate.mjs` reproduces the whole thing.
+   *
+   * WHY 0.80 AND NOT LOWER
+   * ----------------------
+   * Ten independent fits -- five props, each fitted on one half of the
+   * window and judged on the other -- landed between 0.43 and 0.78. Every
+   * one said shrink. The data would support going lower, and lower scores
+   * better on this window.
+   *
+   * 0.80 is deliberately the timid end. Nineteen days in August is not a
+   * season, the one held-out FAILURE among those ten was an over-aggressive
+   * fit (0.44 applied forward made Brier worse), and erring toward 1.0
+   * costs a little accuracy while erring past the truth costs money. At
+   * 0.80 every prop improves on both halves on both Brier and log loss:
+   * twenty checks, no exceptions.
+   *
+   * Re-fit it when there is more season. It is one number and one command.
+   * ------------------------------------------------------------------ */
+  const CALIBRATION_SHRINK = 0.8;
+
+  /* The centre each prop is pulled toward: the model's own mean prediction
+     for that prop over the measured window. A fixed constant on purpose --
+     centring on tonight's slate would make a hitter's number depend on who
+     else happens to be playing. */
+  const CALIBRATION_CENTRE = {
+    hrr: 0.661,
+    tb2: 0.354,
+    tb3: 0.2,
+    tb4: 0.14,
+    hr: 0.111,
+  };
+
+  function calibrate(prob, key) {
+    const centre = CALIBRATION_CENTRE[key];
+    if (!(prob > 0 && prob < 1) || !(centre > 0 && centre < 1)) return prob;
+    const lg = (x) => Math.log(x / (1 - x));
+    const m = lg(centre);
+    const z = m + CALIBRATION_SHRINK * (lg(prob) - m);
+    return 1 / (1 + Math.exp(-z));
+  }
+
   function probFromRates(rates, pa, k) {
     if (!(pa > 0)) return NaN;
     const noHit = mixPow(1 - rates.hit, pa);
@@ -481,7 +535,8 @@
       rbi: clamp(base.rbi * pf * of * plat * ha),
     };
 
-    const prob = probFromRates(rates, pa, k);
+    const rawProb = probFromRates(rates, pa, k);
+    const prob = calibrate(rawProb, "hrr");
     const raw = perPA(player);
     return {
       name: player.name,
@@ -503,6 +558,7 @@
       sofar: sofar,
       remainingPA: pa,
       prob: prob,
+      rawProb: rawProb,
       score: isFinite(prob) ? Math.round(prob * 1000) / 10 : NaN,
     };
   }
@@ -561,7 +617,8 @@
     /* Home runs use the same whole-trip mixture rather than a Poisson over
        fractional PA, so all three models agree on what "4.65 trips" means. */
     const temp = temperatureFactor(ctx.tempF, ctx.tempOpts);
-    const prob = 1 - mixPow(1 - Math.min(0.999, hrPerPA * pf * park * plat * ha * temp), pa);
+    const rawProb = 1 - mixPow(1 - Math.min(0.999, hrPerPA * pf * park * plat * ha * temp), pa);
+    const prob = calibrate(rawProb, "hr");
     return {
       name: player.name,
       slot: player.slot,
@@ -577,6 +634,7 @@
       sofar: sofar,
       remainingPA: pa,
       prob: prob,
+      rawProb: rawProb,
       score: Math.round(prob * 1000) / 10,
     };
   }
@@ -730,7 +788,10 @@
       p4: clamp(base.p4 * pf * platHR * ha * temp),
     };
 
-    const prob = probAtLeastTB(rates, pa, n);
+    /* The threshold picks the centre: 2+, 3+ and 4+ bases are three
+       different bets with three different base rates. */
+    const rawProb = probAtLeastTB(rates, pa, n);
+    const prob = calibrate(rawProb, "tb" + nTarget);
     const dist = tbDistribution(rates, pa);
     let expected = 0;
     for (let i = 0; i < dist.length; i++) expected += i * dist[i];
@@ -755,6 +816,7 @@
       pitchHand: ctx.pitchHand || null,
       isHome: !!ctx.isHome,
       prob: prob,
+      rawProb: rawProb,
       score: isFinite(prob) ? Math.round(prob * 1000) / 10 : NaN,
     };
   }
@@ -1000,5 +1062,8 @@
     sampleConfidence: sampleConfidence,
     rank: rank,
     gameIsOpen: gameIsOpen,
+    calibrate: calibrate,
+    CALIBRATION_SHRINK: CALIBRATION_SHRINK,
+    CALIBRATION_CENTRE: CALIBRATION_CENTRE,
   };
 });

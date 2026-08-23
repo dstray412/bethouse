@@ -324,13 +324,20 @@ if (!D) {
 }
 
 /* ---- calibration facts from backtest.mjs, shown so the numbers can be judged ---- */
+/* Measured on the board's OWN shipped predictions, not on a replay it chose
+   afterwards: 4,330 confirmed-lineup player-games from 2026-08-02 to 08-21,
+   graded by track.mjs at the time. `node calibrate.mjs` reproduces it. The
+   old figures here came from a July backtest of a model that has since been
+   recalibrated, so they described something that no longer exists. */
 var CAL = {
   k: S.DEFAULT_K,
-  window: "Jul 12-25, out of sample",
-  n: 2466,
-  bias: -0.0048,
-  baseRate: 0.670,
-  ceiling: 0.755    // best slice the model has ever produced
+  window: "Aug 2-21, forward",
+  n: 4330,
+  bias: 0.0064,          // 1+ H/R/RBI, after the correction
+  baseRate: 0.665,
+  ceiling: 0.755,        // what the top tenth of the board actually cashed
+  tbBias: -0.025,        // total bases still runs hot; the correction only halves it
+  hrBias: -0.006
 };
 
 var state = {
@@ -1153,7 +1160,7 @@ function buildWhy(r, game, side){
     line('<span class="flag">Lineup not posted.</span> Slot projected from '+(game[side].projectedFrom||'a recent game')+'. If he moves or sits, this is wrong.');
   }
   if(state.view==='hrr'){
-    line('<span style="color:var(--muted)">Reality check: across '+CAL.n+' hitter-games the very best slice of this model cashed '+
+    line('<span style="color:var(--muted)">Reality check: across '+CAL.n.toLocaleString()+' of its own graded predictions the top tenth of this board cashed '+
          pct(CAL.ceiling)+'. Nothing here is an 85% bet.</span>');
   }
   return w;
@@ -1367,17 +1374,18 @@ function render(){
   var note=document.getElementById('note');
   if(state.view==='tb'){
     note.innerHTML = 'Chance of <b>'+state.tbThreshold+'+ total bases</b> (single 1, double 2, triple 3, homer 4). '+
-      'Checked against <b>'+CAL.n+'</b> unseen games; runs ~<b>1 point hot</b>. Tap a player for detail.';
+      'Checked against <b>'+CAL.n.toLocaleString()+'</b> of its own graded predictions; still runs '+
+      '~<b>2.5 points hot</b> on this prop. Tap a player for detail.';
   } else if(state.view==='hrr'){
-    note.innerHTML = 'Chance of <b>1+ hit, run or RBI</b>. Checked against <b>'+CAL.n+
-      '</b> unseen games \u2014 70% means about 70%. Tap a player for detail.';
+    note.innerHTML = 'Chance of <b>1+ hit, run or RBI</b>. Checked against <b>'+CAL.n.toLocaleString()+
+      '</b> of its own graded predictions \u2014 70% means about 70%. Tap a player for detail.';
   } else {
     // Was "Not yet checked" until 2026-08-03, when the HR prop finally went
     // through the backtest on the same window as the others: 2,466 unseen
     // hitter-games, bias +0.95pp, top quintile 15.4% against an 11.1% base.
-    note.innerHTML = 'Chance of <b>1+ home run</b>. Checked against <b>'+CAL.n+
-      '</b> unseen games; runs ~<b>1 point hot</b>, and separates less sharply than the hits board '+
-      'because homers are rare. Tap a player for detail.';
+    note.innerHTML = 'Chance of <b>1+ home run</b>. Checked against <b>'+CAL.n.toLocaleString()+
+      '</b> of its own graded predictions; runs ~<b>half a point hot</b>, and separates less sharply '+
+      'than the hits board because homers are rare. Tap a player for detail.';
   }
 
   if(isReplay()){

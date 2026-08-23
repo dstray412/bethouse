@@ -148,6 +148,7 @@ should be re-fitted when the run environment shifts.
 | `backtest.mjs` | Replays real games, measures calibration, fits `k`, and tests parlays (`--parlay`) and hot streaks (`--streaks`). |
 | `track.mjs` | Records each day's pregame predictions, grades them once games end, keeps the running record. |
 | `lineup-context.mjs` | Replays committed board snapshots to test whether on-base ahead of a hitter moves the residual. It does not. |
+| `calibrate.mjs` | Rebuilds the model from committed snapshots and measures it against its own shipped predictions. Found and fitted the spread correction. |
 | `edge.js` | De-vig and EV math for the odds side. 36 tests. |
 | `bets.js` | Your bet log, singles and parlays. What you tracked, how it graded, and how that compares to what the model said. 46 tests. |
 | `bets.html` | The history: every bet, won and lost, grouped by day, with win rate by kind of bet. Open it. |
@@ -731,6 +732,59 @@ leave none. It says the streak adds nothing *this model has not already
 priced*. That is the only version a bettor can spend.
 
 ---
+
+## The numbers were spread too wide
+
+The model's probabilities were too confident at the top and too timid at the
+bottom. Textbook over-dispersion, and it was invisible to `backtest.mjs`
+because that replays history the model is then fitted on. It showed up the
+moment the board was measured against **its own shipped predictions**.
+
+```
+1+ H/R/RBI, as shipped, on 4,330 graded predictions
+
+  under 65%   +4.79pp cold   z =  4.32
+  65-75%      -2.86pp hot    z = -2.77
+  75%+        -0.29pp        z = -0.14
+```
+
+Both halves of the window agree, independently: under 65% ran +5.16pp then
++4.48pp cold; 65-75% ran hot in both. That replication is what separates this
+from the temperature slope, which looked real on one window and reversed on
+the other.
+
+### The fix, and why it is timid
+
+`score.js` pulls the log-odds toward a per-prop centre:
+`CALIBRATION_SHRINK = 0.8`. Ten independent fits — five props, each fitted on
+one half of the window and judged on the other — landed between **0.43 and
+0.78**. Every single one said shrink. The data would support going lower, and
+lower scores better on this window.
+
+0.80 is deliberately the timid end of that range. Nineteen days in August is
+not a season; the one held-out failure among those ten fits was an
+*over*-aggressive one (0.44 applied forward made Brier worse); and erring
+toward "no correction" costs a little accuracy while erring past the truth
+costs money. At 0.80, every prop improves on both halves on both Brier and log
+loss — twenty checks, no exceptions.
+
+### What it does not fix
+
+Total bases still runs about **2.5 points hot** after the correction, down from
+about 3. The board says so on that view. Home runs and 1+ H/R/RBI come out
+within a point of honest.
+
+### Measuring it against itself is the point
+
+`backtest.mjs` answers "does this work on history". `calibrate.mjs` answers the
+harder question: **were the numbers the board actually published true?** It
+rebuilds every input from the committed `mlb-data.js` snapshots — reproducing
+each recorded prediction to within 0.003pp on average — and grades against what
+`track.mjs` recorded at the time. Nothing is fetched and nothing can look
+ahead.
+
+That is the only test a model cannot quietly pass by having been tuned to the
+data, and it found something two months of backtesting had not.
 
 ## Five things that turned out not to matter
 
