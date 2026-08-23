@@ -85,6 +85,13 @@ jobs:
           node track.mjs snapshot
           node track.mjs grade
           node track.mjs report --write-record
+          # Golf, same rules. Snapshot skips no-cut weeks and anything already
+          # under way; grade reads pga-history.json, which fetch-pga.mjs has
+          # just refreshed, so it makes no requests of its own. Never fail the
+          # baseball refresh over golf.
+          node track-pga.mjs snapshot || echo "PGA snapshot skipped"
+          node track-pga.mjs grade    || echo "PGA grade skipped"
+          node track-pga.mjs report --write-record || true
 
       - name: Commit if the board changed
         run: |
@@ -99,6 +106,8 @@ jobs:
           [ -f pga-history.json ] && git add pga-history.json || true
           [ -f record.js ] && git add record.js || true
           [ -d history ] && git add history/ || true
+          [ -d pga-record ] && git add pga-record/ || true
+          [ -f pga-record.js ] && git add pga-record.js || true
           if git diff --staged --quiet; then
             echo "No change."
           else

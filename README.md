@@ -149,6 +149,7 @@ should be re-fitted when the run environment shifts.
 | `track.mjs` | Records each day's pregame predictions, grades them once games end, keeps the running record. |
 | `track-core.mjs` | The rules a forward record needs, shared by both sports so they cannot drift apart. |
 | `track-nfl.mjs` | The same for the NFL board: records each week before kickoff, grades from ESPN box scores. |
+| `track-pga.mjs` | The same for golf: records each cut event before the first tee time, grades from the committed season history. |
 | `lineup-context.mjs` | Replays committed board snapshots to test whether on-base ahead of a hitter moves the residual. It does not. |
 | `calibrate.mjs` | Rebuilds the model from committed snapshots and measures it against its own shipped predictions. Found and fitted the spread correction. |
 | `edge.js` | De-vig and EV math for the odds side. 36 tests. |
@@ -589,6 +590,29 @@ The three rules live in `track-core.mjs` and are shared with baseball rather
 than copied: first prediction wins, pregame only by the wall clock, nothing
 backfilled. This repo has been bitten four times by one rule living in two
 files, so it lives in one.
+
+## Golf keeps one too
+
+`track-pga.mjs` records the make-the-cut board before the first tee time and
+grades it once the event finishes. All three boards now measure themselves the
+same way, against the same three rules in `track-core.mjs`.
+
+Two things are particular to golf.
+
+**No-cut weeks are skipped, not recorded.** A limited-field event guarantees
+everyone four rounds, so every player is 100% to make a cut that does not
+exist. Recording 50 free wins would flatter the record permanently, so those
+weeks produce nothing. Ten of the 36 events cached this season were no-cut.
+
+**Grading costs no requests.** `pga-history.json` is committed and refreshed by
+`fetch-pga.mjs` on the same schedule as the board, and it already carries
+`madeCut` per player. Golf grades from a local file; the NFL has to go and ask
+ESPN.
+
+A player who never resolves — still scheduled, withdrawn, disqualified, or
+absent from the field — is marked and left alone rather than scored as a miss.
+A bet that never settled is void, not lost, and counting it as lost would make
+the model look worse than it is.
 
 ## The parlay checker
 

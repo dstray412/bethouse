@@ -377,3 +377,47 @@ not by reading the code.
 - After week 1, run `node calibrate.mjs`-style analysis on the NFL record. It
   will not have the sample for a while — n needs to be in the thousands.
 - The baseball calibration is 19 August days. Re-fit on a wider window.
+
+---
+
+# Golf forward record — 2026-08-22
+
+`track-pga.mjs`. All three boards now keep a forward record against the same
+three rules in `track-core.mjs`.
+
+New: `track-pga.mjs`, `pga-record/`, `pga-record.js`, a live-record block in
+golf.html's footer, and golf wired into `refresh.yml` beside the baseball
+tracker.
+
+## Verified end to end
+
+Replayed a real completed event (Wyndham, cut low 65, 147 players) by posing it
+as a pre-tournament board: 147 snapshotted, 147 graded, report produced. **That
+run's −5.71pp bias is meaningless** — the fixture used today's skill ratings for
+a past field — and the synthetic record was deleted afterwards. `pga-record/` is
+empty and correct.
+
+Also verified the three skip paths on the live board: no-cut week, event already
+under way, and grade-with-nothing-recorded.
+
+## Things to know
+
+- Snapshot skips a week when `event.cut == null`. Ten of 36 cached events this
+  season were no-cut, so this is common rather than exceptional.
+- Pre-tournament is checked twice: ESPN's `state` leaving "pre", and the
+  earliest tee time against the clock. Same belt-and-braces as baseball, and
+  for the same reason — a status string is someone else's vocabulary.
+- Grading reads `pga-history.json` and makes no requests.
+- Only a real boolean `madeCut` grades. Anything else is marked `scratched`
+  with the reason recorded.
+- The next event with a cut is Biltmore Championship on 2026-09-17. The board
+  flips to it once the Tour Championship finishes, and the 30-minute refresh
+  will record it as soon as the field posts.
+
+## Still open
+
+- Whether the golf model needs a calibration constant like baseball's. The
+  same rebuild-and-measure technique would answer it from `pga-history.json`,
+  but it should wait for the forward record rather than reuse the backtest.
+- `backtest.mjs --fit` still fits `k` against the uncalibrated baseball number.
+- No CLV on any board.

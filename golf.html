@@ -134,6 +134,8 @@ footer td{padding:1px 14px 1px 0}
 <script src="edge.js"></script>
 <script src="golf.js"></script>
 <script src="pga-data.js"></script>
+<!-- Written by track-pga.mjs. Empty until an event has been graded. -->
+<script src="pga-record.js"></script>
 <script>
 (function () {
   "use strict";
@@ -317,6 +319,31 @@ footer td{padding:1px 14px 1px 0}
    * The footer carries the backtest, because a probability nobody has
    * checked is exactly what this project keeps trying not to ship.
    * ---------------------------------------------------------------- */
+  /* The forward record, under the backtest and clearly apart from it. The
+     table above replays tournaments the constants were then fitted to; this
+     is what the board actually published before anyone teed off. The
+     baseball board looked calibrated by backtest right up until its forward
+     record said otherwise, and that was not a fact about baseball. */
+  function liveRecord() {
+    var R = window.BETHOUSE_PGA_RECORD;
+    if (!R) return "";
+    if (!R.total) {
+      return "<p><b>Live record:</b> nothing graded yet. Every event with a cut is " +
+        "recorded before the first tee time and graded once it finishes \u2014 no-cut " +
+        "weeks are skipped, because everyone making the cut is not a bet.</p>";
+    }
+    var p = R.props && R.props.cut;
+    if (!p) return "";
+    return "<p><b>Live record</b> \u2014 " + R.total + " graded prediction" +
+      (R.total === 1 ? "" : "s") + " over " + R.days.length + " event" +
+      (R.days.length === 1 ? "" : "s") + ", measured against what this board actually " +
+      "published:</p><table><tr><td>" + esc(p.label) + "</td><td>n <b>" + p.n +
+      "</b> \u00b7 predicted <b>" + p.predicted + "%</b>, actual <b>" + p.actual +
+      "%</b> \u00b7 off by <b>" + (p.bias >= 0 ? "+" : "") + p.bias + "pp</b> \u00b7 Brier <b>" +
+      p.brier + "</b></td></tr></table>" +
+      (R.total < 400 ? "<p>Far too few to mean anything yet.</p>" : "");
+  }
+
   document.getElementById("foot").innerHTML =
     "<p><b>Does it work?</b> Out of sample over 23 tournaments and 3,046 player-events of the " +
     "2026 season, each one predicted using only tournaments that had already finished:</p>" +
@@ -331,6 +358,7 @@ footer td{padding:1px 14px 1px 0}
     "<b>The exception is the very top of the board</b>, which runs hot: the players it likes most " +
     "were priced at 83.5% and cashed 73.8%. Trust the middle of this board more than the top of it. " +
     "Re-check it with <code>node backtest-pga.mjs</code>.</p>" +
+    liveRecord() +
     "<p>Data: ESPN, no key required. Board built " +
     esc((D.generated || "").slice(0, 16).replace("T", " ")) + " UTC from " +
     D.seasonEvents + " completed events.</p>";
