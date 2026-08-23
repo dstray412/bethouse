@@ -20,7 +20,7 @@ repos:
         # locally would put an 18,000-line reformatting diff on top of
         # whatever actually changed, and only when a human commits -- CI runs
         # no hooks, so the two would disagree forever.
-        exclude: '^(history|nfl-record|pga-record)/.*\.json$'
+        exclude: '^(history|nfl-record|pga-record|odds-close)/.*\.json$'
       - id: check-merge-conflict
       - id: check-added-large-files
         args: ["--maxkb=1024"]

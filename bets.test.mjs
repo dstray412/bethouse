@@ -498,3 +498,82 @@ test("add: still refuses something that is neither a bet nor a pick", () => {
   assert.deepEqual(bets.add([], null), []);
   assert.deepEqual(bets.add([], { legs: [] }), []);
 });
+
+/* ---------------------------------------------------------------- *
+ * Closing line value
+ *
+ * Whether you bet at a better number than the market settled on. It is the
+ * measure that separates being good from being lucky: winning bets can be
+ * bad bets and losing bets can be good ones, and over a season CLV tells
+ * you which you have been making. Result does not enter into it.
+ *
+ * Measured in points of no-vig probability, not raw price, because raw
+ * price includes the bookmaker's cut and comparing two prices with
+ * different holds would credit you for the book widening its margin.
+ * ---------------------------------------------------------------- */
+
+const priced = (over = {}) =>
+  bets.single(leg({ noVigAtBet: 0.5, noVigAtClose: 0.55, ...over }), "2026-08-19");
+
+test("clv: the market moving toward your side is positive", () => {
+  const b = priced();
+  assert.ok(Math.abs(bets.clvOf(b) - 0.05) < 1e-12);
+});
+
+test("clv: the market moving away from you is negative", () => {
+  const b = priced({ noVigAtBet: 0.6, noVigAtClose: 0.55 });
+  assert.ok(Math.abs(bets.clvOf(b) - -0.05) < 1e-12);
+});
+
+test("clv: a leg with no price at either end has none, not zero", () => {
+  /* Zero would mean "you matched the close", which is a claim. Most legs
+     have no market at all -- the feed covers two props and only the players
+     a book has priced -- and reporting those as break-even would drown the
+     legs that do have a number. */
+  assert.equal(bets.clvOf(bets.single(leg(), "2026-08-19")), null);
+  assert.equal(bets.clvOf(priced({ noVigAtClose: undefined })), null);
+  assert.equal(bets.clvOf(priced({ noVigAtBet: undefined })), null);
+});
+
+test("clv: a parlay is the sum of its legs, and needs all of them priced", () => {
+  /* Each leg is its own bet against its own market. A parlay whose legs are
+     only half priced has no honest CLV, so it reports none rather than a
+     partial one dressed up as the whole. */
+  const both = bets.parlay(
+    [leg({ playerId: 1, noVigAtBet: 0.5, noVigAtClose: 0.54 }),
+     leg({ playerId: 2, noVigAtBet: 0.6, noVigAtClose: 0.63 })],
+    0.3, "2026-08-19",
+  );
+  assert.ok(Math.abs(bets.clvOf(both) - 0.07) < 1e-12);
+
+  const half = bets.parlay(
+    [leg({ playerId: 1, noVigAtBet: 0.5, noVigAtClose: 0.54 }), leg({ playerId: 2 })],
+    0.3, "2026-08-19",
+  );
+  assert.equal(bets.clvOf(half), null);
+});
+
+test("summarise: CLV covers only the bets that have one", () => {
+  let list = bets.add([], priced({ playerId: 1 }));
+  list = bets.add(list, priced({ playerId: 2, noVigAtBet: 0.6, noVigAtClose: 0.55 }));
+  list = bets.add(list, bets.single(leg({ playerId: 3 }), "2026-08-19")); // unpriced
+
+  const s = bets.summarise(list);
+  assert.equal(s.clv.n, 2, "the unpriced bet must not be counted");
+  assert.equal(s.clv.beat, 1);
+  assert.equal(s.clv.lost, 1);
+  assert.ok(Math.abs(s.clv.mean - 0) < 1e-12, "+5pp and -5pp average to zero");
+});
+
+test("summarise: with nothing priced, CLV reports nothing rather than zero", () => {
+  const s = bets.summarise(bets.add([], bets.single(leg(), "2026-08-19")));
+  assert.equal(s.clv.n, 0);
+  assert.equal(s.clv.mean, null);
+});
+
+test("clv does not care whether the bet won", () => {
+  /* The entire point. A losing bet at a good number is a good bet. */
+  let win = bets.applyResults(bets.add([], priced({ playerId: 1 })), { "823342|1|hrr": 1 });
+  let lose = bets.applyResults(bets.add([], priced({ playerId: 1 })), { "823342|1|hrr": 0 });
+  assert.equal(bets.clvOf(win[0]), bets.clvOf(lose[0]));
+});

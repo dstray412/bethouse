@@ -499,3 +499,55 @@ test("every test file runs in every gate that runs tests", () => {
     }
   }
 });
+
+/* ------------------------------------------------------------------ *
+ * Two copies of the name matcher, and they have to agree
+ *
+ * The odds feed keys every market by a normalised player name. That
+ * normalisation exists twice: `normalizeName` in fetch-odds-espn.mjs, which
+ * writes the keys, and `normName` in index.html, which reads them. The
+ * board cannot import an .mjs without becoming a module, so the duplication
+ * is structural rather than careless.
+ *
+ * If they ever disagree, no price matches any player: the chips vanish, and
+ * closing line value silently reports nothing for every bet rather than
+ * failing loudly. So compare them on the names that actually break this
+ * sort of function.
+ * ------------------------------------------------------------------ */
+
+test("the board and the odds fetcher normalise names identically", async () => {
+  const { normalizeName } = await import("./fetch-odds-espn.mjs");
+
+  const js = src("index.html");
+  const at = js.indexOf("function normName(s){");
+  assert.ok(at > 0, "index.html no longer defines normName");
+  const end = js.indexOf("\n}", at) + 2;
+  // eslint-disable-next-line no-new-func
+  const boardVersion = new Function(js.slice(at, end) + "; return normName;")();
+
+  const NAMES = [
+    "Luis García Jr.",          // accent AND a suffix
+    "José Ramírez",
+    "Ronald Acuña Jr.",
+    "Ken Griffey Sr.",
+    "Vladimir Guerrero Jr.",
+    "J.T. Realmuto",            // periods inside initials
+    "A.J. Pollock",
+    "Jackson Merrill III",
+    "Michael A. Taylor",
+    "Shohei Ohtani",
+    "O'Neil Cruz",              // apostrophe
+    "Jean-Carlos Rodríguez",    // hyphen
+    "  Extra   Spaces  ",
+    "",
+  ];
+  for (const n of NAMES) {
+    assert.equal(
+      boardVersion(n),
+      normalizeName(n),
+      `"${n}" normalises differently in index.html than in fetch-odds-espn.mjs — ` +
+        `every market key for a name like this would fail to match, and CLV would ` +
+        `quietly report nothing`,
+    );
+  }
+});

@@ -1572,11 +1572,21 @@ function render(){
           : 'Record that you bet this';
         trk.addEventListener('click', function(ev){
           ev.stopPropagation();
+          /* The market as the board could see it at this moment, so closing
+             line value can be worked out later without you typing a price.
+             It is NOT necessarily the price you got -- you may have bet
+             elsewhere, or minutes later -- and bets.html says so. It is the
+             only price anything here can honestly claim to know. */
+          var mkNow = marketFor(r.name);
+          var mkKey = marketKeyFor(r.name);
           BETS = betOn ? T.remove(BETS, betKey) : T.add(BETS, T.single({
             gamePk: g.gamePk, playerId: r.player.id, prop: propKey(),
             propLabel: propLabel(), name: r.name,
             team: g[side].abbrev || g[side].team,
-            prob: r.prob
+            prob: r.prob,
+            marketKey: mkNow && mkKey ? mkKey : null,
+            priceAtBet: mkNow ? mkNow.over : null,
+            noVigAtBet: mkNow && isFinite(mkNow.noVigOver) ? mkNow.noVigOver : null
           }, D.date, {retro: late}));
           saveBets();
           render();

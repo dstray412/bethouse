@@ -49,6 +49,14 @@ jobs:
       - name: Fetch prop prices
         run: node fetch-odds-espn.mjs
 
+      # Freeze the last price before each game starts. Must run AFTER the
+      # fetch and BEFORE the commit: every hourly run overwrites the entry
+      # for a game that has not started, so the final write before first
+      # pitch is the closing line by construction. A missed run costs
+      # precision, never correctness.
+      - name: Freeze closing prices
+        run: node close-odds.mjs
+
       - name: Sanity check before committing
         run: |
           node -e '
@@ -87,6 +95,10 @@ jobs:
           git config user.name  "bethouse-bot"
           git config user.email "bethouse-bot@users.noreply.github.com"
           git add odds-data.js
+          # odds-close/ only exists once a price has been frozen. Adding a
+          # path that is not there is fatal, which is what took down every
+          # scheduled baseball run for a day.
+          [ -d odds-close ] && git add odds-close/ || true
           if git diff --staged --quiet; then
             echo "No change."
           else

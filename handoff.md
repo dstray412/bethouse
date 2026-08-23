@@ -479,3 +479,49 @@ counts.
 
 Also verified every week-1 game gets a pregame snapshot: the daily 12:20 UTC
 run lands 12–36 hours ahead of all sixteen kickoffs, Thursday through Monday.
+
+---
+
+# Closing line value — 2026-08-22
+
+CLV now works end to end with nothing extra to type.
+
+New: `close-odds.mjs` (freezes the last pre-start price, wired into the hourly
+odds refresh), `odds-close/<date>.json`, price capture at tap time in
+index.html, `clvOf`/`legClv` in bets.js, and a CLV block on bets.html.
+
+**The capture is the time-critical half** — `odds-data.js` is overwritten every
+hour, so a closing price not frozen before first pitch is gone for good. Every
+day without this running is a day of CLV that cannot be recovered.
+
+## How it works
+
+Each hourly run writes the current price for every market whose game has NOT
+started. The last write before first pitch is therefore the close, by
+construction — no scheduling, no "detect the final run", and a missed run costs
+precision rather than correctness. Once a game starts its entry is never
+touched again.
+
+Verified all three paths against a real 82-market feed: captures while open,
+re-prices while open (+999 test), and **freezes once started** — a −500 price
+arriving after kickoff did not overwrite the stored +999.
+
+## Things to know
+
+- CLV is in points of no-vig probability, not raw price: two raw prices carry
+  two different holds.
+- A bet with no market at either end reports null, not zero. Zero is a claim.
+- A parlay needs EVERY leg priced or it reports null — a partial answer dressed
+  as a whole one is worse than none.
+- The price stored is what the board could see when you tapped, not
+  necessarily what you got. Said on the page.
+- `dom.test.mjs` now cross-checks the two copies of the name normaliser
+  (fetch-odds-espn.mjs writes the market keys, index.html reads them). If they
+  drift, no price matches any player and CLV silently reports nothing for
+  everything — a loud test beats a silent blank.
+
+## Not done
+
+- No stake, so still no profit-and-loss.
+- Coverage is 1+ H/R/RBI and total bases only, and only priced players.
+- NFL and golf have no odds feed at all, so no CLV there.

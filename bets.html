@@ -70,6 +70,14 @@ table.bdown td.bl{text-align:left;color:var(--text);padding-left:0}
 table.bdown .gap{font-size:11.5px}
 table.bdown .gap.up{color:var(--good)} table.bdown .gap.down{color:var(--bad)}
 .bnote{margin-top:8px;font-size:11.5px;color:var(--muted);line-height:1.55;max-width:56ch}
+.clv{margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
+.clvhead{display:flex;align-items:baseline;gap:11px;flex-wrap:wrap}
+.clvhead .big{font-family:var(--display);font-size:24px;font-weight:700;font-variant-numeric:tabular-nums}
+.clvhead .big.up{color:var(--good)} .clvhead .big.down{color:var(--bad)}
+.clvhead .lbl{color:var(--muted);font-size:12.5px}
+.clv .bnote{margin-top:9px}
+.clvtag{font-family:var(--display);font-size:11px;font-weight:700;font-variant-numeric:tabular-nums}
+.clvtag.up{color:var(--good)} .clvtag.down{color:var(--bad)}
 
 /* The history itself */
 .daygroup{background:var(--panel);border:1px solid var(--line);border-radius:14px;
@@ -239,6 +247,48 @@ function gradeBets(){
   });
 }
 
+/* ------------------------------------------------------------------ *
+ * Closing prices
+ *
+ * close-odds.mjs freezes the last price before each game starts, one file
+ * per day. A bet only needs its closing number fetched once, so a date is
+ * asked for only while it still holds a bet that has a market key and no
+ * close attached.
+ * ------------------------------------------------------------------ */
+function needsClose(b){
+  return b.legs.some(function(l){
+    return l.marketKey && isFinite(l.noVigAtBet) && !isFinite(l.noVigAtClose);
+  });
+}
+
+function fetchCloses(){
+  var dates = [...new Set(BETS.filter(needsClose).map(function(b){ return b.date; }).filter(Boolean))];
+  if(!dates.length || typeof fetch !== 'function') return;
+  var left = dates.length, changed = false;
+  dates.forEach(function(d){
+    fetch('odds-close/' + d + '.json')
+      .then(function(res){ return res.ok ? res.json() : null; })
+      .catch(function(){ return null; })
+      .then(function(day){
+        var closed = day && day.closed;
+        if(closed){
+          BETS = BETS.map(function(b){
+            if(b.date !== d || !needsClose(b)) return b;
+            var legs = b.legs.map(function(l){
+              if(!l.marketKey || !isFinite(l.noVigAtBet) || isFinite(l.noVigAtClose)) return l;
+              var c = closed[l.marketKey];
+              if(!c || !isFinite(c.noVigOver)) return l;
+              changed = true;
+              return Object.assign({}, l, {noVigAtClose: c.noVigOver, priceAtClose: c.over});
+            });
+            return Object.assign({}, b, {legs: legs});
+          });
+        }
+        if(--left === 0 && changed){ persist(); render(); }
+      });
+  });
+}
+
 function matches(b){
   if(state.kind === 'straight' && b.legs.length !== 1) return false;
   if(state.kind === 'parlay'   && b.legs.length < 2)   return false;
@@ -281,7 +331,48 @@ function renderRecord(){
   box.appendChild(stats);
   box.appendChild(el('div','verdict', verdict(s)));
   box.appendChild(breakdown(s));
+  box.appendChild(clvBlock(s));
   host.appendChild(box);
+}
+
+/*
+ * Closing line value: did you bet at a better number than the market
+ * settled on. The one measure here that does not care whether the bet won,
+ * which is exactly why it is worth more than the win rate over a season —
+ * results need hundreds of bets to say anything, CLV needs far fewer.
+ */
+function clvBlock(s){
+  var box = el('div','clv');
+  if(!s.clv || !s.clv.n){
+    if(!s.tracked) return box;
+    box.appendChild(el('div','bnote',
+      'No closing line value yet. It needs a price on the board when you tap, and the '+
+      'feed only covers 1+ H/R/RBI and total bases \u2014 and only players a book has priced.'));
+    return box;
+  }
+  var c = s.clv, pp = 100*c.mean;
+  var head = el('div','clvhead');
+  head.appendChild(el('span','big '+(pp>=0?'up':'down'), (pp>=0?'+':'')+pp.toFixed(1)+'pp'));
+  head.appendChild(el('span','lbl','average closing line value, over '+c.n+' bet'+(c.n===1?'':'s')));
+  box.appendChild(head);
+
+  /* el() sets textContent, so this line carries no markup: passing tags to
+     it printed a literal "<b>2</b>" on the page. */
+  var tally = el('div','bnote');
+  tally.innerHTML = 'You beat the closing number on <b>'+c.beat+'</b>, missed it on <b>'+
+    c.lost+'</b>'+(c.level?', matched it on <b>'+c.level+'</b>':'')+'.';
+  box.appendChild(tally);
+  box.appendChild(el('div','bnote',
+    (pp >= 0
+      ? 'The market moved toward your side on average. That is the sign worth having: it says '+
+        'you were early to the right number, and it means that whatever the results have done.'
+      : 'The market moved away from you on average, which is the sign to worry about long before '+
+        'a losing run shows up in the win rate.') +
+    ' Measured in points of no-vig probability, so the bookmaker\'s cut is stripped out of both ends.'));
+  box.appendChild(el('div','bnote',
+    'This compares the price BetHouse could see when you tapped against where that market closed. '+
+    'It is not necessarily the price you got \u2014 if you bet elsewhere, or later, yours differed.'));
+  return box;
 }
 
 function verdict(s){
@@ -428,6 +519,11 @@ function betLine(b){
   line.appendChild(left);
 
   var right = el('div','right');
+  var clv = T.clvOf(b);
+  if(clv != null){
+    right.appendChild(el('span','clvtag '+(clv>=0?'up':'down'),
+      (clv>=0?'+':'')+(100*clv).toFixed(1)));
+  }
   if(isFinite(b.prob)) right.appendChild(el('span','lp', pct(b.prob, 0)));
   right.appendChild(el('span','out ' + (b.actual == null ? 'open' : b.actual ? 'win' : 'lost'),
     b.actual == null ? 'OPEN' : b.actual ? 'WON' : 'LOST'));
@@ -556,6 +652,7 @@ function render(){
 
 render();
 gradeBets();
+fetchCloses();
 })();
 </script>
 </body>

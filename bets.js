@@ -94,6 +94,14 @@
       team: l.team || "",
       prob: isFinite(l.prob) ? Number(l.prob) : null,
     };
+    /* The market as the board saw it when this leg went in, kept only when
+       there was one. Absent on most legs -- the feed covers 1+ H/R/RBI and
+       total bases, and only the players a book has priced. */
+    if (l.marketKey) out.marketKey = l.marketKey;
+    if (l.priceAtBet != null) out.priceAtBet = l.priceAtBet;
+    if (isFinite(l.noVigAtBet)) out.noVigAtBet = Number(l.noVigAtBet);
+    if (isFinite(l.noVigAtClose)) out.noVigAtClose = Number(l.noVigAtClose);
+    if (l.priceAtClose != null) out.priceAtClose = l.priceAtClose;
     // Carried through when present. A tap from the board never supplies it —
     // the game has not started — but an import or a migration does, and
     // rebuilding without it would erase a settled record.
@@ -240,6 +248,44 @@
   }
 
   /* ------------------------------------------------------------------ *
+   * Closing line value
+   *
+   * Whether you bet at a better number than the market settled on. It is
+   * the measure that separates being good from being lucky, because it does
+   * not care whether the bet won: a losing bet at a price the market later
+   * moved past was still a good bet, and a winner at a price that drifted
+   * against you was not.
+   *
+   * Measured in points of NO-VIG probability rather than raw price. Two raw
+   * prices carry two different bookmaker margins, so comparing them credits
+   * you when the book merely widens its cut.
+   *
+   * A leg with no market at either end has no CLV -- reported as null, not
+   * as zero. Zero is the claim "you matched the close", and most legs have
+   * no market at all: the feed covers 1+ H/R/RBI and total bases, and only
+   * the players a book has priced.
+   * ------------------------------------------------------------------ */
+
+  function legClv(l) {
+    if (!l || !isFinite(l.noVigAtBet) || !isFinite(l.noVigAtClose)) return null;
+    return Number(l.noVigAtClose) - Number(l.noVigAtBet);
+  }
+
+  /* A parlay is its legs stacked, so its CLV is theirs summed -- and only
+     when every leg has one. A partial answer dressed as a whole answer is
+     worse than saying nothing. */
+  function clvOf(bet) {
+    if (!bet || !Array.isArray(bet.legs) || !bet.legs.length) return null;
+    let total = 0;
+    for (const l of bet.legs) {
+      const c = legClv(l);
+      if (c == null) return null;
+      total += c;
+    }
+    return total;
+  }
+
+  /* ------------------------------------------------------------------ *
    * The record
    * ------------------------------------------------------------------ */
 
@@ -317,6 +363,18 @@
     out.retro = finish(retro);
     out.byProp = byProp;
 
+    /* CLV, over the bets that have one. Kept apart from the win/loss tally
+       on purpose: it answers a different question and is available on a
+       different, smaller set of bets. */
+    const clvs = list.map(clvOf).filter((c) => c != null);
+    out.clv = {
+      n: clvs.length,
+      beat: clvs.filter((c) => c > 0).length,
+      lost: clvs.filter((c) => c < 0).length,
+      level: clvs.filter((c) => c === 0).length,
+      mean: clvs.length ? clvs.reduce((a, c) => a + c, 0) / clvs.length : null,
+    };
+
     /* Adding variances assumes the bets are independent OF EACH OTHER. Bet a
        single on a hitter and a parlay containing him and they are anything
        but, so the spread above is understated. The page cannot fix that
@@ -387,6 +445,8 @@
     settle,
     applyResults,
     ungradedDates,
+    legClv,
+    clvOf,
     summarise,
     parse,
     serialise,
