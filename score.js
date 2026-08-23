@@ -204,16 +204,38 @@
    * ------------------------------------------------------------------ */
   const CALIBRATION_SHRINK = 0.8;
 
-  /* The centre each prop is pulled toward: the model's own mean prediction
-     for that prop over the measured window. A fixed constant on purpose --
-     centring on tonight's slate would make a hitter's number depend on who
-     else happens to be playing. */
+  /*
+   * The point each prop is pulled toward.
+   *
+   * NOT the base rate, and NOT the model's average prediction. It is SOLVED:
+   * the value that makes the corrected average land on what actually
+   * happened. Those are three different numbers and the distinction is the
+   * whole fix.
+   *
+   * The first version centred on the model's own mean, which corrects the
+   * SPREAD and leaves any LEVEL error exactly where it was. Total bases had
+   * a level error: the model averaged 35.7% against a 33.1% reality, so
+   * shrinking toward 35.7% kept every one of those 2.6 points. The board
+   * carried "runs ~2.5 points hot" as a known defect for precisely that
+   * reason.
+   *
+   * Pulling toward a solved centre instead corrects both at once, which is
+   * why these sit below the base rates -- the shrink only moves a prediction
+   * part of the way, so the target has to overshoot. hrr centres at 69.3%
+   * against a 66.5% base rate for that reason and no other. Do not "fix"
+   * them back toward the base rate; that reintroduces the level error.
+   *
+   * Solved on 2026-08-02..08-21 and cross-checked: fit on either half of the
+   * window and applied to the other, every prop improves on Brier, on log
+   * loss, and on bias -- twenty checks, no exceptions. `node calibrate.mjs`
+   * re-solves them.
+   */
   const CALIBRATION_CENTRE = {
-    hrr: 0.661,
-    tb2: 0.354,
-    tb3: 0.2,
-    tb4: 0.14,
-    hr: 0.111,
+    hrr: 0.693,
+    tb2: 0.238,
+    tb3: 0.179,
+    tb4: 0.107,
+    hr: 0.084,
   };
 
   function calibrate(prob, key) {

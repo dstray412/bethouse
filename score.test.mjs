@@ -1109,3 +1109,45 @@ test("the shrink is documented as a real fraction, not switched off", () => {
     `shrink is ${score.CALIBRATION_SHRINK}; 1 means no correction and this was measured to need one`,
   );
 });
+
+test("each centre overshoots past the base rate, away from the model's error", () => {
+  /* The centre is SOLVED so the corrected average lands on the truth, not set
+     to the base rate. Because the shrink only moves a prediction part of the
+     way, the target has to overshoot — and which way depends on which way
+     that prop is wrong. 1+ H/R/RBI runs COLD (65.8% predicted, 66.5% real) so
+     its centre sits ABOVE the base rate; total bases runs HOT (35.7% against
+     33.1%) so its centre sits well below. Both are the same rule.
+
+     Setting these to the base rate is the well-meaning edit that would
+     silently restore the level error which made total bases run 2.5 points
+     hot for a fortnight. */
+  const MEASURED = {
+    hrr:  { mean: 0.658, base: 0.665 },
+    tb2:  { mean: 0.357, base: 0.331 },
+    tb3:  { mean: 0.205, base: 0.199 },
+    tb4:  { mean: 0.145, base: 0.136 },
+    hr:   { mean: 0.120, base: 0.111 },
+  };
+  for (const [key, m] of Object.entries(MEASURED)) {
+    const centre = score.CALIBRATION_CENTRE[key];
+    const correctingUp = m.base > m.mean;
+    assert.ok(
+      correctingUp ? centre > m.base : centre < m.base,
+      `${key} centres at ${centre}; the model reads ${m.mean} against a real ${m.base}, ` +
+        `so the centre has to sit ${correctingUp ? "above" : "below"} ${m.base} to pull it there`,
+    );
+  }
+});
+
+test("the correction moves the average toward the truth, not away", () => {
+  /* The property the solved centre exists to deliver, checked directly:
+     a prediction sitting at the model's own average comes out closer to
+     what that prop actually hits than it went in. */
+  const MODEL_MEAN = { hrr: 0.658, tb2: 0.357, tb3: 0.205, tb4: 0.145, hr: 0.12 };
+  const BASE_RATE = { hrr: 0.665, tb2: 0.331, tb3: 0.199, tb4: 0.136, hr: 0.111 };
+  for (const key of Object.keys(MODEL_MEAN)) {
+    const before = Math.abs(MODEL_MEAN[key] - BASE_RATE[key]);
+    const after = Math.abs(score.calibrate(MODEL_MEAN[key], key) - BASE_RATE[key]);
+    assert.ok(after <= before, `${key}: correction moved the average away from reality`);
+  }
+});

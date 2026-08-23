@@ -144,6 +144,25 @@ const brier = (s) => s.reduce((x, r) => x + (r.a - r.p) ** 2, 0) / s.length;
 const bias = (s) => s.reduce((x, r) => x + (r.a - r.p), 0) / s.length;
 const logloss = (s) => -s.reduce((x, r) => x + (r.a ? Math.log(clamp(r.p)) : Math.log(1 - clamp(r.p))), 0) / s.length;
 
+/* The centre that makes the corrected average land on the truth. Monotone in
+   m, so bisection is exact -- this is solved, not searched, and there is no
+   free parameter to overfit. Centring on the base rate instead would correct
+   the spread and leave the level error untouched, which is what made total
+   bases run 2.5 points hot. */
+function solveCentre(set, shrink) {
+  const target = set.reduce((a, r) => a + r.a, 0) / set.length;
+  const lg = (p) => Math.log(p / (1 - p));
+  let lo = -8, hi = 8;
+  for (let i = 0; i < 200; i++) {
+    const m = (lo + hi) / 2;
+    const mean =
+      set.reduce((a, r) => a + 1 / (1 + Math.exp(-(m + shrink * (lg(clamp(r.raw)) - m)))), 0) /
+      set.length;
+    if (mean < target) lo = m; else hi = m;
+  }
+  return 1 / (1 + Math.exp(-(lo + hi) / 2));
+}
+
 const { rows, agree } = rebuild();
 const days = [...new Set(rows.map((r) => r.date))].sort();
 console.log(`\n${"=".repeat(72)}`);
@@ -185,3 +204,16 @@ for (const [prop] of PROPS) {
   }
 }
 console.log(`\nshipped: CALIBRATION_SHRINK = ${SHRINK}. 1.00 would mean no correction.`);
+console.log("\ncentres re-solved on the whole window (shipped values in brackets):");
+for (const [prop] of PROPS) {
+  const all = rows.filter((r) => r.prop === prop);
+  if (all.length < 200) continue;
+  const solved = solveCentre(all, SHRINK);
+  const shipped = S.CALIBRATION_CENTRE[prop];
+  const base = all.reduce((a, r) => a + r.a, 0) / all.length;
+  console.log(
+    `  ${prop.padEnd(5)} ${(100 * solved).toFixed(1)}%  [${(100 * shipped).toFixed(1)}%]` +
+      `   base rate ${(100 * base).toFixed(1)}%` +
+      (Math.abs(solved - shipped) > 0.01 ? "   <- drifted, worth re-shipping" : ""),
+  );
+}

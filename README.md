@@ -825,11 +825,36 @@ toward "no correction" costs a little accuracy while erring past the truth
 costs money. At 0.80, every prop improves on both halves on both Brier and log
 loss — twenty checks, no exceptions.
 
-### What it does not fix
+### The centre has to be solved, not assumed
 
-Total bases still runs about **2.5 points hot** after the correction, down from
-about 3. The board says so on that view. Home runs and 1+ H/R/RBI come out
-within a point of honest.
+The first version pulled toward each prop's own *average prediction*. That
+corrects the **spread** and leaves any **level** error exactly where it was —
+and total bases had one: the model averaged 35.7% against a 33.1% reality, so
+shrinking toward 35.7% kept all 2.6 points of it. The board carried "runs ~2.5
+points hot" as a known defect for a fortnight because of that one choice.
+
+The centre is now *solved*: the value that makes the corrected average land on
+what actually happened. It is neither the base rate nor the model's mean, and
+it sits past the base rate on the far side from the model's error — 1+ H/R/RBI
+runs cold so its centre is **above** the base rate, total bases runs hot so its
+centre is well **below**. Same rule, opposite directions.
+
+```
+prop   model said   really was   solved centre
+hrr       65.8%        66.5%        69.3%     (correcting upward)
+tb2       35.7%        33.1%        23.8%     (correcting downward)
+tb3       20.5%        19.9%        17.9%
+tb4       14.5%        13.6%        10.7%
+hr        12.0%        11.1%         8.4%
+```
+
+Fit on either half of the window and applied to the other, every prop now
+improves on Brier, on log loss, and on bias — twenty checks, no exceptions —
+and the average bias on all five is **zero to within a tenth of a point**,
+down from −2.6pp on total bases.
+
+`score.test.mjs` pins the direction, because setting these back to the base
+rate is exactly the well-meaning edit that would restore the level error.
 
 ### Measuring it against itself is the point
 

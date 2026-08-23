@@ -421,3 +421,41 @@ under way, and grade-with-nothing-recorded.
   but it should wait for the forward record rather than reuse the backtest.
 - `backtest.mjs --fit` still fits `k` against the uncalibrated baseball number.
 - No CLV on any board.
+
+---
+
+# Total bases: the known 2.5pp defect is fixed — 2026-08-22
+
+The calibration shipped earlier today corrected the SPREAD but centred on each
+prop's own mean prediction, which leaves a LEVEL error untouched. Total bases
+had one: 35.7% predicted against 33.1% reality, so pulling toward 35.7% kept
+all 2.6 points. That is why the board carried "runs ~2.5 points hot".
+
+The centre is now **solved** — the value that makes the corrected average land
+on what actually happened. Not the base rate, not the model's mean, and it
+overshoots past the base rate on the far side from the model's error.
+
+| prop | model said | really was | solved centre |
+|---|---|---|---|
+| hrr | 65.8% | 66.5% | 69.3% (corrects up) |
+| tb2 | 35.7% | 33.1% | 23.8% (corrects down) |
+| tb3 | 20.5% | 19.9% | 17.9% |
+| tb4 | 14.5% | 13.6% | 10.7% |
+| hr | 12.0% | 11.1% | 8.4% |
+
+Cross-validated: fit on either half, applied to the other, every prop improves
+on Brier, log loss AND bias. Bias on all five is now zero to within a tenth of
+a point.
+
+## Things to know
+
+- The centres look wrong at a glance — hrr centres at 69.3% when the base rate
+  is 66.5%. That is the fix, not a bug: the shrink only moves part of the way,
+  so the target must overshoot. `score.test.mjs` asserts the direction per prop
+  so nobody "corrects" them back.
+- `calibrate.mjs` now re-solves the centres and prints them beside the shipped
+  values, flagging drift over 1pp.
+- Board copy updated: the "2.5 points hot" and "half a point hot" warnings are
+  gone because they are no longer true.
+- CAL.tbBias / CAL.hrBias removed from index.html — they existed only to carry
+  those warnings.
