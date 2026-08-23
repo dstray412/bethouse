@@ -3671,7 +3671,7 @@
    "hold": 0.0695,
    "gamePk": 823745,
    "startTime": "2026-08-23T23:10:00Z",
-   "capturedAt": "2026-08-23T20:30:45.556Z"
+   "capturedAt": "2026-08-23T21:28:15.982Z"
   },
   "ozzie albies|tb|1.5": {
    "name": "Ozzie Albies",
@@ -3683,43 +3683,43 @@
    "hold": 0.0682,
    "gamePk": 823745,
    "startTime": "2026-08-23T23:10:00Z",
-   "capturedAt": "2026-08-23T20:30:45.556Z"
+   "capturedAt": "2026-08-23T21:28:15.982Z"
   },
   "ronald acuna|tb|1.5": {
    "name": "Ronald Acuna Jr.",
    "market": "tb",
    "line": 1.5,
-   "over": "+111",
-   "under": "-147",
-   "noVigOver": 0.4433,
-   "hold": 0.0691,
+   "over": "+119",
+   "under": "-158",
+   "noVigOver": 0.4271,
+   "hold": 0.069,
    "gamePk": 823745,
    "startTime": "2026-08-23T23:10:00Z",
-   "capturedAt": "2026-08-23T20:30:45.556Z"
+   "capturedAt": "2026-08-23T21:28:15.982Z"
   },
   "william contreras|tb|1.5": {
    "name": "William Contreras",
    "market": "tb",
    "line": 1.5,
-   "over": "+119",
-   "under": "-159",
-   "noVigOver": 0.4265,
-   "hold": 0.0705,
+   "over": "+130",
+   "under": "-173",
+   "noVigOver": 0.4069,
+   "hold": 0.0685,
    "gamePk": 823745,
    "startTime": "2026-08-23T23:10:00Z",
-   "capturedAt": "2026-08-23T20:30:45.556Z"
+   "capturedAt": "2026-08-23T21:28:15.982Z"
   },
   "michael harris|tb|1.5": {
    "name": "Michael Harris II",
    "market": "tb",
    "line": 1.5,
-   "over": "+138",
-   "under": "-184",
-   "noVigOver": 0.3934,
-   "hold": 0.0681,
+   "over": "+117",
+   "under": "-156",
+   "noVigOver": 0.4306,
+   "hold": 0.0702,
    "gamePk": 823745,
    "startTime": "2026-08-23T23:10:00Z",
-   "capturedAt": "2026-08-23T20:30:45.556Z"
+   "capturedAt": "2026-08-23T21:28:15.982Z"
   },
   "jackson chourio|tb|1.5": {
    "name": "Jackson Chourio",
@@ -3731,7 +3731,7 @@
    "hold": 0.068,
    "gamePk": 823745,
    "startTime": "2026-08-23T23:10:00Z",
-   "capturedAt": "2026-08-23T20:30:45.556Z"
+   "capturedAt": "2026-08-23T21:28:15.982Z"
   },
   "christian yelich|hrr|0.5": {
    "name": "Christian Yelich",
@@ -3749,13 +3749,13 @@
    "name": "Matt Olson",
    "market": "hrr",
    "line": 1.5,
-   "over": "-114",
-   "under": "-116",
-   "noVigOver": 0.498,
-   "hold": 0.0697,
+   "over": "-119",
+   "under": "-112",
+   "noVigOver": 0.507,
+   "hold": 0.0717,
    "gamePk": 823745,
    "startTime": "2026-08-23T23:10:00Z",
-   "capturedAt": "2026-08-23T20:30:45.556Z"
+   "capturedAt": "2026-08-23T21:28:15.982Z"
   },
   "ozzie albies|hrr|1.5": {
    "name": "Ozzie Albies",
@@ -3767,22 +3767,70 @@
    "hold": 0.0707,
    "gamePk": 823745,
    "startTime": "2026-08-23T23:10:00Z",
-   "capturedAt": "2026-08-23T20:30:45.556Z"
+   "capturedAt": "2026-08-23T21:28:15.982Z"
   },
   "austin riley|hrr|0.5": {
    "name": "Austin Riley",
    "market": "hrr",
    "line": 0.5,
-   "over": "-161",
-   "under": "+121",
-   "noVigOver": 0.5769,
+   "over": "-175",
+   "under": "+131",
+   "noVigOver": 0.5951,
    "hold": 0.0693,
    "gamePk": 823745,
    "startTime": "2026-08-23T23:10:00Z",
-   "capturedAt": "2026-08-23T20:30:45.556Z"
+   "capturedAt": "2026-08-23T21:28:15.982Z"
   },
   "jake bauers|hrr|1.5": {
    "name": "Jake Bauers",
+   "market": "hrr",
+   "line": 1.5,
+   "over": "+113",
+   "under": "-150",
+   "noVigOver": 0.439,
+   "hold": 0.0695,
+   "gamePk": 823745,
+   "startTime": "2026-08-23T23:10:00Z",
+   "capturedAt": "2026-08-23T21:28:15.982Z"
+  },
+  "mauricio dubon|hrr|1.5": {
+   "name": "Mauricio Dubon",
+   "market": "hrr",
+   "line": 1.5,
+   "over": "+133",
+   "under": "-178",
+   "noVigOver": 0.4013,
+   "hold": 0.0695,
+   "gamePk": 823745,
+   "startTime": "2026-08-23T23:10:00Z",
+   "capturedAt": "2026-08-23T21:28:15.982Z"
+  },
+  "ronald acuna|hrr|1.5": {
+   "name": "Ronald Acuna Jr.",
+   "market": "hrr",
+   "line": 1.5,
+   "over": "-129",
+   "under": "-103",
+   "noVigOver": 0.5261,
+   "hold": 0.0707,
+   "gamePk": 823745,
+   "startTime": "2026-08-23T23:10:00Z",
+   "capturedAt": "2026-08-23T21:28:15.982Z"
+  },
+  "william contreras|hrr|1.5": {
+   "name": "William Contreras",
+   "market": "hrr",
+   "line": 1.5,
+   "over": "-115",
+   "under": "-115",
+   "noVigOver": 0.5,
+   "hold": 0.0698,
+   "gamePk": 823745,
+   "startTime": "2026-08-23T23:10:00Z",
+   "capturedAt": "2026-08-23T21:28:15.982Z"
+  },
+  "brice turang|hrr|1.5": {
+   "name": "Brice Turang",
    "market": "hrr",
    "line": 1.5,
    "over": "+109",
@@ -3791,103 +3839,55 @@
    "hold": 0.0703,
    "gamePk": 823745,
    "startTime": "2026-08-23T23:10:00Z",
-   "capturedAt": "2026-08-23T20:30:45.556Z"
-  },
-  "mauricio dubon|hrr|1.5": {
-   "name": "Mauricio Dubon",
-   "market": "hrr",
-   "line": 1.5,
-   "over": "+129",
-   "under": "-172",
-   "noVigOver": 0.4085,
-   "hold": 0.069,
-   "gamePk": 823745,
-   "startTime": "2026-08-23T23:10:00Z",
-   "capturedAt": "2026-08-23T20:30:45.556Z"
-  },
-  "ronald acuna|hrr|1.5": {
-   "name": "Ronald Acuna Jr.",
-   "market": "hrr",
-   "line": 1.5,
-   "over": "-133",
-   "under": "+100",
-   "noVigOver": 0.5331,
-   "hold": 0.0708,
-   "gamePk": 823745,
-   "startTime": "2026-08-23T23:10:00Z",
-   "capturedAt": "2026-08-23T20:30:45.556Z"
-  },
-  "william contreras|hrr|1.5": {
-   "name": "William Contreras",
-   "market": "hrr",
-   "line": 1.5,
-   "over": "-128",
-   "under": "-104",
-   "noVigOver": 0.5241,
-   "hold": 0.0712,
-   "gamePk": 823745,
-   "startTime": "2026-08-23T23:10:00Z",
-   "capturedAt": "2026-08-23T20:30:45.556Z"
-  },
-  "brice turang|hrr|1.5": {
-   "name": "Brice Turang",
-   "market": "hrr",
-   "line": 1.5,
-   "over": "+103",
-   "under": "-137",
-   "noVigOver": 0.4601,
-   "hold": 0.0707,
-   "gamePk": 823745,
-   "startTime": "2026-08-23T23:10:00Z",
-   "capturedAt": "2026-08-23T20:30:45.556Z"
+   "capturedAt": "2026-08-23T21:28:15.982Z"
   },
   "michael harris|hrr|1.5": {
    "name": "Michael Harris II",
    "market": "hrr",
    "line": 1.5,
-   "over": "-102",
-   "under": "-131",
-   "noVigOver": 0.471,
-   "hold": 0.0721,
+   "over": "-118",
+   "under": "-112",
+   "noVigOver": 0.5061,
+   "hold": 0.0696,
    "gamePk": 823745,
    "startTime": "2026-08-23T23:10:00Z",
-   "capturedAt": "2026-08-23T20:30:45.556Z"
+   "capturedAt": "2026-08-23T21:28:15.982Z"
   },
   "joey ortiz|hrr|1.5": {
    "name": "Joey Ortiz",
    "market": "hrr",
    "line": 1.5,
-   "over": "+123",
-   "under": "-164",
-   "noVigOver": 0.4192,
-   "hold": 0.0696,
+   "over": "+121",
+   "under": "-161",
+   "noVigOver": 0.4231,
+   "hold": 0.0693,
    "gamePk": 823745,
    "startTime": "2026-08-23T23:10:00Z",
-   "capturedAt": "2026-08-23T20:30:45.556Z"
+   "capturedAt": "2026-08-23T21:28:15.982Z"
   },
   "drake baldwin|hrr|1.5": {
    "name": "Drake Baldwin",
    "market": "hrr",
    "line": 1.5,
-   "over": "+101",
-   "under": "-133",
-   "noVigOver": 0.4657,
-   "hold": 0.0683,
+   "over": "+104",
+   "under": "-138",
+   "noVigOver": 0.4581,
+   "hold": 0.07,
    "gamePk": 823745,
    "startTime": "2026-08-23T23:10:00Z",
-   "capturedAt": "2026-08-23T20:30:45.556Z"
+   "capturedAt": "2026-08-23T21:28:15.982Z"
   },
   "jackson chourio|hrr|1.5": {
    "name": "Jackson Chourio",
    "market": "hrr",
    "line": 1.5,
-   "over": "-142",
-   "under": "+107",
-   "noVigOver": 0.5485,
-   "hold": 0.0699,
+   "over": "-132",
+   "under": "-101",
+   "noVigOver": 0.531,
+   "hold": 0.0715,
    "gamePk": 823745,
    "startTime": "2026-08-23T23:10:00Z",
-   "capturedAt": "2026-08-23T20:30:45.556Z"
+   "capturedAt": "2026-08-23T21:28:15.982Z"
   },
   "luis lara|hrr|0.5": {
    "name": "Luis Lara",
@@ -4937,49 +4937,85 @@
    "name": "Christian Yelich",
    "market": "hrr",
    "line": 1.5,
-   "over": "+130",
-   "under": "-173",
-   "noVigOver": 0.4069,
-   "hold": 0.0685,
+   "over": "+132",
+   "under": "-176",
+   "noVigOver": 0.4033,
+   "hold": 0.0687,
    "gamePk": 823745,
    "startTime": "2026-08-23T23:10:00Z",
-   "capturedAt": "2026-08-23T20:30:45.556Z"
+   "capturedAt": "2026-08-23T21:28:15.982Z"
   },
   "andrew vaughn|hrr|1.5": {
    "name": "Andrew Vaughn",
    "market": "hrr",
    "line": 1.5,
-   "over": "-101",
-   "under": "-131",
-   "noVigOver": 0.4698,
-   "hold": 0.0696,
+   "over": "-104",
+   "under": "-127",
+   "noVigOver": 0.4768,
+   "hold": 0.0693,
    "gamePk": 823745,
    "startTime": "2026-08-23T23:10:00Z",
-   "capturedAt": "2026-08-23T20:30:45.556Z"
+   "capturedAt": "2026-08-23T21:28:15.982Z"
   },
   "david hamilton|hrr|0.5": {
    "name": "David Hamilton",
    "market": "hrr",
    "line": 0.5,
-   "over": "-135",
-   "under": "+102",
-   "noVigOver": 0.5371,
-   "hold": 0.0695,
+   "over": "-131",
+   "under": "-102",
+   "noVigOver": 0.529,
+   "hold": 0.0721,
    "gamePk": 823745,
    "startTime": "2026-08-23T23:10:00Z",
-   "capturedAt": "2026-08-23T20:30:45.556Z"
+   "capturedAt": "2026-08-23T21:28:15.982Z"
   },
   "garrett mitchell|hrr|0.5": {
    "name": "Garrett Mitchell",
    "market": "hrr",
    "line": 0.5,
-   "over": "-146",
-   "under": "+110",
-   "noVigOver": 0.5548,
-   "hold": 0.0697,
+   "over": "-141",
+   "under": "+106",
+   "noVigOver": 0.5465,
+   "hold": 0.0705,
    "gamePk": 823745,
    "startTime": "2026-08-23T23:10:00Z",
-   "capturedAt": "2026-08-23T20:30:45.556Z"
+   "capturedAt": "2026-08-23T21:28:15.982Z"
+  },
+  "andrew vaughn|tb|1.5": {
+   "name": "Andrew Vaughn",
+   "market": "tb",
+   "line": 1.5,
+   "over": "+153",
+   "under": "-205",
+   "noVigOver": 0.3703,
+   "hold": 0.0674,
+   "gamePk": 823745,
+   "startTime": "2026-08-23T23:10:00Z",
+   "capturedAt": "2026-08-23T21:28:15.982Z"
+  },
+  "sean murphy|hrr|0.5": {
+   "name": "Sean Murphy",
+   "market": "hrr",
+   "line": 0.5,
+   "over": "-127",
+   "under": "-104",
+   "noVigOver": 0.5232,
+   "hold": 0.0693,
+   "gamePk": 823745,
+   "startTime": "2026-08-23T23:10:00Z",
+   "capturedAt": "2026-08-23T21:28:15.982Z"
+  },
+  "lane thomas|hrr|1.5": {
+   "name": "Lane Thomas",
+   "market": "hrr",
+   "line": 1.5,
+   "over": "+129",
+   "under": "-173",
+   "noVigOver": 0.408,
+   "hold": 0.0704,
+   "gamePk": 823745,
+   "startTime": "2026-08-23T23:10:00Z",
+   "capturedAt": "2026-08-23T21:28:15.982Z"
   }
  }
 }
