@@ -155,6 +155,7 @@ should be re-fitted when the run environment shifts.
 | `edge.js` | De-vig and EV math for the odds side. 36 tests. |
 | `bets.js` | Your bet log, singles and parlays. What you tracked, how it graded, and how that compares to what the model said. 46 tests. |
 | `bets.html` | The history: every bet, won and lost, grouped by day, with win rate by kind of bet. Open it. |
+| `close-odds.mjs` | Freezes the last price before each game starts, so closing line value can be worked out later. |
 | `fetch-odds.mjs` | The Odds API client. Needs a key; not required for the board. |
 | `golf.html` | The PGA board: who makes the cut. Open it. |
 | `golf.js` | The cut model. Two-way ratings solve plus a field-wide Monte Carlo. |
@@ -476,14 +477,43 @@ outcomes move together, so the spread is narrower than the truth. The panel
 cannot fix that honestly without modelling the joint distribution, so it counts
 the shared players and says so.
 
+### Closing line value
+
+Whether you bet at a better number than the market settled on. It is the one
+measure here that does not care whether the bet won, which is exactly why it is
+worth more than the win rate: results need hundreds of bets before they say
+anything, and CLV needs far fewer. A losing bet at a price the market later
+moved past was still a good bet.
+
+```
++1.9pp   average closing line value, over 3 bets
+You beat the closing number on 2, missed it on 1.
+```
+
+Nothing extra to type. Tapping a player already tells the board which market it
+is looking at, so it records the price it can see at that moment, and
+`close-odds.mjs` freezes the last price before each game starts — every hourly
+run overwrites the entry for a game that has not started, so the final write
+before first pitch is the closing line by construction. A missed run costs
+precision, never correctness.
+
+Measured in points of **no-vig** probability rather than raw price, because two
+raw prices carry two different bookmaker margins and comparing them would credit
+you when the book merely widens its cut.
+
+Two honest limits, both stated on the page. It compares **the price BetHouse
+could see when you tapped**, which is not necessarily the price you got — bet
+elsewhere or ten minutes later and yours differed. And it needs a market at all:
+the feed covers 1+ H/R/RBI and total bases, and only players a book has priced,
+so most legs have no CLV. Those report *nothing* rather than zero, because zero
+is the claim "you matched the close".
+
 ### What it deliberately does not do
 
-**There is no stake and no price.** So it cannot tell you whether you made
-money, and it does not pretend to. It answers the narrower question the rest of
-this board is built around: did your picks land as often as the model said they
-would. Adding price would let it answer the money question and also the better
-one — whether you beat the closing line — but that needs a closing-price
-capture that does not exist yet.
+**There is no stake.** So it cannot tell you whether you made money, and it does
+not pretend to. It answers the two narrower questions it can answer honestly:
+did your picks land as often as the model said, and did you get better numbers
+than the market closed at.
 
 ### Three rules that keep it honest
 
