@@ -419,3 +419,39 @@ that do not reproduce the original outputs is fitting something else.
 between 0.43 and 0.78, all saying shrink. Shipped 0.80. The single held-out
 failure among the ten was the most aggressive fit, and the asymmetry is real:
 under-correcting costs accuracy, over-correcting costs money.
+
+## A document that describes its own codebase from memory will describe it wrongly
+
+2026-08-24. A design doc written during a brainstorming session made four
+claims about this repo. Three were false, and an adversarial reviewer with no
+memory of the conversation found all three in one pass by opening the files.
+
+- "Forward records running on three sports." `nfl-record.js` and
+  `pga-record.js` are both `{"days":[],"total":0,"props":{}}`; `pga-record/`
+  is an empty directory. One sport has a record. The plumbing is on three, and
+  plumbing is not evidence.
+- "The record is invisible to a first-time visitor." It renders at
+  `index.html:1677-1692`, gated on `n >= 25`. Buried is not absent, and the
+  difference decided how much work the proposal actually was.
+- A UI element ("its worst day") promised as a reuse of existing data. No
+  per-day aggregation exists anywhere; `track-core.mjs:119` emits per-prop
+  aggregates and a flat list of dates.
+
+**The failure is structural, not careless.** Prose about a codebase is written
+at the speed of thought and reads as authoritative, while every number in it is
+a recollection. Code review catches a wrong line; nobody diffs a paragraph.
+
+**Verify before writing, not after.** Any load-bearing claim a document makes
+about this repo gets a command run against it first. The three above cost one
+`cat`, one `grep -n`, and one `ls`.
+
+**Then verify the citation too.** The corrected draft cited the responsible
+gambling line at `index.html:1692`; it is at `1694`, and 1692 is a closing
+brace. A document that has just been corrected is the most dangerous moment,
+not the safest — the corrections themselves are unverified claims.
+
+**Do not justify a decision with a number the source calls noise.** The same
+draft cut a feature because suggested slips cashed 8 against an expected 11.
+`README.md:753` describes that result, in the next sentence, as "about 1.3
+standard deviations — noise, formally." The number was read; the sentence
+qualifying it was not. Quote the line after the one that helps you.
