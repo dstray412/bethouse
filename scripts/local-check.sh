@@ -8,8 +8,11 @@ set -uo pipefail
 cd "$(git rev-parse --show-toplevel 2>/dev/null || echo .)"
 fail=0
 
-echo "== tests: node --test edge.test.mjs score.test.mjs golf.test.mjs nfl.test.mjs bets.test.mjs track.test.mjs clv.test.mjs dom.test.mjs =="
-node --test edge.test.mjs score.test.mjs golf.test.mjs nfl.test.mjs bets.test.mjs track.test.mjs clv.test.mjs dom.test.mjs || fail=1
+echo "== freshness =="
+node provenance.mjs || { echo "   ^ pull before trusting any number this run prints"; fail=1; }
+
+echo "== tests: node --test edge.test.mjs score.test.mjs golf.test.mjs nfl.test.mjs bets.test.mjs track.test.mjs clv.test.mjs provenance.test.mjs dom.test.mjs =="
+node --test edge.test.mjs score.test.mjs golf.test.mjs nfl.test.mjs bets.test.mjs track.test.mjs clv.test.mjs provenance.test.mjs dom.test.mjs || fail=1
 
 echo
 echo "== secrets: gitleaks =="

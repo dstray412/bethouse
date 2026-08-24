@@ -455,3 +455,63 @@ draft cut a feature because suggested slips cashed 8 against an expected 11.
 `README.md:753` describes that result, in the next sentence, as "about 1.3
 standard deviations — noise, formally." The number was read; the sentence
 qualifying it was not. Quote the line after the one that helps you.
+
+## A stale checkout reads exactly like a current one
+
+2026-08-24. A session ran analysis against a working tree 77 commits behind
+origin and reported three things as fact. All three were false:
+
+| claimed | actually |
+|---|---|
+| the odds feed is broken, 0 markets | 244 markets, refreshing hourly |
+| CLV has collected nothing | 666 frozen prices across two days |
+| the recalibrated model has no record | 1,355 graded predictions |
+
+Every reading was **correct for the files on disk.** The files were old. The
+tell was there to be seen -- `odds-data.js` said `generated: 2026-08-23T03:09Z`
+while the workflow list showed a successful odds refresh forty minutes earlier
+-- and it was read right past, because a timestamp inside a file looks like
+data rather than like a warning.
+
+**This is not a carelessness problem.** A stale number and a fresh number are
+the same number. No amount of double-checking the arithmetic catches it,
+because the arithmetic is right.
+
+**Fetch before you diagnose.** The first move on any "X is broken" claim is
+`git fetch && git rev-list --count HEAD..origin/main`. In a repo where
+scheduled jobs commit hourly, a checkout from yesterday is a different
+repository.
+
+**`behind: 0` is only as fresh as the last fetch.** `git rev-list HEAD..origin/main`
+reads a LOCAL ref. Without a fetch it will cheerfully report zero while origin
+has moved a hundred commits, which is a false reassurance that reads exactly
+like a true one.
+
+**Make the output carry its provenance.** This repo already solved this for
+predictions: every row has `recordedAt`, so a result can never be mistaken for
+a forecast. `provenance.mjs` does the same for analysis -- every tool prints
+the commit it read, the age of the data, and whether the checkout is behind,
+unconditionally, including when everything is fine. A banner that only appears
+on trouble teaches the reader to skim it, and then its ABSENCE becomes the
+signal instead of its content.
+
+**Do not shout the same warning for two different problems.** A dirty tree is
+not stale, it is newer than any commit and simply unreproducible. Failing a
+gate on it would fire on every development run, and a check that always fires
+gets switched off within a day. Behind-origin and stale-data block; dirty and
+an unfetched ref are printed and do not.
+
+## A handoff note nobody re-reads is worse than none
+
+2026-08-24. `handoff.md` still said "Three boards. The NFL one is new and
+uncommitted" two days after the NFL board shipped. It knew nothing about the
+fourth board, the bet tracker, the recalibration that changed every
+probability, or closing line value.
+
+CLAUDE.md instructs reading `handoff.md` at session start, which makes it the
+one document a new session trusts **without checking**. That is exactly what
+makes a stale one dangerous: its whole purpose is to be believed quickly.
+
+**Update it in the same change that invalidates it,** the way product docs are
+handled. And open it with the instruction to verify rather than trust, because
+the next reader has no way to know how old it is.

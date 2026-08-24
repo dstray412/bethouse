@@ -46,6 +46,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { normalizeName } from "./fetch-odds-espn.mjs";
+import * as prov from "./provenance.mjs";
 
 const DIR = path.dirname(fileURLToPath(import.meta.url));
 
@@ -194,6 +195,12 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   }
   const only = flag("--day", null);
   const minEdge = Number(flag("--edge", 0.035));
+
+  /* Provenance first, always, even when everything is fine. On 2026-08-24 this
+     tool's numbers were read off a tree 77 commits behind origin and reported
+     as current; a stale number and a fresh one look identical, so the only
+     defence is that the output says which it is. */
+  console.log(prov.banner(prov.repoState()) + "\n");
 
   const days = readDays().filter((d) => !only || d === only);
   if (!days.length) {

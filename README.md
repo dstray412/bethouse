@@ -32,8 +32,10 @@ means 72% — including the part where 72% loses more than a quarter of the time
 ## Run it
 
 ```sh
+node provenance.mjs     # what commit am I reading, and how old is the data?
 node fetch-mlb.mjs      # builds mlb-data.js for today
-node --test edge.test.mjs score.test.mjs golf.test.mjs nfl.test.mjs   # 202 tests
+bash scripts/local-check.sh                # freshness + the whole suite + secrets, mirrors CI
+node clv.mjs                               # does the model beat the closing line?
 node backtest.mjs --prop tb2               # validate total bases
 node backtest.mjs                          # measures whether the model works
 node backtest.mjs --parlay                 # ...and whether parlays multiply
@@ -156,6 +158,8 @@ should be re-fitted when the run environment shifts.
 | `bets.js` | Your bet log, singles and parlays. What you tracked, how it graded, and how that compares to what the model said. 46 tests. |
 | `bets.html` | The history: every bet, won and lost, grouped by day, with win rate by kind of bet. Open it. |
 | `close-odds.mjs` | Freezes the last price before each game starts, so closing line value can be worked out later. |
+| `clv.mjs` | Compares every published prediction against the price the market closed at. Brier on both sides, same yardstick. The measure that decides whether the model has an edge rather than merely being calibrated. 15 tests. |
+| `provenance.mjs` | Every analysis tool prints where its numbers came from: the commit, the age of the data, whether the checkout is behind origin. Exists because a session once read a 77-commit-stale tree and reported three false things as fact. 22 tests. |
 | `fetch-odds.mjs` | The Odds API client. Needs a key; not required for the board. |
 | `golf.html` | The PGA board: who makes the cut. Open it. |
 | `golf.js` | The cut model. Two-way ratings solve plus a field-wide Monte Carlo. |
@@ -478,6 +482,15 @@ cannot fix that honestly without modelling the joint distribution, so it counts
 the shared players and says so.
 
 ### Closing line value
+
+`node clv.mjs` answers the question this whole section is about, for the model
+rather than for bets you tapped by hand: it joins every graded prediction to
+the price its market closed at and scores both on Brier. Calibration says the
+numbers are true; this says whether they are worth betting. At the measured
+6.96% hold a perfectly calibrated 3-leg slip returns -15.4%, so being right and
+being paid are different things.
+
+
 
 Whether you bet at a better number than the market settled on. It is the one
 measure here that does not care whether the bet won, which is exactly why it is
