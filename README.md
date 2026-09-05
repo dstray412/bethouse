@@ -2,11 +2,11 @@
 
 Ranks MLB hitters for three props, every game, every day: **1+ hits/runs/RBI**,
 **total bases** (2+, 3+, 4+), and **home runs**. Ranks PGA Tour players by their
-chance of **making the cut**. And prices three NFL bets: **anytime touchdown**,
-**receiving yards**, and **spreads and totals**.
+chance of **making the cut**. And prices three football bets, in the NFL and in
+college: **anytime touchdown**, **receiving yards**, and **spreads and totals**.
 
-Open `index.html` for baseball, `golf.html` for golf, `nfl.html` for football.
-No build step, no server, no API key.
+Open `index.html` for baseball, `golf.html` for golf, `nfl.html` for the NFL,
+`cfb.html` for college football. No build step, no server, no API key.
 
 ---
 
@@ -150,7 +150,7 @@ should be re-fitted when the run environment shifts.
 | `backtest.mjs` | Replays real games, measures calibration, fits `k`, and tests parlays (`--parlay`) and hot streaks (`--streaks`). |
 | `track.mjs` | Records each day's pregame predictions, grades them once games end, keeps the running record. |
 | `track-core.mjs` | The rules a forward record needs, shared by both sports so they cannot drift apart. |
-| `track-nfl.mjs` | The same for the NFL board: records each week before kickoff, grades from ESPN box scores. |
+| `track-football.mjs` | The same for both football boards: records each week before kickoff, grades from ESPN box scores. `track-nfl.mjs` and `track-cfb.mjs` pick the league. |
 | `track-pga.mjs` | The same for golf: records each cut event before the first tee time, grades from the committed season history. |
 | `lineup-context.mjs` | Replays committed board snapshots to test whether on-base ahead of a hitter moves the residual. It does not. |
 | `calibrate.mjs` | Rebuilds the model from committed snapshots and measures it against its own shipped predictions. Found and fitted the spread correction. |
@@ -166,6 +166,12 @@ should be re-fitted when the run environment shifts.
 | `golf.test.mjs` | 41 tests on cut rules, the ratings solve, ties and the simulation. |
 | `fetch-pga.mjs` | Keyless ESPN requests → `pga-data.js` and `pga-history.json`. |
 | `backtest-pga.mjs` | Replays completed tournaments, measures calibration, fits the constants. |
+| `nfl.html`, `cfb.html` | The NFL and college football boards. Open them. Both render through `football-board.js`. |
+| `nfl.js` | The three football models, and `bind()`, which is how college gets the same code with its own constants. 51 tests. |
+| `cfb.js` | College football: `nfl.js` bound to constants measured on two FBS seasons. Receptions instead of targets. 13 tests with the college parsing. |
+| `football-leagues.mjs` | The one table of what differs between the two leagues: endpoints, files, weeks, the model, what to call a team that is not in the league. |
+| `fetch-football.mjs` | Keyless ESPN requests → `<league>-history.json` and `<league>-data.js`. `fetch-nfl.mjs` and `fetch-cfb.mjs` pick the league. |
+| `backtest-nfl.mjs` | Replays either league (`--league cfb`), measures the constants (`--measure`), fits the two that are fitted (`--fit`). |
 
 ## Sharing it
 
@@ -1134,7 +1140,7 @@ column of 100%s is not a board, it is a trap.
 ```sh
 node fetch-nfl.mjs --history   # 2 seasons of box scores + closing lines
 node fetch-nfl.mjs             # ...then this week's board
-node --test nfl.test.mjs       # 44 tests
+node --test nfl.test.mjs       # 51 tests
 node backtest-nfl.mjs          # does any of it work?
 node backtest-nfl.mjs --fit    # re-derive the shrinkage constant
 ```
@@ -1146,8 +1152,8 @@ closing lines. Everything predicting week W comes from weeks already played.
 
 | bet | measured | verdict |
 |---|---|---|
-| Anytime touchdown | bias **&minus;0.7pp**, Brier 0.1590 vs 0.1718 | calibrated |
-| Receiving yards | bias **+1.0pp**, Brier 0.2223 vs 0.2459 | calibrated |
+| Anytime touchdown | bias **&minus;0.8pp**, Brier 0.1591 vs 0.1718 | calibrated |
+| Receiving yards | bias **−1.2pp**, Brier 0.2224 vs 0.2459 | calibrated |
 | Spread vs closing line | **48.1%** of 480, needs 52.4% | **no edge** |
 | Total vs closing line | **52.5%** of 478, needs 52.4% | **inside the noise** |
 
@@ -1212,12 +1218,143 @@ Two seasons of box scores is 1.2 MB and the repo's own pre-commit hook rejects
 anything over 1 MB. `nfl-history.json` is gitignored and rebuildable;
 `nfl-data.js` (103 KB) is what the board actually loads.
 
+### The yards replay depends on a choice nobody fitted
+
+The yardage model reads its shape off a pool of real actual/expected ratios.
+Which games go into that pool is a choice, and replaying two NFL seasons with
+three definitions moved the calibration bias from **−1.2pp** (the board's own:
+three games and an expectation of at least 5) through **+1.0pp** (add a target
+floor) to **+4.2pp** (exactly the rows the board shows). The strictest sounds
+right and calibrates worst, because early-season expectations are shrunk toward
+the prior and a good receiver's early ratios all come out high. None of the
+three is fitted to anything. The backtest replays what the board ships, and the
+forward record decides.
+
+---
+
+## College football
+
+`cfb.html`. The same three bets as the NFL, on the same model, bound to
+constants measured on FBS games.
+
+```sh
+node fetch-cfb.mjs --history            # 2 seasons of box scores + closing lines (~3,500 requests, cold)
+node fetch-cfb.mjs                      # ...then this week's board
+node --test cfb.test.mjs                # 13 tests
+node backtest-nfl.mjs --league cfb      # does any of it work?
+node backtest-nfl.mjs --league cfb --measure   # every constant, read off the data
+node backtest-nfl.mjs --league cfb --fit       # the two that are fitted, with a validation warning
+```
+
+Two FBS seasons replayed a game at a time: 1,760 games, 38,970 player-games,
+1,706 closing lines.
+
+### It is the NFL model with different numbers
+
+`cfb.js` is one call: `BetHouseNFL.bind({...})`. There is no second copy of
+the arithmetic to drift from the first. What differs is every constant, and
+each one was measured rather than assumed:
+
+| | NFL | college | how |
+|---|---|---|---|
+| points per team per game | 22.96 | **26.71** | measured |
+| home field | 1.97 | **3.54** | solved with team strength held fixed |
+| touchdowns per carry | 0.0335 | **0.0453** | least squares, regulars only |
+| touchdowns per receiving opportunity | 0.0473 per target | **0.0842 per reception** | least squares, regulars only |
+| league touchdown rate | 0.251 | **0.315** | measured, regulars only |
+| games before a player's own rate outweighs his usage (`tdK`) | 6 | **14** | fitted, validated on each season alone |
+| shrink toward the league average | 0.75 | **0.90** | fitted, validated on each season alone |
+| model's own margin error (sd) | 14.29 | **16.54** | walk-forward |
+
+**Receptions, not targets.** College box scores do not record targets, so the
+receiving-opportunity term is receptions. The NFL catches 67.9% of targets, so
+the NFL's 10-target floor for a yards row is 7 receptions here. A reception is a
+target that succeeded, which is most of why it is worth 0.084 touchdowns rather
+than 0.047.
+
+**Home field is 3.5 points, not 9.** The raw home margin across 1,726 non-neutral
+games is 9.0 points. Seven of those are the buy game: the home team in college
+is usually the better team, because the better team is the one with the stadium
+and the cheque. Solving the ratings with a trial home field, reading the mean
+residual on genuine home games, and iterating lands on 3.54. Read off the raw
+margin, every host would get five points it has not earned.
+
+**Neutral sites.** Kickoff classics, conference championships and every bowl
+give home field to nobody, and the model is told so. Thirty-four of the 1,760
+games. (The NFL's London game turned out to carry the same flag; the Rams-49ers
+week 1 game in 2026 is neutral, which the old fetcher read as a Rams home game.)
+
+**Every opponent outside the FBS is one team.** The FBS scoreboard lists 247
+games in two seasons against FCS schools that appear once and lose by forty.
+Rated individually on one game, the ridge shrinks each to roughly average,
+which credits the team that beat one with a forty-point win over an average
+side. So every side not on ESPN's own membership list for the season is
+recorded as `FCS` and rated as one team on 259 games: offence −14, defence +15.
+The membership list is fetched per season from the data, not typed from memory;
+a school that moves up is FCS in the seasons it was FCS and itself afterwards.
+
+### The constants have to describe the population they are applied to
+
+The first replay ran 1.8 points cold at every setting of the shrink, which is a
+level error, not a shape error. Two hypotheses were tried and the second was
+right: measuring the touchdown coefficients on **regulars** — players with
+three or more games that season, which is exactly the population the board
+scores — instead of every player-game. A 120-man roster carries a tail of
+one-game players who score less per touch than a starter, and the league rate
+the shrink pulls toward was 9% too low for the players it was pulling. The NFL's
+two populations agree to the third decimal, which is why it never came up there.
+
+### The results
+
+| bet | measured | verdict |
+|---|---|---|
+| Anytime touchdown | bias **−1.4pp**, Brier 0.1743 vs 0.1921 · top 20% scored 47.3%, bottom 20% 9.5% | calibrated, a little cold |
+| Receiving yards | bias **−3.0pp**, Brier 0.2297 vs 0.2491 | cold; see the pool note above |
+| Spread vs closing line | **51.7%** of 1,488, needs 52.4% | inside the noise |
+| Total vs closing line | **53.4%** of 1,482 · 56.5% where the model disagrees by 6+ points, n=322 | inside the noise |
+
+The touchdown model separates harder than the NFL's (37.8 points between the top
+and bottom fifth against 29.7) and runs cold by a point and a half, most of it
+in the 10–25% band. The yards model is three points cold and its replay moves by
+that much on the pool definition, so its number is approximate.
+
+**The game lines are closer to break-even than the NFL's.** 51.7% and 53.4%
+against 48.1% and 52.5%, on three times the games. That is what a softer market
+looks like. It is not an edge: both intervals straddle 52.4%, and separating
+break-even from a coin flip at 95% needs about 1,700 games. Two seasons is
+1,488. The 56.5% on totals where the model disagrees by six or more points is
+1.5 standard errors from break-even, and the board says so rather than
+printing it as a finding.
+
+### The forward record starts now
+
+`track-cfb.mjs` records the board before kickoff and grades from ESPN box
+scores, under the same three rules in `track-core.mjs`. The refresh runs daily
+at 12:20 UTC, ahead of every kickoff of every day of the college week. The first
+snapshot was taken on 2026-09-05 before the evening games: 1,183 predictions.
+
+One thing to know when reading it. A player who does not appear in the box
+score is voided, not lost — the same rule as the NFL. In college that is a
+slightly larger hole, because a receiver with no catches has no receiving line
+at all (no targets are recorded), so his over is voided where a book would have
+graded it under. The record will run a little flattering on yards for that
+reason, and the number to watch is touchdowns.
+
 ---
 
 ## Known gaps
 
 - **The NFL game lines have no edge and the board says so.** They are shown
   because the projections are interesting, not because they are bettable.
+- **The college game lines are inside the noise, leaning positive.** 1,488
+  games cannot separate 51.7% from 52.4%. The board says so.
+- **The college yards number is approximate.** Three points cold on the
+  replay, and the replay moves by that much on which games form the comparison
+  pool. Nothing is fitted to fix it; the forward record decides.
+- **A receiver with no catches is voided, not graded under**, in the college
+  forward record, because college box scores carry no line for him. The NFL
+  has the same rule with a smaller hole (a target with no catch is still a
+  line).
 - **Golf ratings only know 2026 PGA Tour rounds.** A player arriving from LIV,
   the DP World Tour or the Korn Ferry Tour reads as unrated and gets the
   debutant prior, which will underrate a genuinely good player. The board

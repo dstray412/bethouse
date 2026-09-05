@@ -465,3 +465,103 @@ test("scoreAnytimeTD: a leaky opponent is worth real probability", () => {
   assert.ok(soft - hard > 0.05,
     `the real spread of NFL defences should be worth more than 5 points, got ${soft - hard}`);
 });
+
+/* ------------------------------------------------------------------ *
+ * Neutral sites
+ *
+ * Oracle: the definition of home field. Kickoff classics, conference
+ * championships and every bowl are played where neither side is at home,
+ * and ESPN still labels one of them "home" for the box score. The NFL's
+ * London games carry the same flag. A game marked neutral must give the
+ * home-field points to nobody -- in the ratings solve and in the
+ * projection both, or the two halves of the model disagree about the
+ * same game.
+ * ------------------------------------------------------------------ */
+
+test("buildTeamRatings: a neutral-site game credits home field to nobody", () => {
+  // Two evenly matched teams, one game, played at a neutral site, where
+  // the nominal home side wins by exactly the home-field constant. Read
+  // as a home game, that is a dead-even pair. Read as neutral, the
+  // "home" side is the better team by that much.
+  const hf = DEFAULTS.homeField;
+  const asHome = buildTeamRatings(
+    [{ home: { team: "A", score: 20 + hf }, away: { team: "B", score: 20 } }],
+    { teamK: 0 },
+  );
+  const asNeutral = buildTeamRatings(
+    [{ home: { team: "A", score: 20 + hf }, away: { team: "B", score: 20 }, neutral: true }],
+    { teamK: 0 },
+  );
+  close(asHome.off.A - asHome.off.B, 0, 1e-6);
+  assert.ok(asNeutral.off.A - asNeutral.off.B > hf * 0.9, "neutral game must rate A above B");
+});
+
+test("projectGame: a neutral site removes home field from the margin", () => {
+  const r = buildTeamRatings(syntheticSeason({ AAA: 4, BBB: 0, CCC: -4, DDD: 0 }));
+  const home = projectGame(r, "AAA", "BBB");
+  const neutral = projectGame(r, "AAA", "BBB", { neutral: true });
+  close(home.margin - neutral.margin, r.homeField, 1e-9);
+  close(home.total - neutral.total, r.homeField, 1e-9);
+});
+
+/* ------------------------------------------------------------------ *
+ * The receiving-opportunity accessor and the yards gate
+ *
+ * Oracle: the model's own inputs. College box scores record receptions
+ * and no targets, so which stat counts as receiving opportunity is a
+ * league constant, and every reader of it -- the touchdown model, the
+ * board's row filter, the tracker's snapshot -- goes through one
+ * accessor rather than each spelling `p.targets` for itself.
+ * ------------------------------------------------------------------ */
+
+test("receivingOpportunity: reads the stat the league records", () => {
+  const rec = { targets: 40, recs: 28 };
+  assert.equal(nfl.receivingOpportunity(rec), 40);
+  assert.equal(nfl.receivingOpportunity(rec, { receivingStat: "recs" }), 28);
+  assert.equal(nfl.receivingOpportunity(null), 0);
+});
+
+test("scoreAnytimeTD: counts opportunity by the league's receiving stat", () => {
+  const p = { games: 8, tds: 2, carries: 0, targets: 0, recs: 40 };
+  // With targets as the stat this player has no receiving workload at all.
+  const byTargets = scoreAnytimeTD(p);
+  // With receptions he is a busy receiver.
+  const byRecs = scoreAnytimeTD(p, { opts: { receivingStat: "recs" } });
+  assert.equal(byTargets.perGameReceiving, 0);
+  assert.equal(byRecs.perGameReceiving, 5);
+  assert.ok(byRecs.prob > byTargets.prob);
+});
+
+test("yardsEligible: the one gate the board and the tracker both use", () => {
+  // Enough games, enough opportunity, enough projected yards: on the board.
+  const ok = nfl.yardsEligible({ games: 4, targets: 20, recYds: 200 });
+  assert.ok(ok && ok.exp >= 20);
+  close(ok.exp, expectedVolume(200, 4, 25));
+  // Too few games.
+  assert.equal(nfl.yardsEligible({ games: 2, targets: 20, recYds: 200 }), null);
+  // Too little opportunity.
+  assert.equal(nfl.yardsEligible({ games: 4, targets: 9, recYds: 200 }), null);
+  // A projection below the floor.
+  assert.equal(nfl.yardsEligible({ games: 4, targets: 20, recYds: 10 }), null);
+  // The gate honours the league's receiving stat.
+  assert.ok(nfl.yardsEligible({ games: 4, targets: 0, recs: 20, recYds: 200 }, { receivingStat: "recs" }));
+});
+
+test("expectedVolume: the prior defaults to the league constant", () => {
+  close(expectedVolume(200, 4), expectedVolume(200, 4, DEFAULTS.yardPrior));
+  close(expectedVolume(200, 4, undefined, { yardPrior: 40 }), expectedVolume(200, 4, 40));
+});
+
+test("bind: the same model, every function pre-bound to another league's constants", () => {
+  const C = nfl.bind({ homeField: 3.5, receivingStat: "recs", yardPrior: 30 });
+  assert.equal(C.DEFAULTS.homeField, 3.5);
+  assert.equal(C.DEFAULTS.tdK, DEFAULTS.tdK, "unspecified constants carry over");
+  const r = C.buildTeamRatings([{ home: { team: "A", score: 30 }, away: { team: "B", score: 20 } }]);
+  assert.equal(r.homeField, 3.5);
+  assert.equal(C.receivingOpportunity({ targets: 1, recs: 7 }), 7);
+  close(C.expectedVolume(100, 2), expectedVolume(100, 2, 30));
+  const s = C.scoreAnytimeTD({ games: 5, tds: 1, carries: 0, targets: 0, recs: 25 });
+  assert.equal(s.perGameReceiving, 5);
+  // An explicit override at the call still wins.
+  assert.equal(C.projectGame(r, "A", "B", { neutral: true }).margin, C.projectGame(r, "A", "B").margin - 3.5);
+});

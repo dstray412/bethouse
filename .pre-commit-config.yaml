@@ -14,13 +14,13 @@ repos:
     hooks:
       - id: trailing-whitespace
       - id: end-of-file-fixer
-        # The forward records are machine-written by track.mjs / track-nfl.mjs
+        # The forward records are machine-written by track.mjs / track-football.mjs
         # and their exact bytes are pinned by a test, because the scheduled
         # jobs rewrite them constantly. Letting this hook append a newline
         # locally would put an 18,000-line reformatting diff on top of
         # whatever actually changed, and only when a human commits -- CI runs
         # no hooks, so the two would disagree forever.
-        exclude: '^(history|nfl-record|pga-record|odds-close)/.*\.json$'
+        exclude: '^(history|nfl-record|cfb-record|pga-record|odds-close)/.*\.json$'
       - id: check-merge-conflict
       - id: check-added-large-files
         args: ["--maxkb=1024"]
@@ -40,6 +40,6 @@ repos:
       - id: node-tests
         name: node --test (the whole suite; see entry for the file list)
         language: system
-        entry: node --test edge.test.mjs score.test.mjs golf.test.mjs nfl.test.mjs bets.test.mjs track.test.mjs clv.test.mjs provenance.test.mjs dom.test.mjs
+        entry: node --test edge.test.mjs score.test.mjs golf.test.mjs nfl.test.mjs cfb.test.mjs bets.test.mjs track.test.mjs clv.test.mjs provenance.test.mjs dom.test.mjs
         pass_filenames: false
         stages: [pre-push]

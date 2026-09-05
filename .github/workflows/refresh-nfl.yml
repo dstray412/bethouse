@@ -67,7 +67,7 @@ jobs:
             if (!d.ratings || !d.ratings.off) throw new Error("no team ratings");
             console.log("ok:", d.players.length, "players, week", d.week);
           '
-          node --test edge.test.mjs score.test.mjs golf.test.mjs nfl.test.mjs bets.test.mjs track.test.mjs clv.test.mjs provenance.test.mjs dom.test.mjs
+          node --test edge.test.mjs score.test.mjs golf.test.mjs nfl.test.mjs cfb.test.mjs bets.test.mjs track.test.mjs clv.test.mjs provenance.test.mjs dom.test.mjs
 
       # The forward record. Snapshot reads the local board and costs nothing,
       # so it runs every time; grade only fetches games that have finished

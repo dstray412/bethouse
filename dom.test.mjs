@@ -34,7 +34,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const DIR = dirname(fileURLToPath(import.meta.url));
-const BOARDS = ["index.html", "golf.html", "nfl.html", "bets.html"];
+const BOARDS = ["index.html", "golf.html", "nfl.html", "cfb.html", "bets.html"];
 const src = (f) => readFileSync(resolve(DIR, f), "utf8");
 
 /*
@@ -464,8 +464,8 @@ test("the board asks edge.js how old the odds are, and asks once", () => {
  *
  * `node --test` is invoked with an explicit file list, not bare discovery,
  * because discovery would fire the backtest scripts and their live API
- * calls. The cost of that is the list existing in SIX places, and adding a
- * seventh test file means remembering all six. Miss one and the gap is
+ * calls. The cost of that is the list existing in SEVEN places, and adding a
+ * seventh test file means remembering all seven. Miss one and the gap is
  * silent: the suite still passes, just without the new file.
  *
  * This is the same duplication that put the parlay scope rule in two places
@@ -481,6 +481,7 @@ test("every test file runs in every gate that runs tests", () => {
     ".github/workflows/ci.yml",
     ".github/workflows/refresh.yml",
     ".github/workflows/refresh-nfl.yml",
+    ".github/workflows/refresh-cfb.yml",
     ".github/workflows/refresh-odds.yml",
   ];
 

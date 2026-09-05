@@ -515,3 +515,52 @@ makes a stale one dangerous: its whole purpose is to be believed quickly.
 **Update it in the same change that invalidates it,** the way product docs are
 handled. And open it with the instruction to verify rather than trust, because
 the next reader has no way to know how old it is.
+
+## The constants have to describe the population they are applied to
+
+2026-09-05, college football. The touchdown coefficients were measured by
+least squares over every player-game, the same way the NFL's were, and the
+first replay ran 1.8 points cold at every setting of the shrink -- a level
+error, not a shape error, so no amount of tuning the shrink could move it.
+
+Measured on regulars -- players with three or more games that season, which
+is exactly and only the population the board scores -- the per-touch rates
+were 2.5% higher and the league touchdown rate, the centre the shrink pulls
+toward, was 9% higher (0.315 against 0.289). A 120-man roster carries a tail
+of one-game players who score less per touch than a starter. The NFL's two
+populations agree to the third decimal, which is why the distinction never
+came up there and why the NFL recipe was copied without noticing it carried
+an assumption.
+
+**Rule:** when a constant is measured over a population, check that it is the
+population the model is applied to. A gate on the prediction side (`games >=
+3`) with no matching gate on the measurement side is a mismatch, and it shows
+up as a level error that survives every shape correction. The fix is to
+re-measure, not to add a correction that would paper over it.
+
+## The replay's answer can depend on a choice nobody fitted
+
+Same day. The yardage model reads its shape off a pool of actual/expected
+ratios, and the backtest and the board built that pool from different
+populations: the backtest required 8+ targets, the board required nothing.
+Replaying with three definitions gave −1.2pp, +1.0pp and +4.2pp. The one that
+sounds most principled -- exactly the rows the board shows -- was the worst.
+
+**Rule:** when a backtest replays a board, replay what the board ships,
+including the parts that feel like implementation detail. And when a number
+depends on such a choice by more than the number itself, say so next to the
+number rather than picking the definition that reads best.
+
+## A default that never includes today is a board that never moves
+
+Same day. The football fetcher's season default was `[year-2, year-1]`. In
+2026 that is 2024 and 2025: a 2026 game would never have entered the cache,
+and every in-season board would have been built from last season's lines all
+year. It had not bitten because the season had not started. Fixing it exposed
+a second one -- player lines came from "the latest season on file", which
+with 2026 games flowing in would have emptied the board until week 4.
+
+**Rule:** for anything that runs on a schedule across a season boundary, ask
+what it does on the first game day, the second week, and the week after the
+season ends. A default that is right today and wrong on the first day the data
+changes is a defect with a fuse.

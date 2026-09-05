@@ -1,0 +1,96 @@
+# BetHouse college football board refresh.
+#
+# The NFL refresh, for the other football. Same shape, same reasons: once a
+# day, because a player's season line only changes on game day and the box
+# score cache (cfb-history.json, ~4 MB, gitignored) is too big to commit and
+# too slow to rebuild cold -- about 1,760 games, 3,500 requests. A warm cache
+# only fetches games that have finished since last run, which in college is
+# zero on most days and around a hundred on a Sunday morning.
+#
+# WHEN IT RUNS MATTERS. College plays Tuesday through Saturday, and the
+# earliest kickoff of any day is about 16:00 UTC. 12:20 UTC is ahead of all
+# of them, so every game is recorded pregame by the snapshot below, and the
+# previous day's games are final and gradable. If this cron ever moves,
+# check it still lands before the first weekday kickoff.
+name: Refresh college football board
+
+on:
+  schedule:
+    - cron: "20 12 * * *" # daily; see above
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+# Same group as the other refreshers: all of them push to main, and two jobs
+# racing to push would leave one of them failing on a non-fast-forward.
+concurrency:
+  group: refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh-cfb:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "20"
+
+      # Carries cfb-history.json between runs so the fetch stays incremental.
+      # The key rolls per run: if a cache is ever lost the rebuild is one slow
+      # run, not a permanently slow job.
+      - name: Restore the box score cache
+        uses: actions/cache@v4
+        with:
+          path: cfb-history.json
+          key: cfb-history-${{ github.run_id }}
+          restore-keys: |
+            cfb-history-
+
+      - name: Fetch the college football board
+        run: node fetch-cfb.mjs
+
+      - name: Sanity check before committing
+        run: |
+          node -e '
+            global.window = {};
+            require("./nfl.js");
+            require("./cfb-data.js");
+            const d = window.BetHouseCFBData;
+            if (!d || !Array.isArray(d.players)) throw new Error("no players array");
+            if (!d.players.length) throw new Error("empty player list");
+            if (!d.ratings || !d.ratings.off) throw new Error("no team ratings");
+            // Every opponent outside the FBS is one team. If it is missing the
+            // membership list failed silently and every FCS school is being
+            // rated on one game.
+            if (!("FCS" in d.ratings.off)) throw new Error("no FCS pseudo-team in the ratings");
+            console.log("ok:", d.players.length, "players, week", d.week, ",", d.games.length, "games");
+          '
+          node --test edge.test.mjs score.test.mjs golf.test.mjs nfl.test.mjs cfb.test.mjs bets.test.mjs track.test.mjs clv.test.mjs provenance.test.mjs dom.test.mjs
+
+      # The forward record. Snapshot reads the local board and costs nothing;
+      # grade only fetches games that have finished since last run. Same
+      # three rules as every other board, from track-core.mjs.
+      - name: Record predictions and grade finished games
+        run: |
+          node track-cfb.mjs snapshot
+          node track-cfb.mjs grade
+          node track-cfb.mjs report --write-record
+
+      - name: Commit if the board changed
+        run: |
+          git config user.name  "bethouse-bot"
+          git config user.email "bethouse-bot@users.noreply.github.com"
+          # Adding a path that is not there is a fatal error, which is what
+          # took down every scheduled baseball run for a day.
+          git add cfb-data.js
+          [ -d cfb-record ] && git add cfb-record || true
+          [ -f cfb-record.js ] && git add cfb-record.js || true
+          if git diff --staged --quiet; then
+            echo "No change."
+          else
+            git commit -m "cfb: $(date -u +%Y-%m-%dT%H:%MZ)"
+            git pull --rebase --autostash origin main
+            git push
+          fi

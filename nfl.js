@@ -83,9 +83,27 @@
     /* Ridge for the team ratings solve. */
     teamK: 6,
 
-    /* Yardage: shrink a player's per-game average toward his own position's
-       typical output by this many games. */
+    /* Yardage: shrink a player's per-game average toward a replacement-level
+       per-game figure by this many games. */
     yardK: 5,
+    yardPrior: 25, // yards a game for a receiver nobody has heard of
+    /*
+     * The yards gate, in one place. A row goes on the board when the player
+     * has this many games and this much receiving opportunity, and projects
+     * at least `yardFloor` yards. The tracker records exactly the rows the
+     * board shows, so the gate has to be one named thing rather than the
+     * same three comparisons typed out in two files.
+     */
+    yardMinGames: 3,
+    yardMinOpportunity: 10,
+    yardFloor: 20,
+    /*
+     * Which box-score stat counts as receiving opportunity. The NFL records
+     * targets. College box scores record receptions and nothing about the
+     * throws that were not caught, so cfb.js binds this to "recs" and
+     * re-measures the per-opportunity touchdown rate to match.
+     */
+    receivingStat: "targets",
   };
 
   const clamp = (x, lo, hi) => (x < lo ? lo : x > hi ? hi : x);
@@ -113,7 +131,8 @@
       if (!g || !g.home || !g.away) continue;
       const hs = num(g.home.score), as = num(g.away.score);
       if (!(hs >= 0 && as >= 0)) continue;
-      obs.push({ off: g.home.team, def: g.away.team, pts: hs, home: 1 });
+      // A neutral site gives home field to nobody. See fetch-football.mjs.
+      obs.push({ off: g.home.team, def: g.away.team, pts: hs, home: g.neutral ? 0 : 1 });
       obs.push({ off: g.away.team, def: g.home.team, pts: as, home: 0 });
     }
     if (!obs.length) return { off: {}, def: {}, league: o.leaguePoints, homeField: o.homeField, games: {} };
@@ -153,14 +172,18 @@
     return { off: O, def: D, league, homeField: hfa, games: N };
   }
 
-  /** Expected points for each side, and the margin and total they imply. */
+  /**
+   * Expected points for each side, and the margin and total they imply.
+   * `opts.neutral` withholds home field, the same way the ratings solve
+   * withheld it from a neutral game.
+   */
   function projectGame(ratings, homeTeam, awayTeam, opts) {
     const o = Object.assign({}, DEFAULTS, opts || {});
     if (!ratings) return null;
     const oh = num(ratings.off[homeTeam]), dh = num(ratings.def[homeTeam]);
     const oa = num(ratings.off[awayTeam]), da = num(ratings.def[awayTeam]);
     const lg = isFinite(ratings.league) ? ratings.league : o.leaguePoints;
-    const hf = isFinite(ratings.homeField) ? ratings.homeField : o.homeField;
+    const hf = o.neutral ? 0 : isFinite(ratings.homeField) ? ratings.homeField : o.homeField;
     const homePts = lg + oh + da + hf;
     const awayPts = lg + oa + dh;
     return {
@@ -269,7 +292,17 @@
   }
 
   /**
-   * @param player {games, tds, carries, targets} season to date
+   * A player's receiving opportunity, in whichever stat the league records
+   * (see DEFAULTS.receivingStat). Every reader goes through here so the
+   * board, the tracker and the backtest cannot count it three ways.
+   */
+  function receivingOpportunity(record, opts) {
+    const o = Object.assign({}, DEFAULTS, opts || {});
+    return num(record && record[o.receivingStat]);
+  }
+
+  /**
+   * @param player {games, tds, carries, targets|recs} season to date
    * @param ctx    {teamFactor, oppFactor} multipliers, 1.0 = league average
    */
   function scoreAnytimeTD(player, ctx) {
@@ -279,8 +312,8 @@
     if (games <= 0) return null;
 
     const perGameCarries = num(player.carries) / games;
-    const perGameTargets = num(player.targets) / games;
-    const usageRate = usageTDs(perGameCarries, perGameTargets, o);
+    const perGameReceiving = receivingOpportunity(player, o) / games;
+    const usageRate = usageTDs(perGameCarries, perGameReceiving, o);
     const observed = num(player.tds);
 
     // Shrink the observed rate toward what the workload implies.
@@ -315,7 +348,7 @@
       shrink: games / (games + o.tdK),
       usageAveraged: !!pool,
       perGameCarries,
-      perGameTargets,
+      perGameReceiving,
       teamFactor,
       oppFactor,
       games,
@@ -357,12 +390,30 @@
    * is in the pool where it belongs.
    * ------------------------------------------------------------------ */
 
-  /** Shrunk per-game expectation for a counting stat. */
+  /** Shrunk per-game expectation for a counting stat. The prior defaults
+      to the league's replacement-level figure. */
   function expectedVolume(total, games, priorPerGame, opts) {
     const o = Object.assign({}, DEFAULTS, opts || {});
+    const prior = priorPerGame == null ? o.yardPrior : num(priorPerGame);
     const g = num(games);
-    if (g <= 0) return num(priorPerGame);
-    return (num(total) + o.yardK * num(priorPerGame)) / (g + o.yardK);
+    if (g <= 0) return prior;
+    return (num(total) + o.yardK * prior) / (g + o.yardK);
+  }
+
+  /**
+   * Whether a receiving-yards row belongs on the board, and at what
+   * projection. `null` when it does not. The ONE gate: the page shows a
+   * row iff this says so, and the tracker records a row iff this says so,
+   * so the record can never grade a bet the board never offered.
+   */
+  function yardsEligible(record, opts) {
+    const o = Object.assign({}, DEFAULTS, opts || {});
+    if (!record) return null;
+    if (!(num(record.games) >= o.yardMinGames)) return null;
+    if (!(receivingOpportunity(record, o) >= o.yardMinOpportunity)) return null;
+    const exp = expectedVolume(record.recYds, record.games, null, o);
+    if (!(exp >= o.yardFloor)) return null;
+    return { exp };
   }
 
   /**
@@ -410,6 +461,41 @@
     return d >= 2 ? Math.round((d - 1) * 100) : -Math.round(100 / (d - 1));
   }
 
+  /* ------------------------------------------------------------------ *
+   * 7. Another league, same model
+   *
+   * College football is this model with different constants: a bigger
+   * home field, more points, wider margins, receptions instead of targets.
+   * Rather than a second copy of four hundred lines that would drift from
+   * this one, cfb.js asks for the same API with its own constants merged
+   * in. An explicit `opts` at a call site still wins, so a neutral-site
+   * projection or a backtest sweep works the same either way.
+   * ------------------------------------------------------------------ */
+
+  function bind(overrides) {
+    const base = Object.assign({}, DEFAULTS, overrides || {});
+    const merge = (opts) => Object.assign({}, base, opts || {});
+    return {
+      DEFAULTS: base,
+      buildTeamRatings: (games, opts) => buildTeamRatings(games, merge(opts)),
+      projectGame: (r, h, a, opts) => projectGame(r, h, a, merge(opts)),
+      normalCDF,
+      spreadProbability: (m, s, opts) => spreadProbability(m, s, merge(opts)),
+      totalProbability: (t, m, opts) => totalProbability(t, m, merge(opts)),
+      usageTDs: (c, t, opts) => usageTDs(c, t, merge(opts)),
+      receivingOpportunity: (rec, opts) => receivingOpportunity(rec, merge(opts)),
+      usagePoolFrom,
+      scoreAnytimeTD: (p, ctx) =>
+        scoreAnytimeTD(p, Object.assign({}, ctx || {}, { opts: merge(ctx && ctx.opts) })),
+      expectedVolume: (total, games, prior, opts) => expectedVolume(total, games, prior, merge(opts)),
+      yardsEligible: (rec, opts) => yardsEligible(rec, merge(opts)),
+      empiricalOver,
+      ratioPool,
+      fairPrice,
+      bind: (more) => bind(Object.assign({}, overrides || {}, more || {})),
+    };
+  }
+
   return {
     DEFAULTS,
     buildTeamRatings,
@@ -418,11 +504,14 @@
     spreadProbability,
     totalProbability,
     usageTDs,
+    receivingOpportunity,
     usagePoolFrom,
     scoreAnytimeTD,
     expectedVolume,
+    yardsEligible,
     empiricalOver,
     ratioPool,
     fairPrice,
+    bind,
   };
 });

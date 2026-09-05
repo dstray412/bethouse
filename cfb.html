@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>BetHouse — NFL</title>
+<title>BetHouse — College football</title>
 <link rel="stylesheet" href="fonts/space-grotesk.css">
 <style>
 :root{
@@ -97,14 +97,14 @@ footer td{padding:1px 14px 1px 0}
 <header>
   <div class="brand">
     <h1 class="logo">BETHOUSE</h1>
-    <div class="tagline" id="tagline">NFL</div>
+    <div class="tagline" id="tagline">College football</div>
   </div>
   <div class="ctl">
     <label id="lab-view">Bet type</label>
     <div class="seg" id="view" role="group" aria-labelledby="lab-view"></div>
   </div>
   <a class="navlink" href="bets.html">Bets →</a>
-  <a class="navlink" href="cfb.html">CFB →</a>
+  <a class="navlink" href="nfl.html">NFL →</a>
   <a class="navlink" href="index.html">Baseball →</a>
   <a class="navlink" href="golf.html">PGA →</a>
 </header>
@@ -117,48 +117,56 @@ footer td{padding:1px 14px 1px 0}
   </div>
 </div>
 <div id="app"><div class="empty"><div class="big">Loading…</div>
-  <div>If this does not clear, run <code>node fetch-nfl.mjs</code>.</div></div></div>
+  <div>If this does not clear, run <code>node fetch-cfb.mjs</code>.</div></div></div>
 <footer id="foot"></footer>
 </div>
 
 <script src="edge.js"></script>
 <script src="nfl.js"></script>
-<script src="nfl-data.js"></script>
-<!-- Written by track-nfl.mjs. Empty until a week has been graded. -->
-<script src="nfl-record.js"></script>
+<script src="cfb.js"></script>
+<script src="cfb-data.js"></script>
+<!-- Written by track-cfb.mjs. Empty until a week has been graded. -->
+<script src="cfb-record.js"></script>
 <script src="football-board.js"></script>
 <script>
-/* The page is football-board.js, shared with cfb.html. What is the NFL's
-   own is the model, the data, the record, and the numbers it quotes --
-   every one of them from `node backtest-nfl.mjs` on 2026-09-05. */
+/* The page is football-board.js, shared with nfl.html. What is college
+   football's own is the model (nfl.js bound to college constants, cfb.js),
+   the data, the record, and the numbers it quotes -- every one of them from
+   `node backtest-nfl.mjs --league cfb` on 2026-09-05. */
 BetHouseFootballBoard.mount({
-  model: window.BetHouseNFL,
-  data: window.BetHouseNFLData,
-  record: window.BETHOUSE_NFL_RECORD,
-  league: 'NFL',
-  fetcher: 'fetch-nfl.mjs',
+  model: window.BetHouseCFB,
+  data: window.BetHouseCFBData,
+  record: window.BETHOUSE_CFB_RECORD,
+  league: 'College football',
+  fetcher: 'fetch-cfb.mjs',
   copy: {
-    noteTD: 'Chance of <b>scoring a touchdown</b>. Checked against <b>8,470</b> unseen player-games — '+
-      'bias 0.8 points, every band within 3. Tap a player for the work.',
-    noteYards: 'Chance of going <b>over</b> a receiving yards line. Checked against <b>22,360</b> unseen '+
-      'player-games — bias 1.2 points, cold. The shape comes from real receiver games, not a bell curve.',
-    noteGames: 'Model projections for the week. <b>These did not beat the closing line</b> — see the note below.',
-    gameBanner: '<p>These projections were measured against <b>480 real closing lines</b> and did not beat them. '+
-      'The spread model won <b>48.1%</b> of the time and the total model <b>52.5%</b>, against the '+
-      '<b>52.4%</b> you need at -110 — and both confidence intervals straddle a coin flip. '+
-      'Separating a break-even model from noise would take about <b>1,700</b> games; two seasons is 480.</p>'+
-      '<p>They are here because you asked what the model thinks, not because there is an edge in them.</p>',
-    gameHonestly: 'this did not beat the closing line over two seasons',
-    footer: '<p><b>Does it work?</b> Two seasons replayed a game at a time, each game predicted only from '+
+    noteTD: 'Chance of <b>scoring a touchdown</b>. Checked against <b>25,345</b> unseen FBS player-games — '+
+      'bias 1.4 points, cold, and the top of the board runs 2 to 4 points cold. Tap a player for the work.',
+    noteYards: 'Chance of going <b>over</b> a receiving yards line. Checked against <b>55,970</b> unseen '+
+      'player-games — <b>3 points cold</b>, and the replay is sensitive to a modelling choice by about that much either way. '+
+      'Read the number as approximate. The shape comes from real receiver games, not a bell curve.',
+    noteGames: 'Model projections for the week. <b>Not proven against the closing line</b> — see the note below.',
+    gameBanner: '<p>These projections were measured against <b>1,488 real closing lines</b>. '+
+      'The spread model won <b>51.7%</b> of the time and the total model <b>53.4%</b>, against the '+
+      '<b>52.4%</b> you need at -110. Both confidence intervals straddle break-even. Where the model '+
+      'disagreed with the line by six points or more the total went <b>56.5%</b> — on 322 games, which is '+
+      'still inside the noise. Separating a break-even model from a coin flip takes about <b>1,700</b> games; '+
+      'two seasons is 1,488.</p>'+
+      '<p>Softer than the NFL number, not yet proven better than it. They are here because you asked what '+
+      'the model thinks. Opponents outside the FBS are rated as one team, <b>FCS</b>.</p>',
+    gameHonestly: 'inside the noise against the closing line over two seasons; not a proven edge',
+    footer: '<p><b>Does it work?</b> Two FBS seasons replayed a game at a time, each game predicted only from '+
       'games already played:</p><table>'+
-      '<tr><td>anytime touchdown</td><td>bias <b>&minus;0.8pp</b>, Brier <b>0.1591</b> against 0.1718 · '+
-      'top 20% scored <b>39.0%</b>, bottom 20% <b>9.3%</b></td></tr>'+
-      '<tr><td>receiving yards</td><td>bias <b>&minus;1.2pp</b>, Brier <b>0.2224</b> against 0.2459</td></tr>'+
-      '<tr><td>spread</td><td><b>48.1%</b> against the closing line — needs 52.4%</td></tr>'+
-      '<tr><td>total</td><td><b>52.5%</b> against the closing line — inside the noise</td></tr>'+
-      '</table><p>The two player props are calibrated and worth reading. The game lines are not: '+
-      'the NFL closing number is very good, and two seasons is not enough games to prove otherwise '+
-      'either way. Re-check with <code>node backtest-nfl.mjs</code>.</p>'
+      '<tr><td>anytime touchdown</td><td>bias <b>&minus;1.4pp</b>, Brier <b>0.1743</b> against 0.1921 · '+
+      'top 20% scored <b>47.3%</b>, bottom 20% <b>9.5%</b></td></tr>'+
+      '<tr><td>receiving yards</td><td>bias <b>&minus;3.0pp</b>, Brier <b>0.2297</b> against 0.2491</td></tr>'+
+      '<tr><td>spread</td><td><b>51.7%</b> against the closing line — needs 52.4%; inside the noise</td></tr>'+
+      '<tr><td>total</td><td><b>53.4%</b> against the closing line — inside the noise</td></tr>'+
+      '</table><p>The touchdown model separates hard and runs a little cold. The yards model runs colder, '+
+      'and its replay depends on which games go into the comparison pool by three or four points, so treat '+
+      'it as approximate until the live record below has thousands of rows. The game lines are closer to '+
+      'break-even than the NFL\'s, which is what a softer market looks like, and 1,488 games cannot tell '+
+      'break-even from an edge. Re-check with <code>node backtest-nfl.mjs --league cfb</code>.</p>'
   }
 });
 </script>
