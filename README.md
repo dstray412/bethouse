@@ -1301,6 +1301,33 @@ The efficiency lines are now kept in the history cache (`home.stats`,
 `away.stats`: yards, plays, turnovers, first downs, possession) so the next
 attempt does not start with a ten-minute refetch.
 
+### Injuries: where they help, and where they were always priced
+
+**2026-09-06.** The NFL board reads ESPN's injury report when it is built
+(`football-leagues.mjs`, `injuriesUrl`; one request, every player on every
+roster with a dated status). What it does with it follows what a book does:
+
+- **Out, injured reserve, doubtful, suspended: not shown, not recorded.** A
+  book voids the prop, so a row for him is a row nobody can bet and a record
+  entry that can only be scratched. On the week-1 board that removed 18
+  players, Isiah Pacheco and James Conner among them.
+- **Questionable: shown, flagged `Q`, recorded.** Measured over 120 games of
+  2025, 59% of skill players listed Questionable at game time played. A bet
+  on one who does not is void, not lost.
+- **The game view lists each side's hurt skill players**, with the note that
+  the line already reflects them. Injury news is what moves a line, within
+  minutes; a daily board cannot get ahead of it, and no history of injury
+  reports exists to backtest the claim that it could.
+
+One rule, `availability` in `nfl.js`, decides all three, so the page and the
+tracker cannot disagree about who is playing. The athlete id is not a field on
+an injury entry; it is in the player-card link, which is the only place ESPN
+puts it, and an entry with no link is dropped rather than matched by name.
+
+**College has no injury report.** ESPN's college endpoint returns three
+entries dated 2020–22. Every college player reads as available, and the
+college record will keep voiding the ones who turn out not to be.
+
 ### Line movement: real information, already spent by the time you can bet it
 
 ESPN keeps the opening line on every game, finished or not, so the move from
@@ -1474,6 +1501,8 @@ reason, and the number to watch is touchdowns.
 - **Spread picks are printed at 50% in both leagues** because the replay found
   no information in the projection beyond the closing line. The lean is shown
   and recorded; the record is the only thing that can change that number.
+- **College has no injury feed**, so a college player ruled out stays on the
+  board until his box score is empty. The NFL board hides him.
 - **Line movement is not a signal.** Following the move at the current line
   covers about 50% in both leagues; the 60% lived at the opening number and
   the model cannot predict the move. Shown, recorded, not bet.

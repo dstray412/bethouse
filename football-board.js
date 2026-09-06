@@ -68,9 +68,21 @@
       return f&&isFinite(f.def)?f.def:1;
     };
 
+    /* A player ruled out is not shown: his props are void at every book.
+       Questionable is shown and flagged. One rule, the model's, shared
+       with the tracker. */
+    var available=function(p){ return N.availability(p.status)!=='out'; };
+    var qTag=function(p){ return N.availability(p.status)==='questionable' ? '<span class="pos">· Q</span>' : ''; };
+    var statusRow=function(p){
+      if(!p.status||N.availability(p.status)==='ok') return '';
+      return '<tr><td>status</td><td><b>'+esc(p.status)+'</b>'+(p.injury?' ('+esc(p.injury)+')':'')+
+        ' — listed Questionable, about 6 in 10 play; a bet on a player who does not is void, not lost</td></tr>';
+    };
+
     function renderTD(){
       var rows=[];
       (D.players||[]).forEach(function(p){
+        if(!available(p)) return;
         var tf=(D.teamFactors[p.team]||{}).off||1;
         // The opponent's defence, the same term the backtest used.
         var of=p.opp?oppFactorFor(p.opp):1;
@@ -87,7 +99,7 @@
         html+='<button class="row" aria-expanded="false" data-i="'+i+'">'+
           '<span class="slot">'+(i+1)+'</span>'+
           '<span class="who">'+esc(r.p.name)+'<span class="pos">'+esc(r.p.team)+
-            (r.p.opp?' vs '+esc(r.p.opp):'')+'</span></span>'+
+            (r.p.opp?' vs '+esc(r.p.opp):'')+'</span>'+qTag(r.p)+'</span>'+
           '<span class="prob">'+pct(r.s.prob,0)+'</span>'+
           '<span class="be">'+sgn(N.fairPrice(r.s.prob))+'<small>fair</small></span>'+
           '<span class="caret">›</span></button>'+
@@ -114,6 +126,7 @@
         t+='<tr><td>chance to score</td><td><b>'+pct(r.s.prob)+'</b>'+
           (r.s.usageAveraged?', averaged over real week-to-week workload swings':'')+'</td></tr>';
         t+='<tr><td>fair price</td><td><b>'+sgn(N.fairPrice(r.s.prob))+'</b></td></tr>';
+        t+=statusRow(r.p);
         return t+'</table>';
       };
     }
@@ -121,6 +134,7 @@
     function renderYards(){
       var rows=[];
       (D.players||[]).forEach(function(p){
+        if(!available(p)) return;
         // The one gate, shared with the tracker: see nfl.js yardsEligible.
         var y=N.yardsEligible(p);
         if(!y) return;
@@ -136,7 +150,7 @@
       rows.forEach(function(r,i){
         html+='<button class="row" aria-expanded="false" data-i="'+i+'">'+
           '<span class="slot">'+(i+1)+'</span>'+
-          '<span class="who">'+esc(r.p.name)+'<span class="pos">'+esc(r.p.team)+' · o'+r.line+'</span></span>'+
+          '<span class="who">'+esc(r.p.name)+'<span class="pos">'+esc(r.p.team)+' · o'+r.line+'</span>'+qTag(r.p)+'</span>'+
           '<span class="prob">'+pct(r.over,0)+'</span>'+
           '<span class="be">'+sgn(N.fairPrice(r.over))+'<small>fair</small></span>'+
           '<span class="caret">›</span></button>'+
@@ -153,6 +167,7 @@
         t+='<tr><td>over</td><td><b>'+pct(r.over)+'</b>, read off <b>'+yardPool.length+
           '</b> real receiver games rather than any bell curve</td></tr>';
         t+='<tr><td>fair price</td><td><b>'+sgn(N.fairPrice(r.over))+'</b></td></tr>';
+        t+=statusRow(r.p);
         return t+'</table>';
       };
     }
@@ -273,6 +288,12 @@
         } else {
           t+='<tr><td>market</td><td>no line yet</td></tr>';
         }
+        var hurt=function(team){
+          var l=(D.injuries||{})[team]||[]; if(!l.length) return esc(team)+': none listed';
+          return esc(team)+': '+l.map(function(x){return esc(x.name)+' ('+esc(x.pos)+') <b>'+esc(x.status)+'</b>'+(x.detail?', '+esc(x.detail):'');}).join('; ');
+        };
+        if(D.injuriesAt) t+='<tr><td>injuries</td><td>'+hurt(r.h)+'<br>'+hurt(r.a)+
+          '<br><span style="color:var(--muted)">Skill players not listed Active. The line above already reflects them: injury news is what moves it.</span></td></tr>';
         t+='<tr><td>ratings</td><td>'+esc(r.h)+' offence <b>'+(D.ratings.off[r.h]||0).toFixed(2)+
           '</b>, defence <b>'+(D.ratings.def[r.h]||0).toFixed(2)+'</b><br>'+
           esc(r.a)+' offence <b>'+(D.ratings.off[r.a]||0).toFixed(2)+

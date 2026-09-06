@@ -126,13 +126,16 @@ export function snapshot(league) {
     return f && isFinite(f.def) ? f.def : 1;
   };
 
-  let added = 0, skippedStarted = 0, skippedNoGame = 0;
+  let added = 0, skippedStarted = 0, skippedNoGame = 0, skippedOut = 0;
 
   for (const p of D.players || []) {
     const g = gameFor[p.team];
     if (!g) { skippedNoGame++; continue; }
     // Rule 2: the clock, not the status string.
     if (core.startedAlready(g.date)) { skippedStarted++; continue; }
+    /* Ruled out: the book would void him, so the board does not show him
+       and the record does not carry him. The same rule as the page. */
+    if (M.availability(p.status) === "out") { skippedOut++; continue; }
 
     const tf = (D.teamFactors[p.team] || {}).off || 1;
     const of = p.opp ? oppFactorFor(p.opp) : 1;
@@ -213,6 +216,7 @@ export function snapshot(league) {
     `(${day.predictions.length} total, ${players} players, ${games} new game picks)`);
   if (skippedStarted) console.log(`  skipped ${skippedStarted} players whose game has kicked off`);
   if (skippedNoGame) console.log(`  skipped ${skippedNoGame} players with no game on this board`);
+  if (skippedOut) console.log(`  skipped ${skippedOut} players ruled out`);
 }
 
 /* ---------------------------------------------------------------- *

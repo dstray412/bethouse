@@ -691,3 +691,48 @@ test("the NFL ships its spread probability fully shrunk, and college too", async
   assert.ok(DEFAULTS.totalShrink > 0 && DEFAULTS.totalShrink < 1);
   assert.ok(cfb.DEFAULTS.totalShrink > 0 && cfb.DEFAULTS.totalShrink < 1);
 });
+
+/* ------------------------------------------------------------------ *
+ * Availability
+ *
+ * Oracle: what a book does. A player ruled Out or on injured reserve has
+ * his props voided, so a row for him is a row nobody can bet and a record
+ * entry that can only be scratched. Questionable is a coin flip (59% of
+ * skill players listed Questionable at game time played, measured over
+ * 120 games of 2025), so he stays, flagged.
+ * ------------------------------------------------------------------ */
+
+test("availability: out, questionable, or fine, from the feed's status words", () => {
+  for (const s of ["Out", "Injured Reserve", "Doubtful", "Suspension", "Physically Unable to Perform"]) {
+    assert.equal(nfl.availability(s), "out", s);
+  }
+  assert.equal(nfl.availability("Questionable"), "questionable");
+  assert.equal(nfl.availability("Active"), "ok");
+  assert.equal(nfl.availability(undefined), "ok");
+  assert.equal(nfl.availability(""), "ok");
+});
+
+test("parseInjuries: keys non-active players by athlete id, read off the player-card link", async () => {
+  const { parseInjuries } = await import("./fetch-football.mjs");
+  const entry = (name, status, id, pos, team, extra) => ({
+    status, date: "2026-09-03T17:49Z",
+    athlete: {
+      displayName: name, position: { abbreviation: pos }, team: { abbreviation: team },
+      links: id ? [{ rel: ["playercard"], href: `https://www.espn.com/nfl/player/_/id/${id}/${name.toLowerCase().replace(" ", "-")}` }] : [],
+    },
+    details: extra || {},
+  });
+  const inj = parseInjuries({ injuries: [
+    { displayName: "Arizona Cardinals", injuries: [
+      entry("Jacoby Brissett", "Active", "1", "QB", "ARI"),
+      entry("Jeremiyah Love", "Questionable", "4870808", "RB", "ARI", { type: "Ankle", returnDate: "2026-09-13" }),
+      entry("Nobody Linked", "Out", null, "WR", "ARI"),
+    ] },
+    { displayName: "Seattle Seahawks", injuries: [entry("Sam Darnold", "Out", "3912547", "QB", "SEA")] },
+  ] });
+  assert.equal(inj["1"], undefined, "an active player is not an injury");
+  assert.deepEqual(inj["4870808"], { name: "Jeremiyah Love", team: "ARI", pos: "RB", status: "Questionable", detail: "Ankle", date: "2026-09-03T17:49Z" });
+  assert.equal(inj["3912547"].status, "Out");
+  assert.equal(Object.keys(inj).length, 2, "an entry with no id cannot be matched to anyone and is dropped");
+  assert.deepEqual(parseInjuries(null), {});
+});

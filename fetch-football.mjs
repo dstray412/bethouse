@@ -336,6 +336,34 @@ export function parseScheduleEvent(e, season, week, opts) {
   return row;
 }
 
+/**
+ * The league's injury report → { athleteId: {name, team, pos, status, detail, date} }
+ * for every player who is not Active. The athlete id is not a field on the
+ * entry; it is in the player-card link, which is the only place ESPN puts
+ * it. An entry with no link cannot be matched to a box-score player and is
+ * dropped rather than guessed by name.
+ */
+export function parseInjuries(payload) {
+  const out = {};
+  for (const team of payload?.injuries || []) {
+    for (const e of team.injuries || []) {
+      if (/^active$/i.test(String(e?.status || ""))) continue;
+      const href = (e?.athlete?.links || []).map((l) => String(l?.href || "")).find((h) => /\/id\/\d+/.test(h)) || "";
+      const m = /\/id\/(\d+)/.exec(href);
+      if (!m) continue;
+      out[m[1]] = {
+        name: e.athlete?.displayName || "",
+        team: e.athlete?.team?.abbreviation || "",
+        pos: e.athlete?.position?.abbreviation || "",
+        status: String(e.status || ""),
+        detail: e.details?.type || "",
+        date: e.date || "",
+      };
+    }
+  }
+  return out;
+}
+
 /** The team ids on a league's membership payload (core API groups/<n>/teams). */
 export function parseMembers(payload) {
   const ids = new Set();
@@ -645,6 +673,26 @@ export async function buildBoard(league, history) {
     }
   }
 
+  /* The injury report, where the league publishes one. Each board player
+     gets his status; each team gets its list of hurt skill players for the
+     game view. College's endpoint returns three stale entries, so college
+     has no report and every player reads as available. */
+  let injuries = {};
+  if (league.injuriesUrl) {
+    try {
+      injuries = parseInjuries(await getJSON(league.injuriesUrl));
+      console.log(`  injury report: ${Object.keys(injuries).length} players not active`);
+    } catch (e) {
+      console.log(`  WARNING: no injury report (${e.message})`);
+    }
+  }
+  const hurtByTeam = {};
+  for (const [id, inj] of Object.entries(injuries)) {
+    if (!/^(QB|RB|WR|TE|FB)$/.test(inj.pos)) continue;
+    if (model.availability(inj.status) === "ok") continue;
+    (hurtByTeam[inj.team] = hurtByTeam[inj.team] || []).push({ id, name: inj.name, pos: inj.pos, status: inj.status, detail: inj.detail });
+  }
+
   const round = (a, n) => Array.from(a, (x) => Number(x.toFixed(n)));
   const payload = {
     generated: new Date().toISOString(),
@@ -668,7 +716,10 @@ export async function buildBoard(league, history) {
         // defence the same way the backtest does. null = on bye or the
         // schedule has not placed his team yet.
         opp: opponentOf[p.team] || null,
+        ...(injuries[p.id] ? { status: injuries[p.id].status, injury: injuries[p.id].detail || undefined } : {}),
       })),
+    injuries: hurtByTeam,
+    injuriesAt: league.injuriesUrl ? new Date().toISOString() : null,
     usagePool: round(usagePool.slice(0, 4000), 3),
     yardPool: round(yardPool.slice(-4000), 3),
     seasonsCached: history.seasons,

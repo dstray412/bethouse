@@ -527,7 +527,26 @@
   }
 
   /* ------------------------------------------------------------------ *
-   * 6. Presentation
+   * 6. Availability
+   *
+   * What a book does with an injury status. Out, injured reserve,
+   * doubtful, suspended: the props are void, so the row is not shown and
+   * not recorded. Questionable: shown and recorded, flagged -- 59% of
+   * skill players listed Questionable at game time played (120 games,
+   * 2025). Anything else, including an unknown word, is available: the
+   * safe failure is a row that may void, not a starter that vanishes.
+   * ------------------------------------------------------------------ */
+
+  function availability(status) {
+    const s = String(status || "").toLowerCase();
+    if (!s) return "ok";
+    if (/^(out|injured reserve|doubtful|suspen|physically unable|non-football|reserve)/.test(s)) return "out";
+    if (/questionable/.test(s)) return "questionable";
+    return "ok";
+  }
+
+  /* ------------------------------------------------------------------ *
+   * 7. Presentation
    * ------------------------------------------------------------------ */
 
   function fairPrice(p) {
@@ -538,7 +557,7 @@
   }
 
   /* ------------------------------------------------------------------ *
-   * 7. Another league, same model
+   * 8. Another league, same model
    *
    * College football is this model with different constants: a bigger
    * home field, more points, wider margins, receptions instead of targets.
@@ -569,6 +588,7 @@
       yardsEligible: (rec, opts) => yardsEligible(rec, merge(opts)),
       empiricalOver,
       ratioPool,
+      availability,
       fairPrice,
       bind: (more) => bind(Object.assign({}, overrides || {}, more || {})),
     };
@@ -591,6 +611,7 @@
     yardsEligible,
     empiricalOver,
     ratioPool,
+    availability,
     fairPrice,
     bind,
   };

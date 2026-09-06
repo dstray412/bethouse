@@ -91,6 +91,15 @@ at the close in both leagues and 60% at the open for moves of 3+ points; the
 model does not predict the move (50%). Real information, spent before it can
 be bet. README "Line movement". Nothing in the model changed.
 
+**Injuries, 2026-09-06.** The NFL board reads ESPN's injury report
+(`injuriesUrl` in the league table; college's endpoint is empty). Out /
+IR / doubtful / suspended players are hidden from the props views and
+skipped by the tracker; Questionable is flagged `Q` (59% play); each game's
+detail lists hurt skill players. `availability` in `nfl.js` is the one
+rule. No game-line change: injury news moves lines within minutes and
+there is no report history to test against. The week-1 NFL snapshot,
+taken before this, carries rows for players now out; they void at grading.
+
 **College results** (README has the full section): touchdowns −1.4pp, Brier
 0.1743; yards −3.0pp and approximate; spread 51.7% and total 53.4% against the
 close on ~1,485 games, inside the noise. The forward record started
