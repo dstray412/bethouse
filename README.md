@@ -172,6 +172,7 @@ should be re-fitted when the run environment shifts.
 | `football-leagues.mjs` | The one table of what differs between the two leagues: endpoints, files, weeks, the model, what to call a team that is not in the league. |
 | `fetch-football.mjs` | Keyless ESPN requests → `<league>-history.json` and `<league>-data.js`. `fetch-nfl.mjs` and `fetch-cfb.mjs` pick the league. |
 | `backtest-nfl.mjs` | Replays either league (`--league cfb`), measures the constants (`--measure`), fits the two that are fitted (`--fit`). |
+| `experiment-lines.mjs` | Tests every reconfiguration of the game model a box score can support against the closing line, per season. Nothing helped. Kept so the negative result stays reproducible. |
 
 ## Sharing it
 
@@ -1252,6 +1253,53 @@ void, the moneyline settles on the winner. Two numbers come back: how often
 the side won, against the 52.4% a −110 price needs, and closing line value in
 points, whether the line moved toward the pick by kickoff. Both are on the
 page under the live record once games have been graded.
+
+### Reconfiguring the model: what was tried, and what it found
+
+**2026-09-06.** The picks lose, so the model was put through every
+reconfiguration a box score can support, as an experiment rather than a
+change. `experiment-lines.mjs` walks each season forward a week at a time and
+asks one question of every scheme: regress the outcome against the line on
+the model's disagreement with the line. The slope is the fraction of the
+model's edge that comes true. 1 means the edge is real, 0 means the closing
+line already knew, negative means fade the model. A scheme has to help on both
+seasons to be believed.
+
+| scheme | NFL spread slope (2024 / 2025) | college spread slope (2024 / 2025) |
+|---|---|---|
+| points ratings, as shipped | −0.13 / −0.30 | 0.17 / 0.07 |
+| blowouts capped (21 / 28 pts) | −0.29 / −0.35 | 0.10 / −0.01 |
+| recency-weighted, 90-day half-life | −0.30 / −0.33 | 0.14 / 0.02 |
+| recency-weighted, 180-day | −0.22 / −0.42 | 0.15 / 0.04 |
+| this season, shrunk to last season's rating | — / −0.43 | — / 0.00 |
+| ratings solved from prior closing spreads | −0.66 / −0.31 | 0.08 / 0.02 |
+| half points, half market ratings | −0.55 / −0.35 | 0.14 / 0.00 |
+| efficiency: yards per play + turnovers, fitted on 2024 | (−0.11) / −0.19 | (0.08) / 0.05 |
+| points + efficiency, fitted on 2024 | (0.02) / −0.19 | (0.09) / 0.10 |
+
+Totals fare a little better and no better than shipped: the NFL total's slope
+is 0.15 / 0.27 as shipped and no scheme beats it on both seasons; college's is
+0.40 / 0.11 as shipped, and 180-day recency lifts it to 0.44 / 0.13 while
+making the spread projection worse, which is not a model.
+
+The closing line itself was scanned for a side that simply wins: home,
+underdog, underdogs by spread size, overs by total size, each by season.
+Nothing clears two standard errors after twenty buckets except one that is
+what twenty buckets produce by chance. The one consistent-signed bucket,
+unders when a college total is 56 or higher, is 55.6% and 55.4% on the two
+seasons and 1.1 standard errors from break-even pooled. Watch it; do not bet
+it.
+
+**The finding is that the constraint is the information, not the
+configuration.** Everything a box score contains — points, yards per play,
+turnovers, recency, last season — is already in the closing line of both
+leagues. Beating it needs something the box score does not have: injuries and
+quarterback status before the market prices them, weather, line movement, or
+the numbers themselves as a signal. The forward record of the picks keeps
+running so that claim can be checked against a season the model never saw.
+The efficiency lines are now kept in the history cache (`home.stats`,
+`away.stats`: yards, plays, turnovers, first downs, possession) so the next
+attempt does not start with a ten-minute refetch.
 
 ### The yards replay depends on a choice nobody fitted
 

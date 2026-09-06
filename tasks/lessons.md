@@ -585,3 +585,22 @@ that are less sharp than the market's put more weight on the dog than the
 market does, so ranking picks by moneyline EV surfaces the losing side of
 every game first. If the moneyline model has not beaten the market in the
 replay, it must not be a candidate for "best pick".
+
+## When the model is losing, find out whether the problem is configuration or information
+
+2026-09-06. The football spread picks lose to the closing line, and the
+instinct was to reconfigure the model. Nine reconfigurations later -- capped
+margins, two recency weightings, last season as a prior, market-solved
+ratings, two blends, and efficiency ratings built from yards per play and
+turnovers -- not one adds information beyond the line on both seasons of
+either league. Each of them "improved" something in isolation (recency cut the
+projection error, efficiency raised the 2024 win rate to 55.6%) and none of
+them survived the other season.
+
+**Rule:** before tuning, ask what information the model has that the market
+does not. If the answer is "the same box scores the market reads", no
+configuration of that information will beat the market, and every apparent
+improvement is a window effect. Test the whole family of reconfigurations
+once, per season, with one metric that cannot be gamed (the slope of the
+outcome on the model's disagreement with the line), write the table down,
+and stop. The next move is new information, not a new constant.

@@ -71,6 +71,18 @@ settled like a book, with closing line value in points; first rows are in
 The pick rows were re-recorded once, within the hour, after the shrink was
 measured and before anything was published or graded.
 
+**Reconfiguring the game model, 2026-09-06.** "If the model is losing,
+reconfigure it." Nine rating schemes and a bias scan of the closing line,
+each season separately (`experiment-lines.mjs`, README "Reconfiguring the
+model"). No spread scheme clears a slope of 0.1 on both seasons in either
+league; efficiency ratings (yards per play, turnovers) are worse than points
+in the NFL and inside the noise in college. The constraint is information,
+not configuration: the close already contains everything a box score does.
+Nothing shipped from it except the experiment, the team-efficiency lines in
+both history caches (`side.stats`), and this paragraph. Next attempts need
+data the box score lacks: injuries and QB status before the market moves,
+weather, line movement.
+
 **College results** (README has the full section): touchdowns −1.4pp, Brier
 0.1743; yards −3.0pp and approximate; spread 51.7% and total 53.4% against the
 close on ~1,485 games, inside the noise. The forward record started

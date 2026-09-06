@@ -207,6 +207,24 @@ export function parseGame(summary, opts) {
     (p) => p.pass?.att || p.rush?.att || p.rec?.tgt || p.rec?.rec,
   );
 
+  /* Each side's efficiency line. Points are a noisy reading of how a team
+     played -- turnovers and red-zone luck swing them -- and yards per play
+     and turnovers are the less noisy one. Kept so a ratings model can be
+     built on them; see backtest-nfl.mjs. */
+  const teamStats = (abbr) => {
+    const block = (summary.boxscore?.teams || []).find((t) => (t.team?.abbreviation || "") === abbr);
+    if (!block) return null;
+    const v = {};
+    for (const st of block.statistics || []) v[st.name] = String(st.displayValue ?? "");
+    const rush = num(v.rushingAttempts);
+    const pass = num(String(v.completionAttempts || "").split("/")[1]);
+    const [mm, ss] = String(v.possessionTime || "").split(":").map(num);
+    const out = { yards: num(v.totalYards), plays: rush + pass, turnovers: num(v.turnovers) };
+    if (v.firstDowns != null) out.firstDowns = num(v.firstDowns);
+    if (v.possessionTime) out.possession = mm * 60 + ss;
+    return out;
+  };
+
   const game = {
     id: String(header.id ?? comp.id),
     season: header.season?.year ?? null,
@@ -216,6 +234,9 @@ export function parseGame(summary, opts) {
     away: { team: awayCode, score: num(away.score) },
     players: kept,
   };
+  const hs = teamStats(home.team?.abbreviation || ""), as = teamStats(away.team?.abbreviation || "");
+  if (hs) game.home.stats = hs;
+  if (as) game.away.stats = as;
   if (comp.neutralSite) game.neutral = true;
   return game;
 }

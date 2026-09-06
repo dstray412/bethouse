@@ -221,3 +221,30 @@ test("parseOdds: keeps the juice on each side, and drops the in-play entry first
   assert.equal(bare.homeML, null);
   assert.equal(bare.homeSpreadOdds, null);
 });
+
+test("parseGame: keeps each side's team-level efficiency line", () => {
+  const s = summary();
+  s.boxscore.teams = [
+    { team: { abbreviation: "ISU" }, statistics: [
+      { name: "totalYards", displayValue: "313" }, { name: "rushingAttempts", displayValue: "46" },
+      { name: "completionAttempts", displayValue: "14/28" }, { name: "turnovers", displayValue: "2" },
+      { name: "possessionTime", displayValue: "33:52" }, { name: "firstDowns", displayValue: "19" } ] },
+    { team: { abbreviation: "KSU" }, statistics: [
+      { name: "totalYards", displayValue: "400" }, { name: "rushingAttempts", displayValue: "30" },
+      { name: "completionAttempts", displayValue: "21/30" }, { name: "turnovers", displayValue: "0" } ] },
+  ];
+  const g = parseGame(s);
+  assert.deepEqual(g.away.stats, { yards: 313, plays: 74, turnovers: 2, firstDowns: 19, possession: 2032 });
+  assert.equal(g.home.stats.yards, 400);
+  assert.equal(g.home.stats.plays, 60);
+  assert.equal(g.home.stats.turnovers, 0);
+  // An outsider's stats are filed under the outsider code's side.
+  s.header.competitions[0].competitors[1].team = { id: "2504", abbreviation: "SDAK" };
+  s.boxscore.teams[0].team.abbreviation = "SDAK";
+  const o = parseGame(s, { members, outsiderCode: "FCS" });
+  assert.equal(o.away.team, "FCS");
+  assert.equal(o.away.stats.yards, 313);
+  // No team block at all: no stats, no crash.
+  delete s.boxscore.teams;
+  assert.equal("stats" in parseGame(s).home, false);
+});
