@@ -168,6 +168,14 @@
       return team+' '+(pts>0?'+':'')+pts;
     };
     var evStr=function(ev){ return isFinite(ev)?((ev>=0?'+':'')+(100*ev).toFixed(1)+'%'):'—'; };
+    /* "−3 → −3.5": where the line opened and where it is. A number that has
+       not moved is printed once. */
+    var fmtLine=function(v,plain){ return plain?String(v):((v>0?'+':'')+v); };
+    var moveStr=function(open,now,plain){
+      if(now==null) return '—';
+      if(open==null||!isFinite(open)||open===now) return fmtLine(now,plain);
+      return fmtLine(open,plain)+' → '+fmtLine(now,plain);
+    };
 
     function renderGames(){
       var html='<div class="banner"><h3>Read this before betting a side</h3>'+C.gameBanner+'</div>';
@@ -210,7 +218,7 @@
           '<span class="slot">'+(i+1)+'</span>'+
           '<span class="who">'+esc(r.a)+(r.g.neutral?' vs ':' at ')+esc(r.h)+
             '<span class="pos">'+(r.g.line
-              ? esc(r.h)+' '+(r.g.line.spread>0?'+':'')+r.g.line.spread+' · o/u '+r.g.line.total+
+              ? esc(r.h)+' '+moveStr(r.g.line.open&&r.g.line.open.spread,r.g.line.spread)+' · o/u '+moveStr(r.g.line.open&&r.g.line.open.total,r.g.line.total,true)+
                 (r.g.line.book?' · '+esc(r.g.line.book):'')
               : esc(String(r.g.name||'')))+(r.g.neutral?' · neutral site':'')+'</span></span>'+
           /* With a line: the best pick, its probability, and its EV at the
@@ -233,6 +241,12 @@
           '</b> to the home side'+(r.g.neutral?' (neutral site, no home field)':'')+' · total <b>'+r.pr.total.toFixed(1)+'</b></td></tr>';
         if(r.g.line){
           var L=r.g.line;
+          if(L.open&&isFinite(L.open.spread)){
+            var mv=L.spread-L.open.spread, tmv=(L.open.total!=null&&L.total!=null)?L.total-L.open.total:0;
+            t+='<tr><td>movement</td><td>'+(mv===0?'spread unmoved since it opened':
+              'spread moved <b>'+Math.abs(mv)+'</b> toward <b>'+esc(mv<0?r.h:r.a)+'</b> since it opened at '+fmtLine(L.open.spread))+
+              (tmv?'; total moved <b>'+(tmv>0?'up':'down')+' '+Math.abs(tmv)+'</b> from '+L.open.total:'')+'</td></tr>';
+          }
           t+='<tr><td>market</td><td>'+esc(r.h)+' <b>'+(L.spread>0?'+':'')+L.spread+'</b>'+
             (L.homeSpreadOdds?' ('+sgn(L.homeSpreadOdds)+' / '+sgn(L.awaySpreadOdds)+')':'')+
             ' · total <b>'+L.total+'</b>'+(L.overOdds?' ('+sgn(L.overOdds)+' / '+sgn(L.underOdds)+')':'')+

@@ -151,7 +151,7 @@ for (let i = 1; i < weeks.length; i++) {
   const market = marketSolve(prior);
   for (const g of w.games) {
     if (g.spread == null) continue;
-    const row = { season: w.season, spread: g.spread, total: g.total, actual: g.home.score - g.away.score, points: g.home.score + g.away.score, m: {}, t: {} };
+    const row = { id: g.id, season: w.season, spread: g.spread, total: g.total, actual: g.home.score - g.away.score, points: g.home.score + g.away.score, m: {}, t: {} };
     for (const [name, rt] of Object.entries(schemes)) if (rt) { row.m[name] = margin(rt, g); row.t[name] = total(rt, g); }
     row.m.marketRatings = market(g);
     row.m.blendHalf = 0.5 * row.m.points + 0.5 * row.m.marketRatings;
@@ -227,4 +227,85 @@ const over = (g) => g.home.score + g.away.score > g.total;
 scan("over", tot, over);
 for (const [lo, hi] of [[0, 40], [40, 48], [48, 56], [56, 99]]) scan(`over, total ${lo}-${hi}`, tot.filter((g) => g.total >= lo && g.total < hi), over);
 for (const s of seasons) { scan(`home covers, ${s}`, lined.filter((g) => g.season === s), homeCover); scan(`over, ${s}`, tot.filter((g) => g.season === s), over); scan(`under when total >= 56, ${s}`, tot.filter((g) => g.season === s && g.total >= 56), (g) => !over(g)); }
-console.log(`\nTwenty-odd buckets were looked at. One of them at two standard errors is what chance looks like.\n`);
+/* ------------------------------------------------------------------ *
+ * Line movement
+ *
+ * ESPN keeps the opening line on every game. The move from open to close
+ * is the market's own second opinion: sharper money arrived and pushed the
+ * number. Two questions. Does the side the line moved TOWARD still cover at
+ * the close (the close under-reacted; actionable at the current line)? And
+ * is the model's pick better when the market has moved its way?
+ * ------------------------------------------------------------------ */
+const moved = ALL.filter((g) => g.open && g.spread != null && isFinite(g.open.spread) && g.home.score - g.away.score + g.spread !== 0);
+if (moved.length >= 50) {
+  console.log(`LINE MOVEMENT — ${moved.length} games with an opening and a closing spread`);
+  const move = (g) => g.spread - g.open.spread; // negative: moved toward the home side
+  const towardCovers = (g) => (move(g) < 0 ? homeCover(g) : !homeCover(g));
+  const towardCoversAtOpen = (g) => { const e = g.home.score - g.away.score + g.open.spread; return e === 0 ? null : move(g) < 0 ? e > 0 : e < 0; };
+  console.log(`  mean |move| ${mean(moved.map((g) => Math.abs(move(g)))).toFixed(2)} points; unmoved ${pct(moved.filter((g) => move(g) === 0).length / moved.length)}`);
+  console.log(`  ${"move toward a side by".padEnd(26)}${"n".padStart(6)}${"covers at close".padStart(17)}${"z".padStart(7)}${"covers at open".padStart(17)}`);
+  for (const [lo, hi] of [[0.5, 1], [1, 2], [2, 3], [3, 99]]) {
+    const r = moved.filter((g) => Math.abs(move(g)) >= lo && Math.abs(move(g)) < hi);
+    if (r.length < 30) continue;
+    const won = r.filter(towardCovers).length, se = Math.sqrt(0.25 / r.length);
+    const ro = r.filter((g) => towardCoversAtOpen(g) != null);
+    const wonO = ro.filter(towardCoversAtOpen).length;
+    console.log(`  ${(lo + "-" + (hi === 99 ? "" : hi) + " pts").padEnd(26)}${String(r.length).padStart(6)}${pct(won / r.length).padStart(17)}${((won / r.length - BREAK_EVEN) / se).toFixed(2).padStart(7)}${pct(ro.length ? wonO / ro.length : 0).padStart(17)}`);
+  }
+  for (const s of seasons) {
+    const r = moved.filter((g) => g.season === s && Math.abs(move(g)) >= 1);
+    if (r.length < 30) continue;
+    const won = r.filter(towardCovers).length;
+    console.log(`  moved >= 1 pt, ${s}: ${won}/${r.length} = ${pct(won / r.length)} at the close`);
+  }
+  /* The model's pick, split by whether the market moved its way. */
+  const byId = new Map(rows.map((r) => [r.id, r]));
+  const agree = [], disagree = [];
+  for (const g of moved) {
+    const r = byId.get(g.id); if (!r || Math.abs(move(g)) < 0.5) continue;
+    const edge = r.m.points + g.spread; if (Math.abs(edge) < 1) continue;
+    const pickHome = edge > 0, movedHome = move(g) < 0;
+    (pickHome === movedHome ? agree : disagree).push(pickHome ? homeCover(g) : !homeCover(g));
+  }
+  const rate = (a) => (a.length ? `${a.filter(Boolean).length}/${a.length} = ${pct(a.filter(Boolean).length / a.length)}` : "n/a");
+  console.log(`  model's pick when the line moved its way: ${rate(agree)}; against it: ${rate(disagree)}`);
+  /* The actionable question. Our picks are recorded days before kickoff,
+     close to the open. Does the model's disagreement with the OPENING
+     line predict which way the line will move, and does its pick made
+     against the open cover at the open? */
+  const atOpen = [];
+  for (const g of moved) {
+    const r = byId.get(g.id); if (!r) continue;
+    const edgeOpen = r.m.points + g.open.spread; // model's edge vs the open, + = home
+    if (Math.abs(edgeOpen) < 1) continue;
+    const e = g.home.score - g.away.score + g.open.spread;
+    atOpen.push({ season: g.season, edgeOpen, move: move(g), covered: e === 0 ? null : edgeOpen > 0 ? e > 0 : e < 0 });
+  }
+  if (atOpen.length >= 50) {
+    let sxy = 0, sxx = 0; for (const x of atOpen) { sxy += x.edgeOpen * -x.move; sxx += x.edgeOpen ** 2; }
+    const toward = atOpen.filter((x) => x.move !== 0);
+    const agreeN = toward.filter((x) => (x.edgeOpen > 0) === (x.move < 0)).length;
+    const gr = atOpen.filter((x) => x.covered != null);
+    const won = gr.filter((x) => x.covered).length, se = Math.sqrt(0.25 / gr.length);
+    console.log(`  model vs the OPEN (edge >= 1 pt, ${atOpen.length} games): the line then moved toward the model's side ` +
+      `${pct(agreeN / toward.length)} of the time it moved (slope of move on edge ${(sxy / sxx).toFixed(3)}); ` +
+      `the pick covered at the open ${won}/${gr.length} = ${pct(won / gr.length)} (z ${((won / gr.length - BREAK_EVEN) / se).toFixed(2)})`);
+    for (const s of seasons) {
+      const rs = atOpen.filter((x) => x.season === s && x.covered != null);
+      if (rs.length < 30) continue;
+      const w = rs.filter((x) => x.covered).length;
+      const tw = atOpen.filter((x) => x.season === s && x.move !== 0);
+      const ag = tw.filter((x) => (x.edgeOpen > 0) === (x.move < 0)).length;
+      console.log(`    ${s}: covered at the open ${w}/${rs.length} = ${pct(w / rs.length)}; line moved the model's way ${pct(tw.length ? ag / tw.length : 0)}`);
+    }
+  }
+  /* Totals. */
+  const tmoved = ALL.filter((g) => g.open && g.total != null && isFinite(g.open.total) && g.open.total !== g.total && g.home.score + g.away.score !== g.total);
+  if (tmoved.length >= 30) {
+    const won = tmoved.filter((g) => (g.total > g.open.total ? over(g) : !over(g))).length, se = Math.sqrt(0.25 / tmoved.length);
+    console.log(`  totals that moved: the side they moved toward hit ${won}/${tmoved.length} = ${pct(won / tmoved.length)} at the close (z ${((won / tmoved.length - BREAK_EVEN) / se).toFixed(2)})`);
+  }
+  console.log();
+}
+
+console.log(`Twenty-odd buckets were looked at. One of them at two standard errors is what chance looks like.\n`);

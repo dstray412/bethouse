@@ -71,6 +71,7 @@
  *   node fetch-nfl.mjs                  # refresh cache, then build the board
  *   node fetch-cfb.mjs --history        # cache only
  *   node fetch-cfb.mjs --seasons 2024,2025
+ *   node fetch-cfb.mjs --lines          # add opening lines to cached games that lack one
  */
 
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
@@ -255,7 +256,22 @@ export function parseOdds(payload) {
     const spread = Number(it.spread);
     if (!isFinite(spread)) continue;
     const price = (v) => (isFinite(Number(v)) && Number(v) !== 0 ? Number(v) : null);
+    /* The opening line, when the book's object carries one. On a finished
+       game the top-level numbers are the close, so open + top-level is the
+       whole movement of the line; on an unplayed game the top-level numbers
+       are the current line, so open + top-level is the movement so far. */
+    const am = (x) => (x && x.american != null ? Number(String(x.american).replace("+", "")) : NaN);
+    const openSpread = am(it.homeTeamOdds?.open?.pointSpread);
+    const open = isFinite(openSpread)
+      ? {
+          spread: openSpread,
+          total: isFinite(am(it.open?.total)) ? am(it.open.total) : null,
+          homeML: price(am(it.homeTeamOdds?.open?.moneyLine)),
+          awayML: price(am(it.awayTeamOdds?.open?.moneyLine)),
+        }
+      : null;
     return {
+      ...(open ? { open } : {}),
       spread, // negative = home favoured
       total: isFinite(Number(it.overUnder)) ? Number(it.overUnder) : null,
       homeML: price(it.homeTeamOdds?.moneyLine),
@@ -393,7 +409,30 @@ async function fetchGame(league, id, members) {
   game.total = line ? line.total : null;
   game.homeML = line ? line.homeML : null;
   game.awayML = line ? line.awayML : null;
+  if (line?.open) game.open = line.open;
   return game;
+}
+
+/**
+ * Add the opening line to every cached game that lacks one. One request a
+ * game, no box score. Exists because the cache was built before the open
+ * was kept, and a rebuild costs three thousand requests for two fields.
+ */
+export async function backfillOpens(league) {
+  const history = loadHistory(league);
+  const todo = history.games.filter((g) => !g.open);
+  console.log(`${league.label}: ${todo.length} of ${history.games.length} games without an opening line`);
+  const BATCH = 8;
+  let found = 0;
+  for (let i = 0; i < todo.length; i += BATCH) {
+    const chunk = todo.slice(i, i + BATCH);
+    const got = await Promise.all(chunk.map((g) => fetchLine(league, g.id).catch(() => null)));
+    chunk.forEach((g, j) => { if (got[j]?.open) { g.open = got[j].open; found++; } });
+    process.stdout.write(`\r  games: ${Math.min(i + BATCH, todo.length)}/${todo.length}   `);
+  }
+  if (todo.length) process.stdout.write("\n");
+  writeFileSync(league.historyFile, JSON.stringify(history) + "\n");
+  console.log(`wrote ${league.historyFile}: ${found} opening lines added`);
 }
 
 export async function refreshHistory(league, seasons) {
@@ -665,6 +704,7 @@ export async function main(league, argv) {
       ? String(args[sArg + 1]).split(",").map(Number).filter(Boolean)
       : [year - 2, year - 1, year];
 
+  if (args.includes("--lines")) return backfillOpens(league);
   console.log(`${league.label}, seasons: ${seasons.join(", ")}`);
   const history = await refreshHistory(league, seasons);
   if (args.includes("--history")) return;

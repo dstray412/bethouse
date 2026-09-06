@@ -604,3 +604,19 @@ improvement is a window effect. Test the whole family of reconfigurations
 once, per season, with one metric that cannot be gamed (the slope of the
 outcome on the model's disagreement with the line), write the table down,
 and stop. The next move is new information, not a new constant.
+
+## A signal can be real and still be worth nothing at the price you can get
+
+2026-09-06. Line movement is genuine information: over two seasons and both
+leagues, the side a spread moved toward by three points or more covered 60% at
+the opening number. It covers 50% at the closing number. The information was
+fully priced by the time anyone reading the current line could act on it, and
+the model that would have needed to predict the move got the direction right
+half the time.
+
+**Rule:** when testing a signal against a market, test it at the price you
+could actually take, not at the price where it looks best. "Covers 60% at the
+open" is a statement about people who bet before the move, and unless you can
+be one of them it is not a statement about you. Put the number that applies
+to your own execution on the page, and put the flattering one in the README
+next to the reason you cannot have it.

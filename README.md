@@ -1301,6 +1301,39 @@ The efficiency lines are now kept in the history cache (`home.stats`,
 `away.stats`: yards, plays, turnovers, first downs, possession) so the next
 attempt does not start with a ten-minute refetch.
 
+### Line movement: real information, already spent by the time you can bet it
+
+ESPN keeps the opening line on every game, finished or not, so the move from
+open to close was measured over two seasons rather than waited for
+(`experiment-lines.mjs`, "line movement"; `node fetch-<league>.mjs --lines`
+backfills the open into a cache built without it).
+
+| the side the line moved toward, by | NFL covers at close | NFL at open | college at close | college at open |
+|---|---|---|---|---|
+| 0.5–1 point | 40.0% | 44.4% | 52.0% | 53.0% |
+| 1–2 points | 46.5% | 51.6% | 49.9% | 52.6% |
+| 2–3 points | 55.6% | 59.7% | 48.8% | 53.8% |
+| 3 or more | 50.0% | 60.5% | 50.8% | 60.0% |
+
+The move is genuine information: when a line moved three points, the side it
+moved toward covered **60%** of the time in both leagues *at the opening
+number*. At the closing number the same side covers about half. The market
+absorbs its own move completely; on totals it slightly over-corrects (the side
+a total moved toward hit 47.1% in the NFL and 48.2% in college at the close).
+Following a move at today's line is worth nothing.
+
+What would be worth something is being on the side *before* it moves, and that
+needs a prediction of the move. The model does not have one: when its pick
+disagreed with the opening line by a point or more, the line then moved the
+model's way 50.2% (NFL) and 50.1% (college) of the times it moved, and the
+pick covered at the open 46.6% and 50.4%. Sharp money knows something the box
+score does not.
+
+So movement ships as visibility, not as a signal: the board prints where each
+line opened and where it is, every recorded pick carries the opening line, and
+the record will show whether the market moves toward or away from the picks
+over a season the model never saw.
+
 ### The yards replay depends on a choice nobody fitted
 
 The yardage model reads its shape off a pool of real actual/expected ratios.
@@ -1441,6 +1474,9 @@ reason, and the number to watch is touchdowns.
 - **Spread picks are printed at 50% in both leagues** because the replay found
   no information in the projection beyond the closing line. The lean is shown
   and recorded; the record is the only thing that can change that number.
+- **Line movement is not a signal.** Following the move at the current line
+  covers about 50% in both leagues; the 60% lived at the opening number and
+  the model cannot predict the move. Shown, recorded, not bet.
 - **Lines are as old as the last daily refresh**, up to a day. Closing line
   value is measured against ESPN's own closing entry after the game, so the
   record is honest regardless; the price on the page is not the price you

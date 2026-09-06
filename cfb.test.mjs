@@ -248,3 +248,19 @@ test("parseGame: keeps each side's team-level efficiency line", () => {
   delete s.boxscore.teams;
   assert.equal("stats" in parseGame(s).home, false);
 });
+
+test("parseOdds: keeps the opening line beside the current or closing one", async () => {
+  const { parseOdds } = await import("./fetch-football.mjs");
+  const am = (s) => ({ american: s });
+  const line = parseOdds({ items: [{
+    provider: { name: "ESPN BET" }, spread: -2.5, overUnder: 51.5,
+    homeTeamOdds: { moneyLine: -140, spreadOdds: -125, open: { pointSpread: am("-3"), spread: am("-115"), moneyLine: am("-155") } },
+    awayTeamOdds: { moneyLine: 120, spreadOdds: 102, open: { pointSpread: am("+3"), spread: am("-105"), moneyLine: am("+135") } },
+    open: { total: am("49.5"), over: am("-110"), under: am("-110") },
+  }] });
+  assert.equal(line.spread, -2.5, "the top-level number is the current/closing line");
+  assert.deepEqual(line.open, { spread: -3, total: 49.5, homeML: -155, awayML: 135 });
+  // No open block at all: no open, no crash.
+  const bare = parseOdds({ items: [{ provider: { name: "ESPN BET" }, spread: -2.5, overUnder: 51.5 }] });
+  assert.equal("open" in bare, false);
+});

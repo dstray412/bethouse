@@ -83,6 +83,14 @@ both history caches (`side.stats`), and this paragraph. Next attempts need
 data the box score lacks: injuries and QB status before the market moves,
 weather, line movement.
 
+**Line movement, 2026-09-06.** ESPN carries open/current/close on every
+odds object; both caches now hold the opening line (`game.open`, backfilled
+with `--lines`), every pick row records `open`, and the board prints open →
+current. Measured over two seasons: the side a line moved toward covers ~50%
+at the close in both leagues and 60% at the open for moves of 3+ points; the
+model does not predict the move (50%). Real information, spent before it can
+be bet. README "Line movement". Nothing in the model changed.
+
 **College results** (README has the full section): touchdowns −1.4pp, Brier
 0.1743; yards −3.0pp and approximate; spread 51.7% and total 53.4% against the
 close on ~1,485 games, inside the noise. The forward record started

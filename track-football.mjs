@@ -193,6 +193,9 @@ export function snapshot(league) {
         gameId: g.id, playerId: "game", name: `${g.away} at ${g.home}`, team: g.home, opp: g.away,
         prop, side: k.side, line: k.line ?? null, price: k.price ?? null,
         edge: k.edge != null ? Math.round(k.edge * 100) / 100 : null,
+        /* Where the line opened, so the record can say whether the market
+           had already moved toward the pick when it was made. */
+        open: g.line.open ? (prop === "total" ? g.line.open.total : prop === "spread" ? g.line.open.spread : null) : null,
         projected: Math.round((prop === "total" ? proj.total : proj.margin) * 100) / 100,
         book: g.line.book || null,
         prob: Math.round(k.prob * 10000) / 10000,
