@@ -564,3 +564,24 @@ with 2026 games flowing in would have emptied the board until week 4.
 what it does on the first game day, the second week, and the week after the
 season ends. A default that is right today and wrong on the first day the data
 changes is a defect with a fuse.
+
+## A probability that has not been measured against the line is not a probability
+
+2026-09-06. The football spread model produced a 71% cover probability and a
++35% EV on a week-1 game, from a seven-point disagreement with the market.
+The replay had already said the model's spread picks win 48% of the time. Both
+were true at once: the probability was the model's honest opinion, and the
+model's honest opinion carried no information the line did not already carry
+(calibration slope −0.25 in the NFL, 0.07 in college).
+
+**Rule:** before a page prints a probability against a market, regress the
+outcome on it over the replay. The slope is the fraction of the model's
+confidence that is real, and it is what to ship -- including when it is zero,
+in which case the page prints 50% and a negative EV, which is the truth. The
+lean can still be shown and recorded; the number cannot.
+
+**And a flat model makes every underdog look like value.** Win probabilities
+that are less sharp than the market's put more weight on the dog than the
+market does, so ranking picks by moneyline EV surfaces the losing side of
+every game first. If the moneyline model has not beaten the market in the
+replay, it must not be a candidate for "best pick".

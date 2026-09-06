@@ -93,6 +93,13 @@
        closing line's is 15.18 and 15.73: the market is better, as expected. */
     marginSD: 16.54,
     totalSD: 16.19,
+    /* Against 1,582 closing spreads the calibration slope of the cover
+       probability is 0.07 -- 0.07 on each season alone -- so, as in the
+       NFL, the printed cover probability is a coin flip and only the lean
+       survives. Totals: 0.44 on 2024, 0.10 on 2025, 0.22 pooled. The two
+       windows disagree, which is the finding; the timid end ships. */
+    spreadShrink: 0,
+    totalShrink: 0.1,
     teamK: 6,
 
     /* A receiver nobody has heard of: a little under the 30.1-yard mean of

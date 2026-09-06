@@ -1218,6 +1218,41 @@ Two seasons of box scores is 1.2 MB and the repo's own pre-commit hook rejects
 anything over 1 MB. `nfl-history.json` is gitignored and rebuildable;
 `nfl-data.js` (103 KB) is what the board actually loads.
 
+### The board picks a side, and says what the pick is worth
+
+Since 2026-09-06 the spread-and-total view carries a real line on every game
+not yet played (ESPN's pregame odds, one request a game, fetched with the
+board) and shows which side the model likes on the spread, the total and the
+moneyline, with its probability and its expected value at the quoted price.
+One function, `pickGame` in `nfl.js`, decides the side for the page, the
+tracker and the backtest, so the three cannot disagree.
+
+**The probabilities are calibrated against the line, and for spreads that
+means 50%.** Regressing the outcome on the model's cover probability over 480
+closing spreads gives a slope of **−0.25** (0.01 and −0.40 on the two seasons):
+when the model said 67% the home side covered 47%. The projection carries no
+information about the spread that the closing line does not already carry, so
+`spreadShrink = 0` and every spread pick is printed at 50%, which at −110 is an
+EV of −4.5%. The lean is still shown, still recorded, still graded. Totals kept
+a third of their confidence (slope 0.33; 0.35 and 0.31 by season), so
+`totalShrink = 0.31`, and a six-point disagreement on a total shows a small
+positive EV. Replaying the shrunk model prints a slope of 1.05 on totals and
+0.00 on spreads, which is what self-consistency looks like.
+
+**The moneyline is the worst of the three and the page says so.** Against 468
+closing moneylines the market's win probabilities beat the model's (Brier
+0.1999 against 0.2220), and betting the side the model liked more than the
+market, at the close, lost **11.9%** of stake. A flat model makes every
+underdog look like value, so the row never ranks by moneyline EV; the pick is
+in the detail with that verdict next to it.
+
+Every pick is recorded before kickoff by `track-football.mjs` and settled the
+way a book would: home covers iff margin plus spread is positive, pushes are
+void, the moneyline settles on the winner. Two numbers come back: how often
+the side won, against the 52.4% a −110 price needs, and closing line value in
+points, whether the line moved toward the pick by kickoff. Both are on the
+page under the live record once games have been graded.
+
 ### The yards replay depends on a choice nobody fitted
 
 The yardage model reads its shape off a pool of real actual/expected ratios.
@@ -1326,6 +1361,13 @@ break-even from a coin flip at 95% needs about 1,700 games. Two seasons is
 1.5 standard errors from break-even, and the board says so rather than
 printing it as a finding.
 
+The calibration slope of the cover probability is **0.07**, and 0.07 on each
+season alone, so college spreads are printed at 50% exactly as the NFL's are.
+Totals: 0.44 on 2024, 0.10 on 2025, 0.22 pooled; the two windows disagree,
+which is the finding, and the timid end (`totalShrink = 0.1`) ships. The
+moneyline loses 4.7% of stake at the close over 1,432 games (Brier 0.1867
+against the market's 0.1742), and the page says not to bet it.
+
 ### The forward record starts now
 
 `track-cfb.mjs` records the board before kickoff and grades from ESPN box
@@ -1348,6 +1390,13 @@ reason, and the number to watch is touchdowns.
   because the projections are interesting, not because they are bettable.
 - **The college game lines are inside the noise, leaning positive.** 1,488
   games cannot separate 51.7% from 52.4%. The board says so.
+- **Spread picks are printed at 50% in both leagues** because the replay found
+  no information in the projection beyond the closing line. The lean is shown
+  and recorded; the record is the only thing that can change that number.
+- **Lines are as old as the last daily refresh**, up to a day. Closing line
+  value is measured against ESPN's own closing entry after the game, so the
+  record is honest regardless; the price on the page is not the price you
+  will get.
 - **The college yards number is approximate.** Three points cold on the
   replay, and the replay moves by that much on which games form the comparison
   pool. Nothing is fitted to fix it; the forward record decides.

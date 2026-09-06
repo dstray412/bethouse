@@ -29,22 +29,31 @@
  *
  * WHAT IT RECORDS
  * ---------------
- * The two props the board says are worth reading. The spread and total are
- * deliberately absent: the NFL board itself says they do not beat the
- * closing line, and a record of them would be measuring something nobody
- * should bet.
+ * The two player props, and -- since 2026-09-06, when the board started
+ * showing which side it likes against a real line -- the game picks:
+ * spread, total and moneyline. A pick shown on a page is a claim, and a
+ * claim that is not recorded before kickoff cannot be checked afterwards.
+ * The game picks are graded two ways: did the side win, and did the
+ * closing line move toward it (closing line value, in points). The NFL
+ * replay says these do not beat the close; the record is how that claim
+ * gets re-tested on numbers the model never saw.
  */
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import * as core from "./track-core.mjs";
+import { fetchLine } from "./fetch-football.mjs";
 
 const DIR = path.dirname(fileURLToPath(import.meta.url));
 
 const PROPS = [
   { id: "td", label: "Anytime touchdown" },
   { id: "recyds", label: "Receiving yards, over" },
+  { id: "spread", label: "Spread, the side the model likes" },
+  { id: "total", label: "Total, the side the model likes" },
+  { id: "ml", label: "Moneyline, the side the model likes" },
 ];
+const GAME_PROPS = new Set(["spread", "total", "ml"]);
 
 /* The board's default view. Recording a different line from the one on
    screen would grade a bet the board never offered. */
@@ -166,11 +175,39 @@ export function snapshot(league) {
     }
   }
 
+  /* Game picks, against the line the board carried. The same pickGame the
+     page calls, so the record holds exactly the side that was shown. */
+  let games = 0;
+  for (const g of D.games || []) {
+    if (!g.line || !g.home || !g.away) continue;
+    if (core.startedAlready(g.date)) continue;
+    const proj = M.projectGame(D.ratings, g.home, g.away, { neutral: !!g.neutral });
+    const pick = M.pickGame(proj, g.line);
+    if (!pick) continue;
+    for (const prop of GAME_PROPS) {
+      const k = pick[prop];
+      if (!k || !isFinite(k.prob)) continue;
+      const key = `${g.id}|game|${prop}`;
+      if (seen.has(key)) continue;                // Rule 1: first prediction wins
+      day.predictions.push({
+        gameId: g.id, playerId: "game", name: `${g.away} at ${g.home}`, team: g.home, opp: g.away,
+        prop, side: k.side, line: k.line ?? null, price: k.price ?? null,
+        edge: k.edge != null ? Math.round(k.edge * 100) / 100 : null,
+        projected: Math.round((prop === "total" ? proj.total : proj.margin) * 100) / 100,
+        book: g.line.book || null,
+        prob: Math.round(k.prob * 10000) / 10000,
+        kickoff: g.date, recordedAt: new Date().toISOString(),
+      });
+      seen.add(key);
+      added++; games++;
+    }
+  }
+
   day.graded = false;
   core.saveDay(HIST, day);
-  const players = new Set(day.predictions.map((p) => p.playerId)).size;
+  const players = new Set(day.predictions.filter((p) => p.playerId !== "game").map((p) => p.playerId)).size;
   console.log(`snapshot ${date} (${D.season} week ${D.week}): +${added} predictions ` +
-    `(${day.predictions.length} total, ${players} players)`);
+    `(${day.predictions.length} total, ${players} players, ${games} new game picks)`);
   if (skippedStarted) console.log(`  skipped ${skippedStarted} players whose game has kicked off`);
   if (skippedNoGame) console.log(`  skipped ${skippedNoGame} players with no game on this board`);
 }
@@ -178,6 +215,43 @@ export function snapshot(league) {
 /* ---------------------------------------------------------------- *
  * grade
  * ---------------------------------------------------------------- */
+
+/**
+ * Settle a game pick the way a book would, and measure the closing line
+ * against it.
+ *
+ *   spread  the side covers iff its margin plus its points is positive;
+ *           exactly zero is a push
+ *   total   over iff points exceed the line; equal is a push
+ *   ml      the winner; a tie is void
+ *
+ * `clv` is points of closing-line movement in the pick's favour. A home
+ * pick at -3 that closes -4.5 gained 1.5 points: the market moved toward
+ * it. Null when there is no closing line to compare against.
+ */
+export function gradeGamePick(pick, result, close) {
+  const margin = num(result?.homeScore) - num(result?.awayScore);
+  const points = num(result?.homeScore) + num(result?.awayScore);
+  const out = { actual: null, push: false, clv: null };
+  if (pick.prop === "spread") {
+    const edge = margin + pick.line;
+    if (edge === 0) out.push = true;
+    else out.actual = (pick.side === "home" ? edge > 0 : edge < 0) ? 1 : 0;
+    if (close && isFinite(close.spread)) {
+      out.clv = pick.side === "home" ? pick.line - close.spread : close.spread - pick.line;
+    }
+  } else if (pick.prop === "total") {
+    if (points === pick.line) out.push = true;
+    else out.actual = (pick.side === "over" ? points > pick.line : points < pick.line) ? 1 : 0;
+    if (close && isFinite(close.total)) {
+      out.clv = pick.side === "over" ? close.total - pick.line : pick.line - close.total;
+    }
+  } else if (pick.prop === "ml") {
+    if (margin === 0) out.push = true;
+    else out.actual = (pick.side === "home" ? margin > 0 : margin < 0) ? 1 : 0;
+  }
+  return out;
+}
 
 /** Every player who took a snap that mattered, by ESPN athlete id. */
 export function boxScoreLines(summary) {
@@ -231,12 +305,33 @@ export async function grade(league) {
       const status = summary?.header?.competitions?.[0]?.status?.type;
       if (!status?.completed) continue;
 
+      /* Game picks first: the score, and the closing line -- the pregame
+         entry the odds endpoint keeps on a finished game, with the in-play
+         one dropped by parseOdds. */
+      const gamePicks = day.predictions.filter((p) => p.gameId === id && GAME_PROPS.has(p.prop) && p.actual == null && !p.scratched);
+      if (gamePicks.length) {
+        const comp = summary?.header?.competitions?.[0];
+        const homeC = (comp?.competitors || []).find((c) => c.homeAway === "home");
+        const awayC = (comp?.competitors || []).find((c) => c.homeAway === "away");
+        const result = { homeScore: num(homeC?.score), awayScore: num(awayC?.score) };
+        const close = await fetchLine(league, id);
+        for (const p of gamePicks) {
+          const g = gradeGamePick(p, result, close);
+          if (g.push) { p.scratched = true; p.push = true; continue; }
+          p.actual = g.actual;
+          p.result = { homeScore: result.homeScore, awayScore: result.awayScore };
+          if (g.clv != null) p.clv = Math.round(g.clv * 100) / 100;
+          if (close) p.close = { spread: close.spread, total: close.total, homeML: close.homeML, awayML: close.awayML };
+          totalGraded++;
+        }
+      }
+
       /* The same id the board carries, so no name matching. */
       const stat = boxScoreLines(summary);
       if (!stat.size) continue;
 
       for (const p of day.predictions) {
-        if (p.gameId !== id || p.actual != null || p.scratched) continue;
+        if (p.gameId !== id || p.actual != null || p.scratched || GAME_PROPS.has(p.prop)) continue;
         const s = stat.get(p.playerId);
         if (!s || !s.played) {
           /* Inactive, or never touched the ball. Not a loss -- the bet would
@@ -267,11 +362,58 @@ export async function grade(league) {
  * report
  * ---------------------------------------------------------------- */
 
+/**
+ * The game picks, the way a bettor reads them: how often the side won,
+ * against the 52.4% a -110 price needs, and whether the closing line
+ * moved toward the pick. Calibration (in core.report) asks whether the
+ * probabilities were true; this asks whether the picks were any good.
+ */
+export function gamePickSummary(dir) {
+  const rows = [];
+  for (const d of core.listDays(dir)) {
+    for (const p of core.loadDay(dir, d).predictions) {
+      if (GAME_PROPS.has(p.prop) && p.actual != null) rows.push(p);
+    }
+  }
+  if (!rows.length) return null;
+  const out = {};
+  for (const prop of GAME_PROPS) {
+    const r = rows.filter((p) => p.prop === prop);
+    if (!r.length) continue;
+    const won = r.filter((p) => p.actual === 1).length;
+    const withClv = r.filter((p) => p.clv != null);
+    const se = Math.sqrt(0.25 / r.length);
+    out[prop] = {
+      n: r.length, won, rate: Math.round((1000 * won) / r.length) / 10,
+      // Two standard errors either side, so a hot week cannot be read as an edge.
+      lo: Math.round(1000 * (won / r.length - 1.96 * se)) / 10,
+      hi: Math.round(1000 * (won / r.length + 1.96 * se)) / 10,
+      clvPts: withClv.length ? Math.round((100 * withClv.reduce((s, p) => s + p.clv, 0)) / withClv.length) / 100 : null,
+      movedToward: withClv.length ? Math.round((1000 * withClv.filter((p) => p.clv > 0).length) / withClv.length) / 10 : null,
+      clvN: withClv.length,
+    };
+  }
+  return out;
+}
+
 export function report(league, writeRecord) {
-  const out = core.report(path.join(DIR, league.recordDir), PROPS, {
+  const dir = path.join(DIR, league.recordDir);
+  const out = core.report(dir, PROPS, {
     title: `BetHouse ${league.label} running record`,
     hint: `Run: node ${league.fetcher} && node ${league.tracker} snapshot   (then grade after the games end)`,
   });
+  const picks = gamePickSummary(dir);
+  if (picks) {
+    console.log("Game picks, settled like a book would:");
+    for (const [prop, g] of Object.entries(picks)) {
+      console.log(
+        `  ${prop.padEnd(7)} n=${String(g.n).padStart(4)}  won ${g.rate}% (${g.lo}–${g.hi}%), needs 52.4%` +
+          (g.clvPts != null ? `   closing line moved toward the pick ${g.movedToward}% of the time, ${g.clvPts >= 0 ? "+" : ""}${g.clvPts} pts on average (n=${g.clvN})` : ""),
+      );
+    }
+    console.log();
+    if (out) out.picks = picks;
+  }
   if (writeRecord) {
     /* Written even when empty, from the first run. The board loads it as a
        plain <script>, so the file has to exist before there is anything in

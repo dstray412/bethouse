@@ -199,3 +199,25 @@ test("parseMembers: reads team ids off the core API's reference list", () => {
   assert.deepEqual([...ids].sort(), ["2", "2306"]);
   assert.equal(parseMembers(null).size, 0);
 });
+
+test("parseOdds: keeps the juice on each side, and drops the in-play entry first", async () => {
+  const { parseOdds } = await import("./fetch-football.mjs");
+  const line = parseOdds({ items: [
+    { provider: { name: "ESPN Bet - Live Odds" }, spread: 3.5, overUnder: 48.5 },
+    { provider: { name: "Draft Kings" }, spread: -3.5, overUnder: 44.5,
+      homeTeamOdds: { moneyLine: -175, spreadOdds: -105 }, awayTeamOdds: { moneyLine: 145, spreadOdds: -115 },
+      overOdds: -105, underOdds: -115 },
+  ] });
+  assert.equal(line.spread, -3.5);
+  assert.equal(line.homeML, -175);
+  assert.equal(line.awayML, 145);
+  assert.equal(line.homeSpreadOdds, -105);
+  assert.equal(line.awaySpreadOdds, -115);
+  assert.equal(line.overOdds, -105);
+  assert.equal(line.underOdds, -115);
+  assert.equal(line.book, "Draft Kings");
+  // A finished game's closing entry often carries no moneyline at all.
+  const bare = parseOdds({ items: [{ provider: { name: "ESPN BET" }, spread: -2.5, overUnder: 51.5 }] });
+  assert.equal(bare.homeML, null);
+  assert.equal(bare.homeSpreadOdds, null);
+});

@@ -142,12 +142,16 @@ BetHouseFootballBoard.mount({
       'bias 0.8 points, every band within 3. Tap a player for the work.',
     noteYards: 'Chance of going <b>over</b> a receiving yards line. Checked against <b>22,360</b> unseen '+
       'player-games — bias 1.2 points, cold. The shape comes from real receiver games, not a bell curve.',
-    noteGames: 'Model projections for the week. <b>These did not beat the closing line</b> — see the note below.',
+    noteGames: 'The side the model likes on each game, against a real line, with its expected value at the price. '+
+      '<b>This model did not beat the closing line over two seasons</b> — read the note below before betting one.',
     gameBanner: '<p>These projections were measured against <b>480 real closing lines</b> and did not beat them. '+
       'The spread model won <b>48.1%</b> of the time and the total model <b>52.5%</b>, against the '+
       '<b>52.4%</b> you need at -110 — and both confidence intervals straddle a coin flip. '+
       'Separating a break-even model from noise would take about <b>1,700</b> games; two seasons is 480.</p>'+
-      '<p>They are here because you asked what the model thinks, not because there is an edge in them.</p>',
+      '<p>The picks are shown because you asked which side, not because there is proven edge in them. Every one '+
+      'is recorded before kickoff and settled like a book would, and the live record at the bottom will say whether '+
+      'they win and whether the closing line moves toward them.</p>',
+    mlVerdict: '<b>Do not bet the moneyline off this.</b> In the replay the market\'s win probabilities beat the model\'s (Brier 0.1999 against 0.2220), and betting the side the model liked more than the market lost <b>11.9%</b> of stake over 468 games.',
     gameHonestly: 'this did not beat the closing line over two seasons',
     footer: '<p><b>Does it work?</b> Two seasons replayed a game at a time, each game predicted only from '+
       'games already played:</p><table>'+

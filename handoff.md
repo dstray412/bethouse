@@ -57,6 +57,20 @@ now uses the board's own pool definition and reads −1.2pp where it read +1.0pp
   season plus last, so week 1 is last season and the current year takes over
   as it accumulates. Unchanged for week 1.
 
+**Game picks, 2026-09-06.** Both football boards now carry a live line on
+every unplayed game and show the side the model likes on spread, total and
+moneyline, with EV at the price. `pickGame` in `nfl.js` is the one function
+that decides the side. The replay's calibration slope of the cover
+probability is ~0 in both leagues (−0.25 NFL, 0.07 college), so
+`spreadShrink = 0`: spread picks print at 50% and −4.5% EV. Totals keep
+0.31 (NFL) and 0.10 (college, timid end of a 0.44/0.10 split). The
+moneyline loses money at the close in both leagues and the page says not to
+bet it; the row never ranks by moneyline EV. Picks are recorded pregame and
+settled like a book, with closing line value in points; first rows are in
+`nfl-record/2026-09-10.json` (48) and `cfb-record/2026-08-29.json` (12).
+The pick rows were re-recorded once, within the hour, after the shrink was
+measured and before anything was published or graded.
+
 **College results** (README has the full section): touchdowns −1.4pp, Brier
 0.1743; yards −3.0pp and approximate; spread 51.7% and total 53.4% against the
 close on ~1,485 games, inside the noise. The forward record started
@@ -168,7 +182,7 @@ All in `tasks/lessons.md`, which is the real list. The ones that bite hardest:
   two layers now interact.
 - The parlay suggester cannot say whether it picked 3 from 14 games or 3 from 3.
 - No stake is recorded anywhere, so there is no profit and loss.
-- NFL, college and golf have no odds feed, so no CLV there.
+- Football game lines now have CLV via the tracker. Player props in football and golf still have no odds feed, so no CLV there.
 - The college yards replay is three points cold and sensitive to the pool
   definition. Not fitted, on purpose; the forward record decides.
 - A receiver with no catches is voided rather than graded under in both

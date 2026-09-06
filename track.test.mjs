@@ -196,3 +196,54 @@ test("report: ungraded rows are counted by nobody", () => {
   assert.equal(out.props.td.predicted, 50);
   assert.equal(out.props.td.actual, 50);
 });
+
+/* ------------------------------------------------------------------ *
+ * Grading a side against the score and the closing line
+ *
+ * Oracle: how a book settles the bet. Home covers iff margin + spread > 0
+ * and pushes at zero; over wins iff points > total and pushes at equal;
+ * the moneyline settles on the winner and a tie is void. Closing line
+ * value is measured in points in the pick's favour: a home pick at -3
+ * that closes -4.5 gained 1.5, an over at 44.5 that closes 46 gained 1.5.
+ * ------------------------------------------------------------------ */
+import { gradeGamePick } from "./track-football.mjs";
+
+const score = (home, away) => ({ homeScore: home, awayScore: away });
+
+test("gradeGamePick: a home spread pick covers, pushes, or loses by the grading rule", () => {
+  const pick = { prop: "spread", side: "home", line: -3 };
+  assert.equal(gradeGamePick(pick, score(24, 20)).actual, 1);   // margin 4 + (-3) > 0
+  assert.equal(gradeGamePick(pick, score(23, 20)).push, true);  // exactly 3
+  assert.equal(gradeGamePick(pick, score(21, 20)).actual, 0);
+});
+
+test("gradeGamePick: an away spread pick is the mirror", () => {
+  const pick = { prop: "spread", side: "away", line: -3 };
+  assert.equal(gradeGamePick(pick, score(21, 20)).actual, 1);
+  assert.equal(gradeGamePick(pick, score(24, 20)).actual, 0);
+});
+
+test("gradeGamePick: totals", () => {
+  assert.equal(gradeGamePick({ prop: "total", side: "over", line: 44.5 }, score(24, 21)).actual, 1);
+  assert.equal(gradeGamePick({ prop: "total", side: "under", line: 44.5 }, score(24, 21)).actual, 0);
+  assert.equal(gradeGamePick({ prop: "total", side: "over", line: 45 }, score(24, 21)).push, true);
+});
+
+test("gradeGamePick: the moneyline settles on the winner and a tie is void", () => {
+  assert.equal(gradeGamePick({ prop: "ml", side: "away" }, score(20, 24)).actual, 1);
+  assert.equal(gradeGamePick({ prop: "ml", side: "home" }, score(20, 24)).actual, 0);
+  assert.equal(gradeGamePick({ prop: "ml", side: "home" }, score(20, 20)).push, true);
+});
+
+test("gradeGamePick: closing line value is points in the pick's favour", () => {
+  const home = gradeGamePick({ prop: "spread", side: "home", line: -3 }, score(24, 20), { spread: -4.5 });
+  assert.equal(home.clv, 1.5);
+  const away = gradeGamePick({ prop: "spread", side: "away", line: -3 }, score(24, 20), { spread: -4.5 });
+  assert.equal(away.clv, -1.5);
+  const over = gradeGamePick({ prop: "total", side: "over", line: 44.5 }, score(24, 21), { total: 46 });
+  assert.equal(over.clv, 1.5);
+  const under = gradeGamePick({ prop: "total", side: "under", line: 44.5 }, score(24, 21), { total: 46 });
+  assert.equal(under.clv, -1.5);
+  // No closing line on record: graded, but no CLV to report.
+  assert.equal(gradeGamePick({ prop: "spread", side: "home", line: -3 }, score(24, 20), null).clv, null);
+});

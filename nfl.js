@@ -80,6 +80,23 @@
     leaguePoints: 22.96, // per team per game
     marginSD: 14.29,
     totalSD: 13.44,
+    /*
+     * HOW MUCH OF THE MODEL'S OPINION ABOUT A LINE TO BELIEVE.
+     *
+     * Against 480 closing spreads, regressing the outcome on the model's
+     * cover probability gives a slope of -0.25: when the model said 67%
+     * the home side covered 47%. The projection carries nothing about
+     * the spread that the line does not already carry, so the cover
+     * probability the page prints is pulled ALL the way to 50%. The lean
+     * (the edge in points) is untouched and is still recorded and graded;
+     * this is only about not printing a percentage the replay says is
+     * false. Totals kept a third of their confidence (slope 0.33 pooled;
+     * 0.35 and 0.31 on the two seasons alone, so the timid end ships).
+     * Measured by backtest-nfl.mjs, "calibration slope"; a replay of the
+     * shrunk model prints ~1.
+     */
+    spreadShrink: 0,
+    totalShrink: 0.31,
     /* Ridge for the team ratings solve. */
     teamK: 6,
 
@@ -224,9 +241,11 @@
     const o = Object.assign({}, DEFAULTS, opts || {});
     if (!isFinite(projectedMargin) || !isFinite(spread)) return null;
     const edge = projectedMargin + spread;
+    const raw = normalCDF(edge / o.marginSD);
     return {
       edge,
-      homeCoverProb: normalCDF(edge / o.marginSD),
+      homeCoverProb: 0.5 + num(o.spreadShrink) * (raw - 0.5),
+      rawCoverProb: raw,
     };
   }
 
@@ -234,10 +253,67 @@
     const o = Object.assign({}, DEFAULTS, opts || {});
     if (!isFinite(projectedTotal) || !isFinite(marketTotal)) return null;
     const edge = projectedTotal - marketTotal;
+    const raw = normalCDF(edge / o.totalSD);
     return {
       edge,
-      overProb: normalCDF(edge / o.totalSD),
+      overProb: 0.5 + num(o.totalShrink) * (raw - 0.5),
+      rawOverProb: raw,
     };
+  }
+
+  /** P(home wins outright): the projected margin in units of the model's
+      own margin error. The moneyline's question. */
+  function winProbability(projectedMargin, opts) {
+    const o = Object.assign({}, DEFAULTS, opts || {});
+    if (!isFinite(projectedMargin)) return null;
+    return normalCDF(projectedMargin / o.marginSD);
+  }
+
+  /*
+   * Which side the model likes, on each market a line offers.
+   *
+   * ONE function, used by the page, the tracker and the backtest, so the
+   * side the board shows is the side the record grades is the side the
+   * replay counted. The side is whichever the projection gives more than
+   * half a chance; `prob` is that side's probability; `edge` is points in
+   * that side's favour; `price` is the American price of that side, with
+   * spread and total juice defaulting to -110 when the feed has none.
+   *
+   * A projection sitting exactly on the number is not a pick. A market
+   * the line does not carry is null rather than a guess.
+   */
+  function pickGame(projection, line, opts) {
+    if (!projection || !line) return null;
+    const m = projection.margin, t = projection.total;
+    const out = { spread: null, total: null, ml: null };
+
+    if (isFinite(line.spread) && isFinite(m)) {
+      const sp = spreadProbability(m, line.spread, opts);
+      if (sp.edge > 0) {
+        out.spread = { side: "home", prob: sp.homeCoverProb, edge: sp.edge,
+          line: line.spread, price: isFinite(line.homeSpreadOdds) ? line.homeSpreadOdds : -110 };
+      } else if (sp.edge < 0) {
+        out.spread = { side: "away", prob: 1 - sp.homeCoverProb, edge: -sp.edge,
+          line: line.spread, price: isFinite(line.awaySpreadOdds) ? line.awaySpreadOdds : -110 };
+      }
+    }
+    if (isFinite(line.total) && isFinite(t)) {
+      const tp = totalProbability(t, line.total, opts);
+      if (tp.edge > 0) {
+        out.total = { side: "over", prob: tp.overProb, edge: tp.edge,
+          line: line.total, price: isFinite(line.overOdds) ? line.overOdds : -110 };
+      } else if (tp.edge < 0) {
+        out.total = { side: "under", prob: 1 - tp.overProb, edge: -tp.edge,
+          line: line.total, price: isFinite(line.underOdds) ? line.underOdds : -110 };
+      }
+    }
+    if (isFinite(line.homeML) && isFinite(line.awayML) && isFinite(m) && m !== 0) {
+      const pHome = winProbability(m, opts);
+      out.ml = m > 0
+        ? { side: "home", prob: pHome, price: line.homeML }
+        : { side: "away", prob: 1 - pHome, price: line.awayML };
+    }
+    return out;
   }
 
   /* ------------------------------------------------------------------ *
@@ -482,6 +558,8 @@
       normalCDF,
       spreadProbability: (m, s, opts) => spreadProbability(m, s, merge(opts)),
       totalProbability: (t, m, opts) => totalProbability(t, m, merge(opts)),
+      winProbability: (m, opts) => winProbability(m, merge(opts)),
+      pickGame: (proj, line, opts) => pickGame(proj, line, merge(opts)),
       usageTDs: (c, t, opts) => usageTDs(c, t, merge(opts)),
       receivingOpportunity: (rec, opts) => receivingOpportunity(rec, merge(opts)),
       usagePoolFrom,
@@ -503,6 +581,8 @@
     normalCDF,
     spreadProbability,
     totalProbability,
+    winProbability,
+    pickGame,
     usageTDs,
     receivingOpportunity,
     usagePoolFrom,

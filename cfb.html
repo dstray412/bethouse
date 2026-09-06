@@ -145,15 +145,19 @@ BetHouseFootballBoard.mount({
     noteYards: 'Chance of going <b>over</b> a receiving yards line. Checked against <b>55,970</b> unseen '+
       'player-games — <b>3 points cold</b>, and the replay is sensitive to a modelling choice by about that much either way. '+
       'Read the number as approximate. The shape comes from real receiver games, not a bell curve.',
-    noteGames: 'Model projections for the week. <b>Not proven against the closing line</b> — see the note below.',
+    noteGames: 'The side the model likes on each game, against a real line, with its expected value at the price. '+
+      '<b>Not proven against the closing line</b> — read the note below before betting one.',
     gameBanner: '<p>These projections were measured against <b>1,488 real closing lines</b>. '+
       'The spread model won <b>51.7%</b> of the time and the total model <b>53.4%</b>, against the '+
       '<b>52.4%</b> you need at -110. Both confidence intervals straddle break-even. Where the model '+
       'disagreed with the line by six points or more the total went <b>56.5%</b> — on 322 games, which is '+
       'still inside the noise. Separating a break-even model from a coin flip takes about <b>1,700</b> games; '+
       'two seasons is 1,488.</p>'+
-      '<p>Softer than the NFL number, not yet proven better than it. They are here because you asked what '+
-      'the model thinks. Opponents outside the FBS are rated as one team, <b>FCS</b>.</p>',
+      '<p>Softer than the NFL number, not yet proven better than it. The picks are shown because you asked which '+
+      'side, not because there is proven edge in them. Every one is recorded before kickoff and settled like a book '+
+      'would, and the live record at the bottom will say whether they win and whether the closing line moves toward '+
+      'them. Opponents outside the FBS are rated as one team, <b>FCS</b>.</p>',
+    mlVerdict: '<b>Do not bet the moneyline off this.</b> In the replay the market\'s win probabilities beat the model\'s (Brier 0.1742 against 0.1867), and betting the side the model liked more than the market lost <b>4.7%</b> of stake over 1,432 games.',
     gameHonestly: 'inside the noise against the closing line over two seasons; not a proven edge',
     footer: '<p><b>Does it work?</b> Two FBS seasons replayed a game at a time, each game predicted only from '+
       'games already played:</p><table>'+

@@ -34,6 +34,7 @@
 import { readFileSync, existsSync } from "node:fs";
 import { leagueFromArgs } from "./football-leagues.mjs";
 import { seasonLines } from "./fetch-football.mjs";
+import E from "./edge.js";
 
 const args = process.argv.slice(2);
 const flag = (f, d) => {
@@ -230,7 +231,7 @@ function stateFrom(priorGames) {
  * Walk forward
  * ---------------------------------------------------------------- */
 
-const tdRows = [], yardRows = [], gameRows = [];
+const tdRows = [], yardRows = [], gameRows = [], mlRows = [];
 const tdRowsRaw = []; // inputs kept so --fit can re-derive without refetching
 const yardPool = []; // actual/expected ratios, appended only after a game is used
 const marginErr = [], totalErr = []; // the model's own projection error
@@ -258,6 +259,16 @@ for (let i = START_INDEX; i < ALL.length; i++) {
         prob: sp.homeCoverProb,
         actual: edge > 0 ? 1 : 0,
       });
+    }
+    /* Moneyline: the model's win probability against the market's, with
+       the vig taken out. Both graded on who won. */
+    if (g.homeML != null && g.awayML != null && margin !== 0) {
+      const nv = E.devigAmerican([g.homeML, g.awayML]);
+      const pHome = M.winProbability(proj.margin);
+      if (nv && pHome != null) {
+        mlRows.push({ model: pHome, market: nv[0], actual: margin > 0 ? 1 : 0,
+          price: pHome > nv[0] ? g.homeML : g.awayML, side: pHome > nv[0] ? "home" : "away" });
+      }
     }
     if (g.total != null) {
       const tp = totalProbability(proj.total, g.total);
@@ -488,11 +499,55 @@ for (const kind of ["spread", "total"]) {
       `  ${(">= " + thr + " pts").padEnd(14)}${String(n).padStart(6)}${String(won).padStart(6)}${pct(rate).padStart(10)}${(pct(lo) + "-" + pct(hi)).padStart(16)}${verdict.padStart(24)}`,
     );
   }
+  /*
+   * Are the probabilities themselves true? The win-rate table above is the
+   * question a bettor asks; this is the question the page has to answer
+   * before it prints a percentage. Regress the outcome on (prob - 0.5)
+   * through (0.5, 0.5): a slope of 1 means the model's confidence is
+   * right, 0 means the market already knew everything the model knows.
+   * The slope is what gameShrink holds, so a replay of the shrunk model
+   * should print a slope near 1.
+   */
+  let sxy = 0, sxx = 0;
+  for (const r of rows) { const x = r.prob - 0.5; sxy += x * (r.actual - 0.5); sxx += x * x; }
+  const slope = sxx ? sxy / sxx : 0;
+  console.log(`\n  calibration slope of the ${kind} probability: ${slope.toFixed(2)}   (1 = confidence is right, 0 = no information beyond the line)`);
+  const cal = [0.5, 0.55, 0.6, 0.65, 0.7, 1.0];
+  console.log(`  ${"model says".padEnd(14)}${"n".padStart(6)}${"predicted".padStart(12)}${"actual".padStart(10)}`);
+  for (let i = 0; i < cal.length - 1; i++) {
+    const inB = rows.filter((r) => { const p = Math.max(r.prob, 1 - r.prob); return p >= cal[i] && p < cal[i + 1]; });
+    if (inB.length < 20) continue;
+    const pred = mean(inB.map((r) => Math.max(r.prob, 1 - r.prob)));
+    const act = mean(inB.map((r) => (r.prob >= 0.5 ? r.actual : 1 - r.actual)));
+    console.log(`  ${(pct(cal[i]) + "-" + pct(cal[i + 1])).padEnd(14)}${String(inB.length).padStart(6)}${pct(pred).padStart(12)}${pct(act).padStart(10)}`);
+  }
   const need = Math.ceil(0.25 / Math.pow((BREAK_EVEN - 0.5) / 1.96, 2));
   console.log(
     `\n  To separate a break-even model from a coin flip at 95% confidence you`,
   );
   console.log(`  would need about ${need} bets. This sample has ${rows.length}.`);
+}
+
+/* ---- the moneyline, model against the no-vig close ---- */
+if (mlRows.length) {
+  console.log(`\n${"=".repeat(72)}`);
+  console.log(`MONEYLINE vs THE CLOSING LINE — ${mlRows.length} games`);
+  console.log("=".repeat(72));
+  const bm = mean(mlRows.map((r) => (r.model - r.actual) ** 2));
+  const bk = mean(mlRows.map((r) => (r.market - r.actual) ** 2));
+  console.log(`  Brier, model        ${bm.toFixed(4)}`);
+  console.log(`  Brier, market       ${bk.toFixed(4)}  ${bm < bk ? "(model is better)" : "(MARKET IS BETTER)"}`);
+  /* Betting the side the model likes more than the market does, paid at
+     the closing price. Return per $1 staked, which is what a bettor sees. */
+  let staked = 0, ret = 0, won = 0;
+  for (const r of mlRows) {
+    const dec = E.americanToDecimal(r.price);
+    const hit = r.side === "home" ? r.actual === 1 : r.actual === 0;
+    staked += 1; if (hit) { won++; ret += dec; }
+  }
+  console.log(`  bet the side the model likes more than the market, at the close:`);
+  console.log(`    ${mlRows.length} bets, won ${pct(won / mlRows.length)}, return ${((100 * (ret - staked)) / staked).toFixed(1)}% of stake`);
+  console.log(`  (a return inside a few percent of zero on this many games is noise, not a result)`);
 }
 
 console.log("");

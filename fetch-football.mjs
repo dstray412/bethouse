@@ -233,11 +233,19 @@ export function parseOdds(payload) {
   for (const it of items) {
     const spread = Number(it.spread);
     if (!isFinite(spread)) continue;
+    const price = (v) => (isFinite(Number(v)) && Number(v) !== 0 ? Number(v) : null);
     return {
       spread, // negative = home favoured
       total: isFinite(Number(it.overUnder)) ? Number(it.overUnder) : null,
-      homeML: Number(it.homeTeamOdds?.moneyLine) || null,
-      awayML: Number(it.awayTeamOdds?.moneyLine) || null,
+      homeML: price(it.homeTeamOdds?.moneyLine),
+      awayML: price(it.awayTeamOdds?.moneyLine),
+      /* The juice on each side. Pregame lines carry it; the closing
+         entry on a finished game usually does not, and -110 is assumed
+         downstream where it is missing. */
+      homeSpreadOdds: price(it.homeTeamOdds?.spreadOdds),
+      awaySpreadOdds: price(it.awayTeamOdds?.spreadOdds),
+      overOdds: price(it.overOdds),
+      underOdds: price(it.underOdds),
       book: it.provider?.name || "",
     };
   }
@@ -347,14 +355,19 @@ async function weekSchedule(league, season, week, members) {
   return (d.events || []).map((e) => parseScheduleEvent(e, season, week, opts));
 }
 
+/** The current (or, after the game, closing) pregame line for one game. */
+export async function fetchLine(league, id) {
+  const odds = await getJSON(`${league.core}/events/${id}/competitions/${id}/odds`).catch(() => null);
+  return parseOdds(odds);
+}
+
 async function fetchGame(league, id, members) {
-  const [summary, odds] = await Promise.all([
+  const [summary, line] = await Promise.all([
     getJSON(`${league.site}/summary?event=${id}`),
-    getJSON(`${league.core}/events/${id}/competitions/${id}/odds`).catch(() => null),
+    fetchLine(league, id),
   ]);
   const game = parseGame(summary, { members, outsiderCode: league.outsiderCode });
   if (!game) return null;
-  const line = parseOdds(odds);
   game.spread = line ? line.spread : null;
   game.total = line ? line.total : null;
   game.homeML = line ? line.homeML : null;
@@ -526,6 +539,22 @@ export async function buildBoard(league, history) {
   const matched = Object.keys(opponentOf).length;
   console.log(`  matchups resolved for ${matched} teams across ${up.games.length} games`);
 
+  /* The market's line on every game not yet played, so the page can show
+     which side the model likes and the tracker can record it against a
+     real number. One request a game. A game that has started keeps no
+     line: the endpoint would return the in-play one, and a pick against
+     that is a pick against the answer. */
+  const now = new Date().toISOString();
+  const lines = new Map();
+  const open = up.games.filter((g) => !g.completed && g.date > now);
+  const BATCH = 8;
+  for (let i = 0; i < open.length; i += BATCH) {
+    const chunk = open.slice(i, i + BATCH);
+    const got = await Promise.all(chunk.map((g) => fetchLine(league, g.id)));
+    chunk.forEach((g, j) => { if (got[j]) lines.set(g.id, got[j]); });
+  }
+  console.log(`  lines found for ${lines.size} of ${open.length} games not yet played`);
+
   const usagePool = model.usagePoolFrom([...usageByPlayer.values()], 6);
   /*
    * The yardage pool: actual/expected for every game by a player with
@@ -561,10 +590,12 @@ export async function buildBoard(league, history) {
     generated: new Date().toISOString(),
     season, week: up.week,
     statsSeasons,
+    linesFetched: lines.size ? now : null,
     games: up.games.map((g) => ({
       id: g.id, date: g.date, name: g.name, completed: g.completed,
       home: g.home, away: g.away,
       ...(g.neutral ? { neutral: true } : {}),
+      ...(lines.has(g.id) ? { line: lines.get(g.id) } : {}),
     })),
     ratings,
     teamFactors,

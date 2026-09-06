@@ -201,25 +201,30 @@ test("spreadProbability: agreeing with the line is a coin flip", () => {
   close(s.homeCoverProb, 0.5, 1e-6);
 });
 
+/* The three shape tests below read `rawCoverProb`: the model's own
+   opinion before it is shrunk toward the line (see spreadShrink). The
+   shipped `homeCoverProb` is that opinion times a measured slope, which
+   for the NFL is zero, so it is a coin flip by design and the shape lives
+   in the raw number. */
 test("spreadProbability: liking the home side more than the market does", () => {
   const s = spreadProbability(10, -7); // model +3 on the home side
   assert.ok(s.edge > 0);
-  assert.ok(s.homeCoverProb > 0.5 && s.homeCoverProb < 0.7,
-    `3 points of edge should be a modest lean, got ${s.homeCoverProb}`);
+  assert.ok(s.rawCoverProb > 0.5 && s.rawCoverProb < 0.7,
+    `3 points of edge should be a modest lean, got ${s.rawCoverProb}`);
 });
 
 test("spreadProbability: sign convention matches how a spread is graded", () => {
   // Home -7 means home must win by 8. A model projecting home by only 3
   // should make the home cover unlikely.
-  assert.ok(spreadProbability(3, -7).homeCoverProb < 0.5);
+  assert.ok(spreadProbability(3, -7).rawCoverProb < 0.5);
   // Home +7 (road favourite) and a model projecting a home win: likely cover.
-  assert.ok(spreadProbability(3, 7).homeCoverProb > 0.5);
+  assert.ok(spreadProbability(3, 7).rawCoverProb > 0.5);
 });
 
 test("spreadProbability: bigger disagreement, stronger opinion", () => {
-  const a = spreadProbability(8, -7).homeCoverProb;
-  const b = spreadProbability(14, -7).homeCoverProb;
-  const c = spreadProbability(21, -7).homeCoverProb;
+  const a = spreadProbability(8, -7).rawCoverProb;
+  const b = spreadProbability(14, -7).rawCoverProb;
+  const c = spreadProbability(21, -7).rawCoverProb;
   assert.ok(a < b && b < c);
 });
 
@@ -564,4 +569,125 @@ test("bind: the same model, every function pre-bound to another league's constan
   assert.equal(s.perGameReceiving, 5);
   // An explicit override at the call still wins.
   assert.equal(C.projectGame(r, "A", "B", { neutral: true }).margin, C.projectGame(r, "A", "B").margin - 3.5);
+});
+
+/* ------------------------------------------------------------------ *
+ * Picking a side
+ *
+ * Oracle: the grading rules. Home covers iff (home - away) + spread > 0;
+ * the game goes over iff points > total; home wins iff margin > 0. A pick
+ * is whichever side the projection gives more than half a chance, and
+ * the probability reported is that side's. One function, used by the
+ * page, the tracker and the backtest, so the three cannot disagree
+ * about which side the model likes.
+ * ------------------------------------------------------------------ */
+
+test("winProbability: the projected margin in units of the model's error", () => {
+  close(nfl.winProbability(0), 0.5);
+  close(nfl.winProbability(DEFAULTS.marginSD), normalCDF(1));
+  assert.ok(nfl.winProbability(-7) < 0.5);
+  assert.equal(nfl.winProbability(NaN), null);
+});
+
+test("pickGame: likes the home side when it projects a bigger margin than the spread", () => {
+  // Projected home by 7; market has home -3.5. Edge +3.5 to the home side.
+  const p = nfl.pickGame({ margin: 7, total: 45 }, { spread: -3.5, total: 44.5 });
+  assert.equal(p.spread.side, "home");
+  close(p.spread.edge, 3.5);
+  close(p.spread.prob, spreadProbability(7, -3.5).homeCoverProb);
+  assert.ok(p.spread.prob >= 0.5);
+  assert.equal(p.total.side, "over");
+  close(p.total.edge, 0.5);
+  close(p.total.prob, totalProbability(45, 44.5).overProb);
+});
+
+test("pickGame: the away side, and its probability is the away side's", () => {
+  // Projected home by 1; market has home -6.5. The away side is getting
+  // 5.5 points more than the projection says it needs.
+  const p = nfl.pickGame({ margin: 1, total: 40 }, { spread: -6.5, total: 47 });
+  assert.equal(p.spread.side, "away");
+  close(p.spread.edge, 5.5);
+  close(p.spread.prob, 1 - spreadProbability(1, -6.5).homeCoverProb);
+  assert.equal(p.total.side, "under");
+  close(p.total.edge, 7);
+  close(p.total.prob, 1 - totalProbability(40, 47).overProb);
+});
+
+test("pickGame: the moneyline pick is the projected winner with its win probability", () => {
+  const p = nfl.pickGame({ margin: -4, total: 40 }, { spread: 2.5, total: 40, homeML: 130, awayML: -150 });
+  assert.equal(p.ml.side, "away");
+  close(p.ml.prob, 1 - nfl.winProbability(-4));
+  assert.equal(p.ml.price, -150);
+});
+
+test("pickGame: carries the price of the side it picked, defaulting spread and total juice to -110", () => {
+  const priced = nfl.pickGame({ margin: 7, total: 45 }, {
+    spread: -3.5, total: 44.5, homeSpreadOdds: -105, awaySpreadOdds: -115, overOdds: -102, underOdds: -118,
+  });
+  assert.equal(priced.spread.price, -105);
+  assert.equal(priced.total.price, -102);
+  const bare = nfl.pickGame({ margin: 7, total: 45 }, { spread: -3.5, total: 44.5 });
+  assert.equal(bare.spread.price, -110);
+  assert.equal(bare.total.price, -110);
+});
+
+test("pickGame: no line, no pick; a market that is missing is null, not a guess", () => {
+  assert.equal(nfl.pickGame({ margin: 7, total: 45 }, null), null);
+  const p = nfl.pickGame({ margin: 7, total: 45 }, { spread: -3.5 });
+  assert.ok(p.spread);
+  assert.equal(p.total, null);
+  assert.equal(p.ml, null);
+  assert.equal(nfl.pickGame(null, { spread: -3.5 }), null);
+});
+
+test("pickGame: exactly on the number is not a pick", () => {
+  const p = nfl.pickGame({ margin: 3.5, total: 44.5 }, { spread: -3.5, total: 44.5 });
+  assert.equal(p.spread, null);
+  assert.equal(p.total, null);
+});
+
+/* ------------------------------------------------------------------ *
+ * Calibration against the line
+ *
+ * Oracle: the replay. Regressing the outcome on the model's cover
+ * probability gave a slope of -0.25 (NFL) and 0.07 (college, both seasons
+ * alike): the projection carries no information about the spread that
+ * the closing line does not already carry. Totals kept a fraction. So
+ * the probability the page prints is pulled toward a coin flip by a
+ * measured amount, spreadShrink and totalShrink, and 0 means "the model
+ * has no opinion the market lacks". The edge in points is untouched: it
+ * is still the side the model leans to, and the record still grades it.
+ * ------------------------------------------------------------------ */
+
+test("spreadProbability: shrunk toward a coin flip by the measured slope", () => {
+  const raw = spreadProbability(7, -3.5, { spreadShrink: 1 }).homeCoverProb;
+  const half = spreadProbability(7, -3.5, { spreadShrink: 0.5 }).homeCoverProb;
+  const none = spreadProbability(7, -3.5, { spreadShrink: 0 }).homeCoverProb;
+  close(half - 0.5, (raw - 0.5) / 2);
+  close(none, 0.5);
+  close(spreadProbability(7, -3.5, { spreadShrink: 0 }).edge, 3.5, 1e-9); // the lean survives
+});
+
+test("totalProbability: the same, with its own measured slope", () => {
+  const raw = totalProbability(50, 44.5, { totalShrink: 1 }).overProb;
+  const some = totalProbability(50, 44.5, { totalShrink: 0.25 }).overProb;
+  close(some - 0.5, (raw - 0.5) / 4);
+  close(totalProbability(40, 44.5, { totalShrink: 0 }).overProb, 0.5);
+});
+
+test("pickGame: still picks the side when the probability is a coin flip", () => {
+  const p = nfl.pickGame({ margin: 7, total: 45 }, { spread: -3.5, total: 44.5 }, { spreadShrink: 0, totalShrink: 0 });
+  assert.equal(p.spread.side, "home");
+  close(p.spread.prob, 0.5);
+  close(p.spread.edge, 3.5);
+  assert.equal(p.total.side, "over");
+  close(p.total.prob, 0.5);
+});
+
+test("the NFL ships its spread probability fully shrunk, and college too", async () => {
+  const cfb = (await import("./cfb.js")).default;
+  assert.equal(DEFAULTS.spreadShrink, 0);
+  assert.equal(cfb.DEFAULTS.spreadShrink, 0);
+  assert.ok(DEFAULTS.totalShrink > 0 && DEFAULTS.totalShrink < 1);
+  assert.ok(cfb.DEFAULTS.totalShrink > 0 && cfb.DEFAULTS.totalShrink < 1);
 });

@@ -157,30 +157,70 @@
       };
     }
 
+    /* Expected value of a pick at its price, via edge.js. */
+    var E = window.BetHouseEdge;
+    var evOf=function(k){ return k && E ? E.evPct(k.prob, E.americanToDecimal(k.price)) : NaN; };
+    var sideName=function(g,k,prop){
+      if(prop==='total') return (k.side==='over'?'o':'u')+k.line;
+      var team = k.side==='home'?g.home:g.away;
+      if(prop==='ml') return team+' ML';
+      var pts = k.side==='home'?k.line:-k.line;
+      return team+' '+(pts>0?'+':'')+pts;
+    };
+    var evStr=function(ev){ return isFinite(ev)?((ev>=0?'+':'')+(100*ev).toFixed(1)+'%'):'—'; };
+
     function renderGames(){
       var html='<div class="banner"><h3>Read this before betting a side</h3>'+C.gameBanner+'</div>';
-      html+='<div class="game"><div class="ghead"><h2 class="gtitle">Week '+D.week+'</h2>'+
-        '<div class="gmeta">'+(D.games||[]).length+' games · model projection only, no line attached</div></div>';
       var rows=[];
       (D.games||[]).forEach(function(g){
         if(!g.home||!g.away) return;
         var pr=N.projectGame(D.ratings,g.home,g.away,{neutral:!!g.neutral});
         if(!pr) return;
-        rows.push({g:g,h:g.home,a:g.away,pr:pr});
+        var pick=g.line?N.pickGame(pr,g.line):null;
+        /* The row shows the better of the spread and total picks. The
+           moneyline is deliberately NOT a candidate: the replay says the
+           model's win probabilities are worse than the market's in both
+           leagues, and a flat model makes every underdog look like value,
+           so ranking by moneyline EV would put the worst bet on top. It is
+           in the detail, with the replay's verdict beside it. */
+        var best=null;
+        if(pick){
+          ['spread','total'].forEach(function(prop){
+            var k=pick[prop]; if(!k) return;
+            var ev=evOf(k);
+            if(!best||(isFinite(ev)&&ev>best.ev)) best={prop:prop,k:k,ev:ev};
+          });
+        }
+        rows.push({g:g,h:g.home,a:g.away,pr:pr,pick:pick,best:best});
       });
+      /* Best value first; games with no line yet at the bottom, in
+         schedule order, showing the projection alone. */
+      rows.sort(function(x,y){
+        var ex=x.best&&isFinite(x.best.ev)?x.best.ev:-Infinity, ey=y.best&&isFinite(y.best.ev)?y.best.ev:-Infinity;
+        if(ex!==ey) return ey-ex;
+        return String(x.g.date).localeCompare(String(y.g.date));
+      });
+      var lined=rows.filter(function(r){return r.best;}).length;
+      html+='<div class="game"><div class="ghead"><h2 class="gtitle">Week '+D.week+'</h2>'+
+        '<div class="gmeta">'+rows.length+' games · '+(lined?lined+' with a line, best value first':'no lines yet')+
+        (D.linesFetched?' · lines as of '+esc(String(D.linesFetched).slice(0,16).replace('T',' '))+' UTC':'')+'</div></div>';
       rows.forEach(function(r,i){
         var m=r.pr.margin;
         html+='<button class="row" aria-expanded="false" data-i="'+i+'">'+
           '<span class="slot">'+(i+1)+'</span>'+
           '<span class="who">'+esc(r.a)+(r.g.neutral?' vs ':' at ')+esc(r.h)+
-            '<span class="pos">'+esc(String(r.g.name||''))+(r.g.neutral?' · neutral site':'')+'</span></span>'+
-          /* "SEA -7.2" in a 74px column wrapped for every team but the
-             two-letter ones, so row heights alternated on abbreviation length
-             and nothing else. Number on top, team as the block sublabel under
-             it -- the same shape .be already uses for "43.3 / total". */
-          '<span class="prob">-'+Math.abs(m).toFixed(1)+
-            '<small>'+esc(m>=0?r.h:r.a)+'</small></span>'+
-          '<span class="be">'+r.pr.total.toFixed(1)+'<small>total</small></span>'+
+            '<span class="pos">'+(r.g.line
+              ? esc(r.h)+' '+(r.g.line.spread>0?'+':'')+r.g.line.spread+' · o/u '+r.g.line.total+
+                (r.g.line.book?' · '+esc(r.g.line.book):'')
+              : esc(String(r.g.name||'')))+(r.g.neutral?' · neutral site':'')+'</span></span>'+
+          /* With a line: the best pick, its probability, and its EV at the
+             quoted price. Without one: the projection, as before. Number on
+             top, label as the block sublabel under it. */
+          (r.best
+            ? '<span class="prob">'+pct(r.best.k.prob,0)+'<small>'+esc(sideName(r.g,r.best.k,r.best.prop))+'</small></span>'+
+              '<span class="be">'+evStr(r.best.ev)+'<small>EV</small></span>'
+            : '<span class="prob">-'+Math.abs(m).toFixed(1)+'<small>'+esc(m>=0?r.h:r.a)+'</small></span>'+
+              '<span class="be">'+r.pr.total.toFixed(1)+'<small>total</small></span>')+
           '<span class="caret">›</span></button>'+
           '<div class="why" id="why'+i+'" hidden></div>';
       });
@@ -189,10 +229,36 @@
       app.__detail=function(r){
         var t='<table>';
         t+='<tr><td>projection</td><td><b>'+esc(r.h)+' '+r.pr.homePts.toFixed(1)+
-          '</b> — <b>'+esc(r.a)+' '+r.pr.awayPts.toFixed(1)+'</b></td></tr>';
-        t+='<tr><td>margin</td><td><b>'+(r.pr.margin>=0?'+':'')+r.pr.margin.toFixed(1)+'</b> to the home side'+
-          (r.g.neutral?' (neutral site: no home field applied)':' (home field is worth '+D.ratings.homeField.toFixed(2)+')')+'</td></tr>';
-        t+='<tr><td>total</td><td><b>'+r.pr.total.toFixed(1)+'</b></td></tr>';
+          '</b> — <b>'+esc(r.a)+' '+r.pr.awayPts.toFixed(1)+'</b> · margin <b>'+(r.pr.margin>=0?'+':'')+r.pr.margin.toFixed(1)+
+          '</b> to the home side'+(r.g.neutral?' (neutral site, no home field)':'')+' · total <b>'+r.pr.total.toFixed(1)+'</b></td></tr>';
+        if(r.g.line){
+          var L=r.g.line;
+          t+='<tr><td>market</td><td>'+esc(r.h)+' <b>'+(L.spread>0?'+':'')+L.spread+'</b>'+
+            (L.homeSpreadOdds?' ('+sgn(L.homeSpreadOdds)+' / '+sgn(L.awaySpreadOdds)+')':'')+
+            ' · total <b>'+L.total+'</b>'+(L.overOdds?' ('+sgn(L.overOdds)+' / '+sgn(L.underOdds)+')':'')+
+            (L.homeML?' · '+esc(r.h)+' '+sgn(L.homeML)+', '+esc(r.a)+' '+sgn(L.awayML):'')+
+            (L.book?' · '+esc(L.book):'')+'</td></tr>';
+          var line=function(label,k,prop,extra){
+            if(!k){ t+='<tr><td>'+label+'</td><td>no line</td></tr>'; return; }
+            var ev=evOf(k), be=E?E.breakEvenProb(k.price):null;
+            t+='<tr><td>'+label+'</td><td><b>'+esc(sideName(r.g,k,prop))+'</b> at '+sgn(k.price)+
+              ' — model <b>'+pct(k.prob)+'</b>'+(be!=null?', the price needs '+pct(be):'')+
+              (k.edge!=null?', edge <b>'+k.edge.toFixed(1)+'</b> points':'')+(extra||'')+
+              ' → EV <b>'+evStr(ev)+'</b></td></tr>';
+          };
+          var pk=r.pick||{};
+          line('spread',pk.spread,'spread');
+          line('total',pk.total,'total');
+          var mlExtra='';
+          if(pk.ml&&E&&L.homeML&&L.awayML){
+            var nv=E.devigAmerican([L.homeML,L.awayML]);
+            if(nv) mlExtra=', the market (no vig) says <b>'+pct(pk.ml.side==='home'?nv[0]:nv[1])+'</b>';
+          }
+          line('moneyline',pk.ml,'ml',mlExtra);
+          if(pk.ml&&C.mlVerdict) t+='<tr><td></td><td>'+C.mlVerdict+'</td></tr>';
+        } else {
+          t+='<tr><td>market</td><td>no line yet</td></tr>';
+        }
         t+='<tr><td>ratings</td><td>'+esc(r.h)+' offence <b>'+(D.ratings.off[r.h]||0).toFixed(2)+
           '</b>, defence <b>'+(D.ratings.def[r.h]||0).toFixed(2)+'</b><br>'+
           esc(r.a)+' offence <b>'+(D.ratings.off[r.a]||0).toFixed(2)+
@@ -249,9 +315,20 @@
           p.predicted+'%</b>, actual <b>'+p.actual+'%</b> · off by <b>'+
           (p.bias>=0?'+':'')+p.bias+'pp</b> · Brier <b>'+p.brier+'</b></td></tr>';
       });
+      var picks='';
+      if(R.picks){
+        var lab={spread:'spread',total:'total',ml:'moneyline'};
+        Object.keys(R.picks).forEach(function(k){
+          var g=R.picks[k];
+          picks+='<tr><td>'+lab[k]+' picks</td><td>n <b>'+g.n+'</b> · won <b>'+g.rate+'%</b> ('+g.lo+'–'+g.hi+'%), needs 52.4%'+
+            (g.clvPts!=null?' · closing line moved toward the pick <b>'+g.movedToward+'%</b> of the time, <b>'+
+              (g.clvPts>=0?'+':'')+g.clvPts+'</b> pts on average':'')+'</td></tr>';
+        });
+        picks='<p>The sides the board picked, settled the way a book would:</p><table>'+picks+'</table>';
+      }
       return '<p><b>Live record</b> — '+R.total+' graded prediction'+(R.total===1?'':'s')+
         ' over '+R.days.length+' week'+(R.days.length===1?'':'s')+', measured against what this '+
-        'board actually published:</p><table>'+rows+'</table>'+
+        'board actually published:</p><table>'+rows+'</table>'+picks+
         (R.total<400?'<p>Far too few to mean anything yet. Bias needs n in the thousands.</p>':'');
     }
 
