@@ -23,8 +23,13 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const DIR = path.dirname(fileURLToPath(import.meta.url));
+import { loadPriors } from "./statcast.mjs";
+
 const API = "https://statsapi.mlb.com/api/v1";
 const SEASON = 2026;
+/* Last season's Statcast priors, committed under statcast/. Empty if the
+   file is missing, in which case every hitter regresses to the league. */
+const priors = loadPriors(SEASON - 1);
 
 const args = process.argv.slice(2);
 const flag = (f, d) => {
@@ -289,6 +294,11 @@ async function main() {
           obp: s.obp || null,
           ops: s.ops || null,
           games: s.games || 0,
+          /* Last season's Statcast expected hit rate, the centre the model
+             regresses this hitter toward (score.js, PRIOR_WEIGHT). Absent
+             for a hitter without 50 PA last season, who regresses to the
+             league as before. */
+          ...(priors[p.id] ? { prior: { hit: priors[p.id].hit, xba: priors[p.id].xba, season: priors[p.id].season } } : {}),
         };
       }),
     };

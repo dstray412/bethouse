@@ -94,15 +94,37 @@
    */
   const REGRESSION_PA = 180;
 
+  /*
+   * WHERE THE REGRESSION POINTS. The centre has always been the league
+   * rate. A player is not a random draw from the league, though, and
+   * `player.prior` -- last season's Statcast expected hit rate per PA,
+   * statcast.mjs -- is a better guess at his true rate than the league is.
+   * With weight w the centre is league + w * (prior - league): 0 is the
+   * old model, 1 regresses him toward himself.
+   *
+   * VALIDATED 2026-09-08 on the board's own forward record, re-scored with
+   * the prior by experiment-statcast.mjs: 7,608 published 1+ H/R/RBI
+   * predictions over 36 days, 80% of them hitters with a 2025 prior.
+   * Better on Brier and on log loss on both halves of the window, fitted
+   * either way round, on the raw probability and after calibration, and
+   * monotone in w. Fits chose 1.0 and 0.75; the timid end ships. The gain
+   * is small (Brier 0.2208 -> 0.2205, log loss 0.6333 -> 0.6327 on the
+   * held-out half) and the sign never wavered.
+   */
+  const PRIOR_WEIGHT = 0.75;
+
   function regressedPerPA(player, leagueRates, opts) {
     opts = opts || {};
     const K = opts.regressionPA == null ? REGRESSION_PA : opts.regressionPA;
+    const w = opts.priorWeight == null ? PRIOR_WEIGHT : opts.priorWeight;
     const pa = Number(player.pa) || 0;
     if (!leagueRates || K <= 0) return perPA(player);
-    const blend = (events, lgRate) =>
-      Math.max(0, Math.min(0.999, (num(events) + lgRate * K) / (pa + K)));
+    const blend = (events, centre) =>
+      Math.max(0, Math.min(0.999, (num(events) + centre * K) / (pa + K)));
+    const prior = player.prior && isFinite(Number(player.prior.hit)) ? Number(player.prior.hit) : null;
+    const hitCentre = prior == null || !(w > 0) ? leagueRates.hit : leagueRates.hit + w * (prior - leagueRates.hit);
     return {
-      hit: blend(player.hits, leagueRates.hit),
+      hit: blend(player.hits, hitCentre),
       run: blend(player.runs, leagueRates.run),
       rbi: blend(player.rbi, leagueRates.rbi),
     };
@@ -1057,6 +1079,7 @@
     mixPow: mixPow,
     perPA: perPA,
     regressedPerPA: regressedPerPA,
+    PRIOR_WEIGHT: PRIOR_WEIGHT,
     safeRate: safeRate,
     probFromRates: probFromRates,
     probAtLeastOne: probAtLeastOne,

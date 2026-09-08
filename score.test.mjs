@@ -1151,3 +1151,39 @@ test("the correction moves the average toward the truth, not away", () => {
     assert.ok(after <= before, `${key}: correction moved the average away from reality`);
   }
 });
+
+/* ------------------------------------------------------------------ *
+ * A player-specific regression centre
+ *
+ * Oracle: the regression formula. regressed = (events + centre*K)/(PA+K),
+ * and the centre has always been the league rate. With a prior on the
+ * player (last season's expected rate, statcast.mjs) the centre becomes
+ * league + w*(prior - league). At w=0 nothing changes, which is what
+ * ships until the forward record says otherwise; at w=1 the player is
+ * regressed toward himself.
+ * ------------------------------------------------------------------ */
+
+test("regressedPerPA: a prior moves the centre by the prior weight, and only the hit rate", () => {
+  const lg = { hit: 0.216, run: 0.118, rbi: 0.113 };
+  const p = { pa: 100, hits: 30, runs: 10, rbi: 10, prior: { hit: 0.260 } };
+  const none = score.regressedPerPA(p, lg, { regressionPA: 180, priorWeight: 0 });
+  const full = score.regressedPerPA(p, lg, { regressionPA: 180, priorWeight: 1 });
+  const half = score.regressedPerPA(p, lg, { regressionPA: 180, priorWeight: 0.5 });
+  assert.ok(Math.abs(none.hit - (30 + 0.216 * 180) / 280) < 1e-12, "w=0 is the league centre");
+  assert.ok(Math.abs(full.hit - (30 + 0.260 * 180) / 280) < 1e-12, "w=1 is the prior");
+  assert.ok(Math.abs(half.hit - (30 + 0.238 * 180) / 280) < 1e-12, "w=0.5 is halfway");
+  assert.equal(none.run, full.run, "runs have no prior");
+  assert.equal(none.rbi, full.rbi, "RBI have no prior");
+});
+
+test("regressedPerPA: without a prior the model is exactly the old one, whatever the weight", () => {
+  const lg = { hit: 0.216, run: 0.118, rbi: 0.113 };
+  const p = { pa: 100, hits: 30, runs: 10, rbi: 10 };
+  const a = score.regressedPerPA(p, lg, { regressionPA: 180 });
+  const c = score.regressedPerPA(Object.assign({}, p, { prior: null }), lg, { regressionPA: 180, priorWeight: 1 });
+  assert.equal(a.hit, c.hit, "no prior means the league centre even at full weight");
+  assert.ok(Math.abs(a.hit - (30 + 0.216 * 180) / 280) < 1e-12);
+  // The shipped weight: validated on the forward record (experiment-statcast.mjs),
+  // fits chose 0.75 and 1.0, the timid end ships. characterization:
+  assert.equal(score.PRIOR_WEIGHT, 0.75);
+});

@@ -47,7 +47,7 @@ const PROPS = [["hrr", null], ["tb2", 2], ["tb3", 3], ["tb4", 4], ["hr", null]];
  * Rebuild what the board actually used
  * ---------------------------------------------------------------- */
 
-function rebuild() {
+export function rebuild(opts = {}) {
   const log = execSync('git log --format="%H %ct %s" --all -- mlb-data.js',
     { encoding: "utf8", maxBuffer: 1e8, cwd: DIR });
   const byDate = new Map();
@@ -117,7 +117,8 @@ function rebuild() {
                     : prop === "hrr" ? S.scoreHRR(player, ctx)
                     : S.scoreTB(player, ctx);
             if (!r || !isFinite(r.rawProb)) continue;
-            rows.push({ date, prop, raw: r.rawProb, a: outcome.get(key) });
+            rows.push(Object.assign({ date, prop, raw: r.rawProb, a: outcome.get(key) },
+              opts.keepInputs ? { player, ctx, id: String(p.id) } : {}));
             /* rawProb, not prob: the recorded number predates the
                correction, so comparing the corrected one would report the
                fix as if it were reconstruction error. */
@@ -163,6 +164,15 @@ function solveCentre(set, shrink) {
   return 1 / (1 + Math.exp(-(lo + hi) / 2));
 }
 
+/* Everything below is the report. experiment-statcast.mjs imports rebuild()
+   and runs its own. */
+if (import.meta.url !== `file://${process.argv[1]}`) {
+  // imported, not run
+} else {
+  report();
+}
+
+function report() {
 const { rows, agree } = rebuild();
 const days = [...new Set(rows.map((r) => r.date))].sort();
 console.log(`\n${"=".repeat(72)}`);
@@ -216,4 +226,5 @@ for (const [prop] of PROPS) {
       `   base rate ${(100 * base).toFixed(1)}%` +
       (Math.abs(solved - shipped) > 0.01 ? "   <- drifted, worth re-shipping" : ""),
   );
+}
 }

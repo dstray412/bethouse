@@ -174,6 +174,8 @@ should be re-fitted when the run environment shifts.
 | `backtest-nfl.mjs` | Replays either league (`--league cfb`), measures the constants (`--measure`), fits the two that are fitted (`--fit`). |
 | `nflverse.mjs` | Reads nflverse-data (27 NFL seasons with lines and weather, injury reports and depth charts since 2009) into the model's game shape. No key; cached under `nflverse/`. 5 tests. |
 | `experiment-nflverse.mjs` | The model, the line's biases and the missing-quarterback question over 27 seasons, by era. Found the wind bias. |
+| `statcast.mjs` | Last season's Statcast expected batting average per hitter, as a per-PA prior for the regression centre. No key. Committed under `statcast/`. 3 tests. |
+| `experiment-statcast.mjs` | Re-scores every published H/R/RBI prediction with the prior and applies the shrink's own validation bar. It passed. |
 | `experiment-lines.mjs` | Tests every reconfiguration of the game model a box score can support against the closing line, per season. Nothing helped. Kept so the negative result stays reproducible. |
 
 ## Sharing it
@@ -948,6 +950,40 @@ ahead.
 
 That is the only test a model cannot quietly pass by having been tuned to the
 data, and it found something two months of backtesting had not.
+
+## The regression now points at the hitter, not the league
+
+**2026-09-08.** Every rate in the hitter model is regressed toward the league
+average with a 180 PA prior (`regressedPerPA`). That is the right shape and,
+for a hitter with a track record, the wrong centre: he is not a random draw
+from the league. Baseball Savant publishes each hitter's **expected batting
+average**, his results with the luck taken out given how hard and at what
+angle he hit the ball, and last season's is fully known before the first
+pitch of this one. `statcast.mjs` joins it to the season line (no key; MLBAM
+ids on both sides) and converts it to hits per plate appearance with the
+hitter's own AB/PA. The centre becomes `league + w × (prior − league)`.
+
+**It was validated on the board's own published record, not a backtest.**
+`experiment-statcast.mjs` rebuilds all 7,608 1+ H/R/RBI predictions the
+board published over 36 days from their committed snapshots and re-scores
+them with the prior. The bar was the one `CALIBRATION_SHRINK` had to clear:
+fitted on one half, better on the other, on Brier and log loss, both ways
+round, raw and calibrated.
+
+| held-out half | Brier, as shipped → with prior | log loss |
+|---|---|---|
+| second, fitted on first (w=1) | 0.21613 → 0.21597 | 0.62330 → 0.62293 |
+| first, fitted on second (w=1) | 0.22083 → 0.22047 | 0.63330 → 0.63248 |
+
+Monotone in the weight at every step, on both halves, on the 80% of rows
+that have a prior. The gain is small and it never once went the other way.
+Fits chose 1.0 and 0.75; the timid end, **`PRIOR_WEIGHT = 0.75`**, ships.
+Only the hit rate has a prior so far; runs, RBI, total bases and home runs
+are still regressed toward the league, which is where the next gain is.
+
+Predictions published before 2026-09-08 were made without the prior. The
+record keeps them as recorded; the model that made them changed by a
+fraction of a point, not by a recalibration.
 
 ## Five things that turned out not to matter
 

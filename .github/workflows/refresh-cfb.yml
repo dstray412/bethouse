@@ -67,7 +67,7 @@ jobs:
             if (!("FCS" in d.ratings.off)) throw new Error("no FCS pseudo-team in the ratings");
             console.log("ok:", d.players.length, "players, week", d.week, ",", d.games.length, "games");
           '
-          node --test edge.test.mjs score.test.mjs golf.test.mjs nfl.test.mjs cfb.test.mjs nflverse.test.mjs bets.test.mjs track.test.mjs clv.test.mjs provenance.test.mjs dom.test.mjs
+          node --test edge.test.mjs score.test.mjs golf.test.mjs nfl.test.mjs cfb.test.mjs nflverse.test.mjs statcast.test.mjs bets.test.mjs track.test.mjs clv.test.mjs provenance.test.mjs dom.test.mjs
 
       # The forward record. Snapshot reads the local board and costs nothing;
       # grade only fetches games that have finished since last run. Same

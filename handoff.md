@@ -120,6 +120,19 @@ covers 53.3%, n=345): watch, not bet.
 close on ~1,485 games, inside the noise. The forward record started
 2026-09-05 with 1,183 pregame predictions (`cfb-record/2026-08-29.json`).
 
+## Statcast prior, 2026-09-08
+
+The hitter model's regression centre is now `league + 0.75 × (last season's
+Statcast xBA per PA − league)` for the hit rate (`PRIOR_WEIGHT` in score.js;
+`statcast/2025.json`, committed; `node statcast.mjs 2025` rebuilds it, and
+in 2027 run it for 2026 and the fetcher picks it up by season). Validated
+on the forward record via `experiment-statcast.mjs`: better on both halves,
+both ways, raw and calibrated, monotone; fits chose 1.0 and 0.75, timid end
+ships. Small gain (Brier −0.0003, log loss −0.0006 held out). Predictions
+before 2026-09-08 were made without it and stand. Runs, RBI, TB, HR still
+regress to the league: the next gain is a prior for those (xSLG, xwOBA are
+in the same file).
+
 ## The model was wrong, and was fixed
 
 **2026-08-22.** The MLB probabilities were over-dispersed. Found by the forward

@@ -1153,7 +1153,8 @@ function buildWhy(r, game, side){
   }
 
   if(r.confidence < 0.65){
-    line('<span class="flag">Small sample.</span> Only <b>'+r.player.pa+'</b> PA, so this estimate is mostly the league average, not this hitter.');
+    line('<span class="flag">Small sample.</span> Only <b>'+r.player.pa+'</b> PA, so this estimate is mostly '+
+      (r.player.prior&&r.player.prior.xba!=null?'his own expected rate from last season (xBA <b>'+r.player.prior.xba.toFixed(3)+'</b>)':'the league average')+', not this season.');
   }
   if(!game[side].confirmed){
     line('<span class="flag">Lineup not posted.</span> Slot projected from '+(game[side].projectedFrom||'a recent game')+'. If he moves or sits, this is wrong.');
@@ -1673,7 +1674,7 @@ function render(){
   f.appendChild(el('div',null,'Data from statsapi.mlb.com (no API key). Fetched '+
     (when&&!isNaN(when)?when.toLocaleString():'unknown')+'. Re-run node fetch-mlb.mjs to refresh.'));
   f.appendChild(el('div',null,
-    'Model regresses every hitter toward league average by plate appearances, weights lineup slot for expected trips, '+
+    'Model regresses every hitter by plate appearances toward last season\'s Statcast expected rate where he has one (three quarters of the way; league average otherwise), weights lineup slot for expected trips, '+
     'and adjusts for the opposing starter. Correlation constant fitted on real outcomes, not guessed.'));
   var REC = window.BETHOUSE_RECORD;
   if(REC && REC.props){
