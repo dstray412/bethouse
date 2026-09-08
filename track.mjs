@@ -131,6 +131,8 @@ function snapshot() {
         leagueRates: L.rates,
         leagueTB: L.tb,
         oppAvgAllowed: faces && faces.avgAllowed,
+        pitcherIP: faces && faces.ip,
+        pitcherPrior: faces && faces.prior,
         leagueAvgAllowed: L.avgAllowed,
         teamRunsPerGame: s.runsPerGame,
         leagueRunsPerGame: L.runsPerGame,

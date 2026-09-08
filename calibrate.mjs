@@ -112,13 +112,14 @@ export function rebuild(opts = {}) {
               leagueHomeAway: L.homeAway, leaguePlatoonHR: L.platoonHR,
               leaguePlatoonTB: L.platoonTB, leagueTB: L.tb,
               leagueHomeAwayHR: L.homeAwayHR, isHome: side === "home", threshold: thr,
+              pitcherIP: faces && faces.ip, pitcherPrior: faces && faces.prior,
             };
             const r = prop === "hr" ? S.scoreHR(player, ctx)
                     : prop === "hrr" ? S.scoreHRR(player, ctx)
                     : S.scoreTB(player, ctx);
             if (!r || !isFinite(r.rawProb)) continue;
             rows.push(Object.assign({ date, prop, raw: r.rawProb, a: outcome.get(key) },
-              opts.keepInputs ? { player, ctx, id: String(p.id) } : {}));
+              opts.keepInputs ? { player, ctx, id: String(p.id), pitcherId: faces && faces.id != null ? String(faces.id) : null } : {}));
             /* rawProb, not prob: the recorded number predates the
                correction, so comparing the corrected one would report the
                fix as if it were reconstruction error. */

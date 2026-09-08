@@ -304,11 +304,38 @@
    * Clamped hard: a 40-inning sample can produce a .180 or a .330 that
    * says more about luck than about the pitcher.
    */
+  /*
+   * How many innings before the pitcher's own season average allowed and
+   * the centre count equally, and how far the centre moves from the league
+   * toward his own expected average allowed (statcast.mjs, pitchers).
+   *
+   * VALIDATED 2026-09-08 on the forward record (experiment-statcast.mjs,
+   * 7,608 published predictions per prop). The pitcher term had no
+   * sample-size guard at all -- a 30-inning .310 was taken at face value
+   * where a 30-PA hitter is regressed 86% of the way to the league -- and
+   * adding one is the largest single improvement this model has had:
+   * held-out log loss on 1+ H/R/RBI 0.63401 -> 0.63190 and 0.62440 ->
+   * 0.62357, and every setting from K=40 to K=160, prior weight 0 to 1,
+   * improved both halves of all three props it touches. The six fitted
+   * pairs bracket K=80, weight 0.5, which is what ships.
+   */
+  const PITCHER_K_IP = 80;
+  const PITCHER_PRIOR_WEIGHT = 0.5;
+
   function pitcherFactor(oppAvgAllowed, leagueAvgAllowed, opts) {
     opts = opts || {};
     const lg = leagueAvgAllowed > 0 ? leagueAvgAllowed : 0.248;
     if (!(oppAvgAllowed > 0)) return 1;
-    const raw = oppAvgAllowed / lg;
+    const K = opts.pitcherKIP == null ? PITCHER_K_IP : opts.pitcherKIP;
+    const wp = opts.pitcherPriorWeight == null ? PITCHER_PRIOR_WEIGHT : opts.pitcherPriorWeight;
+    const ip = Number(opts.pitcherIP);
+    let avg = oppAvgAllowed;
+    if (K > 0 && isFinite(ip) && ip >= 0) {
+      const prior = Number(opts.pitcherPrior);
+      const centre = wp > 0 && isFinite(prior) && prior > 0 ? lg + wp * (prior - lg) : lg;
+      avg = (oppAvgAllowed * ip + centre * K) / (ip + K);
+    }
+    const raw = avg / lg;
     const cap = opts.cap == null ? 0.12 : opts.cap; // +/- 12%
     return Math.max(1 - cap, Math.min(1 + cap, raw));
   }
@@ -550,7 +577,7 @@
       };
     }
 
-    const pf = pitcherFactor(ctx.oppAvgAllowed, ctx.leagueAvgAllowed);
+    const pf = pitcherFactor(ctx.oppAvgAllowed, ctx.leagueAvgAllowed, ctx);
     const of = offenseFactor(ctx.teamRunsPerGame, ctx.leagueRunsPerGame);
     const k = ctx.correlation == null ? DEFAULT_K : ctx.correlation;
 
@@ -639,8 +666,13 @@
     // not a 40-homer pace, and without this it would top the board.
     const K = ctx.regressionPA == null ? REGRESSION_PA : ctx.regressionPA;
     const lgHrPerPA = ctx.leagueRates && ctx.leagueRates.hr > 0 ? ctx.leagueRates.hr : null;
-    const hrPerPA = lgHrPerPA
-      ? ((Number(player.hr) || 0) + lgHrPerPA * K) / ((Number(player.pa) || 0) + K)
+    // The centre: the league's rate, or the player's barrels-derived one
+    // by PRIOR_WEIGHT_HR. Same arithmetic as priorCentres' homer term.
+    const wh = ctx.priorWeightHR == null ? PRIOR_WEIGHT_HR : ctx.priorWeightHR;
+    const prHR = player.prior && isFinite(Number(player.prior.hr)) && Number(player.prior.hr) > 0 ? Number(player.prior.hr) : null;
+    const hrCentre = lgHrPerPA && wh > 0 && prHR != null ? lgHrPerPA + wh * (prHR - lgHrPerPA) : lgHrPerPA;
+    const hrPerPA = hrCentre
+      ? ((Number(player.hr) || 0) + hrCentre * K) / ((Number(player.pa) || 0) + K)
       : safeRate(player.hr, player.pa);
     // Pitcher HR/9 relative to league, clamped. 1.2 HR/9 is a normal season.
     const lgHr9 = ctx.leagueHr9 > 0 ? ctx.leagueHr9 : 1.2;
@@ -702,6 +734,52 @@
    * no normal approximation and no fudge factor.
    * ------------------------------------------------------------------ */
 
+  /*
+   * Where total bases and home runs regress to. The league's per-PA
+   * single/double/triple/homer rates, unless the player carries a prior
+   * (statcast.mjs): then the homer centre moves toward his barrels-derived
+   * HR rate by PRIOR_WEIGHT_HR, the total-bases centre toward his xSLG-
+   * derived TB rate by PRIOR_WEIGHT_TB, the hit centre by PRIOR_WEIGHT as
+   * in regressedPerPA, and doubles and triples are scaled together so the
+   * four centres still add up to the hit centre and carry the bases of the
+   * total-bases centre.
+   *
+   * VALIDATED 2026-09-08 (experiment-statcast.mjs): the TB prior improved
+   * both halves of 2+, 3+ and 4+ total bases at every weight from 0.25 to
+   * 1 on log loss, with Brier tying at worst on 4+; the timid end ships.
+   * The barrels-derived HR prior did NOT validate (one half chose the
+   * shipped model, the other's choice was worse on the first) and stays
+   * at 0. Home runs are the rarest event here and 36 days is not enough
+   * to see a prior through the noise; re-run next season.
+   */
+  const PRIOR_WEIGHT_TB = 0.25;
+  const PRIOR_WEIGHT_HR = 0;
+
+  function priorCentres(player, leagueTB, opts) {
+    opts = opts || {};
+    const L = leagueTB;
+    const out = { p1: L.single, p2: L.double, p3: L.triple, p4: L.hr };
+    const pr = player && player.prior;
+    if (!pr) return out;
+    const w = opts.priorWeight == null ? PRIOR_WEIGHT : opts.priorWeight;
+    const wt = opts.priorWeightTB == null ? PRIOR_WEIGHT_TB : opts.priorWeightTB;
+    const wh = opts.priorWeightHR == null ? PRIOR_WEIGHT_HR : opts.priorWeightHR;
+    const has = (k) => isFinite(Number(pr[k])) && Number(pr[k]) > 0;
+    const lgHit = L.single + L.double + L.triple + L.hr;
+    const lgTB = L.single + 2 * L.double + 3 * L.triple + 4 * L.hr;
+    const hrC = wh > 0 && has("hr") ? L.hr + wh * (pr.hr - L.hr) : L.hr;
+    const hitC = w > 0 && has("hit") ? lgHit + w * (pr.hit - lgHit) : lgHit;
+    const tbC = wt > 0 && has("tb") ? lgTB + wt * (pr.tb - lgTB) : lgTB;
+    if (hrC === L.hr && hitC === lgHit && tbC === lgTB) return out;
+    // Scale doubles and triples together so hits and bases both add up.
+    let f = (tbC - hitC - 3 * hrC) / (L.double + 2 * L.triple);
+    if (!isFinite(f)) f = 1;
+    f = Math.max(0.5, Math.min(2, f));
+    const p2 = L.double * f, p3 = L.triple * f;
+    const p1 = Math.max(0.001, hitC - p2 - p3 - hrC);
+    return { p1, p2, p3, p4: hrC };
+  }
+
   /** Per-PA outcome probabilities, regressed toward league like everything else. */
   function tbRates(player, leagueTB, opts) {
     opts = opts || {};
@@ -717,13 +795,14 @@
         p3: safeRate(t, pa), p4: safeRate(hr, pa),
       };
     }
-    const blend = (events, lgRate) =>
-      Math.max(0, Math.min(0.999, (events + lgRate * K) / (pa + K)));
+    const c = priorCentres(player, leagueTB, opts);
+    const blend = (events, centre) =>
+      Math.max(0, Math.min(0.999, (events + centre * K) / (pa + K)));
     return {
-      p1: blend(singles, leagueTB.single),
-      p2: blend(d, leagueTB.double),
-      p3: blend(t, leagueTB.triple),
-      p4: blend(hr, leagueTB.hr),
+      p1: blend(singles, c.p1),
+      p2: blend(d, c.p2),
+      p3: blend(t, c.p3),
+      p4: blend(hr, c.p4),
     };
   }
 
@@ -808,7 +887,7 @@
       };
     }
 
-    const pf = pitcherFactor(ctx.oppAvgAllowed, ctx.leagueAvgAllowed);
+    const pf = pitcherFactor(ctx.oppAvgAllowed, ctx.leagueAvgAllowed, ctx);
     const base = tbRates(player, ctx.leagueTB, ctx);
 
     const platHit = platoonFactor(player.batSide, ctx.pitchHand, ctx.leaguePlatoon, null, 0);
@@ -1080,6 +1159,11 @@
     perPA: perPA,
     regressedPerPA: regressedPerPA,
     PRIOR_WEIGHT: PRIOR_WEIGHT,
+    PRIOR_WEIGHT_TB: PRIOR_WEIGHT_TB,
+    PRIOR_WEIGHT_HR: PRIOR_WEIGHT_HR,
+    PITCHER_K_IP: PITCHER_K_IP,
+    PITCHER_PRIOR_WEIGHT: PITCHER_PRIOR_WEIGHT,
+    priorCentres: priorCentres,
     safeRate: safeRate,
     probFromRates: probFromRates,
     probAtLeastOne: probAtLeastOne,

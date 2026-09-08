@@ -20,7 +20,18 @@
  *
  * The prior is per plate appearance, because the model is: hits/PA = xBA
  * times the player's own AB/PA from the same season, so a hitter who walks
- * a lot is not credited with hits on trips that ended in a walk.
+ * a lot is not credited with hits on trips that ended in a walk. Three
+ * more priors ride on the same join:
+ *
+ *   tb   total bases per PA, xSLG times AB/PA. Correlates 0.83 with the
+ *        same season's actual TB/PA and matches its mean (0.368 vs 0.363).
+ *   hr   home runs per PA, barrels per PA times the season's measured
+ *        home runs per barrel (0.527 in 2025, ratio of sums over hitters
+ *        with 200 PA; brl/PA correlates 0.84 with HR/PA).
+ *   pitchers: expected batting average ALLOWED, the same luck-stripped
+ *        number for the man on the mound, with his innings. It is per
+ *        at-bat like the AVG allowed the model already reads, so no
+ *        conversion.
  *
  * WHERE IT COMES FROM
  * -------------------
@@ -66,48 +77,91 @@ export function parseSavantCSV(text) {
  * @param savant  rows from parseSavantCSV
  * @param lines   [{id, pa, ab, ...}] from statsapi's season hitting splits
  */
-export function buildPriors(savant, lines, season) {
+export function buildPriors(savant, lines, season, batted, hrPerBarrel) {
   const byId = new Map(lines.map((l) => [String(l.id), l]));
+  const brl = new Map((batted || []).map((b) => [String(b.player_id), Number(b.brl_pa)]));
   const out = {};
   for (const r of savant) {
     const id = String(r.player_id || "");
     const line = byId.get(id);
     const pa = Number(r.pa), xba = Number(r.est_ba);
     if (!line || !(pa >= MIN_PA) || !(line.pa > 0) || !(line.ab >= 0) || !isFinite(xba)) continue;
-    const p = { season, pa, ab: line.ab, xba, hit: xba * line.ab / line.pa };
-    if (isFinite(Number(r.est_slg))) p.xslg = Number(r.est_slg);
+    const abpa = line.ab / line.pa;
+    const p = { season, pa, ab: line.ab, xba, hit: xba * abpa };
+    if (isFinite(Number(r.est_slg))) { p.xslg = Number(r.est_slg); p.tb = p.xslg * abpa; }
     if (isFinite(Number(r.est_woba))) p.xwoba = Number(r.est_woba);
     if (isFinite(Number(r.ba))) p.ba = Number(r.ba);
+    const b = brl.get(id);
+    if (isFinite(b) && isFinite(hrPerBarrel)) { p.brlPa = b / 100; p.hr = (b / 100) * hrPerBarrel; }
     out[id] = p;
+  }
+  return out;
+}
+
+/** Home runs per barrel for a season: ratio of sums over hitters with 200 PA. */
+export function measureHRPerBarrel(batted, lines) {
+  const byId = new Map(lines.map((l) => [String(l.id), l]));
+  let hr = 0, barrels = 0;
+  for (const b of batted || []) {
+    const line = byId.get(String(b.player_id));
+    if (!line || !(line.pa >= 200) || !isFinite(Number(b.barrels))) continue;
+    hr += Number(line.hr) || 0; barrels += Number(b.barrels);
+  }
+  return barrels > 0 ? hr / barrels : null;
+}
+
+/** Pitchers: expected batting average allowed, keyed by MLBAM id. */
+export function buildPitcherPriors(savantPitchers, season) {
+  const out = {};
+  for (const r of savantPitchers || []) {
+    const id = String(r.player_id || ""), pa = Number(r.pa), xba = Number(r.est_ba);
+    if (!id || !(pa >= MIN_PA) || !isFinite(xba)) continue;
+    out[id] = { season, bf: pa, xbaAllowed: xba };
+    if (isFinite(Number(r.est_woba))) out[id].xwobaAllowed = Number(r.est_woba);
   }
   return out;
 }
 
 /** The committed priors for a season, or an empty object if none. */
 export function loadPriors(season) {
+  return loadFile(season).priors || {};
+}
+/** The committed pitcher priors for a season, or an empty object. */
+export function loadPitcherPriors(season) {
+  return loadFile(season).pitchers || {};
+}
+function loadFile(season) {
   const f = path.join(OUT, `${season}.json`);
   if (!existsSync(f)) return {};
-  try { return JSON.parse(readFileSync(f, "utf8")).priors || {}; } catch { return {}; }
+  try { return JSON.parse(readFileSync(f, "utf8")); } catch { return {}; }
 }
 
 async function main() {
   const season = Number(process.argv[2]) || new Date().getUTCFullYear() - 1;
-  const savantUrl = `https://baseballsavant.mlb.com/leaderboard/expected_statistics?type=batter&year=${season}&position=&team=&min=${MIN_PA}&csv=true`;
+  const savant = (type, board = "expected_statistics") =>
+    `https://baseballsavant.mlb.com/leaderboard/${board}?type=${type}&year=${season}&position=&team=&min=${MIN_PA}&csv=true`;
   const apiUrl = `https://statsapi.mlb.com/api/v1/stats?stats=season&group=hitting&season=${season}&sportId=1&gameType=R&playerPool=ALL&limit=2000`;
-  const [csv, api] = await Promise.all([
-    fetch(savantUrl).then((r) => { if (!r.ok) throw new Error(`savant HTTP ${r.status}`); return r.text(); }),
+  const text = (u) => fetch(u).then((r) => { if (!r.ok) throw new Error(`${u}: HTTP ${r.status}`); return r.text(); });
+  const [csv, batCsv, pitCsv, api] = await Promise.all([
+    text(savant("batter")), text(savant("batter", "statcast")), text(savant("pitcher")),
     fetch(apiUrl).then((r) => { if (!r.ok) throw new Error(`statsapi HTTP ${r.status}`); return r.json(); }),
   ]);
   const lines = (api.stats?.[0]?.splits || []).map((s) => ({
-    id: s.player.id, name: s.player.fullName, pa: Number(s.stat.plateAppearances), ab: Number(s.stat.atBats), hits: Number(s.stat.hits),
+    id: s.player.id, name: s.player.fullName, pa: Number(s.stat.plateAppearances), ab: Number(s.stat.atBats),
+    hits: Number(s.stat.hits), hr: Number(s.stat.homeRuns), tb: Number(s.stat.totalBases),
   }));
-  const priors = buildPriors(parseSavantCSV(csv), lines, season);
+  const batted = parseSavantCSV(batCsv);
+  const hrPerBarrel = measureHRPerBarrel(batted, lines);
+  const priors = buildPriors(parseSavantCSV(csv), lines, season, batted, hrPerBarrel);
+  const pitchers = buildPitcherPriors(parseSavantCSV(pitCsv), season);
   mkdirSync(OUT, { recursive: true });
-  writeFileSync(path.join(OUT, `${season}.json`), JSON.stringify({ season, fetchedAt: new Date().toISOString(), minPA: MIN_PA, priors }, null, 0) + "\n");
-  const n = Object.keys(priors).length;
-  const hits = Object.values(priors).map((p) => p.hit);
-  console.log(`wrote statcast/${season}.json: ${n} hitters with a prior (of ${lines.length} with a season line), ` +
-    `hit/PA prior mean ${(hits.reduce((a, b) => a + b, 0) / n).toFixed(4)}`);
+  writeFileSync(path.join(OUT, `${season}.json`),
+    JSON.stringify({ season, fetchedAt: new Date().toISOString(), minPA: MIN_PA, hrPerBarrel, priors, pitchers }, null, 0) + "\n");
+  const n = Object.keys(priors).length, vals = Object.values(priors);
+  const mean = (k) => { const a = vals.filter((p) => p[k] != null).map((p) => p[k]); return a.length ? (a.reduce((x, y) => x + y, 0) / a.length).toFixed(4) : "n/a"; };
+  console.log(`wrote statcast/${season}.json: ${n} hitters with a prior (of ${lines.length} with a season line): ` +
+    `hit/PA ${mean("hit")}, TB/PA ${mean("tb")}, HR/PA ${mean("hr")} (${vals.filter((p) => p.hr != null).length} with barrels; ` +
+    `${hrPerBarrel?.toFixed(3)} HR per barrel); ${Object.keys(pitchers).length} pitchers`);
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {

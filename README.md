@@ -978,8 +978,30 @@ round, raw and calibrated.
 Monotone in the weight at every step, on both halves, on the 80% of rows
 that have a prior. The gain is small and it never once went the other way.
 Fits chose 1.0 and 0.75; the timid end, **`PRIOR_WEIGHT = 0.75`**, ships.
-Only the hit rate has a prior so far; runs, RBI, total bases and home runs
-are still regressed toward the league, which is where the next gain is.
+
+### Three more priors, same bar, later the same day
+
+The same file carries expected slugging, barrels, and every pitcher's
+expected average allowed, so three more centres were put through the same
+test. Held-out log loss, shipped → with the prior, fitted on the other half:
+
+| prior | what it changes | 1+ H/R/RBI | 2+ TB | 3+ TB | 4+ TB | HR | verdict |
+|---|---|---|---|---|---|---|---|
+| **pitcher** (`PITCHER_K_IP = 80`, weight 0.5) | the starter's average allowed is regressed by innings toward league + ½(his xBA allowed − league) | 0.6340 → 0.6319, 0.6244 → 0.6236 | 0.6352 → 0.6339, 0.6475 → 0.6471 | 0.4979 → 0.4967, 0.5066 → 0.5063 | — | — | **ships**: every setting from K=40 to 160 improved both halves of all three |
+| **total bases** (`PRIOR_WEIGHT_TB = 0.25`) | the TB centre moves toward xSLG per PA; doubles and triples rescaled so hits and bases still add up | — | −4, −4 | −2, −3 | −1, −3 | — | **ships** at the timid end (units: log loss × 10⁴, both halves) |
+| home runs (barrels × 0.53 HR per barrel) | the HR centre | — | — | — | — | one half chose the shipped model, the other's choice was worse | does not ship |
+
+**The pitcher term was the missing guard.** Every hitter rate has been
+regressed by plate appearances since the first week; the pitcher's average
+allowed never was. A .310 over 30 innings was taken at face value where a
+.310 over 30 PA is pulled 86% of the way to the league. Adding the guard is
+the largest single improvement the model has had, three times the hitter
+prior's, and it helped at every strength tried. The prior itself (his own
+expected average allowed as the centre) adds a little on top.
+
+Runs and RBI still regress toward the league. Home runs stay on the league
+centre; 36 days of a rare event is not enough to see a prior through the
+noise, and it is worth re-running next season.
 
 Predictions published before 2026-09-08 were made without the prior. The
 record keeps them as recorded; the model that made them changed by a

@@ -1187,3 +1187,71 @@ test("regressedPerPA: without a prior the model is exactly the old one, whatever
   // fits chose 0.75 and 1.0, the timid end ships. characterization:
   assert.equal(score.PRIOR_WEIGHT, 0.75);
 });
+
+/* ------------------------------------------------------------------ *
+ * Priors for the pitcher, total bases and home runs
+ *
+ * Oracle: the same regression formula, applied where it was missing. The
+ * pitcher factor used a raw season average allowed, clamped; now the
+ * average is regressed by innings toward a centre that can be his own
+ * expected average allowed. Total bases and home runs regress toward
+ * centres built from xSLG and barrels, and the centres are consistent:
+ * singles + doubles + triples + homers equals the hit centre, and the
+ * bases they carry equal the total-bases centre.
+ * ------------------------------------------------------------------ */
+
+test("pitcherFactor: with no innings constant it is the old clamped ratio", () => {
+  const a = score.pitcherFactor(0.280, 0.248, { pitcherKIP: 0 });
+  const b = score.pitcherFactor(0.280, 0.248, { pitcherIP: 30, pitcherPrior: 0.220, pitcherKIP: 0 });
+  assert.equal(a, b);
+  // The shipped constants, validated on the forward record. characterization:
+  assert.equal(score.PITCHER_K_IP, 80);
+  assert.equal(score.PITCHER_PRIOR_WEIGHT, 0.5);
+  // With innings unknown the shipped model is still the old clamped ratio.
+  assert.equal(score.pitcherFactor(0.280, 0.248), a);
+});
+
+test("pitcherFactor: regressed by innings toward the league, or toward the pitcher's own prior", () => {
+  // 40 innings at .280 allowed, K = 40: halfway to the centre.
+  const toLeague = score.pitcherFactor(0.280, 0.248, { pitcherIP: 40, pitcherKIP: 40, pitcherPriorWeight: 0 });
+  assert.ok(Math.abs(toLeague - ((0.280 + 0.248) / 2) / 0.248) < 1e-9);
+  const toSelf = score.pitcherFactor(0.280, 0.248, { pitcherIP: 40, pitcherKIP: 40, pitcherPrior: 0.270, pitcherPriorWeight: 1 });
+  assert.ok(Math.abs(toSelf - ((0.280 + 0.270) / 2) / 0.248) < 1e-9);
+  // No innings known: no regression, the old number.
+  assert.equal(score.pitcherFactor(0.280, 0.248, { pitcherKIP: 40 }), score.pitcherFactor(0.280, 0.248));
+  // Still clamped after regression.
+  assert.ok(score.pitcherFactor(0.400, 0.248, { pitcherIP: 200, pitcherKIP: 40 }) <= 1.12 + 1e-9);
+});
+
+test("priorCentres: weights of zero reproduce the league centres exactly", () => {
+  const lg = { single: 0.1417, double: 0.041, triple: 0.0035, hr: 0.0302 };
+  const c = score.priorCentres({ prior: { hit: 0.25, tb: 0.4, hr: 0.05 } }, lg, { priorWeight: 0, priorWeightTB: 0, priorWeightHR: 0 });
+  assert.deepEqual(c, { p1: lg.single, p2: lg.double, p3: lg.triple, p4: lg.hr });
+  const none = score.priorCentres({ prior: null }, lg, { priorWeight: 1, priorWeightTB: 1, priorWeightHR: 1 });
+  assert.deepEqual(none, c, "no prior means league centres at any weight");
+});
+
+test("priorCentres: at full weight the centres add up to the priors, hits and bases both", () => {
+  const lg = { single: 0.1417, double: 0.041, triple: 0.0035, hr: 0.0302 };
+  const prior = { hit: 0.24, tb: 0.40, hr: 0.045 };
+  const c = score.priorCentres({ prior }, lg, { priorWeight: 1, priorWeightTB: 1, priorWeightHR: 1 });
+  const hits = c.p1 + c.p2 + c.p3 + c.p4, bases = c.p1 + 2 * c.p2 + 3 * c.p3 + 4 * c.p4;
+  assert.ok(Math.abs(hits - 0.24) < 1e-9, `hits ${hits}`);
+  assert.ok(Math.abs(bases - 0.40) < 1e-9, `bases ${bases}`);
+  assert.ok(Math.abs(c.p4 - 0.045) < 1e-12);
+  assert.ok(c.p1 > 0 && c.p2 > 0 && c.p3 > 0);
+});
+
+test("priorCentres: a prior with only some parts moves only those", () => {
+  const lg = { single: 0.1417, double: 0.041, triple: 0.0035, hr: 0.0302 };
+  const c = score.priorCentres({ prior: { hit: 0.24 } }, lg, { priorWeight: 1, priorWeightTB: 1, priorWeightHR: 1 });
+  assert.equal(c.p4, lg.hr, "no HR prior, league HR centre");
+  const hits = c.p1 + c.p2 + c.p3 + c.p4;
+  assert.ok(Math.abs(hits - 0.24) < 1e-9, "the hit prior still holds");
+});
+
+test("shipped prior weights: total bases validated at the timid end, home runs did not", () => {
+  // characterization: experiment-statcast.mjs, 2026-09-08
+  assert.equal(score.PRIOR_WEIGHT_TB, 0.25);
+  assert.equal(score.PRIOR_WEIGHT_HR, 0);
+});

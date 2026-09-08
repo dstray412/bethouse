@@ -881,6 +881,8 @@ function ctxFor(game, side){
   return {
     leagueRates: L.rates,
     oppAvgAllowed: faces && faces.avgAllowed,
+    pitcherIP: faces && faces.ip,
+    pitcherPrior: faces && faces.prior,
     leagueAvgAllowed: L.avgAllowed,
     teamRunsPerGame: s.runsPerGame,
     leagueRunsPerGame: L.runsPerGame,
@@ -960,7 +962,7 @@ function scorerFor(){
 /* Each key names the ctx fields that switch one factor off. These are the
    model's own documented "no information" inputs, not sentinels. */
 var WHY_FACTORS = [
-  { key:'pitcher',  off:{oppAvgAllowed:null, pitcherHr9:null} },
+  { key:'pitcher',  off:{oppAvgAllowed:null, pitcherHr9:null, pitcherIP:null, pitcherPrior:null} },
   { key:'offense',  off:{teamRunsPerGame:null} },
   { key:'platoon',  off:{pitchHand:null} },
   { key:'homeaway', off:{leagueHomeAway:null, leagueHomeAwayHR:null} }

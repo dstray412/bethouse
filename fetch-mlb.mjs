@@ -23,13 +23,14 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const DIR = path.dirname(fileURLToPath(import.meta.url));
-import { loadPriors } from "./statcast.mjs";
+import { loadPriors, loadPitcherPriors } from "./statcast.mjs";
 
 const API = "https://statsapi.mlb.com/api/v1";
 const SEASON = 2026;
 /* Last season's Statcast priors, committed under statcast/. Empty if the
    file is missing, in which case every hitter regresses to the league. */
 const priors = loadPriors(SEASON - 1);
+const pitcherPriors = loadPitcherPriors(SEASON - 1);
 
 const args = process.argv.slice(2);
 const flag = (f, d) => {
@@ -298,7 +299,8 @@ async function main() {
              regresses this hitter toward (score.js, PRIOR_WEIGHT). Absent
              for a hitter without 50 PA last season, who regresses to the
              league as before. */
-          ...(priors[p.id] ? { prior: { hit: priors[p.id].hit, xba: priors[p.id].xba, season: priors[p.id].season } } : {}),
+          ...(priors[p.id] ? { prior: { hit: priors[p.id].hit, xba: priors[p.id].xba, season: priors[p.id].season,
+            ...(priors[p.id].tb != null ? { tb: priors[p.id].tb } : {}), ...(priors[p.id].hr != null ? { hr: priors[p.id].hr } : {}) } } : {}),
         };
       }),
     };
@@ -316,6 +318,9 @@ async function main() {
       avgAllowed: s.avgAllowed || null,
       hr9: s.hr9 || null,
       ip: s.ip || 0,
+      /* Last season's expected average allowed (statcast.mjs), the centre
+         his season average regresses toward when PITCHER_K_IP > 0. */
+      ...(pitcherPriors[pp.id] ? { prior: pitcherPriors[pp.id].xbaAllowed } : {}),
       so: s.so || 0,
       bb: s.bb || 0,
     };

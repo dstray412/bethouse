@@ -128,10 +128,16 @@ Statcast xBA per PA − league)` for the hit rate (`PRIOR_WEIGHT` in score.js;
 in 2027 run it for 2026 and the fetcher picks it up by season). Validated
 on the forward record via `experiment-statcast.mjs`: better on both halves,
 both ways, raw and calibrated, monotone; fits chose 1.0 and 0.75, timid end
-ships. Small gain (Brier −0.0003, log loss −0.0006 held out). Predictions
-before 2026-09-08 were made without it and stand. Runs, RBI, TB, HR still
-regress to the league: the next gain is a prior for those (xSLG, xwOBA are
-in the same file).
+ships. Later the same day, same bar: the **pitcher's average allowed is now
+regressed by innings** (`PITCHER_K_IP = 80`) toward league + 0.5 × (his xBA
+allowed − league), the biggest single gain the model has had (held-out log
+loss on hrr 0.6340 → 0.6319); the **TB centre** moves 0.25 of the way to
+xSLG per PA; the barrels HR prior did not validate and stays at 0. Runs and
+RBI still regress to the league. `statcast/2025.json` holds all of it;
+`node statcast.mjs 2026` next winter. Predictions before 2026-09-08 stand
+as recorded; the calibration centres were solved on the old raw
+distribution and should be re-checked with `node calibrate.mjs` once a few
+weeks of the new model's record exist.
 
 ## The model was wrong, and was fixed
 

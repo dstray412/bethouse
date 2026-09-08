@@ -635,3 +635,19 @@ shipping a constant, and treat two adjacent seasons as one window with a
 seam in it. The same 27 seasons found a bias two seasons could not have:
 unders in 15+ mph wind, above 54% in every era. Small persistent effects
 need long histories; large recent effects need suspicion.
+
+## Every input needs the guard the others have
+
+2026-09-08. The hitter model has regressed every hitter's rate toward the
+league by plate appearances since its first week; it is called "the single
+most important guard in the file". The pitcher's average allowed, which
+multiplies every one of those rates, was taken at face value and clamped
+at ±12%: a .310 over 30 innings counted the same as a .310 over 200.
+Adding the same regression to the pitcher term was the largest single
+improvement the model has had, three times the size of the Statcast hitter
+prior that prompted the exercise, and it helped at every strength tried.
+
+**Rule:** when one input carries a sample-size guard, ask whether every
+other input that multiplies it has one too. A guard on one factor and none
+on the factor it is multiplied by is half a guard. The clamp was hiding the
+problem: it stopped the worst cases and left the routine ones wrong.
