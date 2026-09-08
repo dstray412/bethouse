@@ -134,6 +134,39 @@ Nothing bettable, nothing changed; cfb.html's copy updated to say so.
 close on ~1,485 games, inside the noise. The forward record started
 2026-09-05 with 1,183 pregame predictions (`cfb-record/2026-08-29.json`).
 
+**Three more counting props, 2026-09-08.** Rushing yards, passing yards
+and receptions join receiving yards as one table, `STATS` in `nfl.js`:
+total, opportunity, prior, gate, pool floor. `statEligible(stat, rec)` is
+the one gate; `yardsEligible` is its receiving row. `fetch-football.mjs`
+writes `pools` (one per stat; `yardPool` is gone), `football-board.js`
+grows a view per stat from the table, `track-football.mjs` records and
+settles all four (`settlePlayer`), `backtest-nfl.mjs` replays all four and
+prints each season alone. Passers now enter the players file at the passing gate's own
+attempts (`passMinOpportunity`, 40), which also lets them into the
+touchdown view; the replay's touchdown population never had a touches
+gate, so nothing new is being claimed there. Every threshold a stat's
+gate reads is a `DEFAULTS` key named on its `STATS` row, so a league can
+bind its own; college inherits the NFL's for the three new props, which
+is what was measured.
+
+The pool floor was the finding. Each pool began as receiving's (three
+games, expectation at least a quarter of the floor). Rushing ran 6.8pp
+cold in the NFL and 8.6 in college on that: under 20 expected rushing
+yards the pool is quarterbacks' scrambles and end-arounds. The rushing
+pool floor is now **20, the board's own floor**, in both leagues (NFL
++1.2pp, college +0.9). The same rule on passing and receptions made both
+worse, so it is not a rule. College passing needed its own floor, **75,
+half the board's** (a quarter read −6.1pp; college has a mop-up backup
+pool). README "Three more counting props". Passing yards is the prop to
+hold loosely in both leagues: too timid at both ends, and the NFL seasons
+sit 4pp apart. First rows for the new props are in the record files
+dated 2026-09-10 (NFL) and 2026-09-11 (college).
+
+The session before this one was cut off with the code written, the
+comment claiming the floors were "chosen on the replay", and the replay
+not yet run at those floors (`tasks/lessons.md`, "A comment is not a
+measurement").
+
 ## Statcast prior, 2026-09-08
 
 The hitter model's regression centre is now `league + 0.75 × (last season's

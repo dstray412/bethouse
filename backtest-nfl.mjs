@@ -56,7 +56,9 @@ if (Object.keys(overrides).length) console.log(`overrides: ${JSON.stringify(over
 const {
   buildTeamRatings, projectGame, spreadProbability, totalProbability,
   scoreAnytimeTD, expectedVolume, empiricalOver, usagePoolFrom, yardsEligible, receivingOpportunity,
+  STATS, statOpportunity, statEligible, expectedStat, gameLine, gameValue,
 } = M;
+const STAT_IDS = Object.keys(STATS);
 
 const HISTORY = league.historyFile;
 /* Games of history before predictions begin: about four weeks of either
@@ -83,7 +85,6 @@ const sd = (a) => {
   return Math.sqrt(mean(a.map((x) => (x - m) ** 2)));
 };
 const pct = (x) => (100 * x).toFixed(1) + "%";
-const gameLine = (p) => ({ targets: p.rec?.tgt || 0, recs: p.rec?.rec || 0 });
 
 /*
  * Every fitted constant in this project is one window away from being
@@ -190,12 +191,15 @@ if (args.includes("--measure")) {
   console.log(`    tdPer${stat === "reception" ? "Reception" : "Target   "}    ${((Rrt * Rcc - Rct * Rcr) / rdet).toFixed(4)}`);
   console.log(`    leagueLambda      ${(rtd / rn).toFixed(3)}`);
 
-  /* Receiving yards: what an unknown receiver does. */
-  const ydsGames = [];
-  for (const g of games) for (const p of g.players) if (receivingOpportunity(gameLine(p)) >= 1) ydsGames.push(p.rec?.yds || 0);
-  console.log(`\nRECEIVING YARDS — ${ydsGames.length} player-games with a catch`);
-  console.log(`  mean per game       ${mean(ydsGames).toFixed(1)}   sd ${sd(ydsGames).toFixed(1)}`);
-  console.log(`  (yardPrior is a replacement-level figure a little under this mean; the NFL uses 25 against a mean of 29)`);
+  /* The counting props: what an unknown player does, per stat. The prior
+     is a replacement-level figure a little under this mean (the NFL's
+     receiving prior is 25 against a mean of 29). */
+  console.log(`\nCOUNTING PROPS — per game, player-games with at least one opportunity`);
+  for (const stat of STAT_IDS) {
+    const vals = [];
+    for (const g of games) for (const p of g.players) if (statOpportunity(stat, gameLine(p)) >= 1) vals.push(gameValue(stat, p));
+    console.log(`  ${STATS[stat].label.padEnd(18)} n=${String(vals.length).padStart(6)}  mean ${mean(vals).toFixed(1).padStart(6)}  sd ${sd(vals).toFixed(1).padStart(6)}   (prior ${M.DEFAULTS[STATS[stat].priorKey]}, floor ${M.DEFAULTS[STATS[stat].floorKey]})`);
+  }
 
   /* How wrong the closing line is, for reference against the model's own
      error, which the walk-forward below prints. */
@@ -231,9 +235,12 @@ function stateFrom(priorGames) {
  * Walk forward
  * ---------------------------------------------------------------- */
 
-const tdRows = [], yardRows = [], gameRows = [], mlRows = [];
+const tdRows = [], gameRows = [], mlRows = [];
 const tdRowsRaw = []; // inputs kept so --fit can re-derive without refetching
-const yardPool = []; // actual/expected ratios, appended only after a game is used
+/* Per stat: graded rows, and the pool of actual/expected ratios, appended
+   only after a game is used. Receiving yards is one of four now. */
+const statRows = Object.fromEntries(STAT_IDS.map((k) => [k, []]));
+const statPool = Object.fromEntries(STAT_IDS.map((k) => [k, []]));
 const marginErr = [], totalErr = []; // the model's own projection error
 
 for (let i = START_INDEX; i < ALL.length; i++) {
@@ -302,7 +309,7 @@ for (let i = START_INDEX; i < ALL.length; i++) {
   }
 
   /*
-   * Receiving yards, over/under.
+   * The counting props, over/under.
    *
    * The pool is (actual / that player's own expectation at the time), built
    * only from games already played. The first version of this hardcoded
@@ -313,31 +320,36 @@ for (let i = START_INDEX; i < ALL.length; i++) {
    * spread of players like him. It ran 7.5 points cold and the calibration
    * table sloped the wrong way, which is what a shape error looks like.
    *
-   * The population is the board's: whoever `yardsEligible` would show.
+   * The population is the board's own (see fetch-football.mjs, "which
+   * population goes in the pool"): three games and an expectation of at
+   * least a quarter of the floor.
    */
-  const pool = yardPool.slice(-4000);
-  for (const p of g.players) {
-    if (!(receivingOpportunity(gameLine(p)) >= 1)) continue;
-    const y = yardsEligible(st.players.get(p.id));
-    if (!y) continue;
-    for (const mult of [0.6, 0.8, 1.0, 1.25, 1.6]) {
-      const line = Math.round(y.exp * mult) + 0.5;
-      const pOver = empiricalOver(y.exp, line, pool);
-      if (pOver == null) continue;
-      yardRows.push({ prob: pOver, actual: (p.rec?.yds || 0) > line ? 1 : 0 });
+  for (const stat of STAT_IDS) {
+    const pool = statPool[stat].slice(-4000);
+    for (const p of g.players) {
+      if (!(statOpportunity(stat, gameLine(p)) >= 1)) continue;
+      const y = statEligible(stat, st.players.get(p.id));
+      if (!y) continue;
+      for (const mult of [0.6, 0.8, 1.0, 1.25, 1.6]) {
+        const line = Math.round(y.exp * mult) + 0.5;
+        const pOver = empiricalOver(y.exp, line, pool);
+        if (pOver == null) continue;
+        statRows[stat].push({ season: g.season, prob: pOver, actual: gameValue(stat, p) > line ? 1 : 0 });
+      }
     }
   }
 
-  /* Only now does this game's result join the pool, so no prediction above
-     was ever informed by a game that had not been played. The population is
-     the board's own (see fetch-football.mjs, "which population goes in the
-     pool"): three games and an expectation of at least 5. */
-  for (const p of g.players) {
-    if (!(receivingOpportunity(gameLine(p)) >= 1)) continue;
-    const rec = st.players.get(p.id);
-    if (!rec || rec.games < 3) continue;
-    const exp = expectedVolume(rec.recYds, rec.games);
-    if (exp >= 5) yardPool.push((p.rec?.yds || 0) / exp);
+  /* Only now does this game's result join the pools, so no prediction above
+     was ever informed by a game that had not been played. */
+  for (const stat of STAT_IDS) {
+    const floor = M.DEFAULTS[STATS[stat].poolFloorKey];
+    for (const p of g.players) {
+      if (!(statOpportunity(stat, gameLine(p)) >= 1)) continue;
+      const rec = st.players.get(p.id);
+      if (!rec || rec.games < 3) continue;
+      const exp = expectedStat(stat, rec);
+      if (exp >= floor) statPool[stat].push(gameValue(stat, p) / exp);
+    }
   }
 }
 
@@ -449,9 +461,18 @@ if (tdRows.length) {
   lift(tdRows, "anytime TD");
 }
 
-if (yardRows.length) {
-  summarise(yardRows, "RECEIVING YARDS, OVER/UNDER");
-  calibration(yardRows, [0, 0.2, 0.35, 0.5, 0.65, 0.8, 1], "receiving yards over");
+for (const stat of STAT_IDS) {
+  const rows = statRows[stat];
+  if (!rows.length) continue;
+  summarise(rows, `${STATS[stat].label.toUpperCase()}, OVER/UNDER`);
+  /* Each season alone, so a pool floor or a prior can be judged on both. */
+  for (const season of [...new Set(rows.map((r) => r.season))].sort()) {
+    const rs = rows.filter((r) => r.season === season);
+    if (rs.length < 200) continue;
+    const bias = mean(rs.map((r) => r.prob)) - mean(rs.map((r) => r.actual));
+    console.log(`  ${season}: n=${rs.length}  bias ${(100 * bias >= 0 ? "+" : "") + (100 * bias).toFixed(2)}pp  Brier ${mean(rs.map((r) => (r.prob - r.actual) ** 2)).toFixed(4)}`);
+  }
+  calibration(rows, [0, 0.2, 0.35, 0.5, 0.65, 0.8, 1], `${STATS[stat].label.toLowerCase()} over`);
 }
 
 /* ---- the model's own error, which is what marginSD / totalSD hold ---- */

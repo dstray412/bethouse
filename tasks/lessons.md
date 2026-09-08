@@ -651,3 +651,35 @@ prior that prompted the exercise, and it helped at every strength tried.
 other input that multiplies it has one too. A guard on one factor and none
 on the factor it is multiplied by is half a guard. The clamp was hiding the
 problem: it stopped the worst cases and left the routine ones wrong.
+
+## A comment is not a measurement
+
+2026-09-08. A session ended mid-task with the rushing pool floor set to 5
+and a comment above it saying the floors "were chosen on the replay, each
+season alone, because a pool full of quarterbacks' scrambles ran the
+rushing model seven points cold". The replay had not been run at 5. It
+read −6.8pp: the comment described the finding the author expected to
+make, in the past tense, and a reader who trusted it would have shipped
+the very pool it warned about. The handoff note this repo already
+distrusts was wrong in the same way once.
+
+**Rule:** write the number the run printed, or write nothing. A comment
+that cites a measurement carries the run's date and its output (here:
+"floor 5 −6.8pp, 10 −6.1, 15 −2.7, 20 +1.2, 30 +6.6"), so the next session
+can tell a result from an intention. If the run has not happened, the
+comment says so: `TODO(measure): floor unfitted, run --set rushPoolFloor=`.
+
+## The same definition is a different population under each input
+
+2026-09-08. Receiving yards' pool definition (three games, expectation at
+least a quarter of the floor) was measured and documented as a choice
+that moves the answer by five points. Copied to rushing it moved it by
+thirteen, and in the other direction, because "players under the floor"
+means small receivers in one stat and scrambling quarterbacks in the
+other. Copied to college passing it was six points cold where the NFL's
+was one point hot, because college dresses backups the NFL does not.
+
+**Rule:** when machinery is generalised across inputs, the constants that
+select a population have to be re-measured per input, and the comment
+has to say who is in the population, not just what the threshold is.
+Sharing the code is right; sharing the number is a hypothesis.

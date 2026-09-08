@@ -106,6 +106,20 @@
        every player-game with a catch, in the NFL's proportion. */
     yardK: 5,
     yardPrior: 26,
+    /* Per-game means among players with an opportunity: 26.9 rushing,
+       136.7 passing (a college passer pool full of backups), 2.5
+       receptions; the priors sit a little under, in the NFL's proportion. */
+    rushPrior: 23,
+    passPrior: 120,
+    recsPrior: 2.1,
+    yardPoolFloor: 5,
+    rushPoolFloor: 20, // the board's floor, as in the NFL: below it the pool is scrambles (5 read -8.6pp, 20 +0.9pp)
+    /* Half the floor, not the NFL's quarter: the college passers expected
+       between 37 and 75 yards are mop-up backups, a pool the NFL barely
+       has (37.5 read -6.1pp; 75 -1.6, seasons -3.0 / -0.5; 100 +2.1;
+       150 +3.5). Half is the cold side of the crossing. */
+    passPoolFloor: 75,
+    recsPoolFloor: 0.5,
     yardMinGames: 3,
     yardMinOpportunity: 7, // receptions: the NFL catches 67.9% of targets, so its 10 targets is 6.8 of these
     yardFloor: 20,

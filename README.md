@@ -3,7 +3,8 @@
 Ranks MLB hitters for three props, every game, every day: **1+ hits/runs/RBI**,
 **total bases** (2+, 3+, 4+), and **home runs**. Ranks PGA Tour players by their
 chance of **making the cut**. And prices three football bets, in the NFL and in
-college: **anytime touchdown**, **receiving yards**, and **spreads and totals**.
+college: **anytime touchdown**, four counting props (**receiving yards**,
+**rushing yards**, **passing yards**, **receptions**), and **spreads and totals**.
 
 Open `index.html` for baseball, `golf.html` for golf, `nfl.html` for the NFL,
 `cfb.html` for college football. No build step, no server, no API key.
@@ -620,10 +621,11 @@ summing are a wrong explanation, which is worse than no explanation.
 
 From week 1 of the 2026 season, `track-nfl.mjs` records what the NFL board
 predicted **before kickoff** and grades it from ESPN box scores afterwards.
-It covers the two props the board says are worth reading — anytime touchdown
-and receiving yards — and deliberately not the spread or total, because the
-board itself says those do not beat the closing line and a record of them
-would be measuring something nobody should bet.
+It covers the player props the board says are worth reading — anytime touchdown
+and the four counting props (receiving, rushing and passing yards, and
+receptions; the last three since 2026-09-08) — and the game picks, which are
+recorded and settled like a book's even though the board itself says they do
+not beat the closing line, so that the record can say so too.
 
 This exists because of what happened to the baseball board. `backtest-nfl.mjs`
 replayed two seasons and pronounced the player props calibrated. Baseball said
@@ -1198,7 +1200,7 @@ column of 100%s is not a board, it is a trap.
 
 ## NFL
 
-`nfl.html`. Three bets, and they did not all survive contact with the data.
+`nfl.html`. Six bets, and they did not all survive contact with the data.
 
 ```sh
 node fetch-nfl.mjs --history   # 2 seasons of box scores + closing lines
@@ -1216,7 +1218,10 @@ closing lines. Everything predicting week W comes from weeks already played.
 | bet | measured | verdict |
 |---|---|---|
 | Anytime touchdown | bias **&minus;0.8pp**, Brier 0.1591 vs 0.1718 | calibrated |
-| Receiving yards | bias **−1.2pp**, Brier 0.2224 vs 0.2459 | calibrated |
+| Receiving yards | bias **−1.2pp**, Brier 0.2224 vs 0.2460 (n=22,360) | calibrated |
+| Rushing yards | bias **+1.2pp**, Brier 0.2229 vs 0.2481 (n=10,500) · seasons +1.8 / +0.8 | calibrated; see the pool note below |
+| Passing yards | bias **+1.0pp**, Brier 0.1619 vs 0.2490 (n=4,265) · seasons −1.1 / +2.6 | approximate: too timid at both ends |
+| Receptions | bias **−0.5pp**, Brier 0.2047 vs 0.2374 (n=22,610) · seasons −3.8 / +1.9 | approximate: the seasons disagree |
 | Spread vs closing line | **48.1%** of 480, needs 52.4% | **no edge** |
 | Total vs closing line | **52.5%** of 478, needs 52.4% | **inside the noise** |
 
@@ -1502,6 +1507,44 @@ the prior and a good receiver's early ratios all come out high. None of the
 three is fitted to anything. The backtest replays what the board ships, and the
 forward record decides.
 
+### Three more counting props, and the one where the pool choice was forced
+
+2026-09-08. Rushing yards, passing yards and receptions are the receiving-yards
+model with their own numbers: a season total, an opportunity count that says
+whether the player is in that business (carries, pass attempts, targets), a
+replacement-level prior a little under the league's per-game mean, a gate, and
+a pool of real actual/expected ratios the over probability is read off. `STATS`
+in `nfl.js` is the table; `statEligible` is the one gate the page and the
+tracker share, and `yardsEligible` is now its receiving-yards row. The board
+grew three views, the tracker three props, and the fetcher three pools, none
+of them with code of their own.
+
+Each pool started as receiving's definition: three games and an expectation of
+at least a quarter of the floor. Passing and receptions calibrate on that
+(above). **Rushing ran 6.8 points cold**, and the reason is who sits under
+20 expected rushing yards: not small backs, but quarterbacks' scrambles and
+receivers' end-arounds, a different population whose ratios are mostly noise
+around a small number. Raising the pool floor walks the bias through zero —
+
+```
+rushPoolFloor      5       10       15       20       30
+NFL bias        −6.8    −6.1     −2.7     +1.2     +6.6
+college bias    −8.6                        +0.9
+```
+
+— and the floor that ships is **20, the board's own**: the rushing pool is the
+population the board would offer a line on, which is a rule rather than a
+fitted value, and the best Brier in the scan. The same rule tried on passing
+and receptions made both worse (+3.5pp and +3.6pp), so it stays a fact about
+rushing. Both seasons agree within a point at 20 in both leagues.
+
+Passing yards is the prop to hold most loosely. Its bias is a point, but the
+bands run 4 points hot below 50% and 4 cold above 80%, which is a number that
+is too timid at both ends, and the two seasons sit 4 points apart. Receptions'
+seasons sit 6 apart with the aggregate near zero. Neither is corrected here:
+the pool definition is the lever and the receiving-yards note above says what
+happens when it is fitted to the replay. The forward record decides.
+
 ---
 
 ## College football
@@ -1581,14 +1624,23 @@ two populations agree to the third decimal, which is why it never came up there.
 | bet | measured | verdict |
 |---|---|---|
 | Anytime touchdown | bias **−1.4pp**, Brier 0.1743 vs 0.1921 · top 20% scored 47.3%, bottom 20% 9.5% | calibrated, a little cold |
-| Receiving yards | bias **−3.0pp**, Brier 0.2297 vs 0.2491 | cold; see the pool note above |
+| Receiving yards | bias **−3.2pp**, Brier 0.2300 vs 0.2492 (n=58,140) | cold; see the pool note above |
+| Rushing yards | bias **+0.9pp**, Brier 0.2326 vs 0.2500 (n=40,170) · seasons +1.2 / +0.5 | calibrated, pool floor 20 as in the NFL |
+| Passing yards | bias **−1.6pp**, Brier 0.1787 vs 0.2421 (n=9,125) · seasons −3.0 / −0.5 | approximate: timid at both ends |
+| Receptions | bias **−1.1pp**, Brier 0.2131 vs 0.2454 (n=49,600) · seasons −2.4 / 0.0 | calibrated |
 | Spread vs closing line | **51.7%** of 1,488, needs 52.4% | inside the noise |
 | Total vs closing line | **53.4%** of 1,482 · 56.5% where the model disagrees by 6+ points, n=322 | inside the noise |
 
 The touchdown model separates harder than the NFL's (37.8 points between the top
 and bottom fifth against 29.7) and runs cold by a point and a half, most of it
-in the 10–25% band. The yards model is three points cold and its replay moves by
-that much on the pool definition, so its number is approximate.
+in the 10–25% band. The receiving yards model is three points cold and its
+replay moves by that much on the pool definition, so its number is approximate.
+The three counting props added 2026-09-08 (NFL section, "Three more counting
+props") use the NFL's pools with one college difference: the passing pool
+floor is half the board floor, 75, not a quarter. College carries a mop-up
+backup pool the NFL barely has, and at 37.5 the passing model read −6.1pp;
+the scan ran 75 −1.6, 100 +2.1, 150 +3.5, and half the floor is the cold side
+of the crossing. Rushing takes the NFL's 20 (5 read −8.6pp, 20 +0.9).
 
 **The game lines are closer to break-even than the NFL's.** 51.7% and 53.4%
 against 48.1% and 52.5%, on three times the games. That is what a softer market

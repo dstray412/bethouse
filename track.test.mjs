@@ -247,3 +247,43 @@ test("gradeGamePick: closing line value is points in the pick's favour", () => {
   // No closing line on record: graded, but no CLV to report.
   assert.equal(gradeGamePick({ prop: "spread", side: "home", line: -3 }, score(24, 20), null).clv, null);
 });
+
+/* ------------------------------------------------------------------ *
+ * Settling the counting props
+ *
+ * Oracle: the book's rule. Over is strictly more than a half-number line,
+ * so there is no push; a prop the tracker does not know is not settled.
+ * ------------------------------------------------------------------ */
+import { settlePlayer, boxScoreLines } from "./track-football.mjs";
+
+test("boxScoreLines: each ESPN block feeds its own fields, summed per athlete across blocks", () => {
+  // Oracle: ESPN's summary shape, the keys fetch-football.mjs already reads.
+  const summary = { boxscore: { players: [{ statistics: [
+    { name: "passing", keys: ["completions/passingAttempts", "passingYards", "passingTouchdowns"],
+      athletes: [{ athlete: { id: "1" }, stats: ["20/30", "251", "2"] }] },
+    { name: "rushing", keys: ["rushingAttempts", "rushingYards", "rushingTouchdowns"],
+      athletes: [{ athlete: { id: "1" }, stats: ["3", "12", "0"] }, { athlete: { id: "2" }, stats: ["18", "84", "1"] }] },
+    { name: "receiving", keys: ["receptions", "receivingYards", "receivingTouchdowns"],
+      athletes: [{ athlete: { id: "2" }, stats: ["5", "61", "1"] }, { athlete: {}, stats: ["1", "9", "0"] }] },
+  ] }] } };
+  const s = boxScoreLines(summary);
+  assert.deepEqual(s.get("1"), { td: 0, recYds: 0, rushYds: 12, passYds: 251, recs: 0, played: true },
+    "a passing touchdown is not the passer's anytime touchdown");
+  assert.deepEqual(s.get("2"), { td: 2, recYds: 61, rushYds: 84, passYds: 0, recs: 5, played: true });
+  assert.equal(s.size, 2, "an athlete without an id cannot be graded");
+  assert.equal(boxScoreLines(null).size, 0);
+});
+
+test("settlePlayer: touchdowns, then each counting prop against its own field", () => {
+  const line = { td: 1, recYds: 61, rushYds: 84, passYds: 251, recs: 5 };
+  assert.equal(settlePlayer({ prop: "td" }, line), 1);
+  assert.equal(settlePlayer({ prop: "td" }, { ...line, td: 0 }), 0);
+  assert.equal(settlePlayer({ prop: "recyds", line: 60.5 }, line), 1);
+  assert.equal(settlePlayer({ prop: "recyds", line: 61.5 }, line), 0);
+  assert.equal(settlePlayer({ prop: "rushyds", line: 83.5 }, line), 1);
+  assert.equal(settlePlayer({ prop: "passyds", line: 250.5 }, line), 1);
+  assert.equal(settlePlayer({ prop: "passyds", line: 251.5 }, line), 0);
+  assert.equal(settlePlayer({ prop: "recs", line: 4.5 }, line), 1);
+  assert.equal(settlePlayer({ prop: "recs", line: 5.5 }, line), 0);
+  assert.equal(settlePlayer({ prop: "spread", line: -3 }, line), null, "a game prop is not a player prop");
+});

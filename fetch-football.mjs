@@ -533,9 +533,9 @@ async function nextWeek(league, season, members) {
  * games. Shared with the backtest by being here rather than there, so the
  * board and the replay cannot count a touchdown differently.
  */
-/** A box-score line in the shape of a season record, so the model can read
-    it with the same accessor it uses on season totals. */
-const gameLine = (p) => ({ targets: p.rec?.tgt || 0, recs: p.rec?.rec || 0 });
+/* A box-score line is read through the model's own gameLine / gameValue,
+   the same accessors the backtest uses, so the two cannot disagree about
+   which field a stat lives in. */
 
 export function seasonLines(games, model) {
   const players = new Map();
@@ -546,7 +546,7 @@ export function seasonLines(games, model) {
     for (const p of g.players) {
       const r = players.get(p.id) || {
         id: p.id, name: p.name, team: p.team,
-        games: 0, tds: 0, carries: 0, targets: 0, recYds: 0, rushYds: 0, recs: 0,
+        games: 0, tds: 0, carries: 0, targets: 0, recYds: 0, rushYds: 0, recs: 0, passAtt: 0, passYds: 0,
       };
       r.team = p.team; r.games++;
       const td = (p.rush?.td || 0) + (p.rec?.td || 0);
@@ -556,11 +556,13 @@ export function seasonLines(games, model) {
       r.recYds += p.rec?.yds || 0;
       r.rushYds += p.rush?.yds || 0;
       r.recs += p.rec?.rec || 0;
+      r.passAtt += p.pass?.att || 0;
+      r.passYds += p.pass?.yds || 0;
       players.set(p.id, r);
       if (tdBy[p.team] != null) tdBy[p.team] += td;
       // One game's workload, in the model's own terms: targets in the
       // NFL, receptions in college, where targets are not recorded.
-      const u = model.usageTDs(p.rush?.att || 0, model.receivingOpportunity(gameLine(p)));
+      const u = model.usageTDs(p.rush?.att || 0, model.receivingOpportunity(model.gameLine(p)));
       if (u > 0) {
         if (!usageByPlayer.has(p.id)) usageByPlayer.set(p.id, []);
         usageByPlayer.get(p.id).push(u);
@@ -645,32 +647,40 @@ export async function buildBoard(league, history) {
 
   const usagePool = model.usagePoolFrom([...usageByPlayer.values()], 6);
   /*
-   * The yardage pool: actual/expected for every game by a player with
-   * three games behind him and a real expectation.
+   * The pools: for each counting prop, actual/expected for every game by
+   * a player with three games behind him and a real expectation.
    *
    * WHICH POPULATION GOES IN THE POOL IS A CHOICE, AND IT MOVES THE ANSWER.
-   * Replaying two NFL seasons with three definitions (2026-09-05):
+   * Replaying two NFL seasons of receiving yards with three definitions
+   * (2026-09-05):
    *
-   *     this one (games >= 3, expectation >= 5)          -1.2pp
-   *     games >= 3 and 8+ targets, expectation >= 5      +1.0pp
-   *     exactly the rows the board shows (yardsEligible) +4.2pp
+   *     this one (games >= 3, expectation >= a quarter of the floor)  -1.2pp
+   *     games >= 3 and 8+ targets, expectation >= 5                   +1.0pp
+   *     exactly the rows the board shows (statEligible)               +4.2pp
    *
    * The strictest is the one that sounds right -- "players like him" --
    * and calibrates worst, because early-season expectations are shrunk
    * toward the prior and a good receiver's early ratios all come out high.
    * The loosest carries the zero-inflated tail that pulls them back. None
    * of the three is fitted to anything; this is what the board ships, so
-   * it is what the backtest replays, and the forward record decides.
+   * it is what the backtest replays, and the forward record decides. The
+   * other three props use the same definition.
    */
-  const yardPool = [];
-  for (const g of current) {
-    for (const p of g.players) {
-      if (!(model.receivingOpportunity(gameLine(p)) >= 1)) continue;
-      const r = players.get(p.id);
-      if (!r || r.games < 3) continue;
-      const exp = model.expectedVolume(r.recYds, r.games);
-      if (exp >= 5) yardPool.push((p.rec?.yds || 0) / exp);
+  const pools = {};
+  for (const stat of Object.keys(model.STATS)) {
+    const floor = model.DEFAULTS[model.STATS[stat].poolFloorKey];
+    const pool = [];
+    for (const g of current) {
+      for (const p of g.players) {
+        const line = model.gameLine(p);
+        if (!(model.statOpportunity(stat, line) >= 1)) continue;
+        const r = players.get(p.id);
+        if (!r || r.games < 3) continue;
+        const exp = model.expectedStat(stat, r);
+        if (exp >= floor) pool.push(model.gameValue(stat, p) / exp);
+      }
     }
+    pools[stat] = pool.slice(-4000);
   }
 
   /* The injury report, where the league publishes one. Each board player
@@ -708,10 +718,13 @@ export async function buildBoard(league, history) {
     ratings,
     teamFactors,
     players: [...players.values()]
-      .filter((p) => p.games >= 3 && (p.carries + model.receivingOpportunity(p)) >= 10)
+      /* Anyone with enough games and any real workload: a skill player's
+         touches, or enough attempts to be gated as a passer. */
+      .filter((p) => p.games >= 3 && ((p.carries + model.receivingOpportunity(p)) >= 10 || p.passAtt >= model.DEFAULTS.passMinOpportunity))
       .map((p) => ({
         id: p.id, name: p.name, team: p.team, games: p.games, tds: p.tds,
         carries: p.carries, targets: p.targets, recYds: p.recYds, rushYds: p.rushYds, recs: p.recs,
+        passAtt: p.passAtt, passYds: p.passYds,
         // Who he faces this week, so the board can apply the opponent's
         // defence the same way the backtest does. null = on bye or the
         // schedule has not placed his team yet.
@@ -721,7 +734,7 @@ export async function buildBoard(league, history) {
     injuries: hurtByTeam,
     injuriesAt: league.injuriesUrl ? new Date().toISOString() : null,
     usagePool: round(usagePool.slice(0, 4000), 3),
-    yardPool: round(yardPool.slice(-4000), 3),
+    pools: Object.fromEntries(Object.entries(pools).map(([k, v]) => [k, round(v, 3)])),
     seasonsCached: history.seasons,
     gamesCached: history.games.length,
   };
@@ -732,7 +745,7 @@ export async function buildBoard(league, history) {
   );
   console.log(
     `wrote ${league.dataFile}: ${payload.players.length} players, ${payload.games.length} games, ` +
-      `pools ${payload.usagePool.length}/${payload.yardPool.length}`,
+      `pools usage ${payload.usagePool.length}, ${Object.entries(payload.pools).map(([k, v]) => `${k} ${v.length}`).join(", ")}`,
   );
 }
 

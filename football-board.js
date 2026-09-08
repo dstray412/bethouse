@@ -31,7 +31,11 @@
       return;
     }
 
-    var VIEWS = [{id:'td',label:'Anytime TD'},{id:'yds',label:'Receiving yards'},{id:'game',label:'Spread & total'}];
+    /* One view per counting prop, from the model's own stat table, so a
+       stat the model gains is a view the page gains. */
+    var STAT_IDS = Object.keys(N.STATS);
+    var VIEWS = [{id:'td',label:'Anytime TD'}].concat(STAT_IDS.map(function(k){return {id:k,label:N.STATS[k].label};}))
+      .concat([{id:'game',label:'Spread & total'}]);
     var LINES = [{id:0.7,label:'Low'},{id:1,label:'Projection'},{id:1.3,label:'High'}];
     var state = { view:'td', lineMult:1, open:null };
 
@@ -57,7 +61,7 @@
     }
 
     var usagePool = D.usagePool && D.usagePool.length ? D.usagePool : null;
-    var yardPool  = D.yardPool  && D.yardPool.length  ? D.yardPool  : null;
+    var poolFor=function(stat){ var p=D.pools&&D.pools[stat]; return p&&p.length?p:null; };
 
     /* Team codes come from the schedule now. They used to be recovered by
        searching each abbreviation inside the full team name, which dropped
@@ -131,21 +135,22 @@
       };
     }
 
-    function renderYards(){
+    function renderStat(stat){
+      var ST=N.STATS[stat], pool=poolFor(stat), unit=stat==='recs'?'':' yards';
       var rows=[];
       (D.players||[]).forEach(function(p){
         if(!available(p)) return;
-        // The one gate, shared with the tracker: see nfl.js yardsEligible.
-        var y=N.yardsEligible(p);
+        // The one gate, shared with the tracker: see nfl.js statEligible.
+        var y=N.statEligible(stat,p);
         if(!y) return;
         var line=Math.round(y.exp*state.lineMult)+0.5;
-        var over=N.empiricalOver(y.exp,line,yardPool);
+        var over=N.empiricalOver(y.exp,line,pool);
         if(over==null) return;
         rows.push({p:p,exp:y.exp,line:line,over:over});
       });
       rows.sort(function(a,b){return b.exp-a.exp;});
       rows=rows.slice(0,80);
-      var html='<div class="game"><div class="ghead"><h2 class="gtitle">Receiving yards</h2>'+
+      var html='<div class="game"><div class="ghead"><h2 class="gtitle">'+esc(ST.label)+'</h2>'+
         '<div class="gmeta">'+rows.length+' players · over the line shown</div></div>';
       rows.forEach(function(r,i){
         html+='<button class="row" aria-expanded="false" data-i="'+i+'">'+
@@ -159,13 +164,17 @@
       app.innerHTML=html+'</div>';
       app.__rows=rows;
       app.__detail=function(r){
+        var oppWordFor = ST.opportunity==='receiving' ? oppWord : ST.opportunity==='carries' ? 'carries' : 'attempts';
         var t='<table>';
-        t+='<tr><td>season</td><td><b>'+r.p.recYds+'</b> yards on <b>'+N.receivingOpportunity(r.p)+
-          '</b> '+oppWord+' over <b>'+r.p.games+'</b> games</td></tr>';
-        t+='<tr><td>projection</td><td><b>'+r.exp.toFixed(1)+'</b> yards, regressed toward a replacement-level '+N.DEFAULTS.yardPrior+'</td></tr>';
+        // Where the league counts receptions as the receiving opportunity, a
+        // receptions total IS its opportunity; "35 on 35 receptions" explains nothing.
+        var opp = (stat==='recs' && N.DEFAULTS.receivingStat==='recs') ? '' :
+          ' on <b>'+N.statOpportunity(stat,r.p)+'</b> '+oppWordFor;
+        t+='<tr><td>season</td><td><b>'+r.p[ST.total]+'</b>'+unit+opp+' over <b>'+r.p.games+'</b> games</td></tr>';
+        t+='<tr><td>projection</td><td><b>'+r.exp.toFixed(1)+'</b>'+unit+', regressed toward a replacement-level '+N.DEFAULTS[ST.priorKey]+'</td></tr>';
         t+='<tr><td>line</td><td><b>'+r.line+'</b></td></tr>';
-        t+='<tr><td>over</td><td><b>'+pct(r.over)+'</b>, read off <b>'+yardPool.length+
-          '</b> real receiver games rather than any bell curve</td></tr>';
+        t+='<tr><td>over</td><td><b>'+pct(r.over)+'</b>, read off <b>'+pool.length+
+          '</b> real player games rather than any bell curve</td></tr>';
         t+='<tr><td>fair price</td><td><b>'+sgn(N.fairPrice(r.over))+'</b></td></tr>';
         t+=statusRow(r.p);
         return t+'</table>';
@@ -306,16 +315,16 @@
     function render(){
       seg(document.getElementById('view'),VIEWS,state.view,function(v){state.view=v;state.open=null;render();});
       seg(document.getElementById('lineseg'),LINES,state.lineMult,function(v){state.lineMult=v;state.open=null;render();});
-      document.getElementById('controls').hidden = state.view!=='yds';
+      document.getElementById('controls').hidden = !N.STATS[state.view];
       document.getElementById('tagline').textContent=cfg.league+' — '+D.season+' week '+D.week;
 
       var note=document.getElementById('note');
       if(state.view==='td') note.innerHTML=C.noteTD;
-      else if(state.view==='yds') note.innerHTML=C.noteYards;
+      else if(N.STATS[state.view]) note.innerHTML=C.noteStat[state.view];
       else note.innerHTML=C.noteGames;
 
       if(state.view==='td') renderTD();
-      else if(state.view==='yds') renderYards();
+      else if(N.STATS[state.view]) renderStat(state.view);
       else renderGames();
     }
 

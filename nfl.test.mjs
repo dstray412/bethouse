@@ -736,3 +736,80 @@ test("parseInjuries: keys non-active players by athlete id, read off the player-
   assert.equal(Object.keys(inj).length, 2, "an entry with no id cannot be matched to anyone and is dropped");
   assert.deepEqual(parseInjuries(null), {});
 });
+
+/* ------------------------------------------------------------------ *
+ * The stat table: receiving yards, rushing yards, passing yards, receptions
+ *
+ * Oracle: the receiving-yards model, which these generalise. Each stat is
+ * a season total, an opportunity count, a replacement-level prior and a
+ * gate. `statEligible(stat, record)` is the one gate for all four, and
+ * `yardsEligible` is `statEligible("recyds", ...)` so nothing that used
+ * it changes.
+ * ------------------------------------------------------------------ */
+
+test("STATS: the four props, each with a total, an opportunity, a box-score field, a prior and a gate in DEFAULTS", () => {
+  for (const id of ["recyds", "rushyds", "passyds", "recs"]) {
+    const st = nfl.STATS[id];
+    assert.ok(st, id);
+    assert.ok(st.label && st.total && st.opportunity && st.box.length === 2, id);
+    for (const k of ["priorKey", "poolFloorKey", "minOppKey"]) assert.ok(nfl.DEFAULTS[st[k]] > 0, `${id}.${k}`);
+    assert.ok(nfl.DEFAULTS[st.floorKey] >= 0, id);
+  }
+});
+
+test("gameLine / gameValue: a box-score line, read the way a season record is", () => {
+  const p = { rush: { att: 12, yds: 80, td: 1 }, rec: { tgt: 6, rec: 4, yds: 41 }, pass: { att: 30, yds: 251 } };
+  assert.deepEqual(nfl.gameLine(p), { targets: 6, recs: 4, carries: 12, passAtt: 30 });
+  assert.equal(nfl.gameValue("recyds", p), 41);
+  assert.equal(nfl.gameValue("rushyds", p), 80);
+  assert.equal(nfl.gameValue("passyds", p), 251);
+  assert.equal(nfl.gameValue("recs", p), 4);
+  assert.deepEqual(nfl.gameLine({ rec: { tgt: 3 } }), { targets: 3, recs: 0, carries: 0, passAtt: 0 }, "an absent block is zero");
+  assert.equal(nfl.gameValue("passyds", { rec: { yds: 9 } }), 0);
+  assert.equal(nfl.gameValue("spread", p), 0, "not a counting stat");
+});
+
+test("statEligible: a league can bind its own gate for any stat", () => {
+  const C = nfl.bind({ passMinOpportunity: 20, passFloor: 100 });
+  assert.ok(C.statEligible("passyds", { games: 4, passAtt: 90, passYds: 500 }));
+  assert.equal(nfl.statEligible("passyds", { games: 4, passAtt: 90, passYds: 500 }), null, "under the NFL's 40 attempts and 150-yard floor");
+});
+
+test("statEligible: receiving yards is exactly yardsEligible", () => {
+  const rec = { games: 4, targets: 20, recYds: 200 };
+  assert.deepEqual(nfl.statEligible("recyds", rec), nfl.yardsEligible(rec));
+  assert.equal(nfl.statEligible("recyds", { games: 2, targets: 20, recYds: 200 }), null);
+});
+
+test("statEligible: rushing yards gate on carries, passing on attempts, receptions on receiving opportunity", () => {
+  assert.ok(nfl.statEligible("rushyds", { games: 4, carries: 40, rushYds: 200 }));
+  assert.equal(nfl.statEligible("rushyds", { games: 4, carries: 5, rushYds: 40 }), null, "too few carries");
+  assert.ok(nfl.statEligible("passyds", { games: 4, passAtt: 120, passYds: 900 }));
+  assert.equal(nfl.statEligible("passyds", { games: 4, passAtt: 10, passYds: 90 }), null, "a trick-play thrower is not a passer");
+  assert.ok(nfl.statEligible("recs", { games: 4, targets: 20, recs: 14 }));
+  // College counts receptions as opportunity, so a receptions prop gates on receptions.
+  assert.ok(nfl.statEligible("recs", { games: 4, recs: 14, targets: 0 }, { receivingStat: "recs" }));
+  assert.equal(nfl.statEligible("recs", { games: 4, recs: 14, targets: 0 }), null);
+});
+
+test("statEligible: the expectation is the shrunk per-game total toward the stat's own prior", () => {
+  const e = nfl.statEligible("rushyds", { games: 4, carries: 60, rushYds: 300 });
+  close(e.exp, (300 + nfl.DEFAULTS.yardK * nfl.DEFAULTS.rushPrior) / (4 + nfl.DEFAULTS.yardK));
+  // The floor is applied to the expectation.
+  assert.equal(nfl.statEligible("passyds", { games: 4, passAtt: 120, passYds: 200 }), null);
+});
+
+test("statOpportunity: a game line in season shape, per stat", () => {
+  const line = { carries: 12, targets: 6, recs: 4, passAtt: 30 };
+  assert.equal(nfl.statOpportunity("rushyds", line), 12);
+  assert.equal(nfl.statOpportunity("recyds", line), 6);
+  assert.equal(nfl.statOpportunity("recs", line), 6);
+  assert.equal(nfl.statOpportunity("passyds", line), 30);
+  assert.equal(nfl.statOpportunity("recs", line, { receivingStat: "recs" }), 4);
+});
+
+test("bind: the stat gate follows the bound league's receiving stat", () => {
+  const C = nfl.bind({ receivingStat: "recs", yardMinOpportunity: 7 });
+  assert.ok(C.statEligible("recs", { games: 4, recs: 10, recYds: 100 }));
+  assert.ok(C.statEligible("recyds", { games: 4, recs: 10, recYds: 100 }));
+});

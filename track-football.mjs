@@ -43,12 +43,16 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import * as core from "./track-core.mjs";
 import { fetchLine } from "./fetch-football.mjs";
+import nfl from "./nfl.js"; // for the stat table, which every league shares
 
 const DIR = path.dirname(fileURLToPath(import.meta.url));
 
 const PROPS = [
   { id: "td", label: "Anytime touchdown" },
   { id: "recyds", label: "Receiving yards, over" },
+  { id: "rushyds", label: "Rushing yards, over" },
+  { id: "passyds", label: "Passing yards, over" },
+  { id: "recs", label: "Receptions, over" },
   { id: "spread", label: "Spread, the side the model likes" },
   { id: "total", label: "Total, the side the model likes" },
   { id: "ml", label: "Moneyline, the side the model likes" },
@@ -120,7 +124,7 @@ export function snapshot(league) {
   }
 
   const usagePool = D.usagePool && D.usagePool.length ? D.usagePool : null;
-  const yardPool = D.yardPool && D.yardPool.length ? D.yardPool : null;
+  const poolFor = (stat) => (D.pools && D.pools[stat] && D.pools[stat].length ? D.pools[stat] : null);
   const oppFactorFor = (team) => {
     const f = D.teamFactors[team];
     return f && isFinite(f.def) ? f.def : 1;
@@ -155,26 +159,26 @@ export function snapshot(league) {
       }
     }
 
-    /* The same gate the board applies before it will show a yards row --
-       the model's own, so the two cannot drift. A record of players the
-       board never displayed would grade a bet nobody was offered. */
-    const y = M.yardsEligible(p);
-    if (y) {
+    /* The counting props, each behind the same gate the board applies
+       before it will show a row -- the model's own, so the two cannot
+       drift. A record of players the board never displayed would grade a
+       bet nobody was offered. */
+    for (const stat of Object.keys(M.STATS)) {
+      const y = M.statEligible(stat, p);
+      if (!y) continue;
       const line = Math.round(y.exp * LINE_MULT) + 0.5;
-      const over = M.empiricalOver(y.exp, line, yardPool);
-      if (over != null && isFinite(over)) {
-        const key = `${g.id}|${p.id}|recyds`;
-        if (!seen.has(key)) {
-          day.predictions.push({
-            gameId: g.id, playerId: String(p.id), name: p.name, team: p.team,
-            opp: p.opp || null, prop: "recyds", line,
-            prob: Math.round(over * 10000) / 10000,
-            kickoff: g.date, recordedAt: new Date().toISOString(),
-          });
-          seen.add(key);
-          added++;
-        }
-      }
+      const over = M.empiricalOver(y.exp, line, poolFor(stat));
+      if (over == null || !isFinite(over)) continue;
+      const key = `${g.id}|${p.id}|${stat}`;
+      if (seen.has(key)) continue;
+      day.predictions.push({
+        gameId: g.id, playerId: String(p.id), name: p.name, team: p.team,
+        opp: p.opp || null, prop: stat, line,
+        prob: Math.round(over * 10000) / 10000,
+        kickoff: g.date, recordedAt: new Date().toISOString(),
+      });
+      seen.add(key);
+      added++;
     }
   }
 
@@ -260,6 +264,18 @@ export function gradeGamePick(pick, result, close) {
   return out;
 }
 
+/**
+ * Settle a player prop against his box-score line. 1 or 0; null for a prop
+ * this file does not know. Over means strictly more than the line, which
+ * is a half number so there is no push.
+ */
+export function settlePlayer(pred, line) {
+  if (pred.prop === "td") return line.td > 0 ? 1 : 0;
+  const st = nfl.STATS[pred.prop];
+  if (!st) return null;
+  return num(line[st.total]) > pred.line ? 1 : 0;
+}
+
 /** Every player who took a snap that mattered, by ESPN athlete id. */
 export function boxScoreLines(summary) {
   const stat = new Map();
@@ -272,13 +288,15 @@ export function boxScoreLines(summary) {
         const vals = ath.stats || [];
         const s = {};
         keys.forEach((k, i) => { s[k] = num(vals[i]); });
-        const cur = stat.get(pid) || { td: 0, recYds: 0, played: false };
+        const cur = stat.get(pid) || { td: 0, recYds: 0, rushYds: 0, passYds: 0, recs: 0, played: false };
         cur.played = true;
-        if (block.name === "rushing") cur.td += num(s.rushingTouchdowns);
+        if (block.name === "rushing") { cur.td += num(s.rushingTouchdowns); cur.rushYds += num(s.rushingYards); }
         if (block.name === "receiving") {
           cur.td += num(s.receivingTouchdowns);
           cur.recYds += num(s.receivingYards);
+          cur.recs += num(s.receptions);
         }
+        if (block.name === "passing") cur.passYds += num(s.passingYards);
         stat.set(pid, cur);
       }
     }
@@ -347,10 +365,10 @@ export async function grade(league) {
           p.scratched = true;
           continue;
         }
-        if (p.prop === "td") p.actual = s.td > 0 ? 1 : 0;
-        else if (p.prop === "recyds") p.actual = s.recYds > p.line ? 1 : 0;
-        else continue;
-        p.result = { td: s.td, recYds: s.recYds };
+        const settled = settlePlayer(p, s);
+        if (settled == null) continue;
+        p.actual = settled;
+        p.result = { td: s.td, recYds: s.recYds, rushYds: s.rushYds, passYds: s.passYds, recs: s.recs };
         totalGraded++;
       }
     }

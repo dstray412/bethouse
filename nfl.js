@@ -106,6 +106,34 @@
        per-game figure by this many games. */
     yardK: 5,
     yardPrior: 25, // yards a game for a receiver nobody has heard of
+    /* The same for the other counting props, each a little under the
+       league's per-game mean among players with an opportunity (28.6,
+       189.3 and 2.7 in the NFL; backtest-nfl.mjs --measure, 2026-09-08). */
+    rushPrior: 25,
+    passPrior: 165,
+    recsPrior: 2.3,
+    /*
+     * The pool floor per stat: a player-game joins a stat's ratio pool
+     * (actual / his expectation at the time) only when his expectation
+     * was at least this. Receiving yards keeps 5, the board's original
+     * definition (see fetch-football.mjs, "which population goes in the
+     * pool"), and passing and receptions take the same quarter of their
+     * floor. Rushing is the exception, and the one place the choice was
+     * forced: below 20 expected yards the rushers with a carry are
+     * quarterbacks' scrambles and receivers' end-arounds, a different
+     * population from the backs the board prices, and a pool of them ran
+     * the rushing model seven points cold in both leagues (replay,
+     * 2026-09-08: floor 5 -6.8pp, 10 -6.1, 15 -2.7, 20 +1.2, 30 +6.6 in
+     * the NFL; college 5 -8.6pp, 20 +0.9). So the rushing pool is the
+     * population the board would offer a line on: expectation at least
+     * the floor. The same rule tried on passing and receptions made both
+     * worse (+3.5pp and +3.6pp), so it is not a rule, it is a fact about
+     * rushing.
+     */
+    yardPoolFloor: 5,
+    rushPoolFloor: 20,
+    passPoolFloor: 37.5,
+    recsPoolFloor: 0.5,
     /*
      * The yards gate, in one place. A row goes on the board when the player
      * has this many games and this much receiving opportunity, and projects
@@ -116,6 +144,14 @@
     yardMinGames: 3,
     yardMinOpportunity: 10,
     yardFloor: 20,
+    /* The other counting props' gates in the same terms (STATS names
+       which key each row reads). yardMinGames is shared by all four;
+       receptions gate on the same receiving opportunity as yards. */
+    rushMinOpportunity: 10,
+    rushFloor: 20,
+    passMinOpportunity: 40,
+    passFloor: 150,
+    recsFloor: 2,
     /*
      * Which box-score stat counts as receiving opportunity. The NFL records
      * targets. College box scores record receptions and nothing about the
@@ -478,20 +514,81 @@
     return (num(total) + o.yardK * prior) / (g + o.yardK);
   }
 
+  /*
+   * THE STAT TABLE. Four counting props share one shape: a season total,
+   * an opportunity count that says whether the player is really in that
+   * business, a replacement-level prior the per-game rate is shrunk
+   * toward (yardK games), and a floor under which no line is worth
+   * offering. Receiving yards is the original; the other three are the
+   * same machinery with their own measured numbers (backtest-nfl.mjs
+   * --measure prints the per-game means the priors sit under).
+   *
+   * `opportunity` is a record field, except "receiving", which is
+   * whatever the league records (targets in the NFL, receptions in
+   * college -- DEFAULTS.receivingStat). `box` is where the stat sits on
+   * a box-score line (block, field). Every threshold is a DEFAULTS key,
+   * so a league can bind its own.
+   */
+  const STATS = {
+    recyds:  { label: "Receiving yards", total: "recYds",  opportunity: "receiving", box: ["rec", "yds"],  priorKey: "yardPrior", poolFloorKey: "yardPoolFloor", minOppKey: "yardMinOpportunity", floorKey: "yardFloor" },
+    rushyds: { label: "Rushing yards",   total: "rushYds", opportunity: "carries",   box: ["rush", "yds"], priorKey: "rushPrior", poolFloorKey: "rushPoolFloor", minOppKey: "rushMinOpportunity", floorKey: "rushFloor" },
+    passyds: { label: "Passing yards",   total: "passYds", opportunity: "passAtt",   box: ["pass", "yds"], priorKey: "passPrior", poolFloorKey: "passPoolFloor", minOppKey: "passMinOpportunity", floorKey: "passFloor" },
+    recs:    { label: "Receptions",      total: "recs",    opportunity: "receiving", box: ["rec", "rec"],  priorKey: "recsPrior", poolFloorKey: "recsPoolFloor", minOppKey: "yardMinOpportunity", floorKey: "recsFloor" },
+  };
+
+  /** A box-score line (the fetcher's rush / rec / pass blocks) in the
+      shape of a season record, so statOpportunity reads either. */
+  function gameLine(p) {
+    const b = p || {};
+    return {
+      targets: num(b.rec && b.rec.tgt), recs: num(b.rec && b.rec.rec),
+      carries: num(b.rush && b.rush.att), passAtt: num(b.pass && b.pass.att),
+    };
+  }
+
+  /** A box-score line's actual value of a stat. */
+  function gameValue(stat, p) {
+    const st = STATS[stat];
+    if (!st || !p) return 0;
+    const block = p[st.box[0]];
+    return num(block && block[st.box[1]]);
+  }
+
+  /** A stat's opportunity count on a season record or a game line. */
+  function statOpportunity(stat, record, opts) {
+    const st = STATS[stat];
+    if (!st || !record) return 0;
+    return st.opportunity === "receiving" ? receivingOpportunity(record, opts) : num(record[st.opportunity]);
+  }
+
+  /** The shrunk per-game expectation of a stat. */
+  function expectedStat(stat, record, opts) {
+    const st = STATS[stat];
+    if (!st || !record) return null;
+    const prior = Object.assign({}, DEFAULTS, opts || {})[st.priorKey];
+    return expectedVolume(record[st.total], record.games, prior, opts);
+  }
+
   /**
-   * Whether a receiving-yards row belongs on the board, and at what
+   * Whether a row for this stat belongs on the board, and at what
    * projection. `null` when it does not. The ONE gate: the page shows a
    * row iff this says so, and the tracker records a row iff this says so,
    * so the record can never grade a bet the board never offered.
    */
-  function yardsEligible(record, opts) {
+  function statEligible(stat, record, opts) {
     const o = Object.assign({}, DEFAULTS, opts || {});
-    if (!record) return null;
+    const st = STATS[stat];
+    if (!st || !record) return null;
     if (!(num(record.games) >= o.yardMinGames)) return null;
-    if (!(receivingOpportunity(record, o) >= o.yardMinOpportunity)) return null;
-    const exp = expectedVolume(record.recYds, record.games, null, o);
-    if (!(exp >= o.yardFloor)) return null;
+    if (!(statOpportunity(stat, record, o) >= o[st.minOppKey])) return null;
+    const exp = expectedStat(stat, record, o);
+    if (!(exp >= o[st.floorKey])) return null;
     return { exp };
+  }
+
+  /** Receiving yards, the original gate. Kept by name for its callers. */
+  function yardsEligible(record, opts) {
+    return statEligible("recyds", record, opts);
   }
 
   /**
@@ -588,6 +685,12 @@
         scoreAnytimeTD(p, Object.assign({}, ctx || {}, { opts: merge(ctx && ctx.opts) })),
       expectedVolume: (total, games, prior, opts) => expectedVolume(total, games, prior, merge(opts)),
       yardsEligible: (rec, opts) => yardsEligible(rec, merge(opts)),
+      STATS,
+      gameLine,
+      gameValue,
+      statOpportunity: (stat, rec, opts) => statOpportunity(stat, rec, merge(opts)),
+      expectedStat: (stat, rec, opts) => expectedStat(stat, rec, merge(opts)),
+      statEligible: (stat, rec, opts) => statEligible(stat, rec, merge(opts)),
       empiricalOver,
       ratioPool,
       availability,
@@ -611,6 +714,12 @@
     scoreAnytimeTD,
     expectedVolume,
     yardsEligible,
+    STATS,
+    gameLine,
+    gameValue,
+    statOpportunity,
+    expectedStat,
+    statEligible,
     empiricalOver,
     ratioPool,
     availability,
