@@ -100,6 +100,21 @@ rule. No game-line change: injury news moves lines within minutes and
 there is no report history to test against. The week-1 NFL snapshot,
 taken before this, carries rows for players now out; they void at grading.
 
+**nflverse, 2026-09-08.** `nflverse.mjs` + `experiment-nflverse.mjs`: 27
+NFL seasons with closing lines and weather, injuries and depth charts since
+2009, cached under `nflverse/` (gitignored, 116 MB, `node nflverse.mjs`
+fills it). Three findings: the spread model has no information beyond the
+line in any era (slope 0.02 over 6,895 games); the totals slope is 0.04
+over 27 seasons, so the two-season 0.33 was a window and NFL `totalShrink`
+went 0.31 → 0.04 (total picks recorded before 2026-09-08 carry the old
+probability; first prediction wins, so they stand as recorded); and
+**unders at 15+ mph wind hit 56% in every era since 1999**, points − total
+−1.4 at 15–20 mph against +1.3 in calm games. The one bettable bias found
+all week. It needs a wind forecast per game, which nothing fetches yet
+(Open-Meteo is keyless; stadium coordinates are the missing table). A
+missing starting QB moves the line about a point too little (opponent
+covers 53.3%, n=345): watch, not bet.
+
 **College results** (README has the full section): touchdowns −1.4pp, Brier
 0.1743; yards −3.0pp and approximate; spread 51.7% and total 53.4% against the
 close on ~1,485 games, inside the noise. The forward record started

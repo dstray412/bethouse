@@ -172,6 +172,8 @@ should be re-fitted when the run environment shifts.
 | `football-leagues.mjs` | The one table of what differs between the two leagues: endpoints, files, weeks, the model, what to call a team that is not in the league. |
 | `fetch-football.mjs` | Keyless ESPN requests → `<league>-history.json` and `<league>-data.js`. `fetch-nfl.mjs` and `fetch-cfb.mjs` pick the league. |
 | `backtest-nfl.mjs` | Replays either league (`--league cfb`), measures the constants (`--measure`), fits the two that are fitted (`--fit`). |
+| `nflverse.mjs` | Reads nflverse-data (27 NFL seasons with lines and weather, injury reports and depth charts since 2009) into the model's game shape. No key; cached under `nflverse/`. 5 tests. |
+| `experiment-nflverse.mjs` | The model, the line's biases and the missing-quarterback question over 27 seasons, by era. Found the wind bias. |
 | `experiment-lines.mjs` | Tests every reconfiguration of the game model a box score can support against the closing line, per season. Nothing helped. Kept so the negative result stays reproducible. |
 
 ## Sharing it
@@ -1234,11 +1236,9 @@ closing spreads gives a slope of **−0.25** (0.01 and −0.40 on the two season
 when the model said 67% the home side covered 47%. The projection carries no
 information about the spread that the closing line does not already carry, so
 `spreadShrink = 0` and every spread pick is printed at 50%, which at −110 is an
-EV of −4.5%. The lean is still shown, still recorded, still graded. Totals kept
-a third of their confidence (slope 0.33; 0.35 and 0.31 by season), so
-`totalShrink = 0.31`, and a six-point disagreement on a total shows a small
-positive EV. Replaying the shrunk model prints a slope of 1.05 on totals and
-0.00 on spreads, which is what self-consistency looks like.
+EV of −4.5%. The lean is still shown, still recorded, still graded. Totals
+looked better on two seasons (slope 0.33) and were not: over 27 seasons the
+slope is 0.04 (see "Twenty-seven seasons" below), so `totalShrink = 0.04`.
 
 **The moneyline is the worst of the three and the page says so.** Against 468
 closing moneylines the market's win probabilities beat the model's (Brier
@@ -1300,6 +1300,56 @@ running so that claim can be checked against a season the model never saw.
 The efficiency lines are now kept in the history cache (`home.stats`,
 `away.stats`: yards, plays, turnovers, first downs, possession) so the next
 attempt does not start with a ten-minute refetch.
+
+### Twenty-seven seasons: what two could not settle
+
+**2026-09-08.** nflverse-data (github.com/nflverse/nflverse-data, CC-BY-4.0,
+plain CSV, no key) holds every NFL game since 1999 with its closing spread,
+total, moneylines and weather, plus weekly injury reports and depth charts
+since 2009. `nflverse.mjs` reads it into the model's own game shape (the one
+trap: nflverse's spread is positive when the home side is favoured, ours is
+negative, and `nflverse.test.mjs` pins the sign against a game both sources
+hold). `experiment-nflverse.mjs` asks three questions of 6,895 games.
+
+**1. The model against the close, by era.** Slope of the outcome against the
+line on the model's disagreement with it; 1 means the edge is real, 0 means
+the line knew.
+
+| era | spread slope | total slope |
+|---|---|---|
+| 1999–2004 | 0.05 | 0.12 |
+| 2005–2010 | 0.04 | 0.17 |
+| 2011–2016 | 0.05 | 0.06 |
+| 2017–2021 | 0.07 | −0.17 |
+| 2022–2025 | −0.15 | 0.03 |
+| **all** | **0.02** | **0.04** |
+
+The spread answer is what two seasons said, now with the weight of 27. The
+total answer is not: two seasons said 0.33 and that was a window. The NFL
+board's `totalShrink` moved from 0.31 to **0.04** on this, so its total picks
+now print within a point or two of 50%, which is what they are worth.
+
+**2. The line itself, by era.** Twenty buckets over five eras of ~1,300 games
+each. Home teams cover 49.0%, underdogs 51.1%, overs hit 49.5%; nothing by
+spread size or total size holds up across eras. One bucket does:
+
+| under when the wind is 15 mph or more | 1999–04 | 2005–10 | 2011–16 | 2017–21 | 2022–25 | all |
+|---|---|---|---|---|---|---|
+| under rate | 58.9% (185) | 54.5% (154) | 54.1% (133) | 57.1% (112) | 55.2% (58) | **56.2%** (642) |
+
+Above 54% in every era for 27 years, and the reason is physics rather than
+a bucket: points minus the closing total run +1.3 in calm games and −1.4 at
+15–20 mph. The market under-adjusts totals for wind, and has for as long as
+there are records. It is about 25 games a season. This is the first thing in
+the whole football project that looks like a bettable bias, and it needs a
+wind forecast to act on, which the board does not yet have.
+
+**3. The starting quarterback.** Last week's depth chart names the starter;
+this week's report says whether he was Out. His team covers **46.4%** of the
+time (n=278) and its opponent 53.3% (n=345); the margin against the line runs
+−1.1 ± 0.8 points. The market under-reacts by about a point, which is 1.4
+standard errors from nothing and short of break-even. Since 2011 the opponent
+has covered 53–56% in each era. Worth watching, not betting.
 
 ### Injuries: where they help, and where they were always priced
 
@@ -1501,6 +1551,8 @@ reason, and the number to watch is touchdowns.
 - **Spread picks are printed at 50% in both leagues** because the replay found
   no information in the projection beyond the closing line. The lean is shown
   and recorded; the record is the only thing that can change that number.
+- **The wind bias is found, not yet bettable.** Unders at 15+ mph have hit 56%
+  in every era since 1999, and the board has no wind forecast. Next build.
 - **College has no injury feed**, so a college player ruled out stays on the
   board until his box score is empty. The NFL board hides him.
 - **Line movement is not a signal.** Following the move at the current line

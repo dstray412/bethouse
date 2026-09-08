@@ -90,13 +90,15 @@
      * probability the page prints is pulled ALL the way to 50%. The lean
      * (the edge in points) is untouched and is still recorded and graded;
      * this is only about not printing a percentage the replay says is
-     * false. Totals kept a third of their confidence (slope 0.33 pooled;
-     * 0.35 and 0.31 on the two seasons alone, so the timid end ships).
-     * Measured by backtest-nfl.mjs, "calibration slope"; a replay of the
-     * shrunk model prints ~1.
+     * false. Totals looked better on two seasons (slope 0.33; 0.35 and
+     * 0.31 on each alone) and that was a window: over twenty-seven seasons
+     * of nflverse closing totals (experiment-nflverse.mjs, 6,895 games)
+     * the slope is 0.036, and by era 0.12, 0.17, 0.06, -0.17, 0.03. The
+     * long run ships. Measured by backtest-nfl.mjs ("calibration slope")
+     * on the ESPN cache and by experiment-nflverse.mjs on nflverse.
      */
     spreadShrink: 0,
-    totalShrink: 0.31,
+    totalShrink: 0.04,
     /* Ridge for the team ratings solve. */
     teamK: 6,
 

@@ -40,6 +40,6 @@ repos:
       - id: node-tests
         name: node --test (the whole suite; see entry for the file list)
         language: system
-        entry: node --test edge.test.mjs score.test.mjs golf.test.mjs nfl.test.mjs cfb.test.mjs bets.test.mjs track.test.mjs clv.test.mjs provenance.test.mjs dom.test.mjs
+        entry: node --test edge.test.mjs score.test.mjs golf.test.mjs nfl.test.mjs cfb.test.mjs nflverse.test.mjs bets.test.mjs track.test.mjs clv.test.mjs provenance.test.mjs dom.test.mjs
         pass_filenames: false
         stages: [pre-push]

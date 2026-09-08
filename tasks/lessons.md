@@ -620,3 +620,18 @@ open" is a statement about people who bet before the move, and unless you can
 be one of them it is not a statement about you. Put the number that applies
 to your own execution on the page, and put the flattering one in the README
 next to the reason you cannot have it.
+
+## Two seasons is a window even when both halves agree
+
+2026-09-08. The NFL totals model's calibration slope was 0.33 over two
+seasons, 0.35 and 0.31 on each season alone, and shipped as `totalShrink =
+0.31` on the strength of the two windows agreeing. Twenty-seven seasons of
+nflverse closing totals say 0.04, with eras at 0.12, 0.17, 0.06, −0.17 and
+0.03. Two adjacent seasons agreeing is not two independent windows; the
+same teams, the same rules, the same books.
+
+**Rule:** when a longer history exists for the same question, get it before
+shipping a constant, and treat two adjacent seasons as one window with a
+seam in it. The same 27 seasons found a bias two seasons could not have:
+unders in 15+ mph wind, above 54% in every era. Small persistent effects
+need long histories; large recent effects need suspicion.
