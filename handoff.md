@@ -115,6 +115,20 @@ all week. It needs a wind forecast per game, which nothing fetches yet
 missing starting QB moves the line about a point too little (opponent
 covers 53.3%, n=345): watch, not bet.
 
+**Touchdown model over 25 seasons, 2026-09-08.** nflverse weekly stats
+(`loadWeeklyStats`): constants within a few percent of the shipped ones in
+every era, model calibrated within a point everywhere, top decile within
+a point. Confirmed, nothing changed. The players file maps nflverse ids
+to ESPN ids (418 of 419 board players match), so a last-season
+opportunity prior is possible but the two-season line window already
+carries last season, so it was not built.
+
+**College over twenty seasons, 2026-09-08.** `cfbfastr.mjs` +
+`experiment-cfbfastr.mjs` (cache under `cfbfastr/`, gitignored, 143 MB):
+spread slope −0.04 with no era above 0.01, total slope 0.08 (0.11–0.17
+recent, matching the shipped 0.1), under at 56+ 52.1% on 5,917 games.
+Nothing bettable, nothing changed; cfb.html's copy updated to say so.
+
 **College results** (README has the full section): touchdowns −1.4pp, Brier
 0.1743; yards −3.0pp and approximate; spread 51.7% and total 53.4% against the
 close on ~1,485 games, inside the noise. The forward record started

@@ -173,7 +173,9 @@ should be re-fitted when the run environment shifts.
 | `fetch-football.mjs` | Keyless ESPN requests → `<league>-history.json` and `<league>-data.js`. `fetch-nfl.mjs` and `fetch-cfb.mjs` pick the league. |
 | `backtest-nfl.mjs` | Replays either league (`--league cfb`), measures the constants (`--measure`), fits the two that are fitted (`--fit`). |
 | `nflverse.mjs` | Reads nflverse-data (27 NFL seasons with lines and weather, injury reports and depth charts since 2009) into the model's game shape. No key; cached under `nflverse/`. 5 tests. |
-| `experiment-nflverse.mjs` | The model, the line's biases and the missing-quarterback question over 27 seasons, by era. Found the wind bias. |
+| `experiment-nflverse.mjs` | The model, the line's biases, the missing-quarterback question and the touchdown model over 27 seasons, by era. Found the wind bias; confirmed the touchdown constants. |
+| `cfbfastr.mjs` | Twenty seasons of college schedules and lines from cfbfastR-data (no key), into the model's game shape. FCS pooled from the schedule's own division field. 4 tests. |
+| `experiment-cfbfastr.mjs` | The college model against the close and the line's own biases, 2006–2025, by era. |
 | `statcast.mjs` | Last season's Statcast expected batting average per hitter, as a per-PA prior for the regression centre. No key. Committed under `statcast/`. 3 tests. |
 | `experiment-statcast.mjs` | Re-scores every published H/R/RBI prediction with the prior and applies the shrink's own validation bar. It passed. |
 | `experiment-lines.mjs` | Tests every reconfiguration of the game model a box score can support against the closing line, per season. Nothing helped. Kept so the negative result stays reproducible. |
@@ -1402,6 +1404,25 @@ there are records. It is about 25 games a season. This is the first thing in
 the whole football project that looks like a bettable bias, and it needs a
 wind forecast to act on, which the board does not yet have.
 
+**4. The touchdown model, by era.** nflverse's weekly player stats carry
+carries, targets and touchdowns per player per game since 2000, so the
+anytime-touchdown model's constants were re-measured on 109,099 regular
+player-games and the model walked forward with the constants it ships:
+
+| era | TD per carry | TD per target | league rate | predicted | actual | bias | top decile pred / actual |
+|---|---|---|---|---|---|---|---|
+| 1999–2004 | 0.030 | 0.039 | 0.244 | 17.9% | 17.6% | +0.4pp | 43.5 / 43.2 |
+| 2005–2010 | 0.032 | 0.043 | 0.256 | 17.3% | 18.1% | −0.8pp | 41.9 / 42.4 |
+| 2011–2016 | 0.026 | 0.045 | 0.244 | 19.4% | 18.9% | +0.5pp | 42.5 / 41.5 |
+| 2017–2021 | 0.031 | 0.047 | 0.257 | 19.8% | 19.7% | +0.1pp | 42.5 / 42.9 |
+| 2022–2025 | 0.032 | 0.046 | 0.245 | 19.4% | 18.7% | +0.7pp | 43.2 / 43.2 |
+| shipped (2024–25) | 0.0335 | 0.0473 | 0.251 | | | | |
+
+Calibrated within a point in every era, top decile included, on 132,627
+predictions. The constants two seasons produced sit within a few percent of
+the 25-season values. Nothing changes; this is the confirmation the
+touchdown board did not have.
+
 **3. The starting quarterback.** Last week's depth chart names the starter;
 this week's report says whether he was Out. His team covers **46.4%** of the
 time (n=278) and its opponent 53.3% (n=345); the margin against the line runs
@@ -1579,6 +1600,28 @@ printing it as a finding.
 
 The calibration slope of the cover probability is **0.07**, and 0.07 on each
 season alone, so college spreads are printed at 50% exactly as the NFL's are.
+
+**Twenty seasons, 2026-09-08.** `cfbfastr.mjs` reads sportsdataverse's
+cfbfastR-data (no key): schedules with divisions and neutral sites, and a
+table of lines from a dozen books since 2006, Pinnacle's taken where it
+exists. `experiment-cfbfastr.mjs` asks the same questions of 14,296 games.
+
+| era | spread slope | total slope | under, total ≥ 56 |
+|---|---|---|---|
+| 2006–2010 | 0.01 | −0.04 | 53.3% (736) |
+| 2011–2015 | −0.09 | 0.01 | 49.8% (1,766) |
+| 2016–2019 | −0.08 | 0.17 | 52.4% (1,587) |
+| 2020–2025 | 0.01 | 0.11 | 53.5% (1,828) |
+| **all** | **−0.04** | **0.08** | **52.1%** (5,917) |
+
+The spread projection carries no information beyond the line in any era;
+the two-season 0.07 was noise. Totals keep a little in the recent eras,
+which is what `totalShrink = 0.1` already assumes. The high-total under
+that looked like 55.6% and 55.4% on two seasons is 52.1% on twenty, which is
+break-even at −110. Home teams cover 49.3%, underdogs 50.1%, overs hit
+49.3%; nothing by spread size or total size clears break-even across eras.
+College's market is not measurably softer than the NFL's on anything a box
+score can see.
 Totals: 0.44 on 2024, 0.10 on 2025, 0.22 pooled; the two windows disagree,
 which is the finding, and the timid end (`totalShrink = 0.1`) ships. The
 moneyline loses 4.7% of stake at the close over 1,432 games (Brier 0.1867
@@ -1609,6 +1652,9 @@ reason, and the number to watch is touchdowns.
 - **Spread picks are printed at 50% in both leagues** because the replay found
   no information in the projection beyond the closing line. The lean is shown
   and recorded; the record is the only thing that can change that number.
+- **College has no bettable line bias either.** Twenty seasons: the
+  high-total under is 52.1%, the spread model has no information beyond
+  the line. The board's college copy says so.
 - **The wind bias is found, not yet bettable.** Unders at 15+ mph have hit 56%
   in every era since 1999, and the board has no wind forecast. Next build.
 - **College has no injury feed**, so a college player ruled out stays on the

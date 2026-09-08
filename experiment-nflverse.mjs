@@ -19,6 +19,13 @@
  *      total size, roof and wind. Twenty buckets over 480 games produce a
  *      false finding by chance; the same bucket holding across five eras
  *      of 1,300 games does not.
+ *   4. THE TOUCHDOWN MODEL, BY ERA. nflverse's weekly player stats carry
+ *      carries, targets and touchdowns per player per game since 2000, so
+ *      the anytime-touchdown model's constants (touchdowns per carry and
+ *      per target, the league rate) can be measured on twenty-five seasons
+ *      of regulars and the model walked forward and graded by era with
+ *      the constants it ships. Two seasons fitted them; here is whether
+ *      they have drifted.
  *   3. THE STARTING QUARTERBACK. Last week's depth chart says who the
  *      starter was; this week's injury report says whether he was Out,
  *      Doubtful or Questionable. Does the market over- or under-react to
@@ -29,7 +36,7 @@
  * and split by era, because the one thing a long history buys is the
  * ability to see whether an effect persists.
  */
-import { loadGames, loadInjuries, loadStarters } from "./nflverse.mjs";
+import { loadGames, loadInjuries, loadStarters, loadWeeklyStats } from "./nflverse.mjs";
 import nfl from "./nfl.js";
 import * as prov from "./provenance.mjs";
 
@@ -182,3 +189,61 @@ if (outRows.length >= 30) {
   console.log(`   those games went UNDER the total ${pct(u / t.length)} (n=${t.length}, z ${((u / t.length - BE) / tse).toFixed(2)}); points − total ${mean(t.map((x) => x.tresid)).toFixed(2)} ± ${(sd(t.map((x) => x.tresid)) / Math.sqrt(t.length)).toFixed(2)}`);
 }
 console.log();
+
+/* ------------------------------------------------------------------ *
+ * 4. The touchdown model, by era
+ * ------------------------------------------------------------------ */
+{
+  const seasonsW = []; for (let s = 2000; s <= 2025; s++) seasonsW.push(s);
+  const weekly = await loadWeeklyStats(seasonsW);
+  console.log(`4. THE TOUCHDOWN MODEL — ${weekly.length} skill player-games, ${seasonsW[0]}–${seasonsW.at(-1)}`);
+  /* Regulars: players with three or more games that season, the board's population. */
+  const gamesBy = new Map();
+  for (const r of weekly) { const k = `${r.season}|${r.id}`; gamesBy.set(k, (gamesBy.get(k) || 0) + 1); }
+  const regular = (r) => (gamesBy.get(`${r.season}|${r.id}`) || 0) >= 3;
+  console.log(`   ${"era".padEnd(11)}${"player-games".padStart(13)}${"TD/carry".padStart(10)}${"TD/target".padStart(11)}${"league λ".padStart(10)}   (shipped: ${nfl.DEFAULTS.tdPerCarry}, ${nfl.DEFAULTS.tdPerTarget}, ${nfl.DEFAULTS.leagueLambda})`);
+  for (const e of [...ERAS, null]) {
+    const rs = weekly.filter((r) => regular(r) && (r.carries || r.targets) && (!e || eraOf(r.season) === e));
+    let Scc = 0, Scr = 0, Srr = 0, Sct = 0, Srt = 0, td = 0;
+    for (const r of rs) { const c = r.carries, t = r.targets; Scc += c * c; Scr += c * t; Srr += t * t; Sct += c * r.tds; Srt += t * r.tds; td += r.tds; }
+    const det = Scc * Srr - Scr * Scr;
+    console.log(`   ${(e ? eraLabel(e) : "all").padEnd(11)}${String(rs.length).padStart(13)}${((Sct * Srr - Srt * Scr) / det).toFixed(4).padStart(10)}${((Srt * Scc - Sct * Scr) / det).toFixed(4).padStart(11)}${(td / rs.length).toFixed(3).padStart(10)}`);
+  }
+  /* Walk forward with the shipped constants: season lines from this season
+     plus last, team factors the same way, and grade by era. */
+  const byWeek = new Map();
+  for (const r of weekly) { const k = `${r.season}|${r.week}`; if (!byWeek.has(k)) byWeek.set(k, []); byWeek.get(k).push(r); }
+  const keys = [...byWeek.keys()].sort((a, b) => { const [sa, wa] = a.split("|").map(Number), [sb, wb] = b.split("|").map(Number); return sa - sb || wa - wb; });
+  const tdRows = [];
+  for (let i = 0; i < keys.length; i++) {
+    const [season, week] = keys[i].split("|").map(Number);
+    const prior = keys.slice(0, i).map((k) => k.split("|").map(Number)).filter(([s]) => s >= season - 1).flatMap(([s, w]) => byWeek.get(`${s}|${w}`));
+    if (prior.length < 400) continue;
+    const players = new Map(), usage = new Map(), teamTD = new Map(), teamTDA = new Map(), teamG = new Map();
+    const seenTeamGame = new Set();
+    for (const r of prior) {
+      const p = players.get(r.id) || { games: 0, tds: 0, carries: 0, targets: 0 };
+      p.games++; p.tds += r.tds; p.carries += r.carries; p.targets += r.targets; players.set(r.id, p);
+      const u = nfl.usageTDs(r.carries, r.targets); if (u > 0) { if (!usage.has(r.id)) usage.set(r.id, []); usage.get(r.id).push(u); }
+      teamTD.set(r.team, (teamTD.get(r.team) || 0) + r.tds); teamTDA.set(r.opp, (teamTDA.get(r.opp) || 0) + r.tds);
+      const tg = `${r.season}|${r.week}|${r.team}`; if (!seenTeamGame.has(tg)) { seenTeamGame.add(tg); teamG.set(r.team, (teamG.get(r.team) || 0) + 1); }
+    }
+    const lgTD = [...teamTD.values()].reduce((a, b) => a + b, 0) / Math.max(1, [...teamG.values()].reduce((a, b) => a + b, 0));
+    const factor = (m, t) => { const n = teamG.get(t) || 0; return n && lgTD ? ((m.get(t) || 0) + lgTD * 6) / ((n + 6) * lgTD) : 1; };
+    const pool = nfl.usagePoolFrom([...usage.values()], 6);
+    for (const r of byWeek.get(keys[i])) {
+      const rec = players.get(r.id); if (!rec || rec.games < 3) continue;
+      const s = nfl.scoreAnytimeTD(rec, { teamFactor: factor(teamTD, r.team), oppFactor: factor(teamTDA, r.opp), usagePool: pool });
+      if (s) tdRows.push({ era: eraOf(season), prob: s.prob, actual: r.tds > 0 ? 1 : 0 });
+    }
+  }
+  console.log(`\n   walked forward with the shipped constants (${tdRows.length} predictions):`);
+  console.log(`   ${"era".padEnd(11)}${"n".padStart(8)}${"predicted".padStart(11)}${"actual".padStart(9)}${"bias".padStart(9)}${"Brier".padStart(9)}${"top decile: pred/actual".padStart(26)}`);
+  for (const e of [...ERAS, null]) {
+    const rs = tdRows.filter((r) => !e || r.era === e); if (rs.length < 500) continue;
+    const pred = mean(rs.map((r) => r.prob)), act = mean(rs.map((r) => r.actual));
+    const top = rs.slice().sort((a, b) => b.prob - a.prob).slice(0, Math.round(rs.length / 10));
+    console.log(`   ${(e ? eraLabel(e) : "all").padEnd(11)}${String(rs.length).padStart(8)}${pct(pred).padStart(11)}${pct(act).padStart(9)}${((100 * (pred - act) >= 0 ? "+" : "") + (100 * (pred - act)).toFixed(1) + "pp").padStart(9)}${mean(rs.map((r) => (r.prob - r.actual) ** 2)).toFixed(4).padStart(9)}${(pct(mean(top.map((r) => r.prob))) + " / " + pct(mean(top.map((r) => r.actual)))).padStart(26)}`);
+  }
+  console.log();
+}

@@ -163,6 +163,29 @@ export async function loadInjuries(seasons) {
   return out;
 }
 
+/**
+ * Weekly player stats, skill positions, regular season:
+ * {season, week, team, opp, id, name, pos, carries, targets, recs, recYds, rushYds, tds}.
+ * The touchdown and yards models' inputs, per player per game, since 1999.
+ */
+export async function loadWeeklyStats(seasons) {
+  const out = [];
+  for (const s of seasons) {
+    const rows = parseCSV(await cached(`stats_player_week_${s}.csv`, `${RELEASE}/stats_player/stats_player_week_${s}.csv`));
+    for (const r of rows) {
+      if (r.season_type !== "REG" || !/^(RB|WR|TE|QB|FB)$/.test(r.position)) continue;
+      out.push({
+        season: num(r.season), week: num(r.week), team: r.team, opp: r.opponent_team, id: r.player_id,
+        name: r.player_display_name || r.player_name || "", pos: r.position,
+        carries: num(r.carries) || 0, targets: num(r.targets) || 0, recs: num(r.receptions) || 0,
+        recYds: num(r.receiving_yards) || 0, rushYds: num(r.rushing_yards) || 0,
+        tds: (num(r.rushing_tds) || 0) + (num(r.receiving_tds) || 0),
+      });
+    }
+  }
+  return out;
+}
+
 /** Weekly depth charts, starters only: {season, week, team, id, name, pos}. */
 export async function loadStarters(seasons) {
   const out = [];
