@@ -128,6 +128,8 @@ footer button:hover{color:var(--text)}
   .leg-line{flex-wrap:wrap;padding-left:24px}
   .leg-line .meta{flex:1 0 100%;order:3}
 }
+/* Touch: fingers need 44px; the mouse does not. Same rule as index.html. */
+@media (pointer:coarse){ .seg button,.navlink,button{min-height:44px} }
 </style>
 </head>
 <body>

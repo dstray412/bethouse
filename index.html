@@ -245,7 +245,9 @@ footer{margin-top:22px;color:var(--muted);font-size:12px;line-height:1.7}
   .leg-line{flex-wrap:wrap}
   .leg-line .lp{flex:1 0 100%;order:3;padding-left:0}
 }
-@media (pointer:coarse){ .seg button{min-height:42px} }
+/* Touch: fingers need 44px; the mouse does not. The row's track and
+   add-to-slip buttons are the ones tapped most, and were 28px squares. */
+@media (pointer:coarse){ .seg button,.navlink{min-height:44px} .trk,.addleg{min-width:40px;min-height:40px} }
 </style>
 </head>
 <body>
