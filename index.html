@@ -226,11 +226,13 @@ footer{margin-top:22px;color:var(--muted);font-size:12px;line-height:1.7}
   .ctl>label{flex:0 0 58px;font-size:9.5px;letter-spacing:.10em}
   .ctl .seg{flex:1 1 auto}
   .ctl .seg button{flex:1 1 0;min-height:40px;padding:6px}
-  .row{grid-template-columns:26px 1fr 64px 44px;gap:7px}
-  .row.parlay{grid-template-columns:26px 1fr 58px 44px 44px}
-  .row.hist{grid-template-columns:26px 1fr 64px 44px}
+  /* Five columns now, the last for the caret: hover cannot say "tap me"
+     on a phone, so the chevron stays. Every grid names every child. */
+  .row{grid-template-columns:26px 1fr 64px 44px 12px;gap:7px}
+  .row.parlay{grid-template-columns:26px 1fr 58px 44px 44px 12px}
+  .row.hist{grid-template-columns:26px 1fr 64px 44px 12px}
   .row.hist.parlay{grid-template-columns:26px 1fr 58px 44px 44px}
-  .caret{display:none}
+  .caret{font-size:13px}
   /* 28px fails the 44px touch minimum, and this is the primary action on the
      page: it is how a leg gets into the parlay slip. */
   .addleg{width:44px;height:44px;font-size:20px}
