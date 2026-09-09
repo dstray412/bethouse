@@ -205,6 +205,14 @@ call. Report and before/after shots:
 `~/.gstack/projects/BetHouse/designs/design-audit-20260908/`. Baseline
 design score B−, AI-slop A.
 
+**Design review, second pass (baseball, golf, bets), 2026-09-08, late.**
+Four cross-page fixes, one commit each (FINDING-015..018): board links
+under the brand on every page, 44px touch targets everywhere (the
+baseball row's ○ and + were 28px), `color-scheme: dark`, and the caret
+kept on phones (baseball's three mobile row grids gained a fifth
+column). Baseball's expanded panel is the model the football panels now
+follow. Still deferred: one shared board.css.
+
 **Readability pass on the counting props, 2026-09-08, late.** The prop
 rows lead with the projection (yards or catches), then the over chance
 and fair price; the line sits beside the matchup. A `soft D` / `tough D`
