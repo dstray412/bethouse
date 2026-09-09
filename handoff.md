@@ -167,6 +167,18 @@ comment claiming the floors were "chosen on the replay", and the replay
 not yet run at those floors (`tasks/lessons.md`, "A comment is not a
 measurement").
 
+**The opponent's defence, 2026-09-08, later.** Every counting-prop
+projection now carries the opponent: `teamFactors[team].allow[stat]`
+from `seasonLines`, applied by `statOppFactor` at a per-stat strength
+(`rushOppShrink`, `passOppShrink` 0.5; `yardOppShrink`, `recsOppShrink`
+0) inside `statEligible`, which takes a `ctx.oppFactor` and returns
+`{exp, base, oppFactor}`. The gate is `base`, the player's own season.
+Replay table in `nfl.js` and README "The opponent's defence": rushing and
+passing gain a thousandth of Brier at half strength in both leagues,
+receiving and receptions nothing or worse. The rows recorded earlier
+today for this week carry the pre-opponent projection; first prediction
+wins.
+
 ## Statcast prior, 2026-09-08
 
 The hitter model's regression centre is now `league + 0.75 × (last season's

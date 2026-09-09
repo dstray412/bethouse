@@ -153,6 +153,28 @@
     passFloor: 150,
     recsFloor: 2,
     /*
+     * The opponent's defence, per stat: how much of the league's per-game
+     * figure the opponent allows, regressed toward 1 over six games like
+     * the touchdown factors (fetch-football.mjs seasonLines, `allow`),
+     * applied to the projection at this strength: 1 + shrink × (allow − 1).
+     * 0 is a projection with no opponent in it.
+     *
+     * Replay, 2026-09-08, strength 0 / 0.5 / 1, Brier:
+     *   rushing    NFL 0.2229 / 0.2220 / 0.2229   college 0.2326 / 0.2322 / 0.2325
+     *   passing    NFL 0.1619 / 0.1611 / 0.1621   college 0.1787 / 0.1774 / 0.1779
+     *   receiving  NFL 0.2224 / 0.2223 / 0.2224   college 0.2300 / 0.2300 / 0.2303
+     *   receptions NFL 0.2047 / 0.2045 / 0.2047   college 0.2131 / 0.2135 / 0.2139
+     * Rushing and passing improve at half strength in both leagues and
+     * give it back at full; receiving yards and receptions move nothing
+     * or get worse, so the opponent stays out of them. The effect is
+     * small everywhere, which is what the game-line work found too: the
+     * box score adds little the market and the pool do not already carry.
+     */
+    yardOppShrink: 0,
+    rushOppShrink: 0.5,
+    passOppShrink: 0.5,
+    recsOppShrink: 0,
+    /*
      * Which box-score stat counts as receiving opportunity. The NFL records
      * targets. College box scores record receptions and nothing about the
      * throws that were not caught, so cfb.js binds this to "recs" and
@@ -530,10 +552,10 @@
    * so a league can bind its own.
    */
   const STATS = {
-    recyds:  { label: "Receiving yards", total: "recYds",  opportunity: "receiving", box: ["rec", "yds"],  priorKey: "yardPrior", poolFloorKey: "yardPoolFloor", minOppKey: "yardMinOpportunity", floorKey: "yardFloor" },
-    rushyds: { label: "Rushing yards",   total: "rushYds", opportunity: "carries",   box: ["rush", "yds"], priorKey: "rushPrior", poolFloorKey: "rushPoolFloor", minOppKey: "rushMinOpportunity", floorKey: "rushFloor" },
-    passyds: { label: "Passing yards",   total: "passYds", opportunity: "passAtt",   box: ["pass", "yds"], priorKey: "passPrior", poolFloorKey: "passPoolFloor", minOppKey: "passMinOpportunity", floorKey: "passFloor" },
-    recs:    { label: "Receptions",      total: "recs",    opportunity: "receiving", box: ["rec", "rec"],  priorKey: "recsPrior", poolFloorKey: "recsPoolFloor", minOppKey: "yardMinOpportunity", floorKey: "recsFloor" },
+    recyds:  { label: "Receiving yards", total: "recYds",  opportunity: "receiving", box: ["rec", "yds"],  priorKey: "yardPrior", poolFloorKey: "yardPoolFloor", minOppKey: "yardMinOpportunity", floorKey: "yardFloor", oppShrinkKey: "yardOppShrink" },
+    rushyds: { label: "Rushing yards",   total: "rushYds", opportunity: "carries",   box: ["rush", "yds"], priorKey: "rushPrior", poolFloorKey: "rushPoolFloor", minOppKey: "rushMinOpportunity", floorKey: "rushFloor", oppShrinkKey: "rushOppShrink" },
+    passyds: { label: "Passing yards",   total: "passYds", opportunity: "passAtt",   box: ["pass", "yds"], priorKey: "passPrior", poolFloorKey: "passPoolFloor", minOppKey: "passMinOpportunity", floorKey: "passFloor", oppShrinkKey: "passOppShrink" },
+    recs:    { label: "Receptions",      total: "recs",    opportunity: "receiving", box: ["rec", "rec"],  priorKey: "recsPrior", poolFloorKey: "recsPoolFloor", minOppKey: "yardMinOpportunity", floorKey: "recsFloor", oppShrinkKey: "recsOppShrink" },
   };
 
   /** A box-score line (the fetcher's rush / rec / pass blocks) in the
@@ -570,20 +592,39 @@
   }
 
   /**
+   * The opponent's allowance for a stat (1 = league average, from
+   * seasonLines' `allow`), applied at the stat's strength and clamped
+   * like the touchdown factors. 1 when there is no opponent or no
+   * strength.
+   */
+  function statOppFactor(stat, allow, opts) {
+    const o = Object.assign({}, DEFAULTS, opts || {});
+    const st = STATS[stat];
+    const f = num(allow);
+    if (!st || !(f > 0)) return 1;
+    return clamp(1 + num(o[st.oppShrinkKey]) * (f - 1), 0.6, 1.6);
+  }
+
+  /**
    * Whether a row for this stat belongs on the board, and at what
    * projection. `null` when it does not. The ONE gate: the page shows a
    * row iff this says so, and the tracker records a row iff this says so,
    * so the record can never grade a bet the board never offered.
+   *
+   * The gate is the player's own season (`base`); the opponent moves the
+   * projection (`exp`), never who is on the board. `ctx.oppFactor` is the
+   * opponent's `allow` for this stat.
    */
-  function statEligible(stat, record, opts) {
+  function statEligible(stat, record, opts, ctx) {
     const o = Object.assign({}, DEFAULTS, opts || {});
     const st = STATS[stat];
     if (!st || !record) return null;
     if (!(num(record.games) >= o.yardMinGames)) return null;
     if (!(statOpportunity(stat, record, o) >= o[st.minOppKey])) return null;
-    const exp = expectedStat(stat, record, o);
-    if (!(exp >= o[st.floorKey])) return null;
-    return { exp };
+    const base = expectedStat(stat, record, o);
+    if (!(base >= o[st.floorKey])) return null;
+    const oppFactor = statOppFactor(stat, ctx && ctx.oppFactor, o);
+    return { exp: base * oppFactor, base, oppFactor };
   }
 
   /** Receiving yards, the original gate. Kept by name for its callers. */
@@ -690,7 +731,8 @@
       gameValue,
       statOpportunity: (stat, rec, opts) => statOpportunity(stat, rec, merge(opts)),
       expectedStat: (stat, rec, opts) => expectedStat(stat, rec, merge(opts)),
-      statEligible: (stat, rec, opts) => statEligible(stat, rec, merge(opts)),
+      statEligible: (stat, rec, opts, ctx) => statEligible(stat, rec, merge(opts), ctx),
+      statOppFactor: (stat, allow, opts) => statOppFactor(stat, allow, merge(opts)),
       empiricalOver,
       ratioPool,
       availability,
@@ -720,6 +762,7 @@
     statOpportunity,
     expectedStat,
     statEligible,
+    statOppFactor,
     empiricalOver,
     ratioPool,
     availability,

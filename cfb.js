@@ -120,6 +120,9 @@
        150 +3.5). Half is the cold side of the crossing. */
     passPoolFloor: 75,
     recsPoolFloor: 0.5,
+    /* The opponent strengths are the NFL's: college read the same way
+       (rushing 0.2326 / 0.2322 / 0.2325, passing 0.1787 / 0.1774 / 0.1779,
+       receptions worse at any strength; nfl.js has the table). */
     yardMinGames: 3,
     yardMinOpportunity: 7, // receptions: the NFL catches 67.9% of targets, so its 10 targets is 6.8 of these
     yardFloor: 20,

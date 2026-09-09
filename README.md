@@ -1219,8 +1219,8 @@ closing lines. Everything predicting week W comes from weeks already played.
 |---|---|---|
 | Anytime touchdown | bias **&minus;0.8pp**, Brier 0.1591 vs 0.1718 | calibrated |
 | Receiving yards | bias **−1.2pp**, Brier 0.2224 vs 0.2460 (n=22,360) | calibrated |
-| Rushing yards | bias **+1.2pp**, Brier 0.2229 vs 0.2481 (n=10,500) · seasons +1.8 / +0.8 | calibrated; see the pool note below |
-| Passing yards | bias **+1.0pp**, Brier 0.1619 vs 0.2490 (n=4,265) · seasons −1.1 / +2.6 | approximate: too timid at both ends |
+| Rushing yards | bias **+1.4pp**, Brier 0.2220 vs 0.2481 (n=10,500) · seasons +1.6 / +1.3 | calibrated; opponent at half strength; see the pool note below |
+| Passing yards | bias **+1.1pp**, Brier 0.1611 vs 0.2490 (n=4,265) · seasons −1.0 / +2.6 | approximate: too timid at both ends; opponent at half strength |
 | Receptions | bias **−0.5pp**, Brier 0.2047 vs 0.2374 (n=22,610) · seasons −3.8 / +1.9 | approximate: the seasons disagree |
 | Spread vs closing line | **48.1%** of 480, needs 52.4% | **no edge** |
 | Total vs closing line | **52.5%** of 478, needs 52.4% | **inside the noise** |
@@ -1545,6 +1545,37 @@ seasons sit 6 apart with the aggregate near zero. Neither is corrected here:
 the pool definition is the lever and the receiving-yards note above says what
 happens when it is fitted to the replay. The forward record decides.
 
+### The opponent's defence, and how much of it the projection takes
+
+2026-09-08. A projection that ignores who the player is facing is missing
+something the touchdown model already has, so the four counting props now
+carry it the same way: for each stat, what each defence has allowed per game
+against the league's per-team-game figure, regressed toward 1 by six games of
+league average (`allow` on every team in `teamFactors`, built by `seasonLines`
+beside the touchdown factors). It moves the projection, never the gate: a
+player is on the board for his own season, and the opponent moves his line.
+The strength is a constant per stat, `1 + shrink × (allow − 1)`, and the
+replay set it, both leagues, both seasons, Brier at strength 0 / 0.5 / 1:
+
+```
+                  NFL                          college
+rushing yards     0.2229 / 0.2220 / 0.2229     0.2326 / 0.2322 / 0.2325
+passing yards     0.1619 / 0.1611 / 0.1621     0.1787 / 0.1774 / 0.1779
+receiving yards   0.2224 / 0.2223 / 0.2224     0.2300 / 0.2300 / 0.2303
+receptions        0.2047 / 0.2045 / 0.2047     0.2131 / 0.2135 / 0.2139
+```
+
+Rushing and passing improve at half strength in both leagues and give it
+back at full, so they ship at **0.5**. Receiving yards and receptions move
+nothing in the NFL and get worse in college, so the opponent stays out of
+them (strength 0); the page shows the allowance on those rows and says it is
+not applied. The effect is small everywhere — a thousandth of Brier — which
+is what the game-line work found about the box score too: the pool of real
+games already averages over defences, and a team's yards allowed is mostly
+its schedule. Half strength is the timid end of what helped, and the ratio
+pools are built against the opponent-adjusted projection so the shape is of
+what the opponent does not explain.
+
 ---
 
 ## College football
@@ -1625,8 +1656,8 @@ two populations agree to the third decimal, which is why it never came up there.
 |---|---|---|
 | Anytime touchdown | bias **−1.4pp**, Brier 0.1743 vs 0.1921 · top 20% scored 47.3%, bottom 20% 9.5% | calibrated, a little cold |
 | Receiving yards | bias **−3.2pp**, Brier 0.2300 vs 0.2492 (n=58,140) | cold; see the pool note above |
-| Rushing yards | bias **+0.9pp**, Brier 0.2326 vs 0.2500 (n=40,170) · seasons +1.2 / +0.5 | calibrated, pool floor 20 as in the NFL |
-| Passing yards | bias **−1.6pp**, Brier 0.1787 vs 0.2421 (n=9,125) · seasons −3.0 / −0.5 | approximate: timid at both ends |
+| Rushing yards | bias **+1.1pp**, Brier 0.2322 vs 0.2500 (n=40,170) · seasons +1.6 / +0.5 | calibrated, pool floor 20 as in the NFL; opponent at half strength |
+| Passing yards | bias **−1.0pp**, Brier 0.1774 vs 0.2421 (n=9,125) · seasons −2.6 / +0.1 | approximate: timid at both ends; opponent at half strength |
 | Receptions | bias **−1.1pp**, Brier 0.2131 vs 0.2454 (n=49,600) · seasons −2.4 / 0.0 | calibrated |
 | Spread vs closing line | **51.7%** of 1,488, needs 52.4% | inside the noise |
 | Total vs closing line | **53.4%** of 1,482 · 56.5% where the model disagrees by 6+ points, n=322 | inside the noise |

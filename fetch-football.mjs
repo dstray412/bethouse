@@ -541,9 +541,22 @@ export function seasonLines(games, model) {
   const players = new Map();
   const usageByPlayer = new Map();
   const teamTD = new Map(), teamTDAgainst = new Map(), teamGames = new Map();
+  /* Per stat, what each defence has allowed, so a counting-prop projection
+     can carry the opponent the way a touchdown projection does. */
+  const STAT_IDS = Object.keys(model.STATS);
+  const allowedBy = Object.fromEntries(STAT_IDS.map((s) => [s, new Map()]));
+  const leagueStat = Object.fromEntries(STAT_IDS.map((s) => [s, 0]));
   for (const g of games) {
     const tdBy = { [g.home.team]: 0, [g.away.team]: 0 };
     for (const p of g.players) {
+      const opp = p.team === g.home.team ? g.away.team : p.team === g.away.team ? g.home.team : null;
+      if (opp) {
+        for (const stat of STAT_IDS) {
+          const v = model.gameValue(stat, p);
+          allowedBy[stat].set(opp, (allowedBy[stat].get(opp) || 0) + v);
+          leagueStat[stat] += v;
+        }
+      }
       const r = players.get(p.id) || {
         id: p.id, name: p.name, team: p.team,
         games: 0, tds: 0, carries: 0, targets: 0, recYds: 0, rushYds: 0, recs: 0, passAtt: 0, passYds: 0,
@@ -575,20 +588,23 @@ export function seasonLines(games, model) {
     }
   }
 
-  const leagueTD =
-    [...teamTD.values()].reduce((a, b) => a + b, 0) /
-    Math.max(1, [...teamGames.values()].reduce((a, b) => a + b, 0));
-  const factorOf = (map, t) => {
+  const teamGameCount = Math.max(1, [...teamGames.values()].reduce((a, b) => a + b, 0));
+  const leagueTD = [...teamTD.values()].reduce((a, b) => a + b, 0) / teamGameCount;
+  /* A team's rate against the league's per-team-game rate, regressed
+     toward 1 by six games of league average. */
+  const factorOf = (map, t, league) => {
     const n = teamGames.get(t) || 0;
-    if (!n || !leagueTD) return 1;
+    if (!n || !league) return 1;
     const K = 6;
-    return ((map.get(t) || 0) + leagueTD * K) / ((n + K) * leagueTD);
+    return ((map.get(t) || 0) + league * K) / ((n + K) * league);
   };
   const teamFactors = {};
   for (const t of teamGames.keys()) {
     teamFactors[t] = {
-      off: Number(factorOf(teamTD, t).toFixed(4)),
-      def: Number(factorOf(teamTDAgainst, t).toFixed(4)),
+      off: Number(factorOf(teamTD, t, leagueTD).toFixed(4)),
+      def: Number(factorOf(teamTDAgainst, t, leagueTD).toFixed(4)),
+      // What this defence allows of each counting stat, 1 = league average.
+      allow: Object.fromEntries(STAT_IDS.map((s) => [s, Number(factorOf(allowedBy[s], t, leagueStat[s] / teamGameCount).toFixed(4))])),
     };
   }
   return { players, usageByPlayer, teamFactors };
@@ -676,7 +692,11 @@ export async function buildBoard(league, history) {
         if (!(model.statOpportunity(stat, line) >= 1)) continue;
         const r = players.get(p.id);
         if (!r || r.games < 3) continue;
-        const exp = model.expectedStat(stat, r);
+        // The ratio is against the projection the board would have made,
+        // opponent included, so the pool is the shape of what is left.
+        const opp = p.team === g.home.team ? g.away.team : g.home.team;
+        const allow = ((teamFactors[opp] || {}).allow || {})[stat];
+        const exp = model.expectedStat(stat, r) * model.statOppFactor(stat, allow);
         if (exp >= floor) pool.push(model.gameValue(stat, p) / exp);
       }
     }

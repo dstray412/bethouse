@@ -769,6 +769,37 @@ test("gameLine / gameValue: a box-score line, read the way a season record is", 
   assert.equal(nfl.gameValue("spread", p), 0, "not a counting stat");
 });
 
+test("statOppFactor: the opponent's allowance at the stat's strength, 1 when there is none", () => {
+  // Oracle: the touchdown model's oppFactor, which this mirrors: 1 = league average, clamped 0.6..1.6.
+  assert.equal(nfl.statOppFactor("recyds", 1.3), 1, "shipped strength 0: the replay found no information in the opponent for receiving yards");
+  close(nfl.statOppFactor("rushyds", 1.3), 1 + nfl.DEFAULTS.rushOppShrink * 0.3);
+  const C = nfl.bind({ passOppShrink: 1, rushOppShrink: 0.5 });
+  close(C.statOppFactor("passyds", 1.3), 1.3);
+  close(C.statOppFactor("rushyds", 1.3), 1.15); // half strength is half way to the allowance
+  close(C.statOppFactor("rushyds", 0.8), 0.9);
+  assert.equal(C.statOppFactor("passyds", 2.5), 1.6, "clamped like the touchdown factors");
+  assert.equal(C.statOppFactor("passyds", null), 1, "no opponent placed yet");
+  assert.equal(C.statOppFactor("passyds", 0), 1);
+  assert.equal(C.statOppFactor("spread", 1.3), 1, "not a counting stat");
+});
+
+test("statEligible: the opponent moves the projection, never the gate", () => {
+  const C = nfl.bind({ rushOppShrink: 1 });
+  const rec = { games: 4, carries: 60, rushYds: 300 };
+  const base = C.statEligible("rushyds", rec).exp;
+  const y = C.statEligible("rushyds", rec, null, { oppFactor: 1.2 });
+  close(y.base, base);
+  close(y.oppFactor, 1.2);
+  close(y.exp, base * 1.2);
+  // A base just over the floor stays on the board against a stingy defence even though exp drops under it...
+  const edge = { games: 4, carries: 60, rushYds: 4 * 21 - nfl.DEFAULTS.yardK * (nfl.DEFAULTS.rushPrior - 21) };
+  close(C.statEligible("rushyds", edge).base, 21);
+  assert.ok(C.statEligible("rushyds", edge, null, { oppFactor: 0.7 }), "gated on his own season");
+  // ...and a base under the floor stays off against a soft one.
+  const under = { games: 4, carries: 60, rushYds: 4 * 19 - nfl.DEFAULTS.yardK * (nfl.DEFAULTS.rushPrior - 19) };
+  assert.equal(C.statEligible("rushyds", under, null, { oppFactor: 1.5 }), null);
+});
+
 test("statEligible: a league can bind its own gate for any stat", () => {
   const C = nfl.bind({ passMinOpportunity: 20, passFloor: 100 });
   assert.ok(C.statEligible("passyds", { games: 4, passAtt: 90, passYds: 500 }));

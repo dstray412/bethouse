@@ -255,6 +255,28 @@ test("gradeGamePick: closing line value is points in the pick's favour", () => {
  * so there is no push; a prop the tracker does not know is not settled.
  * ------------------------------------------------------------------ */
 import { settlePlayer, boxScoreLines } from "./track-football.mjs";
+import { seasonLines } from "./fetch-football.mjs";
+import nflModel from "./nfl.js";
+
+test("seasonLines: what each defence allows of a stat, regressed toward the league over six games", () => {
+  // Oracle: the touchdown factors' own formula, (allowed + 6 × league) / ((games + 6) × league).
+  const games = [{
+    home: { team: "A" }, away: { team: "B" },
+    players: [
+      { id: "1", name: "QB A", team: "A", pass: { att: 30, yds: 100 } },
+      { id: "2", name: "QB B", team: "B", pass: { att: 30, yds: 300 } },
+      { id: "3", name: "RB B", team: "B", rush: { att: 20, yds: 90 } },
+    ],
+  }];
+  const { teamFactors } = seasonLines(games, nflModel);
+  // League passing per team-game is 400 / 2 = 200. A allowed 300, B allowed 100.
+  assert.equal(teamFactors.A.allow.passyds, Number(((300 + 6 * 200) / (7 * 200)).toFixed(4)));
+  assert.equal(teamFactors.B.allow.passyds, Number(((100 + 6 * 200) / (7 * 200)).toFixed(4)));
+  // League rushing per team-game is 45. A allowed 90, B allowed nothing.
+  assert.equal(teamFactors.A.allow.rushyds, Number(((90 + 6 * 45) / (7 * 45)).toFixed(4)));
+  assert.equal(teamFactors.B.allow.rushyds, Number(((0 + 6 * 45) / (7 * 45)).toFixed(4)));
+  assert.equal(teamFactors.A.allow.recyds, 1, "a stat nobody recorded is league average for everyone");
+});
 
 test("boxScoreLines: each ESPN block feeds its own fields, summed per athlete across blocks", () => {
   // Oracle: ESPN's summary shape, the keys fetch-football.mjs already reads.

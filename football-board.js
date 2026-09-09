@@ -67,6 +67,7 @@
        searching each abbreviation inside the full team name, which dropped
        six of sixteen games ("San Francisco 49ers" contains no "SF") and
        misattributed two more ("Arizona Cardinals" contains "CAR"). */
+    var allowFor=function(team,stat){ var f=team&&D.teamFactors[team]; return f&&f.allow?f.allow[stat]:null; };
     var oppFactorFor=function(team){
       var f=D.teamFactors[team];
       return f&&isFinite(f.def)?f.def:1;
@@ -141,12 +142,12 @@
       (D.players||[]).forEach(function(p){
         if(!available(p)) return;
         // The one gate, shared with the tracker: see nfl.js statEligible.
-        var y=N.statEligible(stat,p);
+        var y=N.statEligible(stat,p,null,{oppFactor:allowFor(p.opp,stat)});
         if(!y) return;
         var line=Math.round(y.exp*state.lineMult)+0.5;
         var over=N.empiricalOver(y.exp,line,pool);
         if(over==null) return;
-        rows.push({p:p,exp:y.exp,line:line,over:over});
+        rows.push({p:p,exp:y.exp,base:y.base,oppFactor:y.oppFactor,line:line,over:over});
       });
       rows.sort(function(a,b){return b.exp-a.exp;});
       rows=rows.slice(0,80);
@@ -171,7 +172,12 @@
         var opp = (stat==='recs' && N.DEFAULTS.receivingStat==='recs') ? '' :
           ' on <b>'+N.statOpportunity(stat,r.p)+'</b> '+oppWordFor;
         t+='<tr><td>season</td><td><b>'+r.p[ST.total]+'</b>'+unit+opp+' over <b>'+r.p.games+'</b> games</td></tr>';
-        t+='<tr><td>projection</td><td><b>'+r.exp.toFixed(1)+'</b>'+unit+', regressed toward a replacement-level '+N.DEFAULTS[ST.priorKey]+'</td></tr>';
+        t+='<tr><td>his own</td><td><b>'+r.base.toFixed(1)+'</b>'+unit+' a game, regressed toward a replacement-level '+N.DEFAULTS[ST.priorKey]+'</td></tr>';
+        var allow=allowFor(r.p.opp,stat), strength=N.DEFAULTS[ST.oppShrinkKey];
+        if(!r.p.opp) t+='<tr><td>opponent</td><td>not placed yet</td></tr>';
+        else if(!strength) t+='<tr><td>opponent</td><td><b>'+esc(r.p.opp)+'</b> allows <b>'+(allow?allow.toFixed(2):'—')+'×</b> the league\'s '+ST.label.toLowerCase()+' — not applied: on the replay it moved nothing for this prop</td></tr>';
+        else t+='<tr><td>opponent</td><td><b>'+esc(r.p.opp)+'</b> allows <b>'+(allow?allow.toFixed(2):'—')+'×</b> the league\'s '+ST.label.toLowerCase()+', applied at strength '+strength+': <b>×'+r.oppFactor.toFixed(2)+'</b></td></tr>';
+        t+='<tr><td>projection</td><td><b>'+r.exp.toFixed(1)+'</b>'+unit+'</td></tr>';
         t+='<tr><td>line</td><td><b>'+r.line+'</b></td></tr>';
         t+='<tr><td>over</td><td><b>'+pct(r.over)+'</b>, read off <b>'+pool.length+
           '</b> real player games rather than any bell curve</td></tr>';

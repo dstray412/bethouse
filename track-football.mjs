@@ -129,6 +129,7 @@ export function snapshot(league) {
     const f = D.teamFactors[team];
     return f && isFinite(f.def) ? f.def : 1;
   };
+  const allowFor = (team, stat) => (((D.teamFactors[team] || {}).allow || {})[stat]);
 
   let added = 0, skippedStarted = 0, skippedNoGame = 0, skippedOut = 0;
 
@@ -164,7 +165,7 @@ export function snapshot(league) {
        drift. A record of players the board never displayed would grade a
        bet nobody was offered. */
     for (const stat of Object.keys(M.STATS)) {
-      const y = M.statEligible(stat, p);
+      const y = M.statEligible(stat, p, null, { oppFactor: p.opp ? allowFor(p.opp, stat) : null });
       if (!y) continue;
       const line = Math.round(y.exp * LINE_MULT) + 0.5;
       const over = M.empiricalOver(y.exp, line, poolFor(stat));

@@ -227,6 +227,7 @@ function stateFrom(priorGames) {
     ratings: buildTeamRatings(priorGames),
     teamFactor: (t) => (teamFactors[t] || {}).off ?? 1,
     oppFactor: (t) => (teamFactors[t] || {}).def ?? 1,
+    allow: (t, stat) => ((teamFactors[t] || {}).allow || {})[stat] ?? 1,
     usagePool: usagePoolFrom([...usageByPlayer.values()], 6),
   };
 }
@@ -328,7 +329,8 @@ for (let i = START_INDEX; i < ALL.length; i++) {
     const pool = statPool[stat].slice(-4000);
     for (const p of g.players) {
       if (!(statOpportunity(stat, gameLine(p)) >= 1)) continue;
-      const y = statEligible(stat, st.players.get(p.id));
+      const opp = p.team === g.home.team ? g.away.team : g.home.team;
+      const y = statEligible(stat, st.players.get(p.id), null, { oppFactor: st.allow(opp, stat) });
       if (!y) continue;
       for (const mult of [0.6, 0.8, 1.0, 1.25, 1.6]) {
         const line = Math.round(y.exp * mult) + 0.5;
@@ -347,7 +349,8 @@ for (let i = START_INDEX; i < ALL.length; i++) {
       if (!(statOpportunity(stat, gameLine(p)) >= 1)) continue;
       const rec = st.players.get(p.id);
       if (!rec || rec.games < 3) continue;
-      const exp = expectedStat(stat, rec);
+      const opp = p.team === g.home.team ? g.away.team : g.home.team;
+      const exp = expectedStat(stat, rec) * M.statOppFactor(stat, st.allow(opp, stat));
       if (exp >= floor) statPool[stat].push(gameValue(stat, p) / exp);
     }
   }

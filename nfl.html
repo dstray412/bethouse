@@ -142,16 +142,17 @@ BetHouseFootballBoard.mount({
       'bias 0.8 points, every band within 3. Tap a player for the work.',
     noteStat: {
       recyds: 'Chance of going <b>over</b> a receiving yards line. Checked against <b>22,360</b> unseen '+
-        'player-games — bias 1.2 points, cold. The shape comes from real receiver games, not a bell curve.',
-      rushyds: 'Chance of going <b>over</b> a rushing yards line. Checked against <b>10,500</b> unseen '+
-        'player-games — bias 1.2 points, hot, every band within 2. The shape comes from real games by backs the board '+
-        'would price, not a bell curve; a pool that let quarterbacks\' scrambles in ran 7 points cold.',
-      passyds: 'Chance of going <b>over</b> a passing yards line. Checked against <b>4,265</b> unseen '+
-        'player-games — bias 1.0 point, hot, but the two seasons disagree by 4 points and the bands say the number is '+
-        'too timid at both ends. Read it as approximate. The shape comes from real quarterback games, not a bell curve.',
+        'player-games — bias 1.2 points, cold. The opponent is shown but not applied: on the replay it moved nothing. '+
+        'The shape comes from real receiver games, not a bell curve.',
+      rushyds: 'Chance of going <b>over</b> a rushing yards line, the opponent\'s run defence applied at half strength. '+
+        'Checked against <b>10,500</b> unseen player-games — bias 1.4 points, hot, every band within 2. The shape comes from '+
+        'real games by backs the board would price, not a bell curve; a pool that let quarterbacks\' scrambles in ran 7 points cold.',
+      passyds: 'Chance of going <b>over</b> a passing yards line, the opponent\'s pass defence applied at half strength. '+
+        'Checked against <b>4,265</b> unseen player-games — bias 1.1 points, hot, but the two seasons disagree by 4 points and '+
+        'the bands say the number is too timid at both ends. Read it as approximate. The shape comes from real quarterback games, not a bell curve.',
       recs: 'Chance of going <b>over</b> a receptions line. Checked against <b>22,610</b> unseen '+
-        'player-games — bias 0.5 points, cold, though the two seasons disagree by 6. The shape comes from real receiver games, '+
-        'not a bell curve.'
+        'player-games — bias 0.5 points, cold, though the two seasons disagree by 6. The opponent is shown but not applied: '+
+        'on the replay it moved nothing. The shape comes from real receiver games, not a bell curve.'
     },
     noteGames: 'The side the model likes on each game, against a real line, with its expected value at the price. '+
       '<b>This model did not beat the closing line over two seasons</b> — read the note below before betting one.',
@@ -169,8 +170,8 @@ BetHouseFootballBoard.mount({
       '<tr><td>anytime touchdown</td><td>bias <b>&minus;0.8pp</b>, Brier <b>0.1591</b> against 0.1718 · '+
       'top 20% scored <b>39.0%</b>, bottom 20% <b>9.3%</b></td></tr>'+
       '<tr><td>receiving yards</td><td>bias <b>&minus;1.2pp</b>, Brier <b>0.2224</b> against 0.2460</td></tr>'+
-      '<tr><td>rushing yards</td><td>bias <b>+1.2pp</b>, Brier <b>0.2229</b> against 0.2481</td></tr>'+
-      '<tr><td>passing yards</td><td>bias <b>+1.0pp</b>, Brier <b>0.1619</b> against 0.2490 · seasons 4pp apart</td></tr>'+
+      '<tr><td>rushing yards</td><td>bias <b>+1.4pp</b>, Brier <b>0.2220</b> against 0.2481 · opponent at half strength</td></tr>'+
+      '<tr><td>passing yards</td><td>bias <b>+1.1pp</b>, Brier <b>0.1611</b> against 0.2490 · seasons 4pp apart · opponent at half strength</td></tr>'+
       '<tr><td>receptions</td><td>bias <b>&minus;0.5pp</b>, Brier <b>0.2047</b> against 0.2374 · seasons 6pp apart</td></tr>'+
       '<tr><td>spread</td><td><b>48.1%</b> against the closing line — needs 52.4%</td></tr>'+
       '<tr><td>total</td><td><b>52.5%</b> against the closing line — inside the noise</td></tr>'+
