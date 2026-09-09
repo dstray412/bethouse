@@ -698,3 +698,16 @@ that says "now", not the most recent event that implied it. When a
 derived fact has a known season in which it goes stale, write down that
 season and test the first week of it. The roster endpoint costs 32
 requests a day and was always there.
+
+## Three cached files are one page only by luck
+
+2026-09-09. The search box shipped and did nothing for the first user
+to try it. The host caches each file for ten minutes; his browser had
+the new page and page script and the old model file, so the script
+called a function the model did not yet have and the keystroke failed
+with no message. It worked in every fresh browser.
+
+**Rule:** a page assembled from several scripts must check at mount
+that the model it got has what it needs, and say "reload" when it does
+not. A silent failure on a cache mix reads as a broken feature; a
+one-line message reads as a stale tab.

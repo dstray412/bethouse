@@ -30,6 +30,18 @@
         '<div>Run <code>node ' + cfg.fetcher + '</code> to build the board.</div></div>';
       return;
     }
+    /* The page, this script and the model are three files, cached for
+       ten minutes each by the host, so a browser can hold a new page and
+       an old model. Every function this script calls on the model has to
+       exist, or the first keystroke fails silently (the search box did,
+       2026-09-09). Say so instead. */
+    var NEEDS = ['STATS','statEligible','statOppFactor','allowOf','scoreAnytimeTD','empiricalOver','fairPrice','availability','playerMatches'];
+    var missing = NEEDS.filter(function(k){ return typeof N[k] !== 'function' && k !== 'STATS' || (k === 'STATS' && !N.STATS); });
+    if (missing.length) {
+      app.innerHTML = '<div class="empty"><div class="big">Reload this page</div>' +
+        '<div>Your browser has a newer page than model script. A hard refresh (Cmd/Ctrl+Shift+R) fixes it.</div></div>';
+      return;
+    }
 
     /* One view per counting prop, from the model's own stat table, so a
        stat the model gains is a view the page gains. */
