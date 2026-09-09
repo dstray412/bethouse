@@ -1438,40 +1438,55 @@ has covered 53–56% in each era. Worth watching, not betting.
 
 ### Suggested parlays, and what the replay said about one game
 
-The football boards build a slip on request: 3, 4 or 5 anytime-touchdown
-legs from the whole slate, one per game, or from one game. Baseball refused
+The football boards build a slip on request: 3, 4 or 5 legs from the whole
+slate, one per game, or from one game, drawn from whichever kinds of leg you
+leave switched on: anytime touchdown, the counting props at the line setting
+in force, and the model's side on the spread and the total. Baseball refused
 same-game slips because nobody had measured the correlation. Football could
-measure it, so `node backtest-nfl.mjs --parlay` replays touchdown slips from
-two seasons, legs with a 20%+ chance, and reports actual over predicted for
-three populations, picked two ways: random subsets (does the arithmetic hold?)
-and the top legs (what the board would offer):
+measure it, so `node backtest-nfl.mjs --parlay` replays every leg the boards
+offer over two seasons (`--parlay td` for touchdowns alone) and reports
+actual over predicted by what the legs share. Random slips test the
+arithmetic; the top slips are what the board would offer. NFL, random:
 
 ```
-                 2 legs         3 legs         4 legs
-cross-game     1.12 / 0.98    1.26 / 1.00    1.43 / 0.79     random / top
-same game      1.13 / 0.94    0.93 / 1.17    0.93 / 1.09
-same team      1.00 / 0.92    0.80 / 0.80    0.75 / 0.82
+                       2 legs   3 legs   4 legs   5 legs
+other games             1.06     1.13     1.15     1.31
+one game, no shared team 1.01    1.08
+one game, some share    --       1.04     1.01     1.03    seasons 1.24 / 0.88
+every leg one team      1.01     0.89     1.27     --      touchdowns only: 0.66-0.86
+the same player         1.58     1.51     1.76     2.27    every season >= 1.30
 ```
 
-Cross-game slips cash at or above the product: the single legs in the 20–35%
-band run a little cold and it compounds, while the top slips, made of 50–60%
-legs, sit at 1.0. A same-game slip with a leg on each side behaves like a
-cross-game one. A **same-team slip cashes less than the product**, 0.80 for
-three legs, on both seasons (0.90 in 2024, 0.73 in 2025 for the top slips),
-because a team's touchdowns are shared: one scoring makes the next less
-likely. The baseball intuition, that a slugfest lifts everyone, does not carry
-over. College measured about 1 on every population.
+Three things the table says. Slips across games cash at or above the product,
+because the single legs in the 20-35% band run a little cold and it compounds.
+A slip of touchdown legs all on **one team cashes well under the product**,
+0.66-0.86, because a team's touchdowns are shared: one scoring makes the next
+less likely. The baseball intuition, that a slugfest lifts everyone, does not
+carry over; but add yards legs on that team and they rise together, so the
+all-one-team class lands near 1 once every kind of leg is in. And **the same
+player on several props cashes 1.3-2.4x the product**, in every season and at
+every size, in both leagues: his touchdown, his yards and his catches are one
+bet wearing three prices.
 
-So the slip prints the product, and where the legs share an NFL team it also
-prints the adjusted number at **0.85**, the timid end of 0.75–1.00, and says
-which ratio it came from. Cross-game and mixed-team slips get no lift. The
-slip ranks by chance to cash, not by price, and says so; type the price you
-are offered and it prints the edge.
+So the slip prints the product and, where the legs share an NFL team, the
+adjusted number at **0.85**, the timid end of what was measured; where the
+same player appears twice, at **1.3**, the smallest ratio measured. Nothing
+else is lifted. College measured about 1 in every class but the same player.
+The slip ranks by chance to cash, not by price, and says so; type the price
+you are offered and it prints the edge. One more thing it says: the slate's
+top picks cashed 0.55-0.72x the product on 32 replayed weeks, the top of the
+board running hot as it did in baseball, so shade what it likes most.
+
+A counting-prop leg counts only with 300 or more games in its pool, on the
+replay and on the board: in the replay's first weeks the pool held a dozen
+entries and 10 of 11 read as a 91% over, which is how the first measurement
+went wrong.
 
 Every suggested slip the board would offer, the slate at 3, 4 and 5 legs and
 each game at 3, is recorded before kickoff by the tracker and settled like a
 book would, so the number a parlay product sells is measured on the forward
-record and not only multiplied. The first rows are in the week-1 record files.
+record and not only multiplied. The first week's slips were touchdowns only
+and are tagged so; the all-kinds slips are a second row, not a revision.
 
 ### Rosters: where a player is, not where he was
 

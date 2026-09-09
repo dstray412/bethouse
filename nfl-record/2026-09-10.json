@@ -14279,7 +14279,7 @@
  "week": 1,
  "parlays": [
   {
-   "key": "slate|all|3",
+   "key": "slate|all|3|td",
    "scope": "slate",
    "gameId": null,
    "legs": [
@@ -14311,10 +14311,11 @@
    "prob": 0.18788727634,
    "adjusted": 0.18788727634,
    "correlation": "none",
-   "recordedAt": "2026-09-09T19:38:19.446Z"
+   "recordedAt": "2026-09-09T19:38:19.446Z",
+   "tag": "td"
   },
   {
-   "key": "slate|all|4",
+   "key": "slate|all|4|td",
    "scope": "slate",
    "gameId": null,
    "legs": [
@@ -14354,10 +14355,11 @@
    "prob": 0.099974819740514,
    "adjusted": 0.099974819740514,
    "correlation": "none",
-   "recordedAt": "2026-09-09T19:38:19.446Z"
+   "recordedAt": "2026-09-09T19:38:19.446Z",
+   "tag": "td"
   },
   {
-   "key": "slate|all|5",
+   "key": "slate|all|5|td",
    "scope": "slate",
    "gameId": null,
    "legs": [
@@ -14405,10 +14407,11 @@
    "prob": 0.048887686853111345,
    "adjusted": 0.048887686853111345,
    "correlation": "none",
-   "recordedAt": "2026-09-09T19:38:19.446Z"
+   "recordedAt": "2026-09-09T19:38:19.446Z",
+   "tag": "td"
   },
   {
-   "key": "game|401872930|3",
+   "key": "game|401872930|3|td",
    "scope": "game",
    "gameId": "401872930",
    "legs": [
@@ -14440,10 +14443,11 @@
    "prob": 0.113639240145,
    "adjusted": 0.09659335412325,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.446Z"
+   "recordedAt": "2026-09-09T19:38:19.446Z",
+   "tag": "td"
   },
   {
-   "key": "game|401872929|3",
+   "key": "game|401872929|3|td",
    "scope": "game",
    "gameId": "401872929",
    "legs": [
@@ -14475,10 +14479,11 @@
    "prob": 0.0664794513,
    "adjusted": 0.056507533605,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.446Z"
+   "recordedAt": "2026-09-09T19:38:19.446Z",
+   "tag": "td"
   },
   {
-   "key": "game|401872931|3",
+   "key": "game|401872931|3|td",
    "scope": "game",
    "gameId": "401872931",
    "legs": [
@@ -14510,10 +14515,11 @@
    "prob": 0.03438520945200001,
    "adjusted": 0.029227428034200004,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.446Z"
+   "recordedAt": "2026-09-09T19:38:19.446Z",
+   "tag": "td"
   },
   {
-   "key": "game|401872926|3",
+   "key": "game|401872926|3|td",
    "scope": "game",
    "gameId": "401872926",
    "legs": [
@@ -14545,10 +14551,11 @@
    "prob": 0.045741266999999995,
    "adjusted": 0.038880076949999995,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.446Z"
+   "recordedAt": "2026-09-09T19:38:19.446Z",
+   "tag": "td"
   },
   {
-   "key": "game|401872925|3",
+   "key": "game|401872925|3|td",
    "scope": "game",
    "gameId": "401872925",
    "legs": [
@@ -14580,10 +14587,11 @@
    "prob": 0.076452977216,
    "adjusted": 0.0649850306336,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.446Z"
+   "recordedAt": "2026-09-09T19:38:19.446Z",
+   "tag": "td"
   },
   {
-   "key": "game|401872658|3",
+   "key": "game|401872658|3|td",
    "scope": "game",
    "gameId": "401872658",
    "legs": [
@@ -14615,10 +14623,11 @@
    "prob": 0.043757730360000004,
    "adjusted": 0.037194070806000006,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.446Z"
+   "recordedAt": "2026-09-09T19:38:19.446Z",
+   "tag": "td"
   },
   {
-   "key": "game|401872922|3",
+   "key": "game|401872922|3|td",
    "scope": "game",
    "gameId": "401872922",
    "legs": [
@@ -14650,10 +14659,11 @@
    "prob": 0.052983205763999994,
    "adjusted": 0.04503572489939999,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.446Z"
+   "recordedAt": "2026-09-09T19:38:19.446Z",
+   "tag": "td"
   },
   {
-   "key": "game|401872928|3",
+   "key": "game|401872928|3|td",
    "scope": "game",
    "gameId": "401872928",
    "legs": [
@@ -14685,10 +14695,11 @@
    "prob": 0.04997287292,
    "adjusted": 0.042476941982,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.446Z"
+   "recordedAt": "2026-09-09T19:38:19.446Z",
+   "tag": "td"
   },
   {
-   "key": "game|401872659|3",
+   "key": "game|401872659|3|td",
    "scope": "game",
    "gameId": "401872659",
    "legs": [
@@ -14720,10 +14731,11 @@
    "prob": 0.09471252764999999,
    "adjusted": 0.08050564850249999,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.446Z"
+   "recordedAt": "2026-09-09T19:38:19.446Z",
+   "tag": "td"
   },
   {
-   "key": "game|401872924|3",
+   "key": "game|401872924|3|td",
    "scope": "game",
    "gameId": "401872924",
    "legs": [
@@ -14755,10 +14767,11 @@
    "prob": 0.020497626834,
    "adjusted": 0.0174229828089,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.446Z"
+   "recordedAt": "2026-09-09T19:38:19.446Z",
+   "tag": "td"
   },
   {
-   "key": "game|401872656|3",
+   "key": "game|401872656|3|td",
    "scope": "game",
    "gameId": "401872656",
    "legs": [
@@ -14790,10 +14803,11 @@
    "prob": 0.050353944234999996,
    "adjusted": 0.04280085259974999,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.446Z"
+   "recordedAt": "2026-09-09T19:38:19.446Z",
+   "tag": "td"
   },
   {
-   "key": "game|401872923|3",
+   "key": "game|401872923|3|td",
    "scope": "game",
    "gameId": "401872923",
    "legs": [
@@ -14825,10 +14839,11 @@
    "prob": 0.09256775759000001,
    "adjusted": 0.0786825939515,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.446Z"
+   "recordedAt": "2026-09-09T19:38:19.446Z",
+   "tag": "td"
   },
   {
-   "key": "game|401872660|3",
+   "key": "game|401872660|3|td",
    "scope": "game",
    "gameId": "401872660",
    "legs": [
@@ -14860,10 +14875,11 @@
    "prob": 0.06690545922,
    "adjusted": 0.056869640337,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.446Z"
+   "recordedAt": "2026-09-09T19:38:19.446Z",
+   "tag": "td"
   },
   {
-   "key": "game|401872661|3",
+   "key": "game|401872661|3|td",
    "scope": "game",
    "gameId": "401872661",
    "legs": [
@@ -14895,10 +14911,11 @@
    "prob": 0.045425189888,
    "adjusted": 0.0386114114048,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.446Z"
+   "recordedAt": "2026-09-09T19:38:19.446Z",
+   "tag": "td"
   },
   {
-   "key": "game|401872657|3",
+   "key": "game|401872657|3|td",
    "scope": "game",
    "gameId": "401872657",
    "legs": [
@@ -14930,10 +14947,11 @@
    "prob": 0.15320696052,
    "adjusted": 0.130225916442,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.446Z"
+   "recordedAt": "2026-09-09T19:38:19.446Z",
+   "tag": "td"
   },
   {
-   "key": "game|401872927|3",
+   "key": "game|401872927|3|td",
    "scope": "game",
    "gameId": "401872927",
    "legs": [
@@ -14965,7 +14983,773 @@
    "prob": 0.038610603354,
    "adjusted": 0.032819012850900005,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.446Z"
+   "recordedAt": "2026-09-09T19:38:19.446Z",
+   "tag": "td"
+  },
+  {
+   "key": "slate|all|3|all",
+   "scope": "slate",
+   "gameId": null,
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401872659",
+     "playerId": "4242335",
+     "name": "Jonathan Taylor",
+     "team": "IND",
+     "prop": "td",
+     "prob": 0.5953
+    },
+    {
+     "gameId": "401872657",
+     "playerId": "16800",
+     "name": "Davante Adams",
+     "team": "LAR",
+     "prop": "td",
+     "prob": 0.563
+    },
+    {
+     "gameId": "401872923",
+     "playerId": "4429795",
+     "name": "Jahmyr Gibbs",
+     "team": "DET",
+     "prop": "td",
+     "prob": 0.5606
+    }
+   ],
+   "prob": 0.18788727634,
+   "adjusted": 0.18788727634,
+   "correlation": "none",
+   "recordedAt": "2026-09-09T20:42:08.993Z"
+  },
+  {
+   "key": "slate|all|4|all",
+   "scope": "slate",
+   "gameId": null,
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401872659",
+     "playerId": "4242335",
+     "name": "Jonathan Taylor",
+     "team": "IND",
+     "prop": "td",
+     "prob": 0.5953
+    },
+    {
+     "gameId": "401872657",
+     "playerId": "16800",
+     "name": "Davante Adams",
+     "team": "LAR",
+     "prop": "td",
+     "prob": 0.563
+    },
+    {
+     "gameId": "401872923",
+     "playerId": "4429795",
+     "name": "Jahmyr Gibbs",
+     "team": "DET",
+     "prop": "td",
+     "prob": 0.5606
+    },
+    {
+     "gameId": "401872925",
+     "playerId": "game",
+     "name": "TB at CIN",
+     "team": null,
+     "prop": "total",
+     "prob": 0.5493,
+     "line": 50.5,
+     "side": "over"
+    }
+   ],
+   "prob": 0.10320648089356199,
+   "adjusted": 0.10320648089356199,
+   "correlation": "none",
+   "recordedAt": "2026-09-09T20:42:08.993Z"
+  },
+  {
+   "key": "slate|all|5|all",
+   "scope": "slate",
+   "gameId": null,
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401872659",
+     "playerId": "4242335",
+     "name": "Jonathan Taylor",
+     "team": "IND",
+     "prop": "td",
+     "prob": 0.5953
+    },
+    {
+     "gameId": "401872657",
+     "playerId": "16800",
+     "name": "Davante Adams",
+     "team": "LAR",
+     "prop": "td",
+     "prob": 0.563
+    },
+    {
+     "gameId": "401872923",
+     "playerId": "4429795",
+     "name": "Jahmyr Gibbs",
+     "team": "DET",
+     "prop": "td",
+     "prob": 0.5606
+    },
+    {
+     "gameId": "401872925",
+     "playerId": "game",
+     "name": "TB at CIN",
+     "team": null,
+     "prop": "total",
+     "prob": 0.5493,
+     "line": 50.5,
+     "side": "over"
+    },
+    {
+     "gameId": "401872924",
+     "playerId": "game",
+     "name": "NYJ at TEN",
+     "team": null,
+     "prop": "total",
+     "prob": 0.5493,
+     "line": 39.5,
+     "side": "over"
+    }
+   ],
+   "prob": 0.056691319954833605,
+   "adjusted": 0.056691319954833605,
+   "correlation": "none",
+   "recordedAt": "2026-09-09T20:42:08.993Z"
+  },
+  {
+   "key": "game|401872930|3|all",
+   "scope": "game",
+   "gameId": "401872930",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401872930",
+     "playerId": "4696981",
+     "name": "Cam Skattebo",
+     "team": "NYG",
+     "prop": "td",
+     "prob": 0.5321
+    },
+    {
+     "gameId": "401872930",
+     "playerId": "2577417",
+     "name": "Dak Prescott",
+     "team": "DAL",
+     "prop": "passyds",
+     "prob": 0.5259,
+     "line": 244.5
+    },
+    {
+     "gameId": "401872930",
+     "playerId": "2969939",
+     "name": "Jameis Winston",
+     "team": "NYG",
+     "prop": "passyds",
+     "prob": 0.5228,
+     "line": 174.5
+    }
+   ],
+   "prob": 0.14629585069200002,
+   "adjusted": 0.14629585069200002,
+   "correlation": "mixed",
+   "recordedAt": "2026-09-09T20:42:08.993Z"
+  },
+  {
+   "key": "game|401872929|3|all",
+   "scope": "game",
+   "gameId": "401872929",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401872929",
+     "playerId": "2576980",
+     "name": "Marcus Mariota",
+     "team": "WSH",
+     "prop": "passyds",
+     "prob": 0.5228,
+     "line": 168.5
+    },
+    {
+     "gameId": "401872929",
+     "playerId": "4040715",
+     "name": "Jalen Hurts",
+     "team": "PHI",
+     "prop": "passyds",
+     "prob": 0.5212,
+     "line": 193.5
+    },
+    {
+     "gameId": "401872929",
+     "playerId": "4426348",
+     "name": "Jayden Daniels",
+     "team": "WSH",
+     "prop": "passyds",
+     "prob": 0.5212,
+     "line": 174.5
+    }
+   ],
+   "prob": 0.142018327232,
+   "adjusted": 0.142018327232,
+   "correlation": "mixed",
+   "recordedAt": "2026-09-09T20:42:08.993Z"
+  },
+  {
+   "key": "game|401872931|3|all",
+   "scope": "game",
+   "gameId": "401872931",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401872931",
+     "playerId": "3139477",
+     "name": "Patrick Mahomes",
+     "team": "KC",
+     "prop": "passyds",
+     "prob": 0.5259,
+     "line": 232.5
+    },
+    {
+     "gameId": "401872931",
+     "playerId": "4426338",
+     "name": "Bo Nix",
+     "team": "DEN",
+     "prop": "passyds",
+     "prob": 0.5259,
+     "line": 216.5
+    },
+    {
+     "gameId": "401872931",
+     "playerId": "game",
+     "name": "DEN at KC",
+     "team": null,
+     "prop": "total",
+     "prob": 0.5233,
+     "line": 42.5,
+     "side": "under"
+    }
+   ],
+   "prob": 0.14472950487300001,
+   "adjusted": 0.14472950487300001,
+   "correlation": "game",
+   "recordedAt": "2026-09-09T20:42:08.993Z"
+  },
+  {
+   "key": "game|401872926|3|all",
+   "scope": "game",
+   "gameId": "401872926",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401872926",
+     "playerId": "2578570",
+     "name": "Jacoby Brissett",
+     "team": "ARI",
+     "prop": "passyds",
+     "prob": 0.5212,
+     "line": 221.5
+    },
+    {
+     "gameId": "401872926",
+     "playerId": "3917315",
+     "name": "Kyler Murray",
+     "team": "ARI",
+     "prop": "passyds",
+     "prob": 0.5212,
+     "line": 179.5
+    },
+    {
+     "gameId": "401872926",
+     "playerId": "4038941",
+     "name": "Justin Herbert",
+     "team": "LAC",
+     "prop": "passyds",
+     "prob": 0.5212,
+     "line": 217.5
+    }
+   ],
+   "prob": 0.141583688128,
+   "adjusted": 0.141583688128,
+   "correlation": "mixed",
+   "recordedAt": "2026-09-09T20:42:08.993Z"
+  },
+  {
+   "key": "game|401872925|3|all",
+   "scope": "game",
+   "gameId": "401872925",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401872925",
+     "playerId": "game",
+     "name": "TB at CIN",
+     "team": null,
+     "prop": "total",
+     "prob": 0.5493,
+     "line": 50.5,
+     "side": "over"
+    },
+    {
+     "gameId": "401872925",
+     "playerId": "3052587",
+     "name": "Baker Mayfield",
+     "team": "TB",
+     "prop": "passyds",
+     "prob": 0.5259,
+     "line": 205.5
+    },
+    {
+     "gameId": "401872925",
+     "playerId": "11252",
+     "name": "Joe Flacco",
+     "team": "CIN",
+     "prop": "passyds",
+     "prob": 0.5212,
+     "line": 184.5
+    }
+   ],
+   "prob": 0.150562624644,
+   "adjusted": 0.150562624644,
+   "correlation": "game",
+   "recordedAt": "2026-09-09T20:42:08.993Z"
+  },
+  {
+   "key": "game|401872658|3|all",
+   "scope": "game",
+   "gameId": "401872658",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401872658",
+     "playerId": "4241479",
+     "name": "Tua Tagovailoa",
+     "team": "ATL",
+     "prop": "passyds",
+     "prob": 0.5353,
+     "line": 194.5
+    },
+    {
+     "gameId": "401872658",
+     "playerId": "8439",
+     "name": "Aaron Rodgers",
+     "team": "PIT",
+     "prop": "passyds",
+     "prob": 0.5259,
+     "line": 197.5
+    },
+    {
+     "gameId": "401872658",
+     "playerId": "14880",
+     "name": "Kirk Cousins",
+     "team": "ATL",
+     "prop": "passyds",
+     "prob": 0.5212,
+     "line": 170.5
+    }
+   ],
+   "prob": 0.14672523752400002,
+   "adjusted": 0.14672523752400002,
+   "correlation": "mixed",
+   "recordedAt": "2026-09-09T20:42:08.993Z"
+  },
+  {
+   "key": "game|401872922|3|all",
+   "scope": "game",
+   "gameId": "401872922",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401872922",
+     "playerId": "4889929",
+     "name": "Quinn Ewers",
+     "team": "JAX",
+     "prop": "passyds",
+     "prob": 0.5369,
+     "line": 151.5
+    },
+    {
+     "gameId": "401872922",
+     "playerId": "4432762",
+     "name": "Shedeur Sanders",
+     "team": "CLE",
+     "prop": "passyds",
+     "prob": 0.5228,
+     "line": 171.5
+    },
+    {
+     "gameId": "401872922",
+     "playerId": "4360310",
+     "name": "Trevor Lawrence",
+     "team": "JAX",
+     "prop": "passyds",
+     "prob": 0.5212,
+     "line": 220.5
+    }
+   ],
+   "prob": 0.146296315984,
+   "adjusted": 0.146296315984,
+   "correlation": "mixed",
+   "recordedAt": "2026-09-09T20:42:08.993Z"
+  },
+  {
+   "key": "game|401872928|3|all",
+   "scope": "game",
+   "gameId": "401872928",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401872928",
+     "playerId": "14880",
+     "name": "Kirk Cousins",
+     "team": "LV",
+     "prop": "passyds",
+     "prob": 0.5353,
+     "line": 171.5
+    },
+    {
+     "gameId": "401872928",
+     "playerId": "4429435",
+     "name": "Brady Cook",
+     "team": "MIA",
+     "prop": "passyds",
+     "prob": 0.5275,
+     "line": 154.5
+    },
+    {
+     "gameId": "401872928",
+     "playerId": "4241479",
+     "name": "Tua Tagovailoa",
+     "team": "MIA",
+     "prop": "passyds",
+     "prob": 0.5259,
+     "line": 183.5
+    }
+   ],
+   "prob": 0.148498777425,
+   "adjusted": 0.148498777425,
+   "correlation": "mixed",
+   "recordedAt": "2026-09-09T20:42:08.993Z"
+  },
+  {
+   "key": "game|401872659|3|all",
+   "scope": "game",
+   "gameId": "401872659",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401872659",
+     "playerId": "4242335",
+     "name": "Jonathan Taylor",
+     "team": "IND",
+     "prop": "td",
+     "prob": 0.5953
+    },
+    {
+     "gameId": "401872659",
+     "playerId": "game",
+     "name": "BAL at IND",
+     "team": null,
+     "prop": "total",
+     "prob": 0.5461,
+     "line": 48.5,
+     "side": "over"
+    },
+    {
+     "gameId": "401872659",
+     "playerId": "3916387",
+     "name": "Lamar Jackson",
+     "team": "BAL",
+     "prop": "passyds",
+     "prob": 0.5259,
+     "line": 187.5
+    }
+   ],
+   "prob": 0.17096658224700004,
+   "adjusted": 0.17096658224700004,
+   "correlation": "game",
+   "recordedAt": "2026-09-09T20:42:08.993Z"
+  },
+  {
+   "key": "game|401872924|3|all",
+   "scope": "game",
+   "gameId": "401872924",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401872924",
+     "playerId": "game",
+     "name": "NYJ at TEN",
+     "team": null,
+     "prop": "total",
+     "prob": 0.5493,
+     "line": 39.5,
+     "side": "over"
+    },
+    {
+     "gameId": "401872924",
+     "playerId": "15864",
+     "name": "Geno Smith",
+     "team": "NYJ",
+     "prop": "passyds",
+     "prob": 0.5322,
+     "line": 200.5
+    },
+    {
+     "gameId": "401872924",
+     "playerId": "4429435",
+     "name": "Brady Cook",
+     "team": "NYJ",
+     "prop": "passyds",
+     "prob": 0.5259,
+     "line": 156.5
+    }
+   ],
+   "prob": 0.153740270214,
+   "adjusted": 0.153740270214,
+   "correlation": "mixed",
+   "recordedAt": "2026-09-09T20:42:08.993Z"
+  },
+  {
+   "key": "game|401872656|3|all",
+   "scope": "game",
+   "gameId": "401872656",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401872656",
+     "playerId": "4431452",
+     "name": "Drake Maye",
+     "team": "NE",
+     "prop": "passyds",
+     "prob": 0.5259,
+     "line": 237.5
+    },
+    {
+     "gameId": "401872656",
+     "playerId": "3912547",
+     "name": "Sam Darnold",
+     "team": "SEA",
+     "prop": "passyds",
+     "prob": 0.5212,
+     "line": 222.5
+    },
+    {
+     "gameId": "401872656",
+     "playerId": "game",
+     "name": "NE at SEA",
+     "team": null,
+     "prop": "total",
+     "prob": 0.5112,
+     "line": 44.5,
+     "side": "under"
+    }
+   ],
+   "prob": 0.140119449696,
+   "adjusted": 0.140119449696,
+   "correlation": "game",
+   "recordedAt": "2026-09-09T20:42:08.993Z"
+  },
+  {
+   "key": "game|401872923|3|all",
+   "scope": "game",
+   "gameId": "401872923",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401872923",
+     "playerId": "4429795",
+     "name": "Jahmyr Gibbs",
+     "team": "DET",
+     "prop": "td",
+     "prob": 0.5606
+    },
+    {
+     "gameId": "401872923",
+     "playerId": "4426339",
+     "name": "Spencer Rattler",
+     "team": "NO",
+     "prop": "passyds",
+     "prob": 0.5259,
+     "line": 172.5
+    },
+    {
+     "gameId": "401872923",
+     "playerId": "3046779",
+     "name": "Jared Goff",
+     "team": "DET",
+     "prop": "passyds",
+     "prob": 0.5228,
+     "line": 245.5
+    }
+   ],
+   "prob": 0.154131655512,
+   "adjusted": 0.154131655512,
+   "correlation": "mixed",
+   "recordedAt": "2026-09-09T20:42:08.993Z"
+  },
+  {
+   "key": "game|401872660|3|all",
+   "scope": "game",
+   "gameId": "401872660",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401872660",
+     "playerId": "game",
+     "name": "BUF at HOU",
+     "team": null,
+     "prop": "total",
+     "prob": 0.526,
+     "line": 44.5,
+     "side": "over"
+    },
+    {
+     "gameId": "401872660",
+     "playerId": "4432577",
+     "name": "C.J. Stroud",
+     "team": "HOU",
+     "prop": "passyds",
+     "prob": 0.5259,
+     "line": 203.5
+    },
+    {
+     "gameId": "401872660",
+     "playerId": "3918298",
+     "name": "Josh Allen",
+     "team": "BUF",
+     "prop": "passyds",
+     "prob": 0.5228,
+     "line": 214.5
+    }
+   ],
+   "prob": 0.14461871352000003,
+   "adjusted": 0.14461871352000003,
+   "correlation": "game",
+   "recordedAt": "2026-09-09T20:42:08.993Z"
+  },
+  {
+   "key": "game|401872661|3|all",
+   "scope": "game",
+   "gameId": "401872661",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401872661",
+     "playerId": "game",
+     "name": "CHI at CAR",
+     "team": null,
+     "prop": "total",
+     "prob": 0.5232,
+     "line": 47.5,
+     "side": "under"
+    },
+    {
+     "gameId": "401872661",
+     "playerId": "4431611",
+     "name": "Caleb Williams",
+     "team": "CHI",
+     "prop": "passyds",
+     "prob": 0.5212,
+     "line": 217.5
+    },
+    {
+     "gameId": "401872661",
+     "playerId": "4685720",
+     "name": "Bryce Young",
+     "team": "CAR",
+     "prop": "passyds",
+     "prob": 0.5212,
+     "line": 183.5
+    }
+   ],
+   "prob": 0.142126987008,
+   "adjusted": 0.142126987008,
+   "correlation": "game",
+   "recordedAt": "2026-09-09T20:42:08.993Z"
+  },
+  {
+   "key": "game|401872657|3|all",
+   "scope": "game",
+   "gameId": "401872657",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401872657",
+     "playerId": "16800",
+     "name": "Davante Adams",
+     "team": "LAR",
+     "prop": "td",
+     "prob": 0.563
+    },
+    {
+     "gameId": "401872657",
+     "playerId": "4430737",
+     "name": "Kyren Williams",
+     "team": "LAR",
+     "prop": "td",
+     "prob": 0.5316
+    },
+    {
+     "gameId": "401872657",
+     "playerId": "12483",
+     "name": "Matthew Stafford",
+     "team": "LAR",
+     "prop": "passyds",
+     "prob": 0.5259,
+     "line": 251.5
+    }
+   ],
+   "prob": 0.15739703172,
+   "adjusted": 0.133787476962,
+   "correlation": "team",
+   "recordedAt": "2026-09-09T20:42:08.993Z"
+  },
+  {
+   "key": "game|401872927|3|all",
+   "scope": "game",
+   "gameId": "401872927",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401872927",
+     "playerId": "game",
+     "name": "GB at MIN",
+     "team": null,
+     "prop": "total",
+     "prob": 0.54,
+     "line": 46.5,
+     "side": "under"
+    },
+    {
+     "gameId": "401872927",
+     "playerId": "3917315",
+     "name": "Kyler Murray",
+     "team": "MIN",
+     "prop": "passyds",
+     "prob": 0.5369,
+     "line": 173.5
+    },
+    {
+     "gameId": "401872927",
+     "playerId": "2573079",
+     "name": "Carson Wentz",
+     "team": "MIN",
+     "prop": "passyds",
+     "prob": 0.5259,
+     "line": 204.5
+    }
+   ],
+   "prob": 0.1524720834,
+   "adjusted": 0.1524720834,
+   "correlation": "mixed",
+   "recordedAt": "2026-09-09T20:42:08.993Z"
   }
  ]
 }

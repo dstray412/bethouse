@@ -236,7 +236,7 @@ function stateFrom(priorGames) {
  * Walk forward
  * ---------------------------------------------------------------- */
 
-const tdRows = [], gameRows = [], mlRows = [];
+const tdRows = [], gameRows = [], mlRows = [], pickRows = []; // pickRows: the model's side, as a leg
 const tdRowsRaw = []; // inputs kept so --fit can re-derive without refetching
 /* Per stat: graded rows, and the pool of actual/expected ratios, appended
    only after a game is used. Receiving yards is one of four now. */
@@ -261,6 +261,9 @@ for (let i = START_INDEX; i < ALL.length; i++) {
     const sp = spreadProbability(proj.margin, g.spread);
     const edge = margin + g.spread;
     if (edge !== 0) {
+      pickRows.push({ prop: "spread", season: g.season, week: g.week, gameId: g.id, id: "game", name: `${g.away.team} at ${g.home.team}`,
+        team: sp.homeCoverProb >= 0.5 ? g.home.team : g.away.team,
+        prob: Math.max(sp.homeCoverProb, 1 - sp.homeCoverProb), actual: (sp.homeCoverProb >= 0.5) === (edge > 0) ? 1 : 0 });
       gameRows.push({
         kind: "spread",
         modelEdge: sp.edge,
@@ -282,6 +285,8 @@ for (let i = START_INDEX; i < ALL.length; i++) {
       const tp = totalProbability(proj.total, g.total);
       const points = g.home.score + g.away.score;
       if (points !== g.total) {
+        pickRows.push({ prop: "total", season: g.season, week: g.week, gameId: g.id, id: "game", name: `${g.away.team} at ${g.home.team}`, team: null,
+          prob: Math.max(tp.overProb, 1 - tp.overProb), actual: (tp.overProb >= 0.5) === (points > g.total) ? 1 : 0 });
         gameRows.push({
           kind: "total",
           modelEdge: tp.edge,
@@ -339,7 +344,8 @@ for (let i = START_INDEX; i < ALL.length; i++) {
         const line = Math.round(y.exp * mult) + 0.5;
         const pOver = empiricalOver(y.exp, line, pool);
         if (pOver == null) continue;
-        statRows[stat].push({ season: g.season, prob: pOver, actual: gameValue(stat, p) > line ? 1 : 0 });
+        statRows[stat].push({ season: g.season, week: g.week, prob: pOver, actual: gameValue(stat, p) > line ? 1 : 0,
+          mult, id: p.id, team: p.team, gameId: g.id, name: p.name, pool: pool.length });
       }
     }
   }
@@ -484,82 +490,105 @@ for (const stat of STAT_IDS) {
 }
 
 /* ------------------------------------------------------------------ *
- * --parlay: does multiplying touchdown legs work, and does it work
- * inside one game?
+ * --parlay: does multiplying legs work, and does it work inside one game?
  *
- * Baseball measured cross-game slips (1.03-1.08x the product) and refused
- * same-game ones because nobody had measured them. Football can: every
- * week's touchdown rows carry their game and team. Three populations of
- * slips, each with the product of the legs as the prediction and "every
- * leg scored" as the outcome:
+ * Every leg the boards can offer: anytime touchdown, the four counting
+ * props at their projection line, and the model's side on the spread and
+ * the total. Slips are built three ways and classified by what the legs
+ * share, with the product of the legs as the prediction and "every leg
+ * hit" as the outcome. Reported as actual / predicted per class, per
+ * season, so a lift can be judged on both halves before it is a constant.
  *
- *   cross-game     N legs from N different games
- *   same-game      N legs from one game, either team
- *   same-team      N legs from one game, all one team
+ *   how     random   N legs drawn at random from a population
+ *           top      what the suggester would offer: the top N by prob,
+ *                    one per game across the slate, or one per player
+ *                    inside a game
+ *   class   none     every leg in a different game
+ *           game     one game, legs on both sides, no two on one team
+ *           mixed    one game, some legs share a team, not all
+ *           team     one game, every leg on one team (a spread pick's
+ *                    side counts as that team; a total is nobody's)
+ *           player   the same player on more than one prop
  *
- * Two ways to pick legs: the suggester's way (the top N by probability),
- * which is what the board would offer, and random N-subsets of legs with
- * a real chance (prob >= 0.2), which says whether the arithmetic itself
- * holds. Reported as actual / predicted, per season, so a lift can be
- * judged on both halves before it becomes a constant.
+ * A pure-touchdown run of the same slips is kept (--parlay td) so the
+ * first measurement stays reproducible.
  * ---------------------------------------------------------------- */
 if (args.includes("--parlay")) {
+  const onlyTd = args[args.indexOf("--parlay") + 1] === "td";
   const FLOOR = 0.2, SAMPLES = 200;
   let seed = 7; const rnd = () => (seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648;
+  const legs = [];
+  for (const r of tdRows) legs.push({ ...r, prop: "td" });
+  if (!onlyTd) {
+    /* A counting-prop leg needs a real pool behind it: in the replay's first
+       weeks the pool has a dozen entries and 10 of 11 reads as a 91% over.
+       The boards ship pools of hundreds to thousands. */
+    const MIN_POOL = 300;
+    for (const stat of STAT_IDS) for (const r of statRows[stat]) if (r.mult === 1 && r.pool >= MIN_POOL) legs.push({ ...r, prop: stat });
+    for (const r of pickRows) legs.push(r);
+  }
   const byWeek = new Map();
-  for (const r of tdRows) {
+  for (const r of legs) {
     if (!(r.prob >= FLOOR)) continue;
     const k = `${r.season}|${r.week}`;
     if (!byWeek.has(k)) byWeek.set(k, []);
     byWeek.get(k).push(r);
   }
   const pick = (arr, n) => { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a.slice(0, n); };
+  const classify = (slip) => {
+    const games = new Set(slip.map((r) => r.gameId));
+    const players = {}, teams = {};
+    for (const r of slip) {
+      if (r.id !== "game") players[r.gameId + "|" + r.id] = (players[r.gameId + "|" + r.id] || 0) + 1;
+      if (r.team) teams[r.gameId + "|" + r.team] = (teams[r.gameId + "|" + r.team] || 0) + 1;
+    }
+    if (Object.values(players).some((n) => n > 1)) return "player";
+    const teamCounts = Object.values(teams);
+    if (teamCounts.some((n) => n > 1)) return teamCounts.length === 1 && teamCounts[0] === slip.length ? "team" : "mixed";
+    return games.size < slip.length ? "game" : "none";
+  };
   const tally = {};
-  const add = (pop, how, n, season, slip) => {
-    const key = `${pop}|${how}|${n}|${season}`;
-    const t = tally[key] || (tally[key] = { pop, how, n, season, slips: 0, pred: 0, hit: 0 });
+  const add = (how, cls, n, season, slip) => {
+    const key = `${how}|${cls}|${n}|${season}`;
+    const t = tally[key] || (tally[key] = { how, cls, n, season, slips: 0, pred: 0, hit: 0 });
     t.slips++; t.pred += slip.reduce((a, r) => a * r.prob, 1); t.hit += slip.every((r) => r.actual) ? 1 : 0;
   };
+  const byProb = (a, b) => b.prob - a.prob || String(a.id).localeCompare(String(b.id));
   for (const [wk, rows] of byWeek) {
     const season = Number(wk.split("|")[0]);
     const byGame = new Map();
     for (const r of rows) { if (!byGame.has(r.gameId)) byGame.set(r.gameId, []); byGame.get(r.gameId).push(r); }
-    for (const g of byGame.values()) g.sort((a, b) => b.prob - a.prob);
+    for (const g of byGame.values()) g.sort(byProb);
     const games = [...byGame.values()];
     for (const n of [2, 3, 4, 5]) {
-      // cross-game: top leg of each game, best n games (the suggester); random one-per-game (arithmetic)
-      const tops = games.map((g) => g[0]).sort((a, b) => b.prob - a.prob);
-      if (tops.length >= n) add("cross", "top", n, season, tops.slice(0, n));
-      for (let i = 0; i < SAMPLES && games.length >= n; i++) add("cross", "random", n, season, pick(games, n).map((g) => g[Math.floor(rnd() * g.length)]));
-      // same-game, either team; and same-team
-      for (const g of games) {
-        if (g.length >= n) {
-          add("game", "top", n, season, g.slice(0, n));
-          for (let i = 0; i < Math.ceil(SAMPLES / games.length); i++) add("game", "random", n, season, pick(g, n));
-        }
-        const teams = new Map();
-        for (const r of g) { if (!teams.has(r.team)) teams.set(r.team, []); teams.get(r.team).push(r); }
-        for (const t of teams.values()) {
-          if (t.length < n) continue;
-          add("team", "top", n, season, t.slice(0, n));
-          for (let i = 0; i < Math.ceil(SAMPLES / games.length); i++) add("team", "random", n, season, pick(t, n));
-        }
+      /* the suggester: slate, one leg per game, best first; one game, one leg per player */
+      const tops = games.map((g) => g[0]).sort(byProb);
+      if (tops.length >= n) {
+        add("top", classify(tops.slice(0, n)), n, season, tops.slice(0, n));
+        if (n === 3 && args.includes("--show")) console.log(`  ${wk}: ` + tops.slice(0, 3).map((r) => `${r.name} ${r.prop} ${pct(r.prob)}${r.actual ? " ✓" : " ✗"}`).join(" | "));
       }
+      for (const g of games) {
+        const seen = new Set(); const one = g.filter((r) => { const k = String(r.id); if (r.id !== "game" && seen.has(k)) return false; seen.add(k); return true; });
+        if (one.length >= n) add("top", classify(one.slice(0, n)), n, season, one.slice(0, n));
+      }
+      /* the arithmetic: random slips from across the slate, and from inside one game */
+      for (let i = 0; i < SAMPLES && games.length >= n; i++) { const slip = pick(games, n).map((g) => g[Math.floor(rnd() * g.length)]); add("random", classify(slip), n, season, slip); }
+      for (const g of games) for (let i = 0; i < Math.ceil(SAMPLES / games.length) && g.length >= n; i++) { const slip = pick(g, n); add("random", classify(slip), n, season, slip); }
     }
   }
-  console.log(`\n${"=".repeat(72)}\nPARLAYS OF TOUCHDOWN LEGS (legs with prob >= ${FLOOR}) — actual / predicted\n${"=".repeat(72)}`);
-  console.log(`  ${"population".padEnd(11)}${"how".padEnd(8)}legs  ${"season".padEnd(8)}${"slips".padStart(7)}  ${"predicted".padStart(10)}  ${"actual".padStart(8)}  ratio`);
-  const order = { cross: 0, game: 1, team: 2 }, how = { top: 0, random: 1 };
-  const rows = Object.values(tally).sort((a, b) => order[a.pop] - order[b.pop] || how[a.how] - how[b.how] || a.n - b.n || a.season - b.season);
+  console.log(`\n${"=".repeat(72)}\nPARLAYS${onlyTd ? " OF TOUCHDOWN LEGS" : " OF EVERY LEG THE BOARD OFFERS"} (legs with prob >= ${FLOOR}) — actual / predicted\n${"=".repeat(72)}`);
+  console.log(`  ${"how".padEnd(8)}${"class".padEnd(8)}legs  ${"season".padEnd(8)}${"slips".padStart(7)}  ${"predicted".padStart(10)}  ${"actual".padStart(8)}  ratio`);
+  const ho = { top: 0, random: 1 }, co = { none: 0, game: 1, mixed: 2, team: 3, player: 4 };
   const all = {};
-  for (const t of rows) {
-    const k = `${t.pop}|${t.how}|${t.n}`; const a = all[k] || (all[k] = { ...t, season: "all", slips: 0, pred: 0, hit: 0 });
+  for (const t of Object.values(tally)) {
+    const k = `${t.how}|${t.cls}|${t.n}`; const a = all[k] || (all[k] = { ...t, season: "all", slips: 0, pred: 0, hit: 0 });
     a.slips += t.slips; a.pred += t.pred; a.hit += t.hit;
   }
-  for (const t of [...rows, ...Object.values(all)].sort((a, b) => order[a.pop] - order[b.pop] || how[a.how] - how[b.how] || a.n - b.n || String(a.season).localeCompare(String(b.season)))) {
+  const rowsOut = [...Object.values(tally), ...Object.values(all)].sort((a, b) => ho[a.how] - ho[b.how] || co[a.cls] - co[b.cls] || a.n - b.n || String(a.season).localeCompare(String(b.season)));
+  for (const t of rowsOut) {
     if (t.slips < 20) continue;
     const pred = t.pred / t.slips, act = t.hit / t.slips;
-    console.log(`  ${t.pop.padEnd(11)}${t.how.padEnd(8)}${String(t.n).padStart(4)}  ${String(t.season).padEnd(8)}${String(t.slips).padStart(7)}  ${pct(pred).padStart(10)}  ${pct(act).padStart(8)}  ${(act / pred).toFixed(3)}`);
+    console.log(`  ${t.how.padEnd(8)}${t.cls.padEnd(8)}${String(t.n).padStart(4)}  ${String(t.season).padEnd(8)}${String(t.slips).padStart(7)}  ${pct(pred).padStart(10)}  ${pct(act).padStart(8)}  ${(act / pred).toFixed(3)}`);
   }
 }
 

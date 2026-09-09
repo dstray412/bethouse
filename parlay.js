@@ -9,7 +9,8 @@
  * correlated cases (backtest-nfl.mjs --parlay) rather than inventing one.
  *
  * A leg is { key, playerId, gameId, team, prob, ... }. The caller decides
- * what is bettable; nothing here knows what time it is.
+ * what is bettable; nothing here knows what time it is. `lift` carries
+ * one multiplier per class: game, mixed, team, player.
  */
 (function (root, factory) {
   if (typeof module === "object" && module.exports) module.exports = factory();
@@ -32,18 +33,29 @@
       if (!l || !(l.prob > 0 && l.prob <= 1)) return null;
       prob *= l.prob;
     }
+    /* A game leg (spread or total, playerId "game") is nobody's player;
+       a spread leg carries the side's team, a total leg no team. */
     const byPlayer = {}, byGame = {}, byTeam = {};
     for (const l of legs) {
-      byPlayer[String(l.playerId)] = (byPlayer[String(l.playerId)] || 0) + 1;
+      const pid = String(l.playerId);
+      if (pid !== "game") byPlayer[String(l.gameId) + "|" + pid] = (byPlayer[String(l.gameId) + "|" + pid] || 0) + 1;
       byGame[String(l.gameId)] = (byGame[String(l.gameId)] || 0) + 1;
-      byTeam[String(l.gameId) + "|" + String(l.team)] = (byTeam[String(l.gameId) + "|" + String(l.team)] || 0) + 1;
+      if (l.team) byTeam[String(l.gameId) + "|" + String(l.team)] = (byTeam[String(l.gameId) + "|" + String(l.team)] || 0) + 1;
     }
     const dupPlayers = Object.values(byPlayer).filter((n) => n > 1).length;
     const sameGame = Object.values(byGame).filter((n) => n > 1).length;
     const sameTeam = Object.values(byTeam).filter((n) => n > 1).length;
-    const correlation = dupPlayers > 0 ? "severe" : sameTeam > 0 ? "team" : sameGame > 0 ? "game" : "none";
+    /* The same player twice is "player" when the caller has measured that
+       case and passed lift.player, and "severe" -- no number -- when not. */
+    /* "team" is every leg on one team; "mixed" is some legs sharing a
+       team and others not; "game" is one game with no two on one team.
+       They measured differently, so they are different classes. */
+    const teamCounts = Object.values(byTeam);
+    const allOneTeam = teamCounts.length === 1 && teamCounts[0] === legs.length;
     const L = lift || {};
-    const mult = correlation === "team" ? num(L.team) || 1 : correlation === "game" ? num(L.game) || 1 : 1;
+    const correlation = dupPlayers > 0 ? (num(L.player) > 0 ? "player" : "severe")
+      : sameTeam > 0 ? (allOneTeam ? "team" : "mixed") : sameGame > 0 ? "game" : "none";
+    const mult = correlation === "player" ? num(L.player) : correlation === "none" ? 1 : (num(L[correlation]) || 1);
     return {
       prob,
       adjusted: correlation === "severe" ? null : Math.min(1, prob * mult),
@@ -66,9 +78,9 @@
    *     games: a two-leg answer to a three-leg question is a different
    *     question.
    *   scope "game" with opts.gameId: the best legs in that one game, at
-   *     most one per player. Refuses when the game has fewer legs than
-   *     asked. The caller decides whether to offer this at all: see the
-   *     measured same-game lift before you do.
+   *     most one per player (a game leg is its own "player"). Refuses when
+   *     the game has fewer legs than asked. The caller decides whether to
+   *     offer this at all: see the measured same-game lift before you do.
    */
   function suggestParlay(candidates, opts) {
     const o = opts || {};
@@ -81,7 +93,8 @@
     if (o.scope === "game") {
       const inGame = usable.filter((c) => String(c.gameId) === String(o.gameId));
       const seen = new Set();
-      legs = inGame.sort(byProb).filter((c) => !seen.has(String(c.playerId)) && seen.add(String(c.playerId)));
+      const who = (c) => String(c.playerId) === "game" ? "game|" + String(c.prop) : String(c.playerId);
+      legs = inGame.sort(byProb).filter((c) => !seen.has(who(c)) && seen.add(who(c)));
     } else {
       const best = new Map();
       for (const c of usable) {

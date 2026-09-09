@@ -205,6 +205,19 @@ call. Report and before/after shots:
 `~/.gstack/projects/BetHouse/designs/design-audit-20260908/`. Baseline
 design score B−, AI-slop A.
 
+**Parlays on every leg, 2026-09-09, later.** The slip draws on every
+kind of leg (touchdowns, the counting props at the line setting, spread
+and total), with a "Legs" toggle per kind. `--parlay` replays every leg
+the boards offer; the first two measurements were wrong (a "same team"
+population that mixed all-one-team with some-share; early-week pools of
+a dozen entries reading as 91% overs) and the README table is the third.
+Classes in `parlay.js`: none / game / mixed / team / player. Shipped
+lifts: NFL `{game:1, mixed:1, team:0.85, player:1.3}`, college
+`{1,1,1,1.3}`; `parlayProps` is all seven. Recorded slips carry a `tag`
+("td" for the first week's touchdown-only slips, "all" after) in their
+key, so both are rows. The slate's top picks cashed 0.55-0.72x on 32
+weeks: the top of the board runs hot; no correction fitted.
+
 **Suggested parlays, 2026-09-09.** `parlay.js` (shared, tested:
 `combineLegs`, `suggestParlay` with a slate or one-game scope and a
 measured lift) and controls on the football boards' touchdown view: 3/4/5

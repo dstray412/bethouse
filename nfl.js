@@ -199,13 +199,30 @@
      * are shared: one scoring makes the next less likely. The baseball
      * intuition (a slugfest lifts everyone) does not carry over.
      *
-     * Shipped: 1 for cross-game and mixed-team slips, 0.85 for same-team
-     * (the timid end of 0.75-1.00). College measured about 1 on every
-     * population and ships 1 (cfb.js). The slip prints the product, the
-     * adjusted number where they differ, and the ratio it came from.
+     * Every leg the boards offer, 2026-09-09 (--parlay; counting props at
+     * the projection line with 300+ games in their pool, the model's side
+     * on spread and total), random slips, actual / predicted, NFL:
+     *
+     *                        2 legs   3 legs   4 legs   5 legs
+     *   none    other games   1.06     1.13     1.15     1.31
+     *   game    no shared team 1.01    1.08
+     *   mixed   some share     --      1.04     1.01     1.03   (seasons 1.24/0.88, 1.12/0.91)
+     *   team    all one team   1.01    0.89     1.27     --     (touchdowns only: 0.66-0.86)
+     *   player  same player    1.58     1.51     1.76     2.27   (every season >= 1.30)
+     *
+     * The slate's top picks cashed 0.55-0.72x the product on 32 weeks:
+     * the top of the board runs hot, as baseball found; the slip says to
+     * shade it and no correction is fitted to 32 rows.
+     *
+     * Shipped: 1 for other games, one game and mixed; 0.85 for every leg
+     * on one team (the touchdown case is the common one and measured
+     * 0.66-0.86); 1.3 for the same player, the smallest ratio measured.
+     * College (cfb.js): 1 everywhere but the same player, 1.3. The slip
+     * prints the product, the adjusted number where they differ, and
+     * the ratio it came from.
      */
-    parlayProps: ["td"],
-    parlayLift: { game: 1, team: 0.85 },
+    parlayProps: ["td", "recyds", "rushyds", "passyds", "recs", "spread", "total"],
+    parlayLift: { game: 1, mixed: 1, team: 0.85, player: 1.3 },
     /*
      * Which box-score stat counts as receiving opportunity. The NFL records
      * targets. College box scores record receptions and nothing about the

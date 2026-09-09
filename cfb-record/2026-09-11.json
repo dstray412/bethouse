@@ -52476,7 +52476,7 @@
  "week": 2,
  "parlays": [
   {
-   "key": "slate|all|3",
+   "key": "slate|all|3|td",
    "scope": "slate",
    "gameId": null,
    "legs": [
@@ -52508,10 +52508,11 @@
    "prob": 0.509444322864,
    "adjusted": 0.509444322864,
    "correlation": "none",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "slate|all|4",
+   "key": "slate|all|4|td",
    "scope": "slate",
    "gameId": null,
    "legs": [
@@ -52551,10 +52552,11 @@
    "prob": 0.3921192953084208,
    "adjusted": 0.3921192953084208,
    "correlation": "none",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "slate|all|5",
+   "key": "slate|all|5|td",
    "scope": "slate",
    "gameId": null,
    "legs": [
@@ -52602,10 +52604,11 @@
    "prob": 0.2990301746022017,
    "adjusted": 0.2990301746022017,
    "correlation": "none",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "game|401858442|3",
+   "key": "game|401858442|3|td",
    "scope": "game",
    "gameId": "401858442",
    "legs": [
@@ -52637,10 +52640,11 @@
    "prob": 0.211475860464,
    "adjusted": 0.211475860464,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "game|401858447|3",
+   "key": "game|401858447|3|td",
    "scope": "game",
    "gameId": "401858447",
    "legs": [
@@ -52672,10 +52676,11 @@
    "prob": 0.060238022649,
    "adjusted": 0.060238022649,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "game|401856788|3",
+   "key": "game|401856788|3|td",
    "scope": "game",
    "gameId": "401856788",
    "legs": [
@@ -52707,10 +52712,11 @@
    "prob": 0.05448724827000001,
    "adjusted": 0.05448724827000001,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "game|401856781|3",
+   "key": "game|401856781|3|td",
    "scope": "game",
    "gameId": "401856781",
    "legs": [
@@ -52742,10 +52748,11 @@
    "prob": 0.079427628386,
    "adjusted": 0.079427628386,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "game|401867796|3",
+   "key": "game|401867796|3|td",
    "scope": "game",
    "gameId": "401867796",
    "legs": [
@@ -52777,10 +52784,11 @@
    "prob": 0.038332635809999994,
    "adjusted": 0.038332635809999994,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "game|401864578|3",
+   "key": "game|401864578|3|td",
    "scope": "game",
    "gameId": "401864578",
    "legs": [
@@ -52812,10 +52820,11 @@
    "prob": 0.046251706367999995,
    "adjusted": 0.046251706367999995,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "game|401864500|3",
+   "key": "game|401864500|3|td",
    "scope": "game",
    "gameId": "401864500",
    "legs": [
@@ -52847,10 +52856,11 @@
    "prob": 0.049811461974,
    "adjusted": 0.049811461974,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "game|401858441|3",
+   "key": "game|401858441|3|td",
    "scope": "game",
    "gameId": "401858441",
    "legs": [
@@ -52882,10 +52892,11 @@
    "prob": 0.11443973865500001,
    "adjusted": 0.11443973865500001,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "game|401862705|3",
+   "key": "game|401862705|3|td",
    "scope": "game",
    "gameId": "401862705",
    "legs": [
@@ -52917,10 +52928,11 @@
    "prob": 0.21984319692000004,
    "adjusted": 0.21984319692000004,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "game|401865252|3",
+   "key": "game|401865252|3|td",
    "scope": "game",
    "gameId": "401865252",
    "legs": [
@@ -52952,10 +52964,11 @@
    "prob": 0.12803966459200003,
    "adjusted": 0.12803966459200003,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "game|401860883|3",
+   "key": "game|401860883|3|td",
    "scope": "game",
    "gameId": "401860883",
    "legs": [
@@ -52987,10 +53000,11 @@
    "prob": 0.03636717241200001,
    "adjusted": 0.03636717241200001,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "game|401856678|3",
+   "key": "game|401856678|3|td",
    "scope": "game",
    "gameId": "401856678",
    "legs": [
@@ -53022,10 +53036,11 @@
    "prob": 0.11274904755,
    "adjusted": 0.11274904755,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "game|401866413|3",
+   "key": "game|401866413|3|td",
    "scope": "game",
    "gameId": "401866413",
    "legs": [
@@ -53057,10 +53072,11 @@
    "prob": 0.06832006365599999,
    "adjusted": 0.06832006365599999,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "game|401862707|3",
+   "key": "game|401862707|3|td",
    "scope": "game",
    "gameId": "401862707",
    "legs": [
@@ -53092,10 +53108,11 @@
    "prob": 0.08983599241400002,
    "adjusted": 0.08983599241400002,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "game|401856673|3",
+   "key": "game|401856673|3|td",
    "scope": "game",
    "gameId": "401856673",
    "legs": [
@@ -53127,10 +53144,11 @@
    "prob": 0.06780468195599999,
    "adjusted": 0.06780468195599999,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "game|401858440|3",
+   "key": "game|401858440|3|td",
    "scope": "game",
    "gameId": "401858440",
    "legs": [
@@ -53162,10 +53180,11 @@
    "prob": 0.11311269281000001,
    "adjusted": 0.11311269281000001,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "game|401856790|3",
+   "key": "game|401856790|3|td",
    "scope": "game",
    "gameId": "401856790",
    "legs": [
@@ -53197,10 +53216,11 @@
    "prob": 0.09354579418799999,
    "adjusted": 0.09354579418799999,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "game|401858216|3",
+   "key": "game|401858216|3|td",
    "scope": "game",
    "gameId": "401858216",
    "legs": [
@@ -53232,10 +53252,11 @@
    "prob": 0.07460337460000001,
    "adjusted": 0.07460337460000001,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "game|401856786|3",
+   "key": "game|401856786|3|td",
    "scope": "game",
    "gameId": "401856786",
    "legs": [
@@ -53267,10 +53288,11 @@
    "prob": 0.232566232626,
    "adjusted": 0.232566232626,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "game|401864504|3",
+   "key": "game|401864504|3|td",
    "scope": "game",
    "gameId": "401864504",
    "legs": [
@@ -53302,10 +53324,11 @@
    "prob": 0.07684176783,
    "adjusted": 0.07684176783,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "game|401860881|3",
+   "key": "game|401860881|3|td",
    "scope": "game",
    "gameId": "401860881",
    "legs": [
@@ -53337,10 +53360,11 @@
    "prob": 0.13201657002,
    "adjusted": 0.13201657002,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "game|401856670|3",
+   "key": "game|401856670|3|td",
    "scope": "game",
    "gameId": "401856670",
    "legs": [
@@ -53372,10 +53396,11 @@
    "prob": 0.22179766049999997,
    "adjusted": 0.22179766049999997,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "game|401856671|3",
+   "key": "game|401856671|3|td",
    "scope": "game",
    "gameId": "401856671",
    "legs": [
@@ -53407,10 +53432,11 @@
    "prob": 0.09632758510200001,
    "adjusted": 0.09632758510200001,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "game|401862702|3",
+   "key": "game|401862702|3|td",
    "scope": "game",
    "gameId": "401862702",
    "legs": [
@@ -53442,10 +53468,11 @@
    "prob": 0.141366832992,
    "adjusted": 0.141366832992,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "game|401866418|3",
+   "key": "game|401866418|3|td",
    "scope": "game",
    "gameId": "401866418",
    "legs": [
@@ -53477,10 +53504,11 @@
    "prob": 0.10117431086,
    "adjusted": 0.10117431086,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "game|401856682|3",
+   "key": "game|401856682|3|td",
    "scope": "game",
    "gameId": "401856682",
    "legs": [
@@ -53512,10 +53540,11 @@
    "prob": 0.10497312000000002,
    "adjusted": 0.10497312000000002,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "game|401858214|3",
+   "key": "game|401858214|3|td",
    "scope": "game",
    "gameId": "401858214",
    "legs": [
@@ -53547,10 +53576,11 @@
    "prob": 0.212267786192,
    "adjusted": 0.212267786192,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "game|401858217|3",
+   "key": "game|401858217|3|td",
    "scope": "game",
    "gameId": "401858217",
    "legs": [
@@ -53582,10 +53612,11 @@
    "prob": 0.12174811963800002,
    "adjusted": 0.12174811963800002,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "game|401856684|3",
+   "key": "game|401856684|3|td",
    "scope": "game",
    "gameId": "401856684",
    "legs": [
@@ -53617,10 +53648,11 @@
    "prob": 0.16722132569999998,
    "adjusted": 0.16722132569999998,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "game|401856672|3",
+   "key": "game|401856672|3|td",
    "scope": "game",
    "gameId": "401856672",
    "legs": [
@@ -53652,10 +53684,11 @@
    "prob": 0.15537358569600002,
    "adjusted": 0.15537358569600002,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "game|401864571|3",
+   "key": "game|401864571|3|td",
    "scope": "game",
    "gameId": "401864571",
    "legs": [
@@ -53687,10 +53720,11 @@
    "prob": 0.06599420679700001,
    "adjusted": 0.06599420679700001,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "game|401858223|3",
+   "key": "game|401858223|3|td",
    "scope": "game",
    "gameId": "401858223",
    "legs": [
@@ -53722,10 +53756,11 @@
    "prob": 0.27524934234,
    "adjusted": 0.27524934234,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "game|401858222|3",
+   "key": "game|401858222|3|td",
    "scope": "game",
    "gameId": "401858222",
    "legs": [
@@ -53757,10 +53792,11 @@
    "prob": 0.17081727966,
    "adjusted": 0.17081727966,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "game|401856791|3",
+   "key": "game|401856791|3|td",
    "scope": "game",
    "gameId": "401856791",
    "legs": [
@@ -53792,10 +53828,11 @@
    "prob": 0.20427275757599997,
    "adjusted": 0.20427275757599997,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "game|401856680|3",
+   "key": "game|401856680|3|td",
    "scope": "game",
    "gameId": "401856680",
    "legs": [
@@ -53827,10 +53864,11 @@
    "prob": 0.06881906850000001,
    "adjusted": 0.06881906850000001,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "game|401862708|3",
+   "key": "game|401862708|3|td",
    "scope": "game",
    "gameId": "401862708",
    "legs": [
@@ -53862,10 +53900,11 @@
    "prob": 0.08441564364,
    "adjusted": 0.08441564364,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "game|401864506|3",
+   "key": "game|401864506|3|td",
    "scope": "game",
    "gameId": "401864506",
    "legs": [
@@ -53897,10 +53936,11 @@
    "prob": 0.046352817010000005,
    "adjusted": 0.046352817010000005,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "game|401858444|3",
+   "key": "game|401858444|3|td",
    "scope": "game",
    "gameId": "401858444",
    "legs": [
@@ -53932,10 +53972,11 @@
    "prob": 0.103464569936,
    "adjusted": 0.103464569936,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "game|401866412|3",
+   "key": "game|401866412|3|td",
    "scope": "game",
    "gameId": "401866412",
    "legs": [
@@ -53967,10 +54008,11 @@
    "prob": 0.06915445275,
    "adjusted": 0.06915445275,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "game|401858220|3",
+   "key": "game|401858220|3|td",
    "scope": "game",
    "gameId": "401858220",
    "legs": [
@@ -54002,10 +54044,11 @@
    "prob": 0.2549358454499999,
    "adjusted": 0.2549358454499999,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "game|401864505|3",
+   "key": "game|401864505|3|td",
    "scope": "game",
    "gameId": "401864505",
    "legs": [
@@ -54037,10 +54080,11 @@
    "prob": 0.058212148356000006,
    "adjusted": 0.058212148356000006,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "game|401856677|3",
+   "key": "game|401856677|3|td",
    "scope": "game",
    "gameId": "401856677",
    "legs": [
@@ -54072,10 +54116,11 @@
    "prob": 0.09391903793999999,
    "adjusted": 0.09391903793999999,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "game|401858213|3",
+   "key": "game|401858213|3|td",
    "scope": "game",
    "gameId": "401858213",
    "legs": [
@@ -54107,10 +54152,11 @@
    "prob": 0.30349321102800003,
    "adjusted": 0.30349321102800003,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "game|401868187|3",
+   "key": "game|401868187|3|td",
    "scope": "game",
    "gameId": "401868187",
    "legs": [
@@ -54142,10 +54188,11 @@
    "prob": 0.061447803200000005,
    "adjusted": 0.061447803200000005,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "game|401858221|3",
+   "key": "game|401858221|3|td",
    "scope": "game",
    "gameId": "401858221",
    "legs": [
@@ -54177,10 +54224,11 @@
    "prob": 0.05358386087599999,
    "adjusted": 0.05358386087599999,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "game|401856782|3",
+   "key": "game|401856782|3|td",
    "scope": "game",
    "gameId": "401856782",
    "legs": [
@@ -54212,10 +54260,11 @@
    "prob": 0.16633563408,
    "adjusted": 0.16633563408,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "game|401856784|3",
+   "key": "game|401856784|3|td",
    "scope": "game",
    "gameId": "401856784",
    "legs": [
@@ -54247,10 +54296,11 @@
    "prob": 0.131115463986,
    "adjusted": 0.131115463986,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "game|401866414|3",
+   "key": "game|401866414|3|td",
    "scope": "game",
    "gameId": "401866414",
    "legs": [
@@ -54282,10 +54332,11 @@
    "prob": 0.08858536502400001,
    "adjusted": 0.08858536502400001,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "game|401856787|3",
+   "key": "game|401856787|3|td",
    "scope": "game",
    "gameId": "401856787",
    "legs": [
@@ -54317,10 +54368,11 @@
    "prob": 0.23348800358999997,
    "adjusted": 0.23348800358999997,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "game|401864575|3",
+   "key": "game|401864575|3|td",
    "scope": "game",
    "gameId": "401864575",
    "legs": [
@@ -54352,10 +54404,11 @@
    "prob": 0.12573250932000002,
    "adjusted": 0.12573250932000002,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "game|401856676|3",
+   "key": "game|401856676|3|td",
    "scope": "game",
    "gameId": "401856676",
    "legs": [
@@ -54387,10 +54440,11 @@
    "prob": 0.209195577684,
    "adjusted": 0.209195577684,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "game|401866417|3",
+   "key": "game|401866417|3|td",
    "scope": "game",
    "gameId": "401866417",
    "legs": [
@@ -54422,10 +54476,11 @@
    "prob": 0.11120778774599999,
    "adjusted": 0.11120778774599999,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "game|401858218|3",
+   "key": "game|401858218|3|td",
    "scope": "game",
    "gameId": "401858218",
    "legs": [
@@ -54457,10 +54512,11 @@
    "prob": 0.040862570175,
    "adjusted": 0.040862570175,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "game|401858443|3",
+   "key": "game|401858443|3|td",
    "scope": "game",
    "gameId": "401858443",
    "legs": [
@@ -54492,10 +54548,11 @@
    "prob": 0.0586470653,
    "adjusted": 0.0586470653,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "game|401866421|3",
+   "key": "game|401866421|3|td",
    "scope": "game",
    "gameId": "401866421",
    "legs": [
@@ -54527,10 +54584,11 @@
    "prob": 0.11343074464000001,
    "adjusted": 0.11343074464000001,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "game|401858439|3",
+   "key": "game|401858439|3|td",
    "scope": "game",
    "gameId": "401858439",
    "legs": [
@@ -54562,10 +54620,11 @@
    "prob": 0.42208921913999997,
    "adjusted": 0.42208921913999997,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "game|401869955|3",
+   "key": "game|401869955|3|td",
    "scope": "game",
    "gameId": "401869955",
    "legs": [
@@ -54597,10 +54656,11 @@
    "prob": 0.11130867719999997,
    "adjusted": 0.11130867719999997,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "game|401858224|3",
+   "key": "game|401858224|3|td",
    "scope": "game",
    "gameId": "401858224",
    "legs": [
@@ -54632,10 +54692,11 @@
    "prob": 0.08368956825599999,
    "adjusted": 0.08368956825599999,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "game|401860882|3",
+   "key": "game|401860882|3|td",
    "scope": "game",
    "gameId": "401860882",
    "legs": [
@@ -54667,10 +54728,11 @@
    "prob": 0.044309090322,
    "adjusted": 0.044309090322,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "game|401856783|3",
+   "key": "game|401856783|3|td",
    "scope": "game",
    "gameId": "401856783",
    "legs": [
@@ -54702,10 +54764,11 @@
    "prob": 0.19314136872799997,
    "adjusted": 0.19314136872799997,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "game|401856681|3",
+   "key": "game|401856681|3|td",
    "scope": "game",
    "gameId": "401856681",
    "legs": [
@@ -54737,10 +54800,11 @@
    "prob": 0.22717976410500001,
    "adjusted": 0.22717976410500001,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "game|401856785|3",
+   "key": "game|401856785|3|td",
    "scope": "game",
    "gameId": "401856785",
    "legs": [
@@ -54772,10 +54836,11 @@
    "prob": 0.10814022451200002,
    "adjusted": 0.10814022451200002,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "game|401856683|3",
+   "key": "game|401856683|3|td",
    "scope": "game",
    "gameId": "401856683",
    "legs": [
@@ -54807,10 +54872,11 @@
    "prob": 0.099434473992,
    "adjusted": 0.099434473992,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "game|401866415|3",
+   "key": "game|401866415|3|td",
    "scope": "game",
    "gameId": "401866415",
    "legs": [
@@ -54842,10 +54908,11 @@
    "prob": 0.09474763693599998,
    "adjusted": 0.09474763693599998,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "game|401856674|3",
+   "key": "game|401856674|3|td",
    "scope": "game",
    "gameId": "401856674",
    "legs": [
@@ -54877,10 +54944,11 @@
    "prob": 0.087973665208,
    "adjusted": 0.087973665208,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "game|401856679|3",
+   "key": "game|401856679|3|td",
    "scope": "game",
    "gameId": "401856679",
    "legs": [
@@ -54912,10 +54980,11 @@
    "prob": 0.031160418,
    "adjusted": 0.031160418,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "game|401862703|3",
+   "key": "game|401862703|3|td",
    "scope": "game",
    "gameId": "401862703",
    "legs": [
@@ -54947,10 +55016,11 @@
    "prob": 0.33051294328799996,
    "adjusted": 0.33051294328799996,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "game|401866416|3",
+   "key": "game|401866416|3|td",
    "scope": "game",
    "gameId": "401866416",
    "legs": [
@@ -54982,10 +55052,11 @@
    "prob": 0.03797467905000001,
    "adjusted": 0.03797467905000001,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "game|401866419|3",
+   "key": "game|401866419|3|td",
    "scope": "game",
    "gameId": "401866419",
    "legs": [
@@ -55017,10 +55088,11 @@
    "prob": 0.17076210138000006,
    "adjusted": 0.17076210138000006,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "game|401871045|3",
+   "key": "game|401871045|3|td",
    "scope": "game",
    "gameId": "401871045",
    "legs": [
@@ -55052,10 +55124,11 @@
    "prob": 0.06553561423200001,
    "adjusted": 0.06553561423200001,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "game|401856810|3",
+   "key": "game|401856810|3|td",
    "scope": "game",
    "gameId": "401856810",
    "legs": [
@@ -55087,10 +55160,11 @@
    "prob": 0.08337871175599999,
    "adjusted": 0.08337871175599999,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "game|401858215|3",
+   "key": "game|401858215|3|td",
    "scope": "game",
    "gameId": "401858215",
    "legs": [
@@ -55122,10 +55196,11 @@
    "prob": 0.163221794808,
    "adjusted": 0.163221794808,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "game|401864502|3",
+   "key": "game|401864502|3|td",
    "scope": "game",
    "gameId": "401864502",
    "legs": [
@@ -55157,10 +55232,11 @@
    "prob": 0.061897733671999994,
    "adjusted": 0.061897733671999994,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "game|401866420|3",
+   "key": "game|401866420|3|td",
    "scope": "game",
    "gameId": "401866420",
    "legs": [
@@ -55192,10 +55268,11 @@
    "prob": 0.019835199216,
    "adjusted": 0.019835199216,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "game|401864503|3",
+   "key": "game|401864503|3|td",
    "scope": "game",
    "gameId": "401864503",
    "legs": [
@@ -55227,10 +55304,11 @@
    "prob": 0.07131543740999999,
    "adjusted": 0.07131543740999999,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "game|401858446|3",
+   "key": "game|401858446|3|td",
    "scope": "game",
    "gameId": "401858446",
    "legs": [
@@ -55262,10 +55340,11 @@
    "prob": 0.15555312171000002,
    "adjusted": 0.15555312171000002,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "game|401868008|3",
+   "key": "game|401868008|3|td",
    "scope": "game",
    "gameId": "401868008",
    "legs": [
@@ -55297,10 +55376,11 @@
    "prob": 0.08828790048,
    "adjusted": 0.08828790048,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "game|401859184|3",
+   "key": "game|401859184|3|td",
    "scope": "game",
    "gameId": "401859184",
    "legs": [
@@ -55332,10 +55412,11 @@
    "prob": 0.26491856402400005,
    "adjusted": 0.26491856402400005,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "game|401867929|3",
+   "key": "game|401867929|3|td",
    "scope": "game",
    "gameId": "401867929",
    "legs": [
@@ -55367,10 +55448,11 @@
    "prob": 0.120364676308,
    "adjusted": 0.120364676308,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "game|401860884|3",
+   "key": "game|401860884|3|td",
    "scope": "game",
    "gameId": "401860884",
    "legs": [
@@ -55402,10 +55484,11 @@
    "prob": 0.23891620599000002,
    "adjusted": 0.23891620599000002,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "game|401868241|3",
+   "key": "game|401868241|3|td",
    "scope": "game",
    "gameId": "401868241",
    "legs": [
@@ -55437,10 +55520,11 @@
    "prob": 0.07751568190800001,
    "adjusted": 0.07751568190800001,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "game|401856789|3",
+   "key": "game|401856789|3|td",
    "scope": "game",
    "gameId": "401856789",
    "legs": [
@@ -55472,10 +55556,11 @@
    "prob": 0.21142535544,
    "adjusted": 0.21142535544,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "game|401868326|3",
+   "key": "game|401868326|3|td",
    "scope": "game",
    "gameId": "401868326",
    "legs": [
@@ -55507,10 +55592,11 @@
    "prob": 0.09258506433600001,
    "adjusted": 0.09258506433600001,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "game|401858219|3",
+   "key": "game|401858219|3|td",
    "scope": "game",
    "gameId": "401858219",
    "legs": [
@@ -55542,10 +55628,11 @@
    "prob": 0.11590038075,
    "adjusted": 0.11590038075,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "game|401871046|3",
+   "key": "game|401871046|3|td",
    "scope": "game",
    "gameId": "401871046",
    "legs": [
@@ -55577,10 +55664,11 @@
    "prob": 0.1338301503,
    "adjusted": 0.1338301503,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
   },
   {
-   "key": "game|401858445|3",
+   "key": "game|401858445|3|td",
    "scope": "game",
    "gameId": "401858445",
    "legs": [
@@ -55612,7 +55700,3429 @@
    "prob": 0.16690504669200001,
    "adjusted": 0.16690504669200001,
    "correlation": "team",
-   "recordedAt": "2026-09-09T19:38:19.670Z"
+   "recordedAt": "2026-09-09T19:38:19.670Z",
+   "tag": "td"
+  },
+  {
+   "key": "slate|all|3|all",
+   "scope": "slate",
+   "gameId": null,
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401856676",
+     "playerId": "5086388",
+     "name": "Kewan Lacy",
+     "team": "MISS",
+     "prop": "td",
+     "prob": 0.8158
+    },
+    {
+     "gameId": "401858439",
+     "playerId": "5146724",
+     "name": "Turbo Richard",
+     "team": "IU",
+     "prop": "td",
+     "prob": 0.8004
+    },
+    {
+     "gameId": "401859184",
+     "playerId": "4870808",
+     "name": "Jeremiyah Love",
+     "team": "ND",
+     "prop": "td",
+     "prob": 0.7802
+    }
+   ],
+   "prob": 0.509444322864,
+   "adjusted": 0.509444322864,
+   "correlation": "none",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "slate|all|4|all",
+   "scope": "slate",
+   "gameId": null,
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401856676",
+     "playerId": "5086388",
+     "name": "Kewan Lacy",
+     "team": "MISS",
+     "prop": "td",
+     "prob": 0.8158
+    },
+    {
+     "gameId": "401858439",
+     "playerId": "5146724",
+     "name": "Turbo Richard",
+     "team": "IU",
+     "prop": "td",
+     "prob": 0.8004
+    },
+    {
+     "gameId": "401859184",
+     "playerId": "4870808",
+     "name": "Jeremiyah Love",
+     "team": "ND",
+     "prop": "td",
+     "prob": 0.7802
+    },
+    {
+     "gameId": "401866419",
+     "playerId": "4430893",
+     "name": "Chip Trayanum",
+     "team": "TOL",
+     "prop": "td",
+     "prob": 0.7697
+    }
+   ],
+   "prob": 0.3921192953084208,
+   "adjusted": 0.3921192953084208,
+   "correlation": "none",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "slate|all|5|all",
+   "scope": "slate",
+   "gameId": null,
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401856676",
+     "playerId": "5086388",
+     "name": "Kewan Lacy",
+     "team": "MISS",
+     "prop": "td",
+     "prob": 0.8158
+    },
+    {
+     "gameId": "401858439",
+     "playerId": "5146724",
+     "name": "Turbo Richard",
+     "team": "IU",
+     "prop": "td",
+     "prob": 0.8004
+    },
+    {
+     "gameId": "401859184",
+     "playerId": "4870808",
+     "name": "Jeremiyah Love",
+     "team": "ND",
+     "prop": "td",
+     "prob": 0.7802
+    },
+    {
+     "gameId": "401866419",
+     "playerId": "4430893",
+     "name": "Chip Trayanum",
+     "team": "TOL",
+     "prop": "td",
+     "prob": 0.7697
+    },
+    {
+     "gameId": "401858220",
+     "playerId": "4713118",
+     "name": "J'Mari Taylor",
+     "team": "UVA",
+     "prop": "td",
+     "prob": 0.7626
+    }
+   ],
+   "prob": 0.2990301746022017,
+   "adjusted": 0.2990301746022017,
+   "correlation": "none",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "game|401858442|3|all",
+   "scope": "game",
+   "gameId": "401858442",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401858442",
+     "playerId": "4685246",
+     "name": "Kaytron Allen",
+     "team": "PSU",
+     "prop": "td",
+     "prob": 0.6618
+    },
+    {
+     "gameId": "401858442",
+     "playerId": "4685555",
+     "name": "Nicholas Singleton",
+     "team": "PSU",
+     "prop": "td",
+     "prob": 0.6002
+    },
+    {
+     "gameId": "401858442",
+     "playerId": "4801299",
+     "name": "Rocco Becht",
+     "team": "PSU",
+     "prop": "passyds",
+     "prob": 0.5574,
+     "line": 192.5
+    }
+   ],
+   "prob": 0.221406169464,
+   "adjusted": 0.221406169464,
+   "correlation": "team",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "game|401858447|3|all",
+   "scope": "game",
+   "gameId": "401858447",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401858447",
+     "playerId": "5125715",
+     "name": "Colton Joseph",
+     "team": "WIS",
+     "prop": "passyds",
+     "prob": 0.5583,
+     "line": 191.5
+    },
+    {
+     "gameId": "401858447",
+     "playerId": "5141687",
+     "name": "Carter Smith",
+     "team": "WIS",
+     "prop": "rushyds",
+     "prob": 0.4985,
+     "line": 22.5
+    },
+    {
+     "gameId": "401858447",
+     "playerId": "5078005",
+     "name": "Abu Sama III",
+     "team": "WIS",
+     "prop": "rushyds",
+     "prob": 0.493,
+     "line": 50.5
+    }
+   ],
+   "prob": 0.13720808715,
+   "adjusted": 0.13720808715,
+   "correlation": "team",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "game|401856788|3|all",
+   "scope": "game",
+   "gameId": "401856788",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401856788",
+     "playerId": "5080403",
+     "name": "Jaylen Raynor",
+     "team": "ISU",
+     "prop": "passyds",
+     "prob": 0.5583,
+     "line": 214.5
+    },
+    {
+     "gameId": "401856788",
+     "playerId": "game",
+     "name": "ISU at IOWA",
+     "team": null,
+     "prop": "total",
+     "prob": 0.5118,
+     "line": 40.5,
+     "side": "over"
+    },
+    {
+     "gameId": "401856788",
+     "playerId": "game",
+     "name": "ISU at IOWA",
+     "team": "ISU",
+     "prop": "spread",
+     "prob": 0.5,
+     "line": -14,
+     "side": "away"
+    }
+   ],
+   "prob": 0.14286897,
+   "adjusted": 0.14286897,
+   "correlation": "mixed",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "game|401856781|3|all",
+   "scope": "game",
+   "gameId": "401856781",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401856781",
+     "playerId": "4876066",
+     "name": "Zevi Eckhaus",
+     "team": "WSU",
+     "prop": "passyds",
+     "prob": 0.5583,
+     "line": 157.5
+    },
+    {
+     "gameId": "401856781",
+     "playerId": "4870857",
+     "name": "Avery Johnson",
+     "team": "KSU",
+     "prop": "passyds",
+     "prob": 0.5569,
+     "line": 177.5
+    },
+    {
+     "gameId": "401856781",
+     "playerId": "5091836",
+     "name": "Jaxon Potter",
+     "team": "WSU",
+     "prop": "passyds",
+     "prob": 0.5556,
+     "line": 151.5
+    }
+   ],
+   "prob": 0.17274563521199998,
+   "adjusted": 0.17274563521199998,
+   "correlation": "mixed",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "game|401867796|3|all",
+   "scope": "game",
+   "gameId": "401867796",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401867796",
+     "playerId": "5078810",
+     "name": "Sam Leavitt",
+     "team": "LSU",
+     "prop": "passyds",
+     "prob": 0.5574,
+     "line": 189.5
+    },
+    {
+     "gameId": "401867796",
+     "playerId": "4567747",
+     "name": "Garrett Nussmeier",
+     "team": "LSU",
+     "prop": "passyds",
+     "prob": 0.5565,
+     "line": 181.5
+    },
+    {
+     "gameId": "401867796",
+     "playerId": "game",
+     "name": "LT at LSU",
+     "team": null,
+     "prop": "total",
+     "prob": 0.5263,
+     "line": 55.5,
+     "side": "under"
+    }
+   ],
+   "prob": 0.16325462853,
+   "adjusted": 0.16325462853,
+   "correlation": "mixed",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "game|401864578|3|all",
+   "scope": "game",
+   "gameId": "401864578",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401864578",
+     "playerId": "4605998",
+     "name": "Logan Fife",
+     "team": "NMSU",
+     "prop": "passyds",
+     "prob": 0.5601,
+     "line": 189.5
+    },
+    {
+     "gameId": "401864578",
+     "playerId": "5101124",
+     "name": "Micah Alejado",
+     "team": "HAW",
+     "prop": "passyds",
+     "prob": 0.5583,
+     "line": 228.5
+    },
+    {
+     "gameId": "401864578",
+     "playerId": "5224084",
+     "name": "Trey Hedden",
+     "team": "NMSU",
+     "prop": "passyds",
+     "prob": 0.5569,
+     "line": 163.5
+    }
+   ],
+   "prob": 0.17414476292699999,
+   "adjusted": 0.17414476292699999,
+   "correlation": "mixed",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "game|401864500|3|all",
+   "scope": "game",
+   "gameId": "401864500",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401864500",
+     "playerId": "4899468",
+     "name": "Kaden Anderson",
+     "team": "FCS",
+     "prop": "passyds",
+     "prob": 0.5583,
+     "line": 154.5
+    },
+    {
+     "gameId": "401864500",
+     "playerId": "game",
+     "name": "FCS at NEV",
+     "team": null,
+     "prop": "total",
+     "prob": 0.5072,
+     "line": 49.5,
+     "side": "over"
+    },
+    {
+     "gameId": "401864500",
+     "playerId": "game",
+     "name": "FCS at NEV",
+     "team": "NEV",
+     "prop": "spread",
+     "prob": 0.5,
+     "line": 4.5,
+     "side": "home"
+    }
+   ],
+   "prob": 0.14158488,
+   "adjusted": 0.14158488,
+   "correlation": "game",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "game|401858441|3|all",
+   "scope": "game",
+   "gameId": "401858441",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401858441",
+     "playerId": "4832955",
+     "name": "Emmett Johnson",
+     "team": "NEB",
+     "prop": "td",
+     "prob": 0.6301
+    },
+    {
+     "gameId": "401858441",
+     "playerId": "5044387",
+     "name": "Anthony Colandrea",
+     "team": "NEB",
+     "prop": "passyds",
+     "prob": 0.5601,
+     "line": 218.5
+    },
+    {
+     "gameId": "401858441",
+     "playerId": "5079572",
+     "name": "Dylan Raiola",
+     "team": "NEB",
+     "prop": "passyds",
+     "prob": 0.5565,
+     "line": 186.5
+    }
+   ],
+   "prob": 0.19639942906500002,
+   "adjusted": 0.19639942906500002,
+   "correlation": "team",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "game|401862705|3|all",
+   "scope": "game",
+   "gameId": "401862705",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401862705",
+     "playerId": "4911971",
+     "name": "Jahiem White",
+     "team": "UNT",
+     "prop": "td",
+     "prob": 0.6841
+    },
+    {
+     "gameId": "401862705",
+     "playerId": "5125754",
+     "name": "Jai'Den Thomas",
+     "team": "UNLV",
+     "prop": "td",
+     "prob": 0.6018
+    },
+    {
+     "gameId": "401862705",
+     "playerId": "4801307",
+     "name": "Tayven Jackson",
+     "team": "UNT",
+     "prop": "passyds",
+     "prob": 0.5574,
+     "line": 173.5
+    }
+   ],
+   "prob": 0.22947677521200002,
+   "adjusted": 0.22947677521200002,
+   "correlation": "mixed",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "game|401865252|3|all",
+   "scope": "game",
+   "gameId": "401865252",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401865252",
+     "playerId": "4876378",
+     "name": "Damon Bankston",
+     "team": "UNM",
+     "prop": "td",
+     "prob": 0.5713
+    },
+    {
+     "gameId": "401865252",
+     "playerId": "5083171",
+     "name": "Jack Layne",
+     "team": "UNM",
+     "prop": "passyds",
+     "prob": 0.5601,
+     "line": 176.5
+    },
+    {
+     "gameId": "401865252",
+     "playerId": "5166161",
+     "name": "Scottre Humphrey",
+     "team": "UNM",
+     "prop": "td",
+     "prob": 0.5066
+    }
+   ],
+   "prob": 0.16210446685800003,
+   "adjusted": 0.16210446685800003,
+   "correlation": "team",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "game|401860883|3|all",
+   "scope": "game",
+   "gameId": "401860883",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401860883",
+     "playerId": "4916436",
+     "name": "E.J. Warner",
+     "team": "FRES",
+     "prop": "passyds",
+     "prob": 0.5583,
+     "line": 172.5
+    },
+    {
+     "gameId": "401860883",
+     "playerId": "game",
+     "name": "SAC at FRES",
+     "team": null,
+     "prop": "total",
+     "prob": 0.51,
+     "line": 45.5,
+     "side": "over"
+    },
+    {
+     "gameId": "401860883",
+     "playerId": "game",
+     "name": "SAC at FRES",
+     "team": "SAC",
+     "prop": "spread",
+     "prob": 0.5,
+     "line": -18.5,
+     "side": "away"
+    }
+   ],
+   "prob": 0.1423665,
+   "adjusted": 0.1423665,
+   "correlation": "game",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "game|401856678|3|all",
+   "scope": "game",
+   "gameId": "401856678",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401856678",
+     "playerId": "5197065",
+     "name": "Ahmad Hardy",
+     "team": "MIZ",
+     "prop": "td",
+     "prob": 0.641
+    },
+    {
+     "gameId": "401856678",
+     "playerId": "4596472",
+     "name": "Jalon Daniels",
+     "team": "KU",
+     "prop": "passyds",
+     "prob": 0.5583,
+     "line": 184.5
+    },
+    {
+     "gameId": "401856678",
+     "playerId": "game",
+     "name": "MIZ at KU",
+     "team": null,
+     "prop": "total",
+     "prob": 0.506,
+     "line": 50.5,
+     "side": "over"
+    }
+   ],
+   "prob": 0.18108237180000003,
+   "adjusted": 0.18108237180000003,
+   "correlation": "game",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "game|401866413|3|all",
+   "scope": "game",
+   "gameId": "401866413",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401866413",
+     "playerId": "4899137",
+     "name": "Johnny Thompson Jr.",
+     "team": "BALL",
+     "prop": "rushyds",
+     "prob": 0.4985,
+     "line": 21.5
+    },
+    {
+     "gameId": "401866413",
+     "playerId": "5265528",
+     "name": "Jalen Bonds",
+     "team": "BALL",
+     "prop": "rushyds",
+     "prob": 0.4968,
+     "line": 22.5
+    },
+    {
+     "gameId": "401866413",
+     "playerId": "5083111",
+     "name": "Qua Ashley",
+     "team": "BALL",
+     "prop": "rushyds",
+     "prob": 0.496,
+     "line": 44.5
+    }
+   ],
+   "prob": 0.1228367808,
+   "adjusted": 0.1228367808,
+   "correlation": "team",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "game|401862707|3|all",
+   "scope": "game",
+   "gameId": "401862707",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401862707",
+     "playerId": "5224011",
+     "name": "Baylor Hayes",
+     "team": "TLSA",
+     "prop": "passyds",
+     "prob": 0.5565,
+     "line": 187.5
+    },
+    {
+     "gameId": "401862707",
+     "playerId": "4430689",
+     "name": "Dominic Richardson",
+     "team": "TLSA",
+     "prop": "td",
+     "prob": 0.5299
+    },
+    {
+     "gameId": "401862707",
+     "playerId": "game",
+     "name": "TLSA at SHSU",
+     "team": null,
+     "prop": "total",
+     "prob": 0.5058,
+     "line": 51.5,
+     "side": "over"
+    }
+   ],
+   "prob": 0.14915503323,
+   "adjusted": 0.14915503323,
+   "correlation": "mixed",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "game|401856673|3|all",
+   "scope": "game",
+   "gameId": "401856673",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401856673",
+     "playerId": "4427966",
+     "name": "Maverick McIvor",
+     "team": "WKU",
+     "prop": "passyds",
+     "prob": 0.5583,
+     "line": 205.5
+    },
+    {
+     "gameId": "401856673",
+     "playerId": "4685578",
+     "name": "Gunner Stockton",
+     "team": "UGA",
+     "prop": "passyds",
+     "prob": 0.5569,
+     "line": 184.5
+    },
+    {
+     "gameId": "401856673",
+     "playerId": "5196864",
+     "name": "Rodney Tisdale Jr.",
+     "team": "WKU",
+     "prop": "passyds",
+     "prob": 0.5569,
+     "line": 167.5
+    }
+   ],
+   "prob": 0.17314982766299997,
+   "adjusted": 0.17314982766299997,
+   "correlation": "mixed",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "game|401858440|3|all",
+   "scope": "game",
+   "gameId": "401858440",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401858440",
+     "playerId": "5086034",
+     "name": "Cam Edwards",
+     "team": "MSU",
+     "prop": "td",
+     "prob": 0.5954
+    },
+    {
+     "gameId": "401858440",
+     "playerId": "4690158",
+     "name": "Noah Kim",
+     "team": "EMU",
+     "prop": "passyds",
+     "prob": 0.5565,
+     "line": 204.5
+    },
+    {
+     "gameId": "401858440",
+     "playerId": "game",
+     "name": "EMU at MSU",
+     "team": null,
+     "prop": "total",
+     "prob": 0.507,
+     "line": 49.5,
+     "side": "over"
+    }
+   ],
+   "prob": 0.16798943070000003,
+   "adjusted": 0.16798943070000003,
+   "correlation": "game",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "game|401856790|3|all",
+   "scope": "game",
+   "gameId": "401856790",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401856790",
+     "playerId": "4911929",
+     "name": "Alonza Barnett III",
+     "team": "UCF",
+     "prop": "passyds",
+     "prob": 0.5583,
+     "line": 173.5
+    },
+    {
+     "gameId": "401856790",
+     "playerId": "5208095",
+     "name": "Mason Heintschel",
+     "team": "PITT",
+     "prop": "passyds",
+     "prob": 0.5574,
+     "line": 210.5
+    },
+    {
+     "gameId": "401856790",
+     "playerId": "5085337",
+     "name": "Keyone Jenkins",
+     "team": "UCF",
+     "prop": "passyds",
+     "prob": 0.5565,
+     "line": 156.5
+    }
+   ],
+   "prob": 0.17318080773000002,
+   "adjusted": 0.17318080773000002,
+   "correlation": "mixed",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "game|401858216|3|all",
+   "scope": "game",
+   "gameId": "401858216",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401858216",
+     "playerId": "5153782",
+     "name": "Amari Odom",
+     "team": "SYR",
+     "prop": "passyds",
+     "prob": 0.5583,
+     "line": 176.5
+    },
+    {
+     "gameId": "401858216",
+     "playerId": "4685694",
+     "name": "Steve Angeli",
+     "team": "SYR",
+     "prop": "passyds",
+     "prob": 0.5574,
+     "line": 218.5
+    },
+    {
+     "gameId": "401858216",
+     "playerId": "5164313",
+     "name": "Jaron-Keawe Sagapolutele",
+     "team": "CAL",
+     "prop": "passyds",
+     "prob": 0.5565,
+     "line": 222.5
+    }
+   ],
+   "prob": 0.17318080773000002,
+   "adjusted": 0.17318080773000002,
+   "correlation": "mixed",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "game|401856786|3|all",
+   "scope": "game",
+   "gameId": "401856786",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401856786",
+     "playerId": "4912218",
+     "name": "Cyrus Allen",
+     "team": "CIN",
+     "prop": "td",
+     "prob": 0.6342
+    },
+    {
+     "gameId": "401856786",
+     "playerId": "4917310",
+     "name": "Zylan Perry",
+     "team": "CIN",
+     "prop": "td",
+     "prob": 0.6227
+    },
+    {
+     "gameId": "401856786",
+     "playerId": "4685345",
+     "name": "JC French IV",
+     "team": "CIN",
+     "prop": "td",
+     "prob": 0.5889
+    }
+   ],
+   "prob": 0.232566232626,
+   "adjusted": 0.232566232626,
+   "correlation": "team",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "game|401864504|3|all",
+   "scope": "game",
+   "gameId": "401864504",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401864504",
+     "playerId": "5295238",
+     "name": "Luke Weaver",
+     "team": "SJSU",
+     "prop": "passyds",
+     "prob": 0.5574,
+     "line": 159.5
+    },
+    {
+     "gameId": "401864504",
+     "playerId": "5089859",
+     "name": "Floyd Chalk",
+     "team": "SJSU",
+     "prop": "rushyds",
+     "prob": 0.4988,
+     "line": 28.5
+    },
+    {
+     "gameId": "401864504",
+     "playerId": "4685254",
+     "name": "Jabari Bates",
+     "team": "SJSU",
+     "prop": "rushyds",
+     "prob": 0.498,
+     "line": 46.5
+    }
+   ],
+   "prob": 0.13845949776000002,
+   "adjusted": 0.13845949776000002,
+   "correlation": "team",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "game|401860881|3|all",
+   "scope": "game",
+   "gameId": "401860881",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401860881",
+     "playerId": "4429149",
+     "name": "Brendon Lewis",
+     "team": "MEM",
+     "prop": "passyds",
+     "prob": 0.5583,
+     "line": 186.5
+    },
+    {
+     "gameId": "401860881",
+     "playerId": "4870513",
+     "name": "Maddux Madsen",
+     "team": "BOIS",
+     "prop": "passyds",
+     "prob": 0.5565,
+     "line": 192.5
+    },
+    {
+     "gameId": "401860881",
+     "playerId": "4691889",
+     "name": "Greg Desrosiers Jr.",
+     "team": "MEM",
+     "prop": "td",
+     "prob": 0.5283
+    }
+   ],
+   "prob": 0.164139613785,
+   "adjusted": 0.164139613785,
+   "correlation": "mixed",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "game|401856670|3|all",
+   "scope": "game",
+   "gameId": "401856670",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401856670",
+     "playerId": "5173431",
+     "name": "Wayshawn Parker",
+     "team": "UTAH",
+     "prop": "td",
+     "prob": 0.6385
+    },
+    {
+     "gameId": "401856670",
+     "playerId": "5296612",
+     "name": "Steve Chavez-Soto",
+     "team": "UTAH",
+     "prop": "td",
+     "prob": 0.5938
+    },
+    {
+     "gameId": "401856670",
+     "playerId": "5086050",
+     "name": "NaQuari Rogers",
+     "team": "UTAH",
+     "prop": "td",
+     "prob": 0.585
+    }
+   ],
+   "prob": 0.22179766049999997,
+   "adjusted": 0.22179766049999997,
+   "correlation": "team",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "game|401856671|3|all",
+   "scope": "game",
+   "gameId": "401856671",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401856671",
+     "playerId": "4600403",
+     "name": "Braylon Braxton",
+     "team": "USM",
+     "prop": "passyds",
+     "prob": 0.5583,
+     "line": 212.5
+    },
+    {
+     "gameId": "401856671",
+     "playerId": "4880272",
+     "name": "Byrum Brown",
+     "team": "AUB",
+     "prop": "passyds",
+     "prob": 0.5583,
+     "line": 223.5
+    },
+    {
+     "gameId": "401856671",
+     "playerId": "game",
+     "name": "USM at AUB",
+     "team": null,
+     "prop": "total",
+     "prob": 0.5177,
+     "line": 56.5,
+     "side": "under"
+    }
+   ],
+   "prob": 0.161366515353,
+   "adjusted": 0.161366515353,
+   "correlation": "game",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "game|401862702|3|all",
+   "scope": "game",
+   "gameId": "401862702",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401862702",
+     "playerId": "5150297",
+     "name": "Cale Hellums",
+     "team": "ARMY",
+     "prop": "td",
+     "prob": 0.5868
+    },
+    {
+     "gameId": "401862702",
+     "playerId": "5154559",
+     "name": "Jason Collins Jr.",
+     "team": "USF",
+     "prop": "td",
+     "prob": 0.5587
+    },
+    {
+     "gameId": "401862702",
+     "playerId": "game",
+     "name": "USF at ARMY",
+     "team": null,
+     "prop": "total",
+     "prob": 0.5136,
+     "line": 46.5,
+     "side": "over"
+    }
+   ],
+   "prob": 0.16838127417599996,
+   "adjusted": 0.16838127417599996,
+   "correlation": "game",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "game|401866418|3|all",
+   "scope": "game",
+   "gameId": "401866418",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401866418",
+     "playerId": "4431499",
+     "name": "Sieh Bangura",
+     "team": "OHIO",
+     "prop": "td",
+     "prob": 0.5878
+    },
+    {
+     "gameId": "401866418",
+     "playerId": "4610131",
+     "name": "Parker Navarro",
+     "team": "OHIO",
+     "prop": "passyds",
+     "prob": 0.5565,
+     "line": 167.5
+    },
+    {
+     "gameId": "401866418",
+     "playerId": "game",
+     "name": "JVST at OHIO",
+     "team": null,
+     "prop": "total",
+     "prob": 0.5132,
+     "line": 50.5,
+     "side": "over"
+    }
+   ],
+   "prob": 0.16787321124,
+   "adjusted": 0.16787321124,
+   "correlation": "mixed",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "game|401856682|3|all",
+   "scope": "game",
+   "gameId": "401856682",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401856682",
+     "playerId": "5079712",
+     "name": "Julian Sayin",
+     "team": "OSU",
+     "prop": "passyds",
+     "prob": 0.5601,
+     "line": 223.5
+    },
+    {
+     "gameId": "401856682",
+     "playerId": "4870906",
+     "name": "Arch Manning",
+     "team": "TEX",
+     "prop": "passyds",
+     "prob": 0.5569,
+     "line": 214.5
+    },
+    {
+     "gameId": "401856682",
+     "playerId": "5079720",
+     "name": "Jeremiah Smith",
+     "team": "OSU",
+     "prop": "td",
+     "prob": 0.5207
+    }
+   ],
+   "prob": 0.162416582583,
+   "adjusted": 0.162416582583,
+   "correlation": "mixed",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "game|401858214|3|all",
+   "scope": "game",
+   "gameId": "401858214",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401858214",
+     "playerId": "5209945",
+     "name": "Antwan Raymond",
+     "team": "RUTG",
+     "prop": "td",
+     "prob": 0.6611
+    },
+    {
+     "gameId": "401858214",
+     "playerId": "5076122",
+     "name": "Evan Dickens",
+     "team": "BC",
+     "prop": "td",
+     "prob": 0.6608
+    },
+    {
+     "gameId": "401858214",
+     "playerId": "4870900",
+     "name": "Dylan Lonergan",
+     "team": "RUTG",
+     "prop": "passyds",
+     "prob": 0.5583,
+     "line": 179.5
+    }
+   ],
+   "prob": 0.24389607950400005,
+   "adjusted": 0.24389607950400005,
+   "correlation": "mixed",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "game|401858217|3|all",
+   "scope": "game",
+   "gameId": "401858217",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401858217",
+     "playerId": "5164332",
+     "name": "Nate Sheppard",
+     "team": "DUKE",
+     "prop": "td",
+     "prob": 0.5626
+    },
+    {
+     "gameId": "401858217",
+     "playerId": "4694149",
+     "name": "Walker Eget",
+     "team": "DUKE",
+     "prop": "passyds",
+     "prob": 0.5583,
+     "line": 222.5
+    },
+    {
+     "gameId": "401858217",
+     "playerId": "4795295",
+     "name": "Katin Houser",
+     "team": "ILL",
+     "prop": "passyds",
+     "prob": 0.5569,
+     "line": 227.5
+    }
+   ],
+   "prob": 0.17492205610199998,
+   "adjusted": 0.17492205610199998,
+   "correlation": "mixed",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "game|401856684|3|all",
+   "scope": "game",
+   "gameId": "401856684",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401856684",
+     "playerId": "5030333",
+     "name": "Sedrick Alexander",
+     "team": "VAN",
+     "prop": "td",
+     "prob": 0.6435
+    },
+    {
+     "gameId": "401856684",
+     "playerId": "5084180",
+     "name": "Diego Pavia",
+     "team": "VAN",
+     "prop": "td",
+     "prob": 0.5615
+    },
+    {
+     "gameId": "401856684",
+     "playerId": "5153846",
+     "name": "Nick Minicucci",
+     "team": "DEL",
+     "prop": "passyds",
+     "prob": 0.5601,
+     "line": 246.5
+    }
+   ],
+   "prob": 0.202378272525,
+   "adjusted": 0.202378272525,
+   "correlation": "mixed",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "game|401856672|3|all",
+   "scope": "game",
+   "gameId": "401856672",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401856672",
+     "playerId": "5079322",
+     "name": "Jadan Baugh",
+     "team": "FLA",
+     "prop": "td",
+     "prob": 0.6936
+    },
+    {
+     "gameId": "401856672",
+     "playerId": "5132812",
+     "name": "Aaron Philo",
+     "team": "FLA",
+     "prop": "passyds",
+     "prob": 0.5569,
+     "line": 156.5
+    },
+    {
+     "gameId": "401856672",
+     "playerId": "4941012",
+     "name": "London Montgomery",
+     "team": "FLA",
+     "prop": "td",
+     "prob": 0.5292
+    }
+   ],
+   "prob": 0.204411882528,
+   "adjusted": 0.204411882528,
+   "correlation": "team",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "game|401864571|3|all",
+   "scope": "game",
+   "gameId": "401864571",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401864571",
+     "playerId": "5081405",
+     "name": "AJ Swann",
+     "team": "APP",
+     "prop": "passyds",
+     "prob": 0.5565,
+     "line": 175.5
+    },
+    {
+     "gameId": "401864571",
+     "playerId": "game",
+     "name": "APP at ECU",
+     "team": null,
+     "prop": "total",
+     "prob": 0.5023,
+     "line": 56.5,
+     "side": "over"
+    },
+    {
+     "gameId": "401864571",
+     "playerId": "game",
+     "name": "APP at ECU",
+     "team": "ECU",
+     "prop": "spread",
+     "prob": 0.5,
+     "line": -7.5,
+     "side": "home"
+    }
+   ],
+   "prob": 0.13976497499999999,
+   "adjusted": 0.13976497499999999,
+   "correlation": "game",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "game|401858223|3|all",
+   "scope": "game",
+   "gameId": "401858223",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401858223",
+     "playerId": "4899368",
+     "name": "Kendrick Raphael",
+     "team": "SMU",
+     "prop": "td",
+     "prob": 0.7539
+    },
+    {
+     "gameId": "401858223",
+     "playerId": "5086027",
+     "name": "TJ Harden",
+     "team": "SMU",
+     "prop": "td",
+     "prob": 0.6515
+    },
+    {
+     "gameId": "401858223",
+     "playerId": "4685409",
+     "name": "Jordan Hudson",
+     "team": "SMU",
+     "prop": "td",
+     "prob": 0.5604
+    }
+   ],
+   "prob": 0.27524934234,
+   "adjusted": 0.27524934234,
+   "correlation": "team",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "game|401858222|3|all",
+   "scope": "game",
+   "gameId": "401858222",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401858222",
+     "playerId": "5084967",
+     "name": "Victor Snow",
+     "team": "NCSU",
+     "prop": "td",
+     "prob": 0.5979
+    },
+    {
+     "gameId": "401858222",
+     "playerId": "5079301",
+     "name": "CJ Bailey",
+     "team": "NCSU",
+     "prop": "passyds",
+     "prob": 0.5583,
+     "line": 198.5
+    },
+    {
+     "gameId": "401858222",
+     "playerId": "5148611",
+     "name": "Will Wilson",
+     "team": "NCSU",
+     "prop": "td",
+     "prob": 0.5415
+    }
+   ],
+   "prob": 0.18075679915499998,
+   "adjusted": 0.18075679915499998,
+   "correlation": "team",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "game|401856791|3|all",
+   "scope": "game",
+   "gameId": "401856791",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401856791",
+     "playerId": "4918103",
+     "name": "Cam Cook",
+     "team": "WVU",
+     "prop": "td",
+     "prob": 0.7522
+    },
+    {
+     "gameId": "401856791",
+     "playerId": "5086378",
+     "name": "Diore Hubbard",
+     "team": "WVU",
+     "prop": "td",
+     "prob": 0.5427
+    },
+    {
+     "gameId": "401856791",
+     "playerId": "5079465",
+     "name": "Michael Hawkins Jr.",
+     "team": "WVU",
+     "prop": "td",
+     "prob": 0.5004
+    }
+   ],
+   "prob": 0.20427275757599997,
+   "adjusted": 0.20427275757599997,
+   "correlation": "team",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "game|401856680|3|all",
+   "scope": "game",
+   "gameId": "401856680",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401856680",
+     "playerId": "4875127",
+     "name": "LaNorris Sellers",
+     "team": "SC",
+     "prop": "passyds",
+     "prob": 0.5565,
+     "line": 184.5
+    },
+    {
+     "gameId": "401856680",
+     "playerId": "5156933",
+     "name": "Rahsul Faison",
+     "team": "SC",
+     "prop": "rushyds",
+     "prob": 0.4985,
+     "line": 34.5
+    },
+    {
+     "gameId": "401856680",
+     "playerId": "5127724",
+     "name": "Christian Clark",
+     "team": "SC",
+     "prop": "rushyds",
+     "prob": 0.4928,
+     "line": 21.5
+    }
+   ],
+   "prob": 0.1367102352,
+   "adjusted": 0.1367102352,
+   "correlation": "team",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "game|401862708|3|all",
+   "scope": "game",
+   "gameId": "401862708",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401862708",
+     "playerId": "4565187",
+     "name": "Jalen Kitna",
+     "team": "UAB",
+     "prop": "passyds",
+     "prob": 0.5583,
+     "line": 204.5
+    },
+    {
+     "gameId": "401862708",
+     "playerId": "game",
+     "name": "ULM at UAB",
+     "team": null,
+     "prop": "total",
+     "prob": 0.5027,
+     "line": 55.5,
+     "side": "over"
+    },
+    {
+     "gameId": "401862708",
+     "playerId": "game",
+     "name": "ULM at UAB",
+     "team": "ULM",
+     "prop": "spread",
+     "prob": 0.5,
+     "line": -10,
+     "side": "away"
+    }
+   ],
+   "prob": 0.14032870500000003,
+   "adjusted": 0.14032870500000003,
+   "correlation": "game",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "game|401864506|3|all",
+   "scope": "game",
+   "gameId": "401864506",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401864506",
+     "playerId": "5258056",
+     "name": "Samuel Harris",
+     "team": "WYO",
+     "prop": "rushyds",
+     "prob": 0.498,
+     "line": 43.5
+    },
+    {
+     "gameId": "401864506",
+     "playerId": "5086378",
+     "name": "Diore Hubbard",
+     "team": "WYO",
+     "prop": "rushyds",
+     "prob": 0.4963,
+     "line": 43.5
+    },
+    {
+     "gameId": "401864506",
+     "playerId": "5227257",
+     "name": "Markell Holman",
+     "team": "WYO",
+     "prop": "rushyds",
+     "prob": 0.493,
+     "line": 25.5
+    }
+   ],
+   "prob": 0.12184859819999999,
+   "adjusted": 0.12184859819999999,
+   "correlation": "team",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "game|401858444|3|all",
+   "scope": "game",
+   "gameId": "401858444",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401858444",
+     "playerId": "4683153",
+     "name": "Skyler Bell",
+     "team": "CONN",
+     "prop": "td",
+     "prob": 0.6068
+    },
+    {
+     "gameId": "401858444",
+     "playerId": "4429582",
+     "name": "Joe Fagnano",
+     "team": "CONN",
+     "prop": "passyds",
+     "prob": 0.5583,
+     "line": 238.5
+    },
+    {
+     "gameId": "401858444",
+     "playerId": "5141695",
+     "name": "Malik Washington",
+     "team": "MD",
+     "prop": "passyds",
+     "prob": 0.5583,
+     "line": 208.5
+    }
+   ],
+   "prob": 0.18913888645200003,
+   "adjusted": 0.18913888645200003,
+   "correlation": "mixed",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "game|401866412|3|all",
+   "scope": "game",
+   "gameId": "401866412",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401866412",
+     "playerId": "4431091",
+     "name": "Ben Finley",
+     "team": "AKR",
+     "prop": "passyds",
+     "prob": 0.5583,
+     "line": 192.5
+    },
+    {
+     "gameId": "401866412",
+     "playerId": "5084582",
+     "name": "Jordan Gant",
+     "team": "AKR",
+     "prop": "td",
+     "prob": 0.5398
+    },
+    {
+     "gameId": "401866412",
+     "playerId": "5146708",
+     "name": "Sean Patrick",
+     "team": "AKR",
+     "prop": "rushyds",
+     "prob": 0.498,
+     "line": 26.5
+    }
+   ],
+   "prob": 0.15008242932,
+   "adjusted": 0.15008242932,
+   "correlation": "team",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "game|401858220|3|all",
+   "scope": "game",
+   "gameId": "401858220",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401858220",
+     "playerId": "4713118",
+     "name": "J'Mari Taylor",
+     "team": "UVA",
+     "prop": "td",
+     "prob": 0.7626
+    },
+    {
+     "gameId": "401858220",
+     "playerId": "5121721",
+     "name": "Jekail Middlebrook",
+     "team": "UVA",
+     "prop": "td",
+     "prob": 0.6435
+    },
+    {
+     "gameId": "401858220",
+     "playerId": "4692530",
+     "name": "Chandler Morris",
+     "team": "UVA",
+     "prop": "passyds",
+     "prob": 0.5574,
+     "line": 189.5
+    }
+   ],
+   "prob": 0.27353462993999994,
+   "adjusted": 0.27353462993999994,
+   "correlation": "team",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "game|401864505|3|all",
+   "scope": "game",
+   "gameId": "401864505",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401864505",
+     "playerId": "5091891",
+     "name": "Lamar Sperling",
+     "team": "UTEP",
+     "prop": "rushyds",
+     "prob": 0.4985,
+     "line": 25.5
+    },
+    {
+     "gameId": "401864505",
+     "playerId": "5083068",
+     "name": "Kenny Odom",
+     "team": "UTEP",
+     "prop": "td",
+     "prob": 0.4854
+    },
+    {
+     "gameId": "401864505",
+     "playerId": "4705930",
+     "name": "Hahsaun Wilson",
+     "team": "UTEP",
+     "prop": "rushyds",
+     "prob": 0.482,
+     "line": 23.5
+    }
+   ],
+   "prob": 0.11663045579999999,
+   "adjusted": 0.11663045579999999,
+   "correlation": "team",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "game|401856677|3|all",
+   "scope": "game",
+   "gameId": "401856677",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401856677",
+     "playerId": "5144959",
+     "name": "Drake Lindsey",
+     "team": "MINN",
+     "prop": "passyds",
+     "prob": 0.5583,
+     "line": 172.5
+    },
+    {
+     "gameId": "401856677",
+     "playerId": "5081405",
+     "name": "AJ Swann",
+     "team": "MSST",
+     "prop": "passyds",
+     "prob": 0.5578,
+     "line": 172.5
+    },
+    {
+     "gameId": "401856677",
+     "playerId": "4565315",
+     "name": "Blake Shapen",
+     "team": "MSST",
+     "prop": "passyds",
+     "prob": 0.5565,
+     "line": 190.5
+    }
+   ],
+   "prob": 0.17330508531,
+   "adjusted": 0.17330508531,
+   "correlation": "mixed",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "game|401858213|3|all",
+   "scope": "game",
+   "gameId": "401858213",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401858213",
+     "playerId": "4870736",
+     "name": "Mark Fletcher Jr.",
+     "team": "MIA",
+     "prop": "td",
+     "prob": 0.7323
+    },
+    {
+     "gameId": "401858213",
+     "playerId": "5159175",
+     "name": "Malachi Toney",
+     "team": "MIA",
+     "prop": "td",
+     "prob": 0.6949
+    },
+    {
+     "gameId": "401858213",
+     "playerId": "4605951",
+     "name": "CJ Daniels",
+     "team": "MIA",
+     "prop": "td",
+     "prob": 0.5964
+    }
+   ],
+   "prob": 0.30349321102800003,
+   "adjusted": 0.30349321102800003,
+   "correlation": "team",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "game|401868187|3|all",
+   "scope": "game",
+   "gameId": "401868187",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401868187",
+     "playerId": "4832918",
+     "name": "Ethan Vasko",
+     "team": "LIB",
+     "prop": "passyds",
+     "prob": 0.5574,
+     "line": 160.5
+    },
+    {
+     "gameId": "401868187",
+     "playerId": "5150313",
+     "name": "Kanye Udoh",
+     "team": "LIB",
+     "prop": "rushyds",
+     "prob": 0.502,
+     "line": 31.5
+    },
+    {
+     "gameId": "401868187",
+     "playerId": "5139857",
+     "name": "Caden Williams",
+     "team": "LIB",
+     "prop": "rushyds",
+     "prob": 0.4985,
+     "line": 30.5
+    }
+   ],
+   "prob": 0.13948767780000002,
+   "adjusted": 0.13948767780000002,
+   "correlation": "team",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "game|401858221|3|all",
+   "scope": "game",
+   "gameId": "401858221",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401858221",
+     "playerId": "5091836",
+     "name": "Jaxon Potter",
+     "team": "ODU",
+     "prop": "passyds",
+     "prob": 0.5628,
+     "line": 149.5
+    },
+    {
+     "gameId": "401858221",
+     "playerId": "game",
+     "name": "ODU at VT",
+     "team": null,
+     "prop": "total",
+     "prob": 0.5045,
+     "line": 50.5,
+     "side": "over"
+    },
+    {
+     "gameId": "401858221",
+     "playerId": "5156906",
+     "name": "Bill Davis",
+     "team": "VT",
+     "prop": "rushyds",
+     "prob": 0.5023,
+     "line": 49.5
+    }
+   ],
+   "prob": 0.14261934497999998,
+   "adjusted": 0.14261934497999998,
+   "correlation": "game",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "game|401856782|3|all",
+   "scope": "game",
+   "gameId": "401856782",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401856782",
+     "playerId": "5141423",
+     "name": "Jordon Davison",
+     "team": "ORE",
+     "prop": "td",
+     "prob": 0.594
+    },
+    {
+     "gameId": "401856782",
+     "playerId": "4432631",
+     "name": "Noah Whittington",
+     "team": "ORE",
+     "prop": "td",
+     "prob": 0.5614
+    },
+    {
+     "gameId": "401856782",
+     "playerId": "5079572",
+     "name": "Dylan Raiola",
+     "team": "ORE",
+     "prop": "passyds",
+     "prob": 0.5596,
+     "line": 195.5
+    }
+   ],
+   "prob": 0.18661070736,
+   "adjusted": 0.18661070736,
+   "correlation": "team",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "game|401856784|3|all",
+   "scope": "game",
+   "gameId": "401856784",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401856784",
+     "playerId": "4879194",
+     "name": "Josh Cameron",
+     "team": "BAY",
+     "prop": "td",
+     "prob": 0.5759
+    },
+    {
+     "gameId": "401856784",
+     "playerId": "4432759",
+     "name": "Sawyer Robertson",
+     "team": "BAY",
+     "prop": "passyds",
+     "prob": 0.5574,
+     "line": 252.5
+    },
+    {
+     "gameId": "401856784",
+     "playerId": "5079555",
+     "name": "DJ Lagway",
+     "team": "BAY",
+     "prop": "passyds",
+     "prob": 0.5565,
+     "line": 178.5
+    }
+   ],
+   "prob": 0.17864020629,
+   "adjusted": 0.17864020629,
+   "correlation": "team",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "game|401866414|3|all",
+   "scope": "game",
+   "gameId": "401866414",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401866414",
+     "playerId": "4427313",
+     "name": "Ta'Quan Roberson",
+     "team": "BUFF",
+     "prop": "passyds",
+     "prob": 0.5574,
+     "line": 195.5
+    },
+    {
+     "gameId": "401866414",
+     "playerId": "4870883",
+     "name": "JJ Kohl",
+     "team": "FIU",
+     "prop": "passyds",
+     "prob": 0.5574,
+     "line": 169.5
+    },
+    {
+     "gameId": "401866414",
+     "playerId": "4431304",
+     "name": "Kejon Owens",
+     "team": "FIU",
+     "prop": "td",
+     "prob": 0.5228
+    }
+   ],
+   "prob": 0.16243122052800002,
+   "adjusted": 0.16243122052800002,
+   "correlation": "mixed",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "game|401856787|3|all",
+   "scope": "game",
+   "gameId": "401856787",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401856787",
+     "playerId": "5082269",
+     "name": "Dean Connors",
+     "team": "HOU",
+     "prop": "td",
+     "prob": 0.6466
+    },
+    {
+     "gameId": "401856787",
+     "playerId": "4685574",
+     "name": "Conner Weigman",
+     "team": "HOU",
+     "prop": "td",
+     "prob": 0.6255
+    },
+    {
+     "gameId": "401856787",
+     "playerId": "5077060",
+     "name": "Amare Thomas",
+     "team": "HOU",
+     "prop": "td",
+     "prob": 0.5773
+    }
+   ],
+   "prob": 0.23348800358999997,
+   "adjusted": 0.23348800358999997,
+   "correlation": "team",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "game|401864575|3|all",
+   "scope": "game",
+   "gameId": "401864575",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401864575",
+     "playerId": "4430992",
+     "name": "Kentrel Bullock",
+     "team": "USA",
+     "prop": "td",
+     "prob": 0.5865
+    },
+    {
+     "gameId": "401864575",
+     "playerId": "5150611",
+     "name": "Jake Retzlaff",
+     "team": "TULN",
+     "prop": "passyds",
+     "prob": 0.5601,
+     "line": 192.5
+    },
+    {
+     "gameId": "401864575",
+     "playerId": "4869553",
+     "name": "Bishop Davenport",
+     "team": "USA",
+     "prop": "passyds",
+     "prob": 0.5574,
+     "line": 157.5
+    }
+   ],
+   "prob": 0.18310514751000004,
+   "adjusted": 0.18310514751000004,
+   "correlation": "mixed",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "game|401856676|3|all",
+   "scope": "game",
+   "gameId": "401856676",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401856676",
+     "playerId": "5086388",
+     "name": "Kewan Lacy",
+     "team": "MISS",
+     "prop": "td",
+     "prob": 0.8158
+    },
+    {
+     "gameId": "401856676",
+     "playerId": "4911529",
+     "name": "Trinidad Chambliss",
+     "team": "MISS",
+     "prop": "passyds",
+     "prob": 0.5565,
+     "line": 220.5
+    },
+    {
+     "gameId": "401856676",
+     "playerId": "game",
+     "name": "CLT at MISS",
+     "team": null,
+     "prop": "total",
+     "prob": 0.5106,
+     "line": 61.5,
+     "side": "under"
+    }
+   ],
+   "prob": 0.23180867262000002,
+   "adjusted": 0.23180867262000002,
+   "correlation": "mixed",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "game|401866417|3|all",
+   "scope": "game",
+   "gameId": "401866417",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401866417",
+     "playerId": "4427191",
+     "name": "Dequan Finn",
+     "team": "M-OH",
+     "prop": "passyds",
+     "prob": 0.5565,
+     "line": 158.5
+    },
+    {
+     "gameId": "401866417",
+     "playerId": "4431432",
+     "name": "Kenny Tracy",
+     "team": "M-OH",
+     "prop": "td",
+     "prob": 0.5203
+    },
+    {
+     "gameId": "401866417",
+     "playerId": "4565532",
+     "name": "Jordan Brunson",
+     "team": "M-OH",
+     "prop": "rushyds",
+     "prob": 0.4988,
+     "line": 52.5
+    }
+   ],
+   "prob": 0.14442601866,
+   "adjusted": 0.14442601866,
+   "correlation": "team",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "game|401858218|3|all",
+   "scope": "game",
+   "gameId": "401858218",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401858218",
+     "playerId": "5008017",
+     "name": "Benjamin Hall",
+     "team": "UNC",
+     "prop": "rushyds",
+     "prob": 0.4918,
+     "line": 25.5
+    },
+    {
+     "gameId": "401858218",
+     "playerId": "5079468",
+     "name": "Davion Gause",
+     "team": "UNC",
+     "prop": "rushyds",
+     "prob": 0.4908,
+     "line": 22.5
+    },
+    {
+     "gameId": "401858218",
+     "playerId": "5228607",
+     "name": "Demon June",
+     "team": "UNC",
+     "prop": "rushyds",
+     "prob": 0.488,
+     "line": 36.5
+    }
+   ],
+   "prob": 0.11779121472000001,
+   "adjusted": 0.11779121472000001,
+   "correlation": "team",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "game|401858443|3|all",
+   "scope": "game",
+   "gameId": "401858443",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401858443",
+     "playerId": "4912453",
+     "name": "Lucky Sutton",
+     "team": "SDSU",
+     "prop": "td",
+     "prob": 0.5734
+    },
+    {
+     "gameId": "401858443",
+     "playerId": "4870799",
+     "name": "Nico Iamaleava",
+     "team": "UCLA",
+     "prop": "passyds",
+     "prob": 0.5556,
+     "line": 160.5
+    },
+    {
+     "gameId": "401858443",
+     "playerId": "game",
+     "name": "SDSU at UCLA",
+     "team": null,
+     "prop": "total",
+     "prob": 0.5237,
+     "line": 54.5,
+     "side": "under"
+    }
+   ],
+   "prob": 0.166840890648,
+   "adjusted": 0.166840890648,
+   "correlation": "game",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "game|401866421|3|all",
+   "scope": "game",
+   "gameId": "401866421",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401866421",
+     "playerId": "5074245",
+     "name": "Broc Lowry",
+     "team": "WMU",
+     "prop": "td",
+     "prob": 0.6208
+    },
+    {
+     "gameId": "401866421",
+     "playerId": "5085006",
+     "name": "Jalen Buckley",
+     "team": "WMU",
+     "prop": "td",
+     "prob": 0.5701
+    },
+    {
+     "gameId": "401866421",
+     "playerId": "5296166",
+     "name": "Ofa Mataele",
+     "team": "WMU",
+     "prop": "rushyds",
+     "prob": 0.4985,
+     "line": 22.5
+    }
+   ],
+   "prob": 0.17642816288000002,
+   "adjusted": 0.17642816288000002,
+   "correlation": "team",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "game|401858439|3|all",
+   "scope": "game",
+   "gameId": "401858439",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401858439",
+     "playerId": "5146724",
+     "name": "Turbo Richard",
+     "team": "IU",
+     "prop": "td",
+     "prob": 0.8004
+    },
+    {
+     "gameId": "401858439",
+     "playerId": "5088338",
+     "name": "Elijah Sarratt",
+     "team": "IU",
+     "prop": "td",
+     "prob": 0.7391
+    },
+    {
+     "gameId": "401858439",
+     "playerId": "4723820",
+     "name": "Omar Cooper Jr.",
+     "team": "IU",
+     "prop": "td",
+     "prob": 0.7135
+    }
+   ],
+   "prob": 0.42208921913999997,
+   "adjusted": 0.42208921913999997,
+   "correlation": "team",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "game|401869955|3|all",
+   "scope": "game",
+   "gameId": "401869955",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401869955",
+     "playerId": "4431948",
+     "name": "TJ Finley",
+     "team": "GAST",
+     "prop": "passyds",
+     "prob": 0.5565,
+     "line": 154.5
+    },
+    {
+     "gameId": "401869955",
+     "playerId": "4694074",
+     "name": "Coleman Bennett",
+     "team": "KENN",
+     "prop": "td",
+     "prob": 0.5256
+    },
+    {
+     "gameId": "401869955",
+     "playerId": "4876752",
+     "name": "Gabriel Benyard",
+     "team": "KENN",
+     "prop": "td",
+     "prob": 0.5103
+    }
+   ],
+   "prob": 0.14926091292,
+   "adjusted": 0.14926091292,
+   "correlation": "mixed",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "game|401858224|3|all",
+   "scope": "game",
+   "gameId": "401858224",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401858224",
+     "playerId": "4697512",
+     "name": "Robby Ashford",
+     "team": "WAKE",
+     "prop": "passyds",
+     "prob": 0.5574,
+     "line": 173.5
+    },
+    {
+     "gameId": "401858224",
+     "playerId": "4920227",
+     "name": "Gio Lopez",
+     "team": "WAKE",
+     "prop": "passyds",
+     "prob": 0.5565,
+     "line": 159.5
+    },
+    {
+     "gameId": "401858224",
+     "playerId": "5104738",
+     "name": "Ryan Browne",
+     "team": "PUR",
+     "prop": "passyds",
+     "prob": 0.5565,
+     "line": 171.5
+    }
+   ],
+   "prob": 0.17262246015,
+   "adjusted": 0.17262246015,
+   "correlation": "mixed",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "game|401860882|3|all",
+   "scope": "game",
+   "gameId": "401860882",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401860882",
+     "playerId": "5095078",
+     "name": "Mel Brown",
+     "team": "CSU",
+     "prop": "rushyds",
+     "prob": 0.4955,
+     "line": 40.5
+    },
+    {
+     "gameId": "401860882",
+     "playerId": "4894661",
+     "name": "Durell Robinson",
+     "team": "CSU",
+     "prop": "rushyds",
+     "prob": 0.4928,
+     "line": 28.5
+    },
+    {
+     "gameId": "401860882",
+     "playerId": "5078251",
+     "name": "Justin Marshall",
+     "team": "CSU",
+     "prop": "rushyds",
+     "prob": 0.4918,
+     "line": 25.5
+    }
+   ],
+   "prob": 0.12008890432,
+   "adjusted": 0.12008890432,
+   "correlation": "team",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "game|401856783|3|all",
+   "scope": "game",
+   "gameId": "401856783",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401856783",
+     "playerId": "5193580",
+     "name": "Cameron Dickey",
+     "team": "TTU",
+     "prop": "td",
+     "prob": 0.6674
+    },
+    {
+     "gameId": "401856783",
+     "playerId": "4773919",
+     "name": "Thomas Castellanos",
+     "team": "TTU",
+     "prop": "passyds",
+     "prob": 0.5587,
+     "line": 201.5
+    },
+    {
+     "gameId": "401856783",
+     "playerId": "4685497",
+     "name": "Maalik Murphy",
+     "team": "ORST",
+     "prop": "passyds",
+     "prob": 0.5583,
+     "line": 160.5
+    }
+   ],
+   "prob": 0.20817688295399997,
+   "adjusted": 0.20817688295399997,
+   "correlation": "mixed",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "game|401856681|3|all",
+   "scope": "game",
+   "gameId": "401856681",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401856681",
+     "playerId": "4921108",
+     "name": "DeSean Bishop",
+     "team": "TENN",
+     "prop": "td",
+     "prob": 0.6377
+    },
+    {
+     "gameId": "401856681",
+     "playerId": "4870760",
+     "name": "Justice Haynes",
+     "team": "GT",
+     "prop": "td",
+     "prob": 0.6033
+    },
+    {
+     "gameId": "401856681",
+     "playerId": "4428993",
+     "name": "Haynes King",
+     "team": "GT",
+     "prop": "td",
+     "prob": 0.5905
+    }
+   ],
+   "prob": 0.22717976410500001,
+   "adjusted": 0.22717976410500001,
+   "correlation": "mixed",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "game|401856785|3|all",
+   "scope": "game",
+   "gameId": "401856785",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401856785",
+     "playerId": "5152815",
+     "name": "Danny Scudero",
+     "team": "COLO",
+     "prop": "td",
+     "prob": 0.5521
+    },
+    {
+     "gameId": "401856785",
+     "playerId": "5079626",
+     "name": "Micah Welch",
+     "team": "COLO",
+     "prop": "rushyds",
+     "prob": 0.4928,
+     "line": 31.5
+    },
+    {
+     "gameId": "401856785",
+     "playerId": "5079536",
+     "name": "Kam Mikell",
+     "team": "COLO",
+     "prop": "rushyds",
+     "prob": 0.4925,
+     "line": 21.5
+    }
+   ],
+   "prob": 0.13399687840000002,
+   "adjusted": 0.13399687840000002,
+   "correlation": "team",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "game|401856683|3|all",
+   "scope": "game",
+   "gameId": "401856683",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401856683",
+     "playerId": "4870971",
+     "name": "Marcel Reed",
+     "team": "TA&M",
+     "prop": "passyds",
+     "prob": 0.5583,
+     "line": 209.5
+    },
+    {
+     "gameId": "401856683",
+     "playerId": "5141378",
+     "name": "Cutter Boley",
+     "team": "ASU",
+     "prop": "passyds",
+     "prob": 0.5574,
+     "line": 185.5
+    },
+    {
+     "gameId": "401856683",
+     "playerId": "game",
+     "name": "ASU at TA&M",
+     "team": null,
+     "prop": "total",
+     "prob": 0.5064,
+     "line": 50.5,
+     "side": "over"
+    }
+   ],
+   "prob": 0.157589867088,
+   "adjusted": 0.157589867088,
+   "correlation": "game",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "game|401866415|3|all",
+   "scope": "game",
+   "gameId": "401866415",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401866415",
+     "playerId": "5084769",
+     "name": "Angel Flores",
+     "team": "CMU",
+     "prop": "td",
+     "prob": 0.5528
+    },
+    {
+     "gameId": "401866415",
+     "playerId": "5122147",
+     "name": "Vaughn Blue",
+     "team": "CMU",
+     "prop": "rushyds",
+     "prob": 0.4978,
+     "line": 23.5
+    },
+    {
+     "gameId": "401866415",
+     "playerId": "5146689",
+     "name": "Brock Townsend",
+     "team": "CMU",
+     "prop": "rushyds",
+     "prob": 0.4948,
+     "line": 30.5
+    }
+   ],
+   "prob": 0.136160964032,
+   "adjusted": 0.136160964032,
+   "correlation": "team",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "game|401856674|3|all",
+   "scope": "game",
+   "gameId": "401856674",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401856674",
+     "playerId": "4685522",
+     "name": "Ty Simpson",
+     "team": "ALA",
+     "prop": "passyds",
+     "prob": 0.5574,
+     "line": 215.5
+    },
+    {
+     "gameId": "401856674",
+     "playerId": "game",
+     "name": "ALA at UK",
+     "team": null,
+     "prop": "total",
+     "prob": 0.5034,
+     "line": 49.5,
+     "side": "under"
+    },
+    {
+     "gameId": "401856674",
+     "playerId": "game",
+     "name": "ALA at UK",
+     "team": "ALA",
+     "prop": "spread",
+     "prob": 0.5,
+     "line": 10.5,
+     "side": "away"
+    }
+   ],
+   "prob": 0.14029757999999998,
+   "adjusted": 0.14029757999999998,
+   "correlation": "mixed",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "game|401856679|3|all",
+   "scope": "game",
+   "gameId": "401856679",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401856679",
+     "playerId": "4915980",
+     "name": "John Mateer",
+     "team": "OU",
+     "prop": "passyds",
+     "prob": 0.5583,
+     "line": 200.5
+    },
+    {
+     "gameId": "401856679",
+     "playerId": "5141741",
+     "name": "Bryce Underwood",
+     "team": "MICH",
+     "prop": "passyds",
+     "prob": 0.5565,
+     "line": 167.5
+    },
+    {
+     "gameId": "401856679",
+     "playerId": "game",
+     "name": "OU at MICH",
+     "team": null,
+     "prop": "total",
+     "prob": 0.5068,
+     "line": 43.5,
+     "side": "under"
+    }
+   ],
+   "prob": 0.15745969386,
+   "adjusted": 0.15745969386,
+   "correlation": "game",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "game|401862703|3|all",
+   "scope": "game",
+   "gameId": "401862703",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401862703",
+     "playerId": "5081504",
+     "name": "Blake Horvath",
+     "team": "NAVY",
+     "prop": "td",
+     "prob": 0.7502
+    },
+    {
+     "gameId": "401862703",
+     "playerId": "5158343",
+     "name": "Braxton Woodson",
+     "team": "NAVY",
+     "prop": "td",
+     "prob": 0.6718
+    },
+    {
+     "gameId": "401862703",
+     "playerId": "5081526",
+     "name": "Alex Tecza",
+     "team": "NAVY",
+     "prop": "td",
+     "prob": 0.6558
+    }
+   ],
+   "prob": 0.33051294328799996,
+   "adjusted": 0.33051294328799996,
+   "correlation": "team",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "game|401866416|3|all",
+   "scope": "game",
+   "gameId": "401866416",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401866416",
+     "playerId": "5119841",
+     "name": "Dru DeShields",
+     "team": "KENT",
+     "prop": "passyds",
+     "prob": 0.5601,
+     "line": 158.5
+    },
+    {
+     "gameId": "401866416",
+     "playerId": "4875385",
+     "name": "Jordan Nubin",
+     "team": "KENT",
+     "prop": "rushyds",
+     "prob": 0.4973,
+     "line": 28.5
+    },
+    {
+     "gameId": "401866416",
+     "playerId": "4690159",
+     "name": "Sebastian Brown",
+     "team": "KENT",
+     "prop": "recyds",
+     "prob": 0.4033,
+     "line": 21.5
+    }
+   ],
+   "prob": 0.11233426650900001,
+   "adjusted": 0.11233426650900001,
+   "correlation": "team",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "game|401866419|3|all",
+   "scope": "game",
+   "gameId": "401866419",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401866419",
+     "playerId": "4430893",
+     "name": "Chip Trayanum",
+     "team": "TOL",
+     "prop": "td",
+     "prob": 0.7697
+    },
+    {
+     "gameId": "401866419",
+     "playerId": "4837200",
+     "name": "Junior Vandeross III",
+     "team": "TOL",
+     "prop": "td",
+     "prob": 0.6487
+    },
+    {
+     "gameId": "401866419",
+     "playerId": "4429801",
+     "name": "Tucker Gleason",
+     "team": "TOL",
+     "prop": "passyds",
+     "prob": 0.5583,
+     "line": 183.5
+    }
+   ],
+   "prob": 0.27876164093700007,
+   "adjusted": 0.27876164093700007,
+   "correlation": "team",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "game|401871045|3|all",
+   "scope": "game",
+   "gameId": "401871045",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401871045",
+     "playerId": "4432691",
+     "name": "Carlos Del Rio-Wilson",
+     "team": "MRSH",
+     "prop": "passyds",
+     "prob": 0.5601,
+     "line": 161.5
+    },
+    {
+     "gameId": "401871045",
+     "playerId": "4682518",
+     "name": "Nicholas Vattiato",
+     "team": "MTSU",
+     "prop": "passyds",
+     "prob": 0.5601,
+     "line": 196.5
+    },
+    {
+     "gameId": "401871045",
+     "playerId": "5194626",
+     "name": "Roman Gagliano",
+     "team": "MTSU",
+     "prop": "passyds",
+     "prob": 0.5565,
+     "line": 165.5
+    }
+   ],
+   "prob": 0.17458073356500003,
+   "adjusted": 0.17458073356500003,
+   "correlation": "mixed",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "game|401856810|3|all",
+   "scope": "game",
+   "gameId": "401856810",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401856810",
+     "playerId": "4801717",
+     "name": "Noah Fifita",
+     "team": "ARIZ",
+     "prop": "passyds",
+     "prob": 0.5565,
+     "line": 213.5
+    },
+    {
+     "gameId": "401856810",
+     "playerId": "5141367",
+     "name": "Bear Bachmeier",
+     "team": "BYU",
+     "prop": "passyds",
+     "prob": 0.5565,
+     "line": 185.5
+    },
+    {
+     "gameId": "401856810",
+     "playerId": "game",
+     "name": "ARIZ at BYU",
+     "team": null,
+     "prop": "total",
+     "prob": 0.506,
+     "line": 48.5,
+     "side": "over"
+    }
+   ],
+   "prob": 0.15670427850000002,
+   "adjusted": 0.15670427850000002,
+   "correlation": "game",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "game|401858215|3|all",
+   "scope": "game",
+   "gameId": "401858215",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401858215",
+     "playerId": "5079349",
+     "name": "Isaac Brown",
+     "team": "LOU",
+     "prop": "td",
+     "prob": 0.5752
+    },
+    {
+     "gameId": "401858215",
+     "playerId": "4431580",
+     "name": "Miller Moss",
+     "team": "LOU",
+     "prop": "passyds",
+     "prob": 0.5601,
+     "line": 195.5
+    },
+    {
+     "gameId": "401858215",
+     "playerId": "4869961",
+     "name": "Chris Bell",
+     "team": "LOU",
+     "prop": "td",
+     "prob": 0.5347
+    }
+   ],
+   "prob": 0.172264042344,
+   "adjusted": 0.172264042344,
+   "correlation": "team",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "game|401864502|3|all",
+   "scope": "game",
+   "gameId": "401864502",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401864502",
+     "playerId": "5238868",
+     "name": "Liam Szarka",
+     "team": "AFA",
+     "prop": "td",
+     "prob": 0.5557
+    },
+    {
+     "gameId": "401864502",
+     "playerId": "game",
+     "name": "NDSU at AFA",
+     "team": null,
+     "prop": "total",
+     "prob": 0.5018,
+     "line": 47.5,
+     "side": "over"
+    },
+    {
+     "gameId": "401864502",
+     "playerId": "game",
+     "name": "NDSU at AFA",
+     "team": "NDSU",
+     "prop": "spread",
+     "prob": 0.5,
+     "line": 2.5,
+     "side": "away"
+    }
+   ],
+   "prob": 0.13942513,
+   "adjusted": 0.13942513,
+   "correlation": "game",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "game|401866420|3|all",
+   "scope": "game",
+   "gameId": "401866420",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401866420",
+     "playerId": "5086379",
+     "name": "Brandon Hood",
+     "team": "MASS",
+     "prop": "rushyds",
+     "prob": 0.4985,
+     "line": 28.5
+    },
+    {
+     "gameId": "401866420",
+     "playerId": "4433827",
+     "name": "Rocko Griffin",
+     "team": "MASS",
+     "prop": "rushyds",
+     "prob": 0.488,
+     "line": 26.5
+    },
+    {
+     "gameId": "401866420",
+     "playerId": "4900879",
+     "name": "Jacquon Gibson",
+     "team": "MASS",
+     "prop": "recs",
+     "prob": 0.4553,
+     "line": 5.5
+    }
+   ],
+   "prob": 0.11075992039999999,
+   "adjusted": 0.11075992039999999,
+   "correlation": "team",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "game|401864503|3|all",
+   "scope": "game",
+   "gameId": "401864503",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401864503",
+     "playerId": "5296154",
+     "name": "Chavon Wright",
+     "team": "NIU",
+     "prop": "rushyds",
+     "prob": 0.498,
+     "line": 58.5
+    },
+    {
+     "gameId": "401864503",
+     "playerId": "5193302",
+     "name": "Telly Johnson Jr.",
+     "team": "NIU",
+     "prop": "rushyds",
+     "prob": 0.493,
+     "line": 47.5
+    },
+    {
+     "gameId": "401864503",
+     "playerId": "5219932",
+     "name": "Elijah Porter",
+     "team": "NIU",
+     "prop": "rushyds",
+     "prob": 0.4925,
+     "line": 20.5
+    }
+   ],
+   "prob": 0.12091564499999999,
+   "adjusted": 0.12091564499999999,
+   "correlation": "team",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "game|401858446|3|all",
+   "scope": "game",
+   "gameId": "401858446",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401858446",
+     "playerId": "4702555",
+     "name": "Jonah Coleman",
+     "team": "WASH",
+     "prop": "td",
+     "prob": 0.6681
+    },
+    {
+     "gameId": "401858446",
+     "playerId": "4695600",
+     "name": "Bryson Barnes",
+     "team": "USU",
+     "prop": "passyds",
+     "prob": 0.5601,
+     "line": 193.5
+    },
+    {
+     "gameId": "401858446",
+     "playerId": "5079653",
+     "name": "Demond Williams Jr.",
+     "team": "WASH",
+     "prop": "passyds",
+     "prob": 0.5565,
+     "line": 207.5
+    }
+   ],
+   "prob": 0.20824386376500004,
+   "adjusted": 0.20824386376500004,
+   "correlation": "mixed",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "game|401868008|3|all",
+   "scope": "game",
+   "gameId": "401868008",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401868008",
+     "playerId": "5103798",
+     "name": "Daelen Alexander",
+     "team": "CCU",
+     "prop": "rushyds",
+     "prob": 0.4963,
+     "line": 45.5
+    },
+    {
+     "gameId": "401868008",
+     "playerId": "4606658",
+     "name": "Samari Collier",
+     "team": "CCU",
+     "prop": "rushyds",
+     "prob": 0.4928,
+     "line": 42.5
+    },
+    {
+     "gameId": "401868008",
+     "playerId": "4697741",
+     "name": "Jalen John",
+     "team": "CCU",
+     "prop": "rushyds",
+     "prob": 0.4928,
+     "line": 20.5
+    }
+   ],
+   "prob": 0.12052736819200001,
+   "adjusted": 0.12052736819200001,
+   "correlation": "team",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "game|401859184|3|all",
+   "scope": "game",
+   "gameId": "401859184",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401859184",
+     "playerId": "4870808",
+     "name": "Jeremiyah Love",
+     "team": "ND",
+     "prop": "td",
+     "prob": 0.7802
+    },
+    {
+     "gameId": "401859184",
+     "playerId": "4685512",
+     "name": "Jadarian Price",
+     "team": "ND",
+     "prop": "td",
+     "prob": 0.6158
+    },
+    {
+     "gameId": "401859184",
+     "playerId": "5079369",
+     "name": "CJ Carr",
+     "team": "ND",
+     "prop": "passyds",
+     "prob": 0.5569,
+     "line": 199.5
+    }
+   ],
+   "prob": 0.267561023404,
+   "adjusted": 0.267561023404,
+   "correlation": "team",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "game|401867929|3|all",
+   "scope": "game",
+   "gameId": "401867929",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401867929",
+     "playerId": "4879060",
+     "name": "Jordan Fuller",
+     "team": "JMU",
+     "prop": "td",
+     "prob": 0.5911
+    },
+    {
+     "gameId": "401867929",
+     "playerId": "5172036",
+     "name": "JC Evans",
+     "team": "JMU",
+     "prop": "rushyds",
+     "prob": 0.4985,
+     "line": 25.5
+    },
+    {
+     "gameId": "401867929",
+     "playerId": "4577880",
+     "name": "Jobi Malary",
+     "team": "JMU",
+     "prop": "rushyds",
+     "prob": 0.496,
+     "line": 38.5
+    }
+   ],
+   "prob": 0.1461530216,
+   "adjusted": 0.1461530216,
+   "correlation": "team",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "game|401860884|3|all",
+   "scope": "game",
+   "gameId": "401860884",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401860884",
+     "playerId": "5151317",
+     "name": "Robert Henry Jr.",
+     "team": "UTSA",
+     "prop": "td",
+     "prob": 0.6402
+    },
+    {
+     "gameId": "401860884",
+     "playerId": "4608607",
+     "name": "Lincoln Pare",
+     "team": "TXST",
+     "prop": "td",
+     "prob": 0.6363
+    },
+    {
+     "gameId": "401860884",
+     "playerId": "5148803",
+     "name": "Brad Jackson",
+     "team": "TXST",
+     "prop": "td",
+     "prob": 0.5865
+    }
+   ],
+   "prob": 0.23891620599000002,
+   "adjusted": 0.23891620599000002,
+   "correlation": "mixed",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "game|401868241|3|all",
+   "scope": "game",
+   "gameId": "401868241",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401868241",
+     "playerId": "4888886",
+     "name": "Kenyon Clay",
+     "team": "ARST",
+     "prop": "td",
+     "prob": 0.5459
+    },
+    {
+     "gameId": "401868241",
+     "playerId": "5149058",
+     "name": "Devin Spencer",
+     "team": "ARST",
+     "prop": "rushyds",
+     "prob": 0.4885,
+     "line": 38.5
+    },
+    {
+     "gameId": "401868241",
+     "playerId": "4870601",
+     "name": "Jaylen Bonelli",
+     "team": "ARST",
+     "prop": "recs",
+     "prob": 0.4568,
+     "line": 2.5
+    }
+   ],
+   "prob": 0.12181583811999999,
+   "adjusted": 0.12181583811999999,
+   "correlation": "team",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "game|401856789|3|all",
+   "scope": "game",
+   "gameId": "401856789",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401856789",
+     "playerId": "4602185",
+     "name": "Eric McAlister",
+     "team": "TCU",
+     "prop": "td",
+     "prob": 0.6186
+    },
+    {
+     "gameId": "401856789",
+     "playerId": "4688595",
+     "name": "Kevorian Barnes",
+     "team": "TCU",
+     "prop": "td",
+     "prob": 0.603
+    },
+    {
+     "gameId": "401856789",
+     "playerId": "5079663",
+     "name": "Jeremy Payne",
+     "team": "TCU",
+     "prop": "td",
+     "prob": 0.5668
+    }
+   ],
+   "prob": 0.21142535544,
+   "adjusted": 0.21142535544,
+   "correlation": "team",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "game|401868326|3|all",
+   "scope": "game",
+   "gameId": "401868326",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401868326",
+     "playerId": "4431633",
+     "name": "Goose Crowder",
+     "team": "TROY",
+     "prop": "passyds",
+     "prob": 0.5569,
+     "line": 160.5
+    },
+    {
+     "gameId": "401868326",
+     "playerId": "4880395",
+     "name": "Tae Meadows",
+     "team": "TROY",
+     "prop": "td",
+     "prob": 0.5288
+    },
+    {
+     "gameId": "401868326",
+     "playerId": "5120317",
+     "name": "Jordan Lovett",
+     "team": "TROY",
+     "prop": "rushyds",
+     "prob": 0.4898,
+     "line": 26.5
+    }
+   ],
+   "prob": 0.144240575056,
+   "adjusted": 0.144240575056,
+   "correlation": "team",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "game|401858219|3|all",
+   "scope": "game",
+   "gameId": "401858219",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401858219",
+     "playerId": "4685526",
+     "name": "Adam Randall",
+     "team": "CLEM",
+     "prop": "td",
+     "prob": 0.5775
+    },
+    {
+     "gameId": "401858219",
+     "playerId": "4685413",
+     "name": "Cade Klubnik",
+     "team": "CLEM",
+     "prop": "passyds",
+     "prob": 0.5601,
+     "line": 209.5
+    },
+    {
+     "gameId": "401858219",
+     "playerId": "game",
+     "name": "GASO at CLEM",
+     "team": null,
+     "prop": "total",
+     "prob": 0.5039,
+     "line": 55.5,
+     "side": "over"
+    }
+   ],
+   "prob": 0.16299036022500002,
+   "adjusted": 0.16299036022500002,
+   "correlation": "mixed",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "game|401871046|3|all",
+   "scope": "game",
+   "gameId": "401871046",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401871046",
+     "playerId": "4695787",
+     "name": "Shomari Lawrence",
+     "team": "MOST",
+     "prop": "td",
+     "prob": 0.5866
+    },
+    {
+     "gameId": "401871046",
+     "playerId": "4569535",
+     "name": "Jacob Clark",
+     "team": "MOST",
+     "prop": "passyds",
+     "prob": 0.5601,
+     "line": 218.5
+    },
+    {
+     "gameId": "401871046",
+     "playerId": "5083042",
+     "name": "Skyler Locklear",
+     "team": "MOST",
+     "prop": "td",
+     "prob": 0.5445
+    }
+   ],
+   "prob": 0.17889801237000003,
+   "adjusted": 0.17889801237000003,
+   "correlation": "team",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
+  },
+  {
+   "key": "game|401858445|3|all",
+   "scope": "game",
+   "gameId": "401858445",
+   "tag": "all",
+   "legs": [
+    {
+     "gameId": "401858445",
+     "playerId": "4870795",
+     "name": "Makai Lemon",
+     "team": "USC",
+     "prop": "td",
+     "prob": 0.5892
+    },
+    {
+     "gameId": "401858445",
+     "playerId": "4685454",
+     "name": "Jayden Maiava",
+     "team": "USC",
+     "prop": "passyds",
+     "prob": 0.5569,
+     "line": 246.5
+    },
+    {
+     "gameId": "401858445",
+     "playerId": "5295318",
+     "name": "Waymond Jordan",
+     "team": "USC",
+     "prop": "td",
+     "prob": 0.5493
+    }
+   ],
+   "prob": 0.18023932616399996,
+   "adjusted": 0.18023932616399996,
+   "correlation": "team",
+   "recordedAt": "2026-09-09T20:42:09.214Z"
   }
  ]
 }

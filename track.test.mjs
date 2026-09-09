@@ -326,11 +326,20 @@ const close = (a, b, tol = 1e-9) => assert.ok(Math.abs(a - b) <= tol, `${a} ≈ 
 const FUTURE = "2099-01-01T18:00Z", PAST = "2000-01-01T18:00Z";
 const td = (gameId, playerId, team, prob, kickoff = FUTURE) => ({ gameId, playerId, name: "P" + playerId, team, prop: "td", prob, kickoff });
 
-test("parlayCandidates: this day's touchdown rows whose game has not started", () => {
-  const day = { predictions: [td("g1", "a", "X", 0.6), td("g1", "b", "Y", 0.5), td("g2", "c", "Z", 0.4, PAST), { gameId: "g1", playerId: "a", prop: "recyds", prob: 0.5, kickoff: FUTURE }, { gameId: "g3", playerId: "game", prop: "spread", prob: 0.5, kickoff: FUTURE }] };
-  const c = parlayCandidates(day, Date.parse("2050-01-01T00:00Z"));
-  assert.deepEqual(c.map((x) => x.playerId), ["a", "b"], "a started game and the other props are out");
-  assert.deepEqual(c[0], { key: "g1|a|td", playerId: "a", gameId: "g1", team: "X", name: "Pa", prob: 0.6, prop: "td" });
+test("parlayCandidates: this day's rows on the eligible props whose game has not started", () => {
+  const day = { predictions: [td("g1", "a", "X", 0.6), td("g1", "b", "Y", 0.5), td("g2", "c", "Z", 0.4, PAST),
+    { gameId: "g1", playerId: "a", name: "Pa", team: "X", prop: "recyds", prob: 0.54, line: 60.5, kickoff: FUTURE },
+    { gameId: "g3", playerId: "game", name: "B at A", team: "A", opp: "B", prop: "spread", side: "away", line: 3, prob: 0.5, kickoff: FUTURE },
+    { gameId: "g3", playerId: "game", name: "B at A", team: "A", opp: "B", prop: "total", side: "under", line: 44.5, prob: 0.52, kickoff: FUTURE }] };
+  const now = Date.parse("2050-01-01T00:00Z");
+  const c = parlayCandidates(day, ["td"], now);
+  assert.deepEqual(c.map((x) => x.key), ["g1|a|td", "g1|b|td"], "a started game and the other props are out");
+  assert.deepEqual(c[0], { key: "g1|a|td", playerId: "a", gameId: "g1", team: "X", name: "Pa", prob: 0.6, prop: "td", line: null, side: null });
+  const all = parlayCandidates(day, ["td", "recyds", "spread", "total"], now);
+  assert.deepEqual(all.map((x) => x.key), ["g1|a|td", "g1|b|td", "g1|a|recyds", "g3|game|spread", "g3|game|total"]);
+  assert.equal(all[3].team, "B", "a spread leg's team is the side it took");
+  assert.equal(all[4].team, null, "a total is nobody's team");
+  assert.equal(all[2].line, 60.5);
 });
 
 test("recordSuggestedParlays: slate slips of 3, 4 and 5 and a 3-leg slip per open game, first wins", () => {
@@ -340,17 +349,18 @@ test("recordSuggestedParlays: slate slips of 3, 4 and 5 and a 3-leg slip per ope
     td("g3", "f", "V", 0.45),
   ] };
   const lift = { game: 1, team: 0.85 };
-  const added = recordSuggestedParlays(day, parlayCandidates(day, 0), lift, "2026-09-09T00:00:00Z");
+  const added = recordSuggestedParlays(day, parlayCandidates(day, ["td"], 0), lift, "2026-09-09T00:00:00Z");
   assert.equal(added, 2, "a 3-leg slate slip and g1's slip; 4 and 5 legs need 4 and 5 games; g2 and g3 have too few legs");
   const slate = day.parlays.find((s) => s.scope === "slate");
   assert.deepEqual(slate.legs.map((l) => l.playerId), ["a", "d", "f"]);
   close(slate.prob, 0.6 * 0.55 * 0.45); assert.equal(slate.correlation, "none"); close(slate.adjusted, slate.prob);
   const g1 = day.parlays.find((s) => s.scope === "game");
   assert.equal(g1.gameId, "g1"); assert.deepEqual(g1.legs.map((l) => l.playerId), ["a", "b", "c"]);
-  assert.equal(g1.correlation, "team"); close(g1.adjusted, 0.6 * 0.5 * 0.4 * 0.85);
+  assert.equal(g1.correlation, "mixed", "two of three on one team"); close(g1.adjusted, 0.6 * 0.5 * 0.4, 1e-9);
+  assert.equal(g1.tag, "all"); assert.match(g1.key, /\|all$/, "the key names the leg set the slip drew on");
   // Run again with a better leg now on the board: first prediction wins.
   day.predictions.push(td("g1", "z", "Y", 0.9));
-  assert.equal(recordSuggestedParlays(day, parlayCandidates(day, 0), lift), 0);
+  assert.equal(recordSuggestedParlays(day, parlayCandidates(day, ["td"], 0), lift), 0);
   assert.deepEqual(day.parlays.find((s) => s.scope === "game").legs.map((l) => l.playerId), ["a", "b", "c"]);
 });
 

@@ -219,7 +219,7 @@ export function snapshot(league) {
   /* The slips the board would suggest -- the whole slate at 3, 4 and 5
      legs, and one game at 3 -- recorded the same way, so the number a
      parlay product would sell is measured and not only the legs. */
-  const slips = recordSuggestedParlays(day, parlayCandidates(day), M.DEFAULTS.parlayLift);
+  const slips = recordSuggestedParlays(day, parlayCandidates(day, M.DEFAULTS.parlayProps), M.DEFAULTS.parlayLift);
 
   core.saveDay(HIST, day);
   if (slips) console.log(`  + ${slips} suggested parlays recorded`);
@@ -288,11 +288,20 @@ export function settlePlayer(pred, line) {
  * Suggested parlays, recorded and settled
  * ------------------------------------------------------------------ */
 
-/** Legs the suggester may use: this day's touchdown rows whose game has not started. */
-export function parlayCandidates(day, now = Date.now()) {
+/**
+ * Legs the suggester may use: this day's rows on the parlay-eligible props
+ * (the model's parlayProps) whose game has not started. A spread pick's
+ * team is the side it took; a total's is nobody's.
+ */
+export function parlayCandidates(day, props = ["td"], now = Date.now()) {
+  const ok = new Set(props);
   return (day.predictions || [])
-    .filter((p) => p.prop === "td" && p.playerId !== "game" && !core.startedAlready(p.kickoff, now))
-    .map((p) => ({ key: `${p.gameId}|${p.playerId}|td`, playerId: p.playerId, gameId: p.gameId, team: p.team, name: p.name, prob: p.prob, prop: "td" }));
+    .filter((p) => ok.has(p.prop) && !core.startedAlready(p.kickoff, now) && isFinite(p.prob))
+    .map((p) => ({
+      key: `${p.gameId}|${p.playerId}|${p.prop}`, playerId: p.playerId, gameId: p.gameId,
+      team: p.playerId === "game" ? (p.prop === "spread" ? (p.side === "home" ? p.team : p.opp) : null) : p.team,
+      name: p.name, prob: p.prob, prop: p.prop, line: p.line ?? null, side: p.side ?? null,
+    }));
 }
 
 /**
@@ -300,20 +309,23 @@ export function parlayCandidates(day, now = Date.now()) {
  * every open game at 3. One row per (scope, game, legs); first wins, so
  * a slip is what was offered when it was first offered.
  */
-export function recordSuggestedParlays(day, candidates, lift, now = new Date().toISOString()) {
+export function recordSuggestedParlays(day, candidates, lift, now = new Date().toISOString(), tag = "all") {
   day.parlays = day.parlays || [];
   const seen = new Set(day.parlays.map((s) => s.key));
   const wanted = [3, 4, 5].map((legs) => ({ scope: "slate", legs }));
   for (const gameId of [...new Set(candidates.map((c) => c.gameId))]) wanted.push({ scope: "game", gameId, legs: 3 });
   let added = 0;
   for (const w of wanted) {
-    const key = `${w.scope}|${w.gameId || "all"}|${w.legs}`;
+    /* The tag names the leg set the slip drew on (the first week's slips
+       were touchdowns only), so a slip built under a different rule is a
+       different row, not a revision of one. */
+    const key = `${w.scope}|${w.gameId || "all"}|${w.legs}|${tag}`;
     if (seen.has(key)) continue;
     const out = Parlay.suggestParlay(candidates, { legs: w.legs, scope: w.scope, gameId: w.gameId, lift });
     if (!out) continue;
     day.parlays.push({
-      key, scope: w.scope, gameId: w.gameId || null,
-      legs: out.legs.map((l) => ({ gameId: l.gameId, playerId: l.playerId, name: l.name, team: l.team, prop: "td", prob: l.prob })),
+      key, scope: w.scope, gameId: w.gameId || null, tag,
+      legs: out.legs.map((l) => ({ gameId: l.gameId, playerId: l.playerId, name: l.name, team: l.team, prop: l.prop, prob: l.prob, ...(l.line != null ? { line: l.line } : {}), ...(l.side ? { side: l.side } : {}) })),
       prob: out.combined.prob, adjusted: out.combined.adjusted, correlation: out.combined.correlation,
       recordedAt: now,
     });
@@ -346,8 +358,8 @@ export function parlaySummary(dir) {
   for (const d of core.listDays(dir)) {
     for (const s of core.loadDay(dir, d).parlays || []) {
       if (s.actual == null) continue;
-      const k = `${s.scope}${s.legs.length}`;
-      const t = out[k] || (out[k] = { scope: s.scope, legs: s.legs.length, n: 0, predicted: 0, adjusted: 0, cashed: 0 });
+      const k = `${s.scope}${s.legs.length}|${s.tag || "td"}`;
+      const t = out[k] || (out[k] = { scope: s.scope, legs: s.legs.length, tag: s.tag || "td", n: 0, predicted: 0, adjusted: 0, cashed: 0 });
       t.n++; t.predicted += s.prob; t.adjusted += s.adjusted != null ? s.adjusted : s.prob; t.cashed += s.actual;
     }
   }
