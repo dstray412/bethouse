@@ -77,7 +77,7 @@
        Questionable is shown and flagged. One rule, the model's, shared
        with the tracker. */
     var available=function(p){ return N.availability(p.status)!=='out'; };
-    var qTag=function(p){ return N.availability(p.status)==='questionable' ? '<span class="pos">· Q</span>' : ''; };
+    var qTag=function(p){ return N.availability(p.status)==='questionable' ? '<span class="tag q" title="Listed Questionable">Q</span>' : ''; };
     var statusRow=function(p){
       if(!p.status||N.availability(p.status)==='ok') return '';
       return '<tr><td>status</td><td><b>'+esc(p.status)+'</b>'+(p.injury?' ('+esc(p.injury)+')':'')+
