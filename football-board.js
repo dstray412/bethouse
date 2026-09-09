@@ -284,7 +284,7 @@
              quoted price. Without one: the projection, as before. Number on
              top, label as the block sublabel under it. */
           (r.best
-            ? '<span class="prob">'+pct(r.best.k.prob,0)+'<small>'+esc(sideName(r.g,r.best.k,r.best.prop))+'</small></span>'+
+            ? '<span class="prob pick">'+esc(sideName(r.g,r.best.k,r.best.prop))+'<small>'+pct(r.best.k.prob,0)+' to cover</small></span>'+
               '<span class="be">'+evStr(r.best.ev)+'<small>EV</small></span>'
             : '<span class="prob">-'+Math.abs(m).toFixed(1)+'<small>'+esc(m>=0?r.h:r.a)+'</small></span>'+
               '<span class="be">'+r.pr.total.toFixed(1)+'<small>total</small></span>')+
