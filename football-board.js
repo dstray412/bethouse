@@ -165,15 +165,21 @@
         var a=allowFor(p.opp,stat); if(!a) return '';
         return a>=1.07?'<span class="tag soft">soft D</span>':a<=0.93?'<span class="tag tough">tough D</span>':'';
       };
+      /* At the projection line every player's over prices about the same,
+         so that column is dimmed and the projection carries the row. Low and
+         High are where the odds separate. */
+      var atProj=state.lineMult===1;
       var html='<div class="game"><div class="ghead"><h2 class="gtitle">'+esc(ST.label)+'</h2>'+
-        '<div class="gmeta">'+rows.length+' players · projection, then the chance of the over · '+
-        '<b>fair</b> is the break-even price — bet only if the book beats it</div></div>';
+        '<div class="gmeta">'+rows.length+' players · '+(atProj
+          ? 'ranked by projection · at his own line every player is near a coin flip, so pick Low or High to see the odds move'
+          : 'ranked by projection · the chance of the over at the line shown · <b>fair</b> is the break-even price — bet only if the book beats it')+
+        '</div></div>';
       rows.forEach(function(r,i){
         html+='<button class="row" aria-expanded="false" data-i="'+i+'">'+
           '<span class="slot">'+(i+1)+'</span>'+
           '<span class="who">'+esc(r.p.name)+'<span class="pos">'+esc(r.p.team)+(r.p.opp?' vs '+esc(r.p.opp):'')+' · o'+r.line+'</span>'+badge(r.p)+qTag(r.p)+'</span>'+
           '<span class="prob">'+Math.round(r.exp)+'<small>'+(stat==='recs'?'catches':'yards')+'</small></span>'+
-          '<span class="be">'+pct(r.over,0)+'<small>'+sgn(N.fairPrice(r.over))+' fair</small></span>'+
+          '<span class="be'+(atProj?' dim':'')+'">'+pct(r.over,0)+'<small>'+sgn(N.fairPrice(r.over))+' fair</small></span>'+
           '<span class="caret">›</span></button>'+
           '<div class="why" id="why'+i+'" hidden></div>';
       });
