@@ -34,6 +34,10 @@ header{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:1
 .navlink{font-family:var(--display);font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;
   color:var(--muted);text-decoration:none;border:1px solid var(--line);border-radius:9px;padding:7px 12px;white-space:nowrap}
 .navlink:hover{color:var(--text);border-color:var(--accent)}
+/* The other boards are wayfinding, not bet types: under the brand, smaller
+   and quieter than any control. The same block as nfl.html / cfb.html. */
+.boards{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}
+.boards .navlink{padding:4px 8px;font-size:10px}
 
 .note{color:var(--muted);font-size:14px;line-height:1.65;margin:0 2px 14px;max-width:56ch}
 .note b{color:var(--text);font-weight:600}
@@ -133,11 +137,13 @@ footer button:hover{color:var(--text)}
   <div class="brand">
     <h1 class="logo">BETHOUSE</h1>
     <div class="tagline" id="tagline">Your bets — wins and losses</div>
+  <nav class="boards" aria-label="Other boards">
+    <a class="navlink" href="index.html">Baseball →</a>
+    <a class="navlink" href="nfl.html">NFL →</a>
+    <a class="navlink" href="cfb.html">CFB →</a>
+    <a class="navlink" href="golf.html">PGA →</a>
+  </nav>
   </div>
-  <a class="navlink" href="index.html">Baseball →</a>
-  <a class="navlink" href="nfl.html">NFL →</a>
-  <a class="navlink" href="cfb.html">CFB →</a>
-  <a class="navlink" href="golf.html">PGA →</a>
 </header>
 
 <div class="note" id="note"></div>

@@ -34,6 +34,10 @@ header{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:1
 .navlink{font-family:var(--display);font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;
   color:var(--muted);text-decoration:none;border:1px solid var(--line);border-radius:9px;padding:7px 12px}
 .navlink:hover{color:var(--text);border-color:var(--accent)}
+/* The other boards are wayfinding, not bet types: under the brand, smaller
+   and quieter than any control. The same block as nfl.html / cfb.html. */
+.boards{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}
+.boards .navlink{padding:4px 8px;font-size:10px}
 
 /* Measure, not just size. At 12.5px across the full 1040px column this
    line ran 166 characters wide -- more than double the 75-character
@@ -119,11 +123,13 @@ footer td{padding:1px 14px 1px 0}
   <div class="brand">
     <h1 class="logo">BETHOUSE</h1>
     <div class="tagline">PGA Tour — who makes the cut</div>
+  <nav class="boards" aria-label="Other boards">
+    <a class="navlink" href="bets.html">Bets →</a>
+    <a class="navlink" href="nfl.html">NFL →</a>
+    <a class="navlink" href="cfb.html">CFB →</a>
+    <a class="navlink" href="index.html">Baseball →</a>
+  </nav>
   </div>
-  <a class="navlink" href="bets.html">Bets →</a>
-  <a class="navlink" href="nfl.html">NFL →</a>
-  <a class="navlink" href="cfb.html">CFB →</a>
-  <a class="navlink" href="index.html">Baseball →</a>
 </header>
 
 <div id="app"><div class="empty"><div class="big">Loading…</div>
