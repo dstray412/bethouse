@@ -549,7 +549,7 @@ export function seasonLines(games, model) {
   for (const g of games) {
     const tdBy = { [g.home.team]: 0, [g.away.team]: 0 };
     for (const p of g.players) {
-      const opp = p.team === g.home.team ? g.away.team : p.team === g.away.team ? g.home.team : null;
+      const opp = model.opponentIn(g, p);
       if (opp) {
         for (const stat of STAT_IDS) {
           const v = model.gameValue(stat, p);
@@ -692,12 +692,14 @@ export async function buildBoard(league, history) {
         if (!(model.statOpportunity(stat, line) >= 1)) continue;
         const r = players.get(p.id);
         if (!r || r.games < 3) continue;
-        // The ratio is against the projection the board would have made,
-        // opponent included, so the pool is the shape of what is left.
-        const opp = p.team === g.home.team ? g.away.team : g.home.team;
-        const allow = ((teamFactors[opp] || {}).allow || {})[stat];
-        const exp = model.expectedStat(stat, r) * model.statOppFactor(stat, allow);
-        if (exp >= floor) pool.push(model.gameValue(stat, p) / exp);
+        // Membership is the player's own level (his unadjusted expectation
+        // against the floor: "players like him"); the ratio is against the
+        // projection the board would have made, opponent included, so the
+        // pool is the shape of what the opponent does not explain.
+        const opp = model.opponentIn(g, p);
+        if (!opp) continue;
+        const y = model.projectedStat(stat, r, null, { oppFactor: model.allowOf(teamFactors, opp, stat) });
+        if (y.base >= floor) pool.push(model.gameValue(stat, p) / y.exp);
       }
     }
     pools[stat] = pool.slice(-4000);

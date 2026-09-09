@@ -800,6 +800,38 @@ test("statEligible: the opponent moves the projection, never the gate", () => {
   assert.equal(C.statEligible("rushyds", under, null, { oppFactor: 1.5 }), null);
 });
 
+test("opponentIn / allowOf: the one opponent lookup, null when a team code matches neither side", () => {
+  const g = { home: { team: "KC" }, away: { team: "BUF" } };
+  assert.equal(nfl.opponentIn(g, { team: "KC" }), "BUF");
+  assert.equal(nfl.opponentIn(g, { team: "BUF" }), "KC");
+  assert.equal(nfl.opponentIn(g, { team: "KCC" }), null, "never the home team by default");
+  assert.equal(nfl.opponentIn(null, { team: "KC" }), null);
+  const tf = { KC: { off: 1, def: 1, allow: { passyds: 0.93 } }, BUF: { off: 1, def: 1 } };
+  assert.equal(nfl.allowOf(tf, "KC", "passyds"), 0.93);
+  assert.equal(nfl.allowOf(tf, "KC", "rushyds"), null, "a stat the table lacks");
+  assert.equal(nfl.allowOf(tf, "BUF", "passyds"), null, "a table written before allow existed");
+  assert.equal(nfl.allowOf(tf, "LV", "passyds"), null);
+  assert.equal(nfl.allowOf(null, "KC", "passyds"), null);
+});
+
+test("projectedStat: the projection statEligible returns, available without the gate", () => {
+  const C = nfl.bind({ rushOppShrink: 1 });
+  const rec = { games: 4, carries: 60, rushYds: 300 };
+  assert.deepEqual(C.projectedStat("rushyds", rec, null, { oppFactor: 1.2 }), C.statEligible("rushyds", rec, null, { oppFactor: 1.2 }));
+  // Under the gate, the projection still exists: that is what a pool divides by.
+  const small = { games: 4, carries: 3, rushYds: 40 };
+  assert.equal(C.statEligible("rushyds", small), null);
+  close(C.projectedStat("rushyds", small).exp, C.expectedStat("rushyds", small));
+  assert.equal(C.projectedStat("spread", rec), null);
+});
+
+test("yardsEligible forwards the opponent, so it is still exactly statEligible('recyds')", () => {
+  const C = nfl.bind({ yardOppShrink: 1 });
+  const rec = { games: 4, targets: 20, recYds: 200 };
+  assert.deepEqual(C.yardsEligible(rec, null, { oppFactor: 1.4 }), C.statEligible("recyds", rec, null, { oppFactor: 1.4 }));
+  assert.notEqual(C.yardsEligible(rec, null, { oppFactor: 1.4 }).exp, C.yardsEligible(rec).exp);
+});
+
 test("statEligible: a league can bind its own gate for any stat", () => {
   const C = nfl.bind({ passMinOpportunity: 20, passFloor: 100 });
   assert.ok(C.statEligible("passyds", { games: 4, passAtt: 90, passYds: 500 }));

@@ -179,6 +179,28 @@ receiving and receptions nothing or worse. The rows recorded earlier
 today for this week carry the pre-opponent projection; first prediction
 wins.
 
+**Review fixes on the opponent factor, 2026-09-08, late.** One
+`opponentIn(game, player)` (null for a team code on neither side; the
+old two-way lookup handed such a player the home defence), one
+`allowOf(teamFactors, team, stat)`, and one `projectedStat` that
+`statEligible` returns and both pools divide by. Pool membership is the
+player's own level again; college's 0.5 column moved to 0.2321 / 0.1779.
+`yardsEligible` forwards `ctx`. `dom.test.mjs` now asserts every
+`statEligible` caller passes the opponent and both pools divide by
+`projectedStat`. The board's own `allowFor` still exists; swap it for
+`N.allowOf` when next in that file.
+
+**Readability pass on the counting props, 2026-09-08, late.** The prop
+rows lead with the projection (yards or catches), then the over chance
+and fair price; the line sits beside the matchup. A `soft D` / `tough D`
+badge shows only where the opponent is applied and the allowance is 7%+
+either side of average. The panel is two paragraphs: the decision (over
+X hits Y%, fair Z, bet only if the book beats it) and the arithmetic in
+plain words (averages, regressed to, opponent adds/takes off, projects
+to). No constants on the page; nfl.js and the README carry them. Shot
+at 1200 and 390 wide, `.playwright-mcp/` (gitignored). The touchdown and
+game views are untouched; the same treatment is owed to them.
+
 ## Statcast prior, 2026-09-08
 
 The hitter model's regression centre is now `league + 0.75 × (last season's

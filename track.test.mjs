@@ -266,6 +266,8 @@ test("seasonLines: what each defence allows of a stat, regressed toward the leag
       { id: "1", name: "QB A", team: "A", pass: { att: 30, yds: 100 } },
       { id: "2", name: "QB B", team: "B", pass: { att: 30, yds: 300 } },
       { id: "3", name: "RB B", team: "B", rush: { att: 20, yds: 90 } },
+      // A team code the schedule does not use: attributed to no defence, and out of the league total.
+      { id: "4", name: "QB ?", team: "BBB", pass: { att: 30, yds: 999 } },
     ],
   }];
   const { teamFactors } = seasonLines(games, nflModel);

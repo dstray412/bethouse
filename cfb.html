@@ -73,6 +73,11 @@ header{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:1
 .why table{border-collapse:collapse;margin:6px 0 4px;font-variant-numeric:tabular-nums}
 .why td{padding:2px 16px 2px 0;vertical-align:top}
 .why td:first-child{color:var(--muted)}
+.why p{margin:8px 0 0}
+.why .verdict{color:var(--text);font-size:14px}
+.tag{display:inline-block;margin-left:7px;padding:1px 6px;border-radius:4px;font-size:10.5px;font-weight:600;letter-spacing:.03em;vertical-align:1px}
+.tag.soft{background:rgba(74,222,128,.14);color:#4ade80}
+.tag.tough{background:rgba(248,113,113,.14);color:#f87171}
 .banner{border:1px solid rgba(224,163,63,.45);background:rgba(224,163,63,.09);border-radius:14px;padding:15px 17px;margin-bottom:16px}
 .banner h3{font-family:var(--display);font-size:12px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--warn);margin:0 0 8px}
 .banner p{margin:0 0 7px;font-size:13.5px;line-height:1.65;color:var(--text)}
@@ -148,10 +153,10 @@ BetHouseFootballBoard.mount({
         'Read the number as approximate. The opponent is shown but not applied: on the replay it moved nothing. '+
         'The shape comes from real receiver games, not a bell curve.',
       rushyds: 'Chance of going <b>over</b> a rushing yards line, the opponent\'s run defence applied at half strength. '+
-        'Checked against <b>40,170</b> unseen player-games — bias 1.1 points, hot, every band within 2. The shape comes from '+
+        'Checked against <b>40,170</b> unseen player-games — bias 0.9 points, hot, every band within 2. The shape comes from '+
         'real games by backs the board would price, not a bell curve; a pool that let quarterbacks\' scrambles in ran 9 points cold.',
       passyds: 'Chance of going <b>over</b> a passing yards line, the opponent\'s pass defence applied at half strength. '+
-        'Checked against <b>9,125</b> unseen player-games — bias 1.0 point, cold, and the bands say the number is too timid '+
+        'Checked against <b>9,125</b> unseen player-games — bias 1.6 points, cold, and the bands say the number is too timid '+
         'at both ends. Read it as approximate. The shape comes from real quarterback games, not a bell curve.',
       recs: 'Chance of going <b>over</b> a receptions line. Checked against <b>49,600</b> unseen '+
         'player-games — bias 1.1 points, cold, every band within 3. The opponent is shown but not applied: on the replay it '+
@@ -178,8 +183,8 @@ BetHouseFootballBoard.mount({
       '<tr><td>anytime touchdown</td><td>bias <b>&minus;1.4pp</b>, Brier <b>0.1743</b> against 0.1921 · '+
       'top 20% scored <b>47.3%</b>, bottom 20% <b>9.5%</b></td></tr>'+
       '<tr><td>receiving yards</td><td>bias <b>&minus;3.2pp</b>, Brier <b>0.2300</b> against 0.2492</td></tr>'+
-      '<tr><td>rushing yards</td><td>bias <b>+1.1pp</b>, Brier <b>0.2322</b> against 0.2500 · opponent at half strength</td></tr>'+
-      '<tr><td>passing yards</td><td>bias <b>&minus;1.0pp</b>, Brier <b>0.1774</b> against 0.2421 · timid at both ends · opponent at half strength</td></tr>'+
+      '<tr><td>rushing yards</td><td>bias <b>+0.9pp</b>, Brier <b>0.2321</b> against 0.2500 · opponent at half strength</td></tr>'+
+      '<tr><td>passing yards</td><td>bias <b>&minus;1.6pp</b>, Brier <b>0.1779</b> against 0.2421 · timid at both ends · opponent at half strength</td></tr>'+
       '<tr><td>receptions</td><td>bias <b>&minus;1.1pp</b>, Brier <b>0.2131</b> against 0.2454</td></tr>'+
       '<tr><td>spread</td><td><b>51.7%</b> against the closing line — needs 52.4%; inside the noise</td></tr>'+
       '<tr><td>total</td><td><b>53.4%</b> against the closing line — inside the noise</td></tr>'+

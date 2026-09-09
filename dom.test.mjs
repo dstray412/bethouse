@@ -552,3 +552,27 @@ test("the board and the odds fetcher normalise names identically", async () => {
     );
   }
 });
+
+/* ------------------------------------------------------------------ *
+ * The opponent reaches every projection, or none
+ *
+ * The board, the tracker, the board's pools and the replay must all
+ * compute the same opponent-adjusted expectation, or the record grades a
+ * bet the board never offered. The functions are tested in nfl.test.mjs;
+ * this is the wiring, which no unit test can see.
+ * ------------------------------------------------------------------ */
+test("every statEligible call outside the model passes the opponent, and every pool divides by projectedStat", () => {
+  const callers = ["football-board.js", "track-football.mjs", "backtest-nfl.mjs"];
+  for (const f of callers) {
+    const js = src(f);
+    const calls = js.match(/statEligible\([^;\n]*/g) || [];
+    assert.ok(calls.length, `${f} no longer calls statEligible`);
+    for (const c of calls) assert.match(c, /oppFactor/, `${f}: ${c} does not pass the opponent`);
+  }
+  for (const f of ["fetch-football.mjs", "backtest-nfl.mjs"]) {
+    const js = src(f);
+    assert.match(js, /projectedStat\(stat, (r|rec), null, \{ oppFactor: [^}]*\}\)/, `${f}: the pool divisor is not the model's projectedStat`);
+    assert.doesNotMatch(js, /expectedStat\([^)]*\)\s*\*\s*[A-Za-z.]*statOppFactor/, `${f}: the pool divisor is re-derived by hand`);
+    assert.doesNotMatch(js, /p\.team === g\.home\.team \? g\.away\.team : g\.home\.team/, `${f}: a two-way opponent lookup gives the home team to a player on neither side; use opponentIn`);
+  }
+});

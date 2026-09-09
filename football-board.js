@@ -137,7 +137,7 @@
     }
 
     function renderStat(stat){
-      var ST=N.STATS[stat], pool=poolFor(stat), unit=stat==='recs'?'':' yards';
+      var ST=N.STATS[stat], pool=poolFor(stat), unit=stat==='recs'?' catches':' yards';
       var rows=[];
       (D.players||[]).forEach(function(p){
         if(!available(p)) return;
@@ -151,39 +151,58 @@
       });
       rows.sort(function(a,b){return b.exp-a.exp;});
       rows=rows.slice(0,80);
+      var strength=N.DEFAULTS[ST.oppShrinkKey], word=ST.label.toLowerCase();
+      /* A matchup badge on the row, only where the opponent is in the
+         number and only when it is clearly soft or tough (7% either side
+         of average); in between it says nothing, so that when it shows it
+         means something. */
+      var badge=function(p){
+        if(!strength||!p.opp) return '';
+        var a=allowFor(p.opp,stat); if(!a) return '';
+        return a>=1.07?'<span class="tag soft">soft D</span>':a<=0.93?'<span class="tag tough">tough D</span>':'';
+      };
       var html='<div class="game"><div class="ghead"><h2 class="gtitle">'+esc(ST.label)+'</h2>'+
-        '<div class="gmeta">'+rows.length+' players · over the line shown</div></div>';
+        '<div class="gmeta">'+rows.length+' players · projection, then the chance of the over · '+
+        '<b>fair</b> is the break-even price — bet only if the book beats it</div></div>';
       rows.forEach(function(r,i){
         html+='<button class="row" aria-expanded="false" data-i="'+i+'">'+
           '<span class="slot">'+(i+1)+'</span>'+
-          '<span class="who">'+esc(r.p.name)+'<span class="pos">'+esc(r.p.team)+' · o'+r.line+'</span>'+qTag(r.p)+'</span>'+
-          '<span class="prob">'+pct(r.over,0)+'</span>'+
-          '<span class="be">'+sgn(N.fairPrice(r.over))+'<small>fair</small></span>'+
+          '<span class="who">'+esc(r.p.name)+'<span class="pos">'+esc(r.p.team)+(r.p.opp?' vs '+esc(r.p.opp):'')+' · o'+r.line+'</span>'+badge(r.p)+qTag(r.p)+'</span>'+
+          '<span class="prob">'+Math.round(r.exp)+'<small>'+(stat==='recs'?'catches':'yards')+'</small></span>'+
+          '<span class="be">'+pct(r.over,0)+'<small>'+sgn(N.fairPrice(r.over))+' fair</small></span>'+
           '<span class="caret">›</span></button>'+
           '<div class="why" id="why'+i+'" hidden></div>';
       });
       app.innerHTML=html+'</div>';
       app.__rows=rows;
+      /* The panel: the decision first, in two lines, then the arithmetic
+         in words a bettor already uses. The constants behind each step
+         are in nfl.js and the README; they do not belong here. */
       app.__detail=function(r){
+        var fair=sgn(N.fairPrice(r.over)), games=r.p.games, avg=r.p[ST.total]/games;
         var oppWordFor = ST.opportunity==='receiving' ? oppWord : ST.opportunity==='carries' ? 'carries' : 'attempts';
-        var t='<table>';
-        // Where the league counts receptions as the receiving opportunity, a
-        // receptions total IS its opportunity; "35 on 35 receptions" explains nothing.
-        var opp = (stat==='recs' && N.DEFAULTS.receivingStat==='recs') ? '' :
-          ' on <b>'+N.statOpportunity(stat,r.p)+'</b> '+oppWordFor;
-        t+='<tr><td>season</td><td><b>'+r.p[ST.total]+'</b>'+unit+opp+' over <b>'+r.p.games+'</b> games</td></tr>';
-        t+='<tr><td>his own</td><td><b>'+r.base.toFixed(1)+'</b>'+unit+' a game, regressed toward a replacement-level '+N.DEFAULTS[ST.priorKey]+'</td></tr>';
-        var allow=allowFor(r.p.opp,stat), strength=N.DEFAULTS[ST.oppShrinkKey];
-        if(!r.p.opp) t+='<tr><td>opponent</td><td>not placed yet</td></tr>';
-        else if(!strength) t+='<tr><td>opponent</td><td><b>'+esc(r.p.opp)+'</b> allows <b>'+(allow?allow.toFixed(2):'—')+'×</b> the league\'s '+ST.label.toLowerCase()+' — not applied: on the replay it moved nothing for this prop</td></tr>';
-        else t+='<tr><td>opponent</td><td><b>'+esc(r.p.opp)+'</b> allows <b>'+(allow?allow.toFixed(2):'—')+'×</b> the league\'s '+ST.label.toLowerCase()+', applied at strength '+strength+': <b>×'+r.oppFactor.toFixed(2)+'</b></td></tr>';
-        t+='<tr><td>projection</td><td><b>'+r.exp.toFixed(1)+'</b>'+unit+'</td></tr>';
-        t+='<tr><td>line</td><td><b>'+r.line+'</b></td></tr>';
-        t+='<tr><td>over</td><td><b>'+pct(r.over)+'</b>, read off <b>'+pool.length+
-          '</b> real player games rather than any bell curve</td></tr>';
-        t+='<tr><td>fair price</td><td><b>'+sgn(N.fairPrice(r.over))+'</b></td></tr>';
-        t+=statusRow(r.p);
-        return t+'</table>';
+        var onOpp = (stat==='recs' && N.DEFAULTS.receivingStat==='recs') ? '' :
+          ' on '+N.statOpportunity(stat,r.p)+' '+oppWordFor;
+        var h='<p class="verdict">Over <b>'+r.line+'</b> hits <b>'+pct(r.over,0)+'</b> of the time. Fair price <b>'+fair+'</b>. '+
+          'Bet it only if the book is offering better than '+fair+'.</p>';
+        var w='<p><b>Why '+Math.round(r.exp)+'</b> — averages <b>'+avg.toFixed(0)+'</b>'+unit+' a game over '+games+' games'+onOpp+'. ';
+        if(Math.abs(r.base-avg)>=0.5)
+          w+='Regressed to <b>'+r.base.toFixed(0)+'</b>, part of the way toward an ordinary player\'s '+N.DEFAULTS[ST.priorKey]+
+            (games<10?' (few games, so a long way)':'')+'. ';
+        var allow=allowFor(r.p.opp,stat);
+        if(!r.p.opp) w+='No opponent placed yet. ';
+        else if(strength&&allow){
+          var d=Math.round((allow-1)*100), delta=r.exp-r.base;
+          w+=esc(r.p.opp)+' gives up <b>'+Math.abs(d)+'% '+(d>=0?'more':'fewer')+'</b> '+word+' than average, which '+
+            (delta>=0?'adds':'takes off')+' <b>'+Math.abs(delta).toFixed(0)+'</b>. ';
+        } else if(allow) {
+          w+='The opponent is not in this number: on the replay it made no difference for '+word+'. ';
+        }
+        w+='Projects to <b>'+r.exp.toFixed(0)+'</b>. The chance of the over is read off '+pool.length.toLocaleString('en-US')+' real games by '+
+          (stat==='passyds'?'quarterbacks':stat==='rushyds'?'backs':'receivers')+' against their own projections.</p>';
+        var s=statusRow(r.p);
+        if(s) s='<p>'+s.replace(/<\/?t[rd]>/g,'').replace(/^status/,'')+'</p>';
+        return h+w+s;
       };
     }
 

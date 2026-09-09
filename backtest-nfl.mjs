@@ -55,8 +55,8 @@ const M = Object.keys(overrides).length ? league.model.bind(overrides) : league.
 if (Object.keys(overrides).length) console.log(`overrides: ${JSON.stringify(overrides)}`);
 const {
   buildTeamRatings, projectGame, spreadProbability, totalProbability,
-  scoreAnytimeTD, expectedVolume, empiricalOver, usagePoolFrom, yardsEligible, receivingOpportunity,
-  STATS, statOpportunity, statEligible, expectedStat, gameLine, gameValue,
+  scoreAnytimeTD, expectedVolume, empiricalOver, usagePoolFrom, receivingOpportunity,
+  STATS, statOpportunity, statEligible, projectedStat, gameLine, gameValue, opponentIn, allowOf,
 } = M;
 const STAT_IDS = Object.keys(STATS);
 
@@ -227,7 +227,7 @@ function stateFrom(priorGames) {
     ratings: buildTeamRatings(priorGames),
     teamFactor: (t) => (teamFactors[t] || {}).off ?? 1,
     oppFactor: (t) => (teamFactors[t] || {}).def ?? 1,
-    allow: (t, stat) => ((teamFactors[t] || {}).allow || {})[stat] ?? 1,
+    allow: (t, stat) => allowOf(teamFactors, t, stat),
     usagePool: usagePoolFrom([...usageByPlayer.values()], 6),
   };
 }
@@ -297,7 +297,8 @@ for (let i = START_INDEX; i < ALL.length; i++) {
   for (const p of g.players) {
     const rec = st.players.get(p.id);
     if (!rec || rec.games < 3) continue;
-    const opp = p.team === g.home.team ? g.away.team : g.home.team;
+    const opp = opponentIn(g, p);
+    if (!opp) continue;
     const tf = st.teamFactor(p.team), of = st.oppFactor(opp);
     const s = scoreAnytimeTD(rec, { teamFactor: tf, oppFactor: of, usagePool: uPool });
     if (!s) continue;
@@ -329,7 +330,8 @@ for (let i = START_INDEX; i < ALL.length; i++) {
     const pool = statPool[stat].slice(-4000);
     for (const p of g.players) {
       if (!(statOpportunity(stat, gameLine(p)) >= 1)) continue;
-      const opp = p.team === g.home.team ? g.away.team : g.home.team;
+      const opp = opponentIn(g, p);
+      if (!opp) continue;
       const y = statEligible(stat, st.players.get(p.id), null, { oppFactor: st.allow(opp, stat) });
       if (!y) continue;
       for (const mult of [0.6, 0.8, 1.0, 1.25, 1.6]) {
@@ -349,9 +351,11 @@ for (let i = START_INDEX; i < ALL.length; i++) {
       if (!(statOpportunity(stat, gameLine(p)) >= 1)) continue;
       const rec = st.players.get(p.id);
       if (!rec || rec.games < 3) continue;
-      const opp = p.team === g.home.team ? g.away.team : g.home.team;
-      const exp = expectedStat(stat, rec) * M.statOppFactor(stat, st.allow(opp, stat));
-      if (exp >= floor) statPool[stat].push(gameValue(stat, p) / exp);
+      const opp = opponentIn(g, p);
+      if (!opp) continue;
+      // Membership on his own level, ratio against the adjusted projection: fetch-football.mjs says why.
+      const y = projectedStat(stat, rec, null, { oppFactor: st.allow(opp, stat) });
+      if (y.base >= floor) statPool[stat].push(gameValue(stat, p) / y.exp);
     }
   }
 }

@@ -129,7 +129,7 @@ export function snapshot(league) {
     const f = D.teamFactors[team];
     return f && isFinite(f.def) ? f.def : 1;
   };
-  const allowFor = (team, stat) => (((D.teamFactors[team] || {}).allow || {})[stat]);
+  const allowFor = (team, stat) => M.allowOf(D.teamFactors, team, stat);
 
   let added = 0, skippedStarted = 0, skippedNoGame = 0, skippedOut = 0;
 

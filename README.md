@@ -1559,8 +1559,8 @@ replay set it, both leagues, both seasons, Brier at strength 0 / 0.5 / 1:
 
 ```
                   NFL                          college
-rushing yards     0.2229 / 0.2220 / 0.2229     0.2326 / 0.2322 / 0.2325
-passing yards     0.1619 / 0.1611 / 0.1621     0.1787 / 0.1774 / 0.1779
+rushing yards     0.2229 / 0.2220 / 0.2229     0.2326 / 0.2321 / 0.2325
+passing yards     0.1619 / 0.1611 / 0.1621     0.1787 / 0.1779 / 0.1779
 receiving yards   0.2224 / 0.2223 / 0.2224     0.2300 / 0.2300 / 0.2303
 receptions        0.2047 / 0.2045 / 0.2047     0.2131 / 0.2135 / 0.2139
 ```
@@ -1572,9 +1572,15 @@ them (strength 0); the page shows the allowance on those rows and says it is
 not applied. The effect is small everywhere — a thousandth of Brier — which
 is what the game-line work found about the box score too: the pool of real
 games already averages over defences, and a team's yards allowed is mostly
-its schedule. Half strength is the timid end of what helped, and the ratio
-pools are built against the opponent-adjusted projection so the shape is of
-what the opponent does not explain.
+its schedule. Half strength is the timid end of what helped. The ratio pools
+divide by the opponent-adjusted projection, so the shape is of what the
+opponent does not explain, but a game joins a pool on the player's own
+level — his unadjusted expectation against the floor — so who is in the
+pool does not depend on who he happened to face (the scan above had
+membership adjusted too; re-run on the shipped rule the 0.5 column reads
+0.2321 and 0.1779 in college, the NFL unchanged). A player whose box-score
+team code matches neither side of the schedule gets no opponent rather than
+the home team, in every loop, through one `opponentIn`.
 
 ---
 
@@ -1656,8 +1662,8 @@ two populations agree to the third decimal, which is why it never came up there.
 |---|---|---|
 | Anytime touchdown | bias **−1.4pp**, Brier 0.1743 vs 0.1921 · top 20% scored 47.3%, bottom 20% 9.5% | calibrated, a little cold |
 | Receiving yards | bias **−3.2pp**, Brier 0.2300 vs 0.2492 (n=58,140) | cold; see the pool note above |
-| Rushing yards | bias **+1.1pp**, Brier 0.2322 vs 0.2500 (n=40,170) · seasons +1.6 / +0.5 | calibrated, pool floor 20 as in the NFL; opponent at half strength |
-| Passing yards | bias **−1.0pp**, Brier 0.1774 vs 0.2421 (n=9,125) · seasons −2.6 / +0.1 | approximate: timid at both ends; opponent at half strength |
+| Rushing yards | bias **+0.9pp**, Brier 0.2321 vs 0.2500 (n=40,170) · seasons +1.3 / +0.4 | calibrated, pool floor 20 as in the NFL; opponent at half strength |
+| Passing yards | bias **−1.6pp**, Brier 0.1779 vs 0.2421 (n=9,125) · seasons −3.4 / −0.2 | approximate: timid at both ends; opponent at half strength |
 | Receptions | bias **−1.1pp**, Brier 0.2131 vs 0.2454 (n=49,600) · seasons −2.4 / 0.0 | calibrated |
 | Spread vs closing line | **51.7%** of 1,488, needs 52.4% | inside the noise |
 | Total vs closing line | **53.4%** of 1,482 · 56.5% where the model disagrees by 6+ points, n=322 | inside the noise |

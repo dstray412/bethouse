@@ -160,8 +160,10 @@
      * 0 is a projection with no opponent in it.
      *
      * Replay, 2026-09-08, strength 0 / 0.5 / 1, Brier:
-     *   rushing    NFL 0.2229 / 0.2220 / 0.2229   college 0.2326 / 0.2322 / 0.2325
-     *   passing    NFL 0.1619 / 0.1611 / 0.1621   college 0.1787 / 0.1774 / 0.1779
+     *   rushing    NFL 0.2229 / 0.2220 / 0.2229   college 0.2326 / 0.2321 / 0.2325
+     *   passing    NFL 0.1619 / 0.1611 / 0.1621   college 0.1787 / 0.1779 / 0.1779
+     * (the 0.5 column re-run after pool membership went back to the
+     * player's own level; the scan's 0.2322 / 0.1774 had it adjusted)
      *   receiving  NFL 0.2224 / 0.2223 / 0.2224   college 0.2300 / 0.2300 / 0.2303
      *   receptions NFL 0.2047 / 0.2045 / 0.2047   college 0.2131 / 0.2135 / 0.2139
      * Rushing and passing improve at half strength in both leagues and
@@ -592,10 +594,30 @@
   }
 
   /**
+   * Who a player faced in a game, or null when his team code matches
+   * neither side (a box-score abbreviation the schedule does not use).
+   * Null means "no opponent", never "the home team": every caller that
+   * attributes a stat to a defence uses this one lookup.
+   */
+  function opponentIn(game, player) {
+    if (!game || !player) return null;
+    const h = game.home && game.home.team, a = game.away && game.away.team;
+    return player.team === h ? a : player.team === a ? h : null;
+  }
+
+  /** A defence's allowance for a stat out of a teamFactors table; null when unknown. */
+  function allowOf(teamFactors, team, stat) {
+    const f = team && teamFactors && teamFactors[team];
+    const v = f && f.allow ? f.allow[stat] : null;
+    return isFinite(v) && v > 0 ? v : null;
+  }
+
+  /**
    * The opponent's allowance for a stat (1 = league average, from
    * seasonLines' `allow`), applied at the stat's strength and clamped
-   * like the touchdown factors. 1 when there is no opponent or no
-   * strength.
+   * like the touchdown factors (at the shipped half strength the clamp
+   * cannot fire; it is there for a full-strength league). 1 when there
+   * is no opponent or no strength.
    */
   function statOppFactor(stat, allow, opts) {
     const o = Object.assign({}, DEFAULTS, opts || {});
@@ -623,13 +645,25 @@
     if (!(statOpportunity(stat, record, o) >= o[st.minOppKey])) return null;
     const base = expectedStat(stat, record, o);
     if (!(base >= o[st.floorKey])) return null;
+    return projectedStat(stat, record, o, ctx, base);
+  }
+
+  /**
+   * The projection itself, gate or no gate: the player's own expectation
+   * times the opponent's factor. The pools divide by this, the board and
+   * the tracker print it, and it is computed here and nowhere else.
+   */
+  function projectedStat(stat, record, opts, ctx, base) {
+    const o = Object.assign({}, DEFAULTS, opts || {});
+    const b = base != null ? base : expectedStat(stat, record, o);
+    if (b == null) return null;
     const oppFactor = statOppFactor(stat, ctx && ctx.oppFactor, o);
-    return { exp: base * oppFactor, base, oppFactor };
+    return { exp: b * oppFactor, base: b, oppFactor };
   }
 
   /** Receiving yards, the original gate. Kept by name for its callers. */
-  function yardsEligible(record, opts) {
-    return statEligible("recyds", record, opts);
+  function yardsEligible(record, opts, ctx) {
+    return statEligible("recyds", record, opts, ctx);
   }
 
   /**
@@ -725,14 +759,17 @@
       scoreAnytimeTD: (p, ctx) =>
         scoreAnytimeTD(p, Object.assign({}, ctx || {}, { opts: merge(ctx && ctx.opts) })),
       expectedVolume: (total, games, prior, opts) => expectedVolume(total, games, prior, merge(opts)),
-      yardsEligible: (rec, opts) => yardsEligible(rec, merge(opts)),
+      yardsEligible: (rec, opts, ctx) => yardsEligible(rec, merge(opts), ctx),
       STATS,
       gameLine,
       gameValue,
       statOpportunity: (stat, rec, opts) => statOpportunity(stat, rec, merge(opts)),
       expectedStat: (stat, rec, opts) => expectedStat(stat, rec, merge(opts)),
       statEligible: (stat, rec, opts, ctx) => statEligible(stat, rec, merge(opts), ctx),
+      projectedStat: (stat, rec, opts, ctx) => projectedStat(stat, rec, merge(opts), ctx),
       statOppFactor: (stat, allow, opts) => statOppFactor(stat, allow, merge(opts)),
+      opponentIn,
+      allowOf,
       empiricalOver,
       ratioPool,
       availability,
@@ -762,7 +799,10 @@
     statOpportunity,
     expectedStat,
     statEligible,
+    projectedStat,
     statOppFactor,
+    opponentIn,
+    allowOf,
     empiricalOver,
     ratioPool,
     availability,
