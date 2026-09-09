@@ -34,6 +34,10 @@ header{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:1
 .navlink{font-family:var(--display);font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;
   color:var(--muted);text-decoration:none;border:1px solid var(--line);border-radius:9px;padding:7px 12px;white-space:nowrap}
 .navlink:hover{color:var(--text);border-color:var(--accent)}
+/* The other boards are wayfinding, not bet types: they live under the
+   brand, smaller and quieter than the segment they used to sit beside. */
+.boards{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}
+.boards .navlink{padding:4px 8px;font-size:10px}
 /* Measure, not just size. At 12.5px across the full 1040px column this
    line ran 166 characters wide -- more than double the 75-character
    maximum, and long measure is what actually breaks readability: the
@@ -96,6 +100,10 @@ footer td{padding:1px 14px 1px 0}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
 @media (max-width:760px){
   .wrap{padding:14px 11px 40px}
+  /* Bet types scroll sideways rather than stacking into three rows. */
+  .ctl .seg{overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none;margin-right:-11px;padding-right:11px}
+  .ctl .seg::-webkit-scrollbar{display:none}
+  .seg button{white-space:nowrap;flex:0 0 auto}
   .row{grid-template-columns:26px 1fr 64px 56px 12px;gap:8px;padding:8px 12px}
   .caret{font-size:13px}
   .prob{font-size:18px}
@@ -110,15 +118,17 @@ footer td{padding:1px 14px 1px 0}
   <div class="brand">
     <h1 class="logo">BETHOUSE</h1>
     <div class="tagline" id="tagline">College football</div>
+  <nav class="boards" aria-label="Other boards">
+  <a class="navlink" href="bets.html">Bets →</a>
+  <a class="navlink" href="nfl.html">NFL →</a>
+  <a class="navlink" href="index.html">Baseball →</a>
+  <a class="navlink" href="golf.html">PGA →</a>
+  </nav>
   </div>
   <div class="ctl">
     <label id="lab-view">Bet type</label>
     <div class="seg" id="view" role="group" aria-labelledby="lab-view"></div>
   </div>
-  <a class="navlink" href="bets.html">Bets →</a>
-  <a class="navlink" href="nfl.html">NFL →</a>
-  <a class="navlink" href="index.html">Baseball →</a>
-  <a class="navlink" href="golf.html">PGA →</a>
 </header>
 
 <div class="note" id="note"></div>
