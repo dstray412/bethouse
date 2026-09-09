@@ -343,9 +343,17 @@
       document.getElementById('controls').hidden = !N.STATS[state.view];
       document.getElementById('tagline').textContent=cfg.league+' — '+D.season+' week '+D.week;
 
+      /* One plain sentence up front; the replay numbers that back it sit
+         behind a disclosure. Users scan, and the first row matters more
+         than the bias figure to anyone who has not asked for it. */
+      var noteHtml=function(s){
+        var i=s.indexOf('Checked against');
+        if(i<0) return s;
+        return s.slice(0,i)+'<details class="how"><summary>How it was checked</summary><p>'+s.slice(i)+'</p></details>';
+      };
       var note=document.getElementById('note');
-      if(state.view==='td') note.innerHTML=C.noteTD;
-      else if(N.STATS[state.view]) note.innerHTML=C.noteStat[state.view];
+      if(state.view==='td') note.innerHTML=noteHtml(C.noteTD);
+      else if(N.STATS[state.view]) note.innerHTML=noteHtml(C.noteStat[state.view]);
       else note.innerHTML=C.noteGames;
 
       if(state.view==='td') renderTD();
