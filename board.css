@@ -92,6 +92,22 @@ header{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:1
 .why table{border-collapse:collapse;margin:6px 0 4px;font-variant-numeric:tabular-nums}
 .why td{padding:2px 16px 2px 0;vertical-align:top}
 .why td:first-child{color:var(--muted)}
+/* The parlay slip: legs, the product, the measured adjustment, a price. */
+.slip{border:1px solid rgba(56,225,255,.3);background:rgba(56,225,255,.06);border-radius:14px;padding:14px 16px;margin-bottom:14px}
+.slip h3{font-family:var(--display);font-size:11.5px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin:0 0 8px}
+.slip .how{font-size:13px;color:var(--muted);line-height:1.6;margin:0 0 10px;max-width:60ch}
+.leg{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:5px 0;border-top:1px solid rgba(255,255,255,.06);font-size:14px}
+.leg:first-of-type{border-top:0}
+.leg .lp{font-variant-numeric:tabular-nums;color:var(--muted);font-size:13px}
+.slipsum{display:flex;gap:20px;flex-wrap:wrap;align-items:baseline;margin-top:12px;padding-top:11px;border-top:1px solid rgba(255,255,255,.12)}
+.slipsum .big{font-family:var(--display);font-size:24px;font-weight:700;font-variant-numeric:tabular-nums}
+.slipsum .lbl{font-size:12px;color:var(--muted);display:block;max-width:22ch}
+.slipsum input{font:inherit;font-size:20px;font-weight:700;width:112px;background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:3px 8px;color:var(--text);font-variant-numeric:tabular-nums}
+.slipwarn{margin-top:11px;font-size:13px;line-height:1.6;max-width:60ch}
+.slipwarn.severe{color:var(--bad)} .slipwarn.team{color:var(--warn)} .slipwarn.game,.slipwarn.none{color:var(--muted)}
+.slip .actions{margin-top:10px}
+.slip .actions button{font:inherit;font-size:13px;color:var(--muted);background:none;border:1px solid var(--line);border-radius:9px;padding:6px 11px;cursor:pointer}
+.slip .actions button:hover{color:var(--text);border-color:var(--accent)}
 .more{display:block;width:100%;padding:13px;background:none;border:0;border-top:1px solid var(--line);color:var(--accent);font:inherit;font-weight:600;cursor:pointer}
 .more:hover{background:rgba(255,255,255,.028)}
 .why p{margin:8px 0 0}

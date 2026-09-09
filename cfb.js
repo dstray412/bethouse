@@ -120,6 +120,10 @@
        150 +3.5). Half is the cold side of the crossing. */
     passPoolFloor: 75,
     recsPoolFloor: 0.5,
+    /* Same-team touchdown slips cash about the product in college (random
+       2 legs 1.08, 3 legs 1.01; top 3 legs 1.02; --parlay, 2026-09-09), so
+       no discount, unlike the NFL's 0.85. */
+    parlayLift: { game: 1, team: 1 },
     /* The opponent strengths are the NFL's: college read the same way
        (rushing 0.2326 / 0.2321 / 0.2325, passing 0.1787 / 0.1779 / 0.1779,
        receptions worse at any strength; nfl.js has the table). */

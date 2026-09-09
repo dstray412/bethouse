@@ -23,7 +23,7 @@
   "use strict";
 
   function mount(cfg) {
-    var N = cfg.model, D = cfg.data, C = cfg.copy || {};
+    var N = cfg.model, D = cfg.data, C = cfg.copy || {}, P = window.BetHouseParlay, E = window.BetHouseEdge;
     var app = document.getElementById("app");
     if (!D || !D.players) {
       app.innerHTML = '<div class="empty"><div class="big">No board yet</div>' +
@@ -49,7 +49,12 @@
     var VIEWS = [{id:'td',label:'Anytime TD'}].concat(STAT_IDS.map(function(k){return {id:k,label:N.STATS[k].label};}))
       .concat([{id:'game',label:'Spread & total'}]);
     var LINES = [{id:0.7,label:'Low'},{id:1,label:'Projection'},{id:1.3,label:'High'}];
-    var state = { view:'td', lineMult:1, open:null, showAll:false, q:'' };
+    var state = { view:'td', lineMult:1, open:null, showAll:false, q:'',
+      /* The parlay slip: what the suggester built, or why it could not. */
+      candidates:[], slip:null, slipError:null, slipLegs:null, slipScope:'slate', slipGame:null, slipPrice:null };
+    /* Which game each team plays this week, and whether it is still open. */
+    var gameOf={}; (D.games||[]).forEach(function(g){ gameOf[g.home]=g; gameOf[g.away]=g; });
+    var openGame=function(team){ var g=gameOf[team]; return g&&!g.completed&&Date.parse(g.date)>Date.now()?g:null; };
     /* Twenty rows is a board; eighty is a spreadsheet. The rest are one tap away. */
     var SHOW=20, MAX=80;
     var trim=function(rows){ var n=(state.showAll||state.q)?MAX:SHOW; return { rows:rows.slice(0,n), hidden:Math.min(rows.length,MAX)-Math.min(rows.length,n) }; };
@@ -120,9 +125,20 @@
         rows.push({p:p,s:s});
       });
       rows.sort(function(a,b){return b.s.prob-a.s.prob;});
+      /* Every open row is a leg the suggester may use, whatever the search
+         or the twenty-row cut shows. The record (track-football.mjs) builds
+         its slips from the same rows the same way. */
+      state.candidates=[];
+      (D.players||[]).forEach(function(p){
+        if(!available(p)) return;
+        var g=openGame(p.team); if(!g) return;
+        var s=N.scoreAnytimeTD(p,{teamFactor:(D.teamFactors[p.team]||{}).off||1, oppFactor:p.opp?oppFactorFor(p.opp):1, usagePool:usagePool});
+        if(!s||!isFinite(s.prob)) return;
+        state.candidates.push({key:g.id+'|'+p.id+'|td', playerId:String(p.id), gameId:g.id, team:p.team, opp:p.opp, name:p.name, prob:s.prob, prop:'td', propLabel:'Anytime TD'});
+      });
       var t=trim(rows); rows=t.rows;
 
-      var html='<div class="game"><div class="ghead"><h2 class="gtitle">Most likely to score</h2>'+
+      var html=slipHtml()+'<div class="game"><div class="ghead"><h2 class="gtitle">Most likely to score</h2>'+
         '<div class="gmeta">'+rows.length+' players · '+seasons+' form</div></div>';
       rows.forEach(function(r,i){
         html+='<button class="row" aria-expanded="false" data-i="'+i+'">'+
@@ -367,11 +383,78 @@
       };
     }
 
+    /* ---- the parlay slip ---- */
+    var LEGS=[{id:3,label:'3 legs'},{id:4,label:'4 legs'},{id:5,label:'5 legs'}];
+    var SCOPES=[{id:'slate',label:'All games'},{id:'game',label:'One game'}];
+    var lift=N.DEFAULTS.parlayLift||{game:1,team:1};
+    function suggest(n){
+      var out=P?P.suggestParlay(state.candidates,{legs:n,scope:state.slipScope,gameId:state.slipGame,lift:lift}):null;
+      if(!out){
+        var games={}; state.candidates.forEach(function(c){games[c.gameId]=1;});
+        var have=Object.keys(games).length;
+        state.slipError = state.slipScope==='game'
+          ? (state.slipGame?'That game does not have '+n+' players the board would put a touchdown on.':'Pick a game first.')
+          : 'Only '+have+' game'+(have===1?'':'s')+' still open — a '+n+'-leg parlay from the slate needs '+n+', one leg per game.';
+        state.slip=null;
+      } else { state.slip=out; state.slipError=null; }
+      state.slipLegs=n; state.open=null; render();
+    }
+    function slipHtml(){
+      var h='';
+      if(state.slipError) h+='<div class="slip" style="border-color:rgba(224,163,63,.45);background:rgba(224,163,63,.09)"><h3 style="color:var(--warn)">Cannot build that slip</h3><div>'+esc(state.slipError)+'</div></div>';
+      var s=state.slip; if(!s) return h;
+      var c=s.combined, g=state.slipScope==='game'&&gameOf[s.legs[0].team];
+      h+='<div class="slip"><h3>Suggested parlay — '+s.legs.length+' legs · '+(g?esc(g.away+' at '+g.home):'from '+c.distinctGames+' different games')+'</h3>';
+      h+='<div class="how">The '+(g?'best touchdown legs in this game, one per player':'best touchdown leg from each of '+s.legs.length+' different games')+
+        '. Ranked by chance to cash, <b>not</b> by price: it cannot see what you are being offered.</div>';
+      s.legs.forEach(function(l){
+        h+='<div class="leg"><div>'+esc(l.name)+' <span class="lp">'+esc(l.team)+(l.opp?' vs '+esc(l.opp):'')+' · '+esc(l.propLabel)+'</span></div><div><span class="lp">'+pct(l.prob,0)+'</span></div></div>';
+      });
+      var shown=c.adjusted!=null?c.adjusted:c.prob;
+      h+='<div class="slipsum">';
+      h+='<div><span class="big">'+pct(c.prob,c.prob<0.1?2:1)+'</span><span class="lbl">the legs multiplied</span></div>';
+      if(c.adjusted!=null&&Math.abs(c.adjusted-c.prob)>1e-9) h+='<div><span class="big">'+pct(c.adjusted,c.adjusted<0.1?2:1)+'</span><span class="lbl">adjusted: same-team legs cash '+lift.team+'× the product on the replay</span></div>';
+      h+='<div><span class="big">'+sgn(N.fairPrice(shown))+'</span><span class="lbl">fair price</span></div>';
+      h+='<div><input id="slipprice" type="number" step="10" placeholder="offered" aria-label="Parlay price you are offered"'+(state.slipPrice!=null?' value="'+state.slipPrice+'"':'')+'><span class="lbl">price you are offered</span></div>';
+      h+='<div id="slipedge">'+edgeHtml(shown)+'</div>';
+      h+='</div>';
+      var note={ none:'Legs from different games multiply honestly: on the replay, cross-game touchdown slips cashed at or a little above the product.',
+        game:'Both teams in one game. On the replay these cashed about the product (0.93–1.13×), the same as different games.',
+        team:(lift.team<1?'All one team. A team\'s touchdowns are shared, so on the replay these cashed about 0.80× the product; the adjusted number applies '+lift.team+'.':'All one team. On the replay these cashed about the product in this league.'),
+        severe:'The same player twice: the number is meaningless.' }[c.correlation];
+      h+='<div class="slipwarn '+c.correlation+'">'+note+' Shade the top of the board: the legs it likes most run a little hot.</div>';
+      h+='<div class="actions"><button type="button" data-clearslip>Clear slip</button></div></div>';
+      return h;
+    }
+    function edgeHtml(p){
+      if(state.slipPrice==null||!isFinite(state.slipPrice)||state.slipPrice===0||!E) return '';
+      var ev=E.evPct(p,E.americanToDecimal(state.slipPrice));
+      var col=ev>0.02?'var(--good)':ev>=0?'var(--warn)':'var(--bad)';
+      return '<span class="big" style="color:'+col+'">'+E.formatPct(ev)+'</span><span class="lbl">edge at that price</span>';
+    }
+    function renderParlayControls(){
+      var box=document.getElementById('parlayctl'); if(!box) return;
+      var on=state.view==='td'&&(N.DEFAULTS.parlayProps||[]).indexOf('td')>=0;
+      box.hidden=!on; if(!on) return;
+      seg(document.getElementById('plegs'),LEGS,state.slipLegs,suggest);
+      seg(document.getElementById('pscope'),SCOPES,state.slipScope,function(v){ state.slipScope=v; if(v==='slate') state.slipGame=null; if(state.slipLegs) suggest(state.slipLegs); else render(); });
+      var wrap=document.getElementById('pgamewrap'), sel=document.getElementById('pgame');
+      wrap.hidden=state.slipScope!=='game';
+      if(!wrap.hidden){
+        var open=(D.games||[]).filter(function(g){return !g.completed&&Date.parse(g.date)>Date.now();});
+        if(!state.slipGame&&open.length) state.slipGame=open[0].id;
+        sel.innerHTML='';
+        open.forEach(function(g){ var o=el('option',null,g.away+' at '+g.home); o.value=g.id; o.selected=g.id===state.slipGame; sel.appendChild(o); });
+        sel.onchange=function(){ state.slipGame=sel.value; if(state.slipLegs) suggest(state.slipLegs); };
+      }
+    }
+
     function render(){
       seg(document.getElementById('view'),VIEWS,state.view,function(v){state.view=v;state.open=null;state.showAll=false;render();});
       seg(document.getElementById('lineseg'),LINES,state.lineMult,function(v){state.lineMult=v;state.open=null;render();});
       document.getElementById('controls').hidden = !N.STATS[state.view];
       document.getElementById('find').hidden = state.view==='game';
+      renderParlayControls();
       document.getElementById('tagline').textContent=cfg.league+' — '+D.season+' week '+D.week;
 
       /* One plain sentence up front; the replay numbers that back it sit
@@ -400,7 +483,14 @@
         if(e.key==='/'&&document.activeElement!==q&&!/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)){ e.preventDefault(); q.focus(); }
       });
     }
+    app.addEventListener('input',function(e){
+      if(e.target.id!=='slipprice') return;
+      var v=parseFloat(e.target.value); state.slipPrice=isFinite(v)?v:null;
+      var s=state.slip, box=document.getElementById('slipedge');
+      if(s&&box) box.innerHTML=edgeHtml(s.combined.adjusted!=null?s.combined.adjusted:s.combined.prob);
+    });
     app.addEventListener('click',function(e){
+      if(e.target.closest('[data-clearslip]')){ state.slip=null; state.slipError=null; state.slipLegs=null; render(); return; }
       if(e.target.closest('[data-more]')){ state.showAll=true; render(); return; }
       var btn=e.target.closest('.row'); if(!btn) return;
       var i=+btn.getAttribute('data-i');
@@ -449,8 +539,24 @@
         (R.total<400?'<p>Far too few to mean anything yet. Bias needs n in the thousands.</p>':'');
     }
 
+    /* The suggested slips, settled like a book would: the number a parlay
+
+       product sells, measured rather than multiplied. */
+
+    var parlayRecord=function(R){
+
+      if(!R||!R.parlays) return '';
+
+      var rows=Object.keys(R.parlays).map(function(k){ var t=R.parlays[k];
+
+        return '<tr><td>'+(t.scope==='game'?'one game':'slate')+', '+t.legs+' legs</td><td>'+t.n+' slip'+(t.n===1?'':'s')+' · said <b>'+pct(t.adjusted,1)+'</b> · cashed <b>'+pct(t.cashed/t.n,1)+'</b></td></tr>'; });
+
+      return '<p><b>Suggested parlays</b>, recorded before kickoff and settled like a book would:</p><table>'+rows.join('')+'</table>';
+
+    };
+
     document.getElementById('foot').innerHTML =
-      C.footer +
+      C.footer + parlayRecord(cfg.record) +
       liveRecord()+
       '<p>Data: ESPN, no key required. Built '+esc((D.generated||'').slice(0,16).replace('T',' '))+
       ' UTC from '+D.gamesCached+' games.</p>';

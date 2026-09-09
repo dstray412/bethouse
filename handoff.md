@@ -205,6 +205,22 @@ call. Report and before/after shots:
 `~/.gstack/projects/BetHouse/designs/design-audit-20260908/`. Baseline
 design score B−, AI-slop A.
 
+**Suggested parlays, 2026-09-09.** `parlay.js` (shared, tested:
+`combineLegs`, `suggestParlay` with a slate or one-game scope and a
+measured lift) and controls on the football boards' touchdown view: 3/4/5
+legs, "All games" (one leg per game) or "One game" (a game picker). The
+replay (`backtest-nfl.mjs --parlay`, README "Suggested parlays") found
+same-TEAM touchdown slips cash ~0.80× the product in the NFL, the
+opposite of baseball's same-game intuition; cross-game and mixed-team
+about 1. Shipped `parlayLift: {game:1, team:0.85}` in nfl.js, `{1,1}` in
+cfb.js; only `td` is parlay-eligible (`parlayProps`). The tracker records
+the slips the board would suggest (`day.parlays`, first wins), settles
+them from their legs (`gradeParlays`), and the footer shows the parlay
+record when there is one. First rows: NFL 2026-09-10, college 2026-09-11.
+Not done: manual add-to-slip on football rows, "I bet this parlay" into
+the bet log (bets.js legs are keyed for baseball's record), baseball
+switching to the shared module.
+
 **Search, 2026-09-09.** A "Find" box on the football boards (`#q` in
 nfl.html / cfb.html) filters the touchdown and counting-prop views by
 player, team or opponent — `playerMatches` in `nfl.js`, tested: words in
@@ -376,8 +392,9 @@ All in `tasks/lessons.md`, which is the real list. The ones that bite hardest:
 
 ## What is not done
 
-- **No parlay forward record.** `track.mjs` records single legs only, so the
-  number the business would sell has never been measured at scale.
+- **No parlay forward record on the baseball board.** The football trackers
+  record the suggested slips since 2026-09-09; `track.mjs` still records
+  single legs only.
 - `backtest.mjs --fit` still fits `k` against the uncalibrated probability; the
   two layers now interact.
 - The parlay suggester cannot say whether it picked 3 from 14 games or 3 from 3.

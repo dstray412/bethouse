@@ -1436,6 +1436,43 @@ time (n=278) and its opponent 53.3% (n=345); the margin against the line runs
 standard errors from nothing and short of break-even. Since 2011 the opponent
 has covered 53–56% in each era. Worth watching, not betting.
 
+### Suggested parlays, and what the replay said about one game
+
+The football boards build a slip on request: 3, 4 or 5 anytime-touchdown
+legs from the whole slate, one per game, or from one game. Baseball refused
+same-game slips because nobody had measured the correlation. Football could
+measure it, so `node backtest-nfl.mjs --parlay` replays touchdown slips from
+two seasons, legs with a 20%+ chance, and reports actual over predicted for
+three populations, picked two ways: random subsets (does the arithmetic hold?)
+and the top legs (what the board would offer):
+
+```
+                 2 legs         3 legs         4 legs
+cross-game     1.12 / 0.98    1.26 / 1.00    1.43 / 0.79     random / top
+same game      1.13 / 0.94    0.93 / 1.17    0.93 / 1.09
+same team      1.00 / 0.92    0.80 / 0.80    0.75 / 0.82
+```
+
+Cross-game slips cash at or above the product: the single legs in the 20–35%
+band run a little cold and it compounds, while the top slips, made of 50–60%
+legs, sit at 1.0. A same-game slip with a leg on each side behaves like a
+cross-game one. A **same-team slip cashes less than the product**, 0.80 for
+three legs, on both seasons (0.90 in 2024, 0.73 in 2025 for the top slips),
+because a team's touchdowns are shared: one scoring makes the next less
+likely. The baseball intuition, that a slugfest lifts everyone, does not carry
+over. College measured about 1 on every population.
+
+So the slip prints the product, and where the legs share an NFL team it also
+prints the adjusted number at **0.85**, the timid end of 0.75–1.00, and says
+which ratio it came from. Cross-game and mixed-team slips get no lift. The
+slip ranks by chance to cash, not by price, and says so; type the price you
+are offered and it prints the edge.
+
+Every suggested slip the board would offer, the slate at 3, 4 and 5 legs and
+each game at 3, is recorded before kickoff by the tracker and settled like a
+book would, so the number a parlay product sells is measured on the forward
+record and not only multiplied. The first rows are in the week-1 record files.
+
 ### Rosters: where a player is, not where he was
 
 A player's team used to be the team of his last box score. That is right

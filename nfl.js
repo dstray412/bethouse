@@ -177,6 +177,36 @@
     passOppShrink: 0.5,
     recsOppShrink: 0,
     /*
+     * Parlays: which props may be parlayed (only the one whose slips went
+     * through the replay), and how a slip whose legs share a game or a
+     * team cashes against the product of its legs.
+     *
+     * backtest-nfl.mjs --parlay, 2026-09-09. Touchdown legs with prob >=
+     * 0.2, actual / predicted; "random" slips test the arithmetic, "top"
+     * slips are what the board would offer:
+     *
+     *                  2 legs         3 legs         4 legs
+     *   cross-game     1.12 / 0.98    1.26 / 1.00    1.43 / 0.79   random / top
+     *   same game      1.13 / 0.94    0.93 / 1.17    0.93 / 1.09
+     *   same team      1.00 / 0.92    0.80 / 0.80    0.75 / 0.82
+     *
+     * Cross-game slips cash at or above the product (the single legs in
+     * the 20-35% band run a little cold, and it compounds; the top slips
+     * are made of 50-60% legs and sit at 1.0). A same-game slip with a
+     * leg on each side behaves like a cross-game one. A same-TEAM slip
+     * cashes LESS than the product -- 0.80 for three legs, 0.90 in 2024
+     * and 0.73 in 2025 for the top slips -- because a team's touchdowns
+     * are shared: one scoring makes the next less likely. The baseball
+     * intuition (a slugfest lifts everyone) does not carry over.
+     *
+     * Shipped: 1 for cross-game and mixed-team slips, 0.85 for same-team
+     * (the timid end of 0.75-1.00). College measured about 1 on every
+     * population and ships 1 (cfb.js). The slip prints the product, the
+     * adjusted number where they differ, and the ratio it came from.
+     */
+    parlayProps: ["td"],
+    parlayLift: { game: 1, team: 0.85 },
+    /*
      * Which box-score stat counts as receiving opportunity. The NFL records
      * targets. College box scores record receptions and nothing about the
      * throws that were not caught, so cfb.js binds this to "recs" and

@@ -14276,5 +14276,696 @@
  ],
  "graded": false,
  "season": 2026,
- "week": 1
+ "week": 1,
+ "parlays": [
+  {
+   "key": "slate|all|3",
+   "scope": "slate",
+   "gameId": null,
+   "legs": [
+    {
+     "gameId": "401872659",
+     "playerId": "4242335",
+     "name": "Jonathan Taylor",
+     "team": "IND",
+     "prop": "td",
+     "prob": 0.5953
+    },
+    {
+     "gameId": "401872657",
+     "playerId": "16800",
+     "name": "Davante Adams",
+     "team": "LAR",
+     "prop": "td",
+     "prob": 0.563
+    },
+    {
+     "gameId": "401872923",
+     "playerId": "4429795",
+     "name": "Jahmyr Gibbs",
+     "team": "DET",
+     "prop": "td",
+     "prob": 0.5606
+    }
+   ],
+   "prob": 0.18788727634,
+   "adjusted": 0.18788727634,
+   "correlation": "none",
+   "recordedAt": "2026-09-09T19:38:19.446Z"
+  },
+  {
+   "key": "slate|all|4",
+   "scope": "slate",
+   "gameId": null,
+   "legs": [
+    {
+     "gameId": "401872659",
+     "playerId": "4242335",
+     "name": "Jonathan Taylor",
+     "team": "IND",
+     "prop": "td",
+     "prob": 0.5953
+    },
+    {
+     "gameId": "401872657",
+     "playerId": "16800",
+     "name": "Davante Adams",
+     "team": "LAR",
+     "prop": "td",
+     "prob": 0.563
+    },
+    {
+     "gameId": "401872923",
+     "playerId": "4429795",
+     "name": "Jahmyr Gibbs",
+     "team": "DET",
+     "prop": "td",
+     "prob": 0.5606
+    },
+    {
+     "gameId": "401872930",
+     "playerId": "4696981",
+     "name": "Cam Skattebo",
+     "team": "NYG",
+     "prop": "td",
+     "prob": 0.5321
+    }
+   ],
+   "prob": 0.099974819740514,
+   "adjusted": 0.099974819740514,
+   "correlation": "none",
+   "recordedAt": "2026-09-09T19:38:19.446Z"
+  },
+  {
+   "key": "slate|all|5",
+   "scope": "slate",
+   "gameId": null,
+   "legs": [
+    {
+     "gameId": "401872659",
+     "playerId": "4242335",
+     "name": "Jonathan Taylor",
+     "team": "IND",
+     "prop": "td",
+     "prob": 0.5953
+    },
+    {
+     "gameId": "401872657",
+     "playerId": "16800",
+     "name": "Davante Adams",
+     "team": "LAR",
+     "prop": "td",
+     "prob": 0.563
+    },
+    {
+     "gameId": "401872923",
+     "playerId": "4429795",
+     "name": "Jahmyr Gibbs",
+     "team": "DET",
+     "prop": "td",
+     "prob": 0.5606
+    },
+    {
+     "gameId": "401872930",
+     "playerId": "4696981",
+     "name": "Cam Skattebo",
+     "team": "NYG",
+     "prop": "td",
+     "prob": 0.5321
+    },
+    {
+     "gameId": "401872660",
+     "playerId": "4379399",
+     "name": "James Cook III",
+     "team": "BUF",
+     "prop": "td",
+     "prob": 0.489
+    }
+   ],
+   "prob": 0.048887686853111345,
+   "adjusted": 0.048887686853111345,
+   "correlation": "none",
+   "recordedAt": "2026-09-09T19:38:19.446Z"
+  },
+  {
+   "key": "game|401872930|3",
+   "scope": "game",
+   "gameId": "401872930",
+   "legs": [
+    {
+     "gameId": "401872930",
+     "playerId": "4696981",
+     "name": "Cam Skattebo",
+     "team": "NYG",
+     "prop": "td",
+     "prob": 0.5321
+    },
+    {
+     "gameId": "401872930",
+     "playerId": "4361579",
+     "name": "Javonte Williams",
+     "team": "DAL",
+     "prop": "td",
+     "prob": 0.5091
+    },
+    {
+     "gameId": "401872930",
+     "playerId": "4689114",
+     "name": "Jaxson Dart",
+     "team": "NYG",
+     "prop": "td",
+     "prob": 0.4195
+    }
+   ],
+   "prob": 0.113639240145,
+   "adjusted": 0.09659335412325,
+   "correlation": "team",
+   "recordedAt": "2026-09-09T19:38:19.446Z"
+  },
+  {
+   "key": "game|401872929|3",
+   "scope": "game",
+   "gameId": "401872929",
+   "legs": [
+    {
+     "gameId": "401872929",
+     "playerId": "3929630",
+     "name": "Saquon Barkley",
+     "team": "PHI",
+     "prop": "td",
+     "prob": 0.4353
+    },
+    {
+     "gameId": "401872929",
+     "playerId": "3121023",
+     "name": "Dallas Goedert",
+     "team": "PHI",
+     "prop": "td",
+     "prob": 0.4302
+    },
+    {
+     "gameId": "401872929",
+     "playerId": "4047646",
+     "name": "A.J. Brown",
+     "team": "PHI",
+     "prop": "td",
+     "prob": 0.355
+    }
+   ],
+   "prob": 0.0664794513,
+   "adjusted": 0.056507533605,
+   "correlation": "team",
+   "recordedAt": "2026-09-09T19:38:19.446Z"
+  },
+  {
+   "key": "game|401872931|3",
+   "scope": "game",
+   "gameId": "401872931",
+   "legs": [
+    {
+     "gameId": "401872931",
+     "playerId": "4568490",
+     "name": "RJ Harvey",
+     "team": "DEN",
+     "prop": "td",
+     "prob": 0.3609
+    },
+    {
+     "gameId": "401872931",
+     "playerId": "4428331",
+     "name": "Rashee Rice",
+     "team": "KC",
+     "prop": "td",
+     "prob": 0.3244
+    },
+    {
+     "gameId": "401872931",
+     "playerId": "4241985",
+     "name": "J.K. Dobbins",
+     "team": "DEN",
+     "prop": "td",
+     "prob": 0.2937
+    }
+   ],
+   "prob": 0.03438520945200001,
+   "adjusted": 0.029227428034200004,
+   "correlation": "team",
+   "recordedAt": "2026-09-09T19:38:19.446Z"
+  },
+  {
+   "key": "game|401872926|3",
+   "scope": "game",
+   "gameId": "401872926",
+   "legs": [
+    {
+     "gameId": "401872926",
+     "playerId": "4685382",
+     "name": "Omarion Hampton",
+     "team": "LAC",
+     "prop": "td",
+     "prob": 0.39
+    },
+    {
+     "gameId": "401872926",
+     "playerId": "4429025",
+     "name": "Quentin Johnston",
+     "team": "LAC",
+     "prop": "td",
+     "prob": 0.359
+    },
+    {
+     "gameId": "401872926",
+     "playerId": "4361307",
+     "name": "Trey McBride",
+     "team": "ARI",
+     "prop": "td",
+     "prob": 0.3267
+    }
+   ],
+   "prob": 0.045741266999999995,
+   "adjusted": 0.038880076949999995,
+   "correlation": "team",
+   "recordedAt": "2026-09-09T19:38:19.446Z"
+  },
+  {
+   "key": "game|401872925|3",
+   "scope": "game",
+   "gameId": "401872925",
+   "legs": [
+    {
+     "gameId": "401872925",
+     "playerId": "4362238",
+     "name": "Chase Brown",
+     "team": "CIN",
+     "prop": "td",
+     "prob": 0.4544
+    },
+    {
+     "gameId": "401872925",
+     "playerId": "4239993",
+     "name": "Tee Higgins",
+     "team": "CIN",
+     "prop": "td",
+     "prob": 0.4333
+    },
+    {
+     "gameId": "401872925",
+     "playerId": "4362628",
+     "name": "Ja'Marr Chase",
+     "team": "CIN",
+     "prop": "td",
+     "prob": 0.3883
+    }
+   ],
+   "prob": 0.076452977216,
+   "adjusted": 0.0649850306336,
+   "correlation": "team",
+   "recordedAt": "2026-09-09T19:38:19.446Z"
+  },
+  {
+   "key": "game|401872658|3",
+   "scope": "game",
+   "gameId": "401872658",
+   "legs": [
+    {
+     "gameId": "401872658",
+     "playerId": "4430807",
+     "name": "Bijan Robinson",
+     "team": "ATL",
+     "prop": "td",
+     "prob": 0.3902
+    },
+    {
+     "gameId": "401872658",
+     "playerId": "4569987",
+     "name": "Jaylen Warren",
+     "team": "PIT",
+     "prop": "td",
+     "prob": 0.342
+    },
+    {
+     "gameId": "401872658",
+     "playerId": "4426502",
+     "name": "Drake London",
+     "team": "ATL",
+     "prop": "td",
+     "prob": 0.3279
+    }
+   ],
+   "prob": 0.043757730360000004,
+   "adjusted": 0.037194070806000006,
+   "correlation": "team",
+   "recordedAt": "2026-09-09T19:38:19.446Z"
+  },
+  {
+   "key": "game|401872922|3",
+   "scope": "game",
+   "gameId": "401872922",
+   "legs": [
+    {
+     "gameId": "401872922",
+     "playerId": "4239996",
+     "name": "Travis Etienne Jr.",
+     "team": "JAX",
+     "prop": "td",
+     "prob": 0.4678
+    },
+    {
+     "gameId": "401872922",
+     "playerId": "4362619",
+     "name": "Chris Rodriguez Jr.",
+     "team": "JAX",
+     "prop": "td",
+     "prob": 0.3389
+    },
+    {
+     "gameId": "401872922",
+     "playerId": "4360310",
+     "name": "Trevor Lawrence",
+     "team": "JAX",
+     "prop": "td",
+     "prob": 0.3342
+    }
+   ],
+   "prob": 0.052983205763999994,
+   "adjusted": 0.04503572489939999,
+   "correlation": "team",
+   "recordedAt": "2026-09-09T19:38:19.446Z"
+  },
+  {
+   "key": "game|401872928|3",
+   "scope": "game",
+   "gameId": "401872928",
+   "legs": [
+    {
+     "gameId": "401872928",
+     "playerId": "4429160",
+     "name": "De'Von Achane",
+     "team": "MIA",
+     "prop": "td",
+     "prob": 0.4357
+    },
+    {
+     "gameId": "401872928",
+     "playerId": "2576925",
+     "name": "Darren Waller",
+     "team": "MIA",
+     "prop": "td",
+     "prob": 0.3434
+    },
+    {
+     "gameId": "401872928",
+     "playerId": "4890973",
+     "name": "Ashton Jeanty",
+     "team": "LV",
+     "prop": "td",
+     "prob": 0.334
+    }
+   ],
+   "prob": 0.04997287292,
+   "adjusted": 0.042476941982,
+   "correlation": "team",
+   "recordedAt": "2026-09-09T19:38:19.446Z"
+  },
+  {
+   "key": "game|401872659|3",
+   "scope": "game",
+   "gameId": "401872659",
+   "legs": [
+    {
+     "gameId": "401872659",
+     "playerId": "4242335",
+     "name": "Jonathan Taylor",
+     "team": "IND",
+     "prop": "td",
+     "prob": 0.5953
+    },
+    {
+     "gameId": "401872659",
+     "playerId": "3043078",
+     "name": "Derrick Henry",
+     "team": "BAL",
+     "prop": "td",
+     "prob": 0.4975
+    },
+    {
+     "gameId": "401872659",
+     "playerId": "4035687",
+     "name": "Michael Pittman Jr.",
+     "team": "IND",
+     "prop": "td",
+     "prob": 0.3198
+    }
+   ],
+   "prob": 0.09471252764999999,
+   "adjusted": 0.08050564850249999,
+   "correlation": "team",
+   "recordedAt": "2026-09-09T19:38:19.446Z"
+  },
+  {
+   "key": "game|401872924|3",
+   "scope": "game",
+   "gameId": "401872924",
+   "legs": [
+    {
+     "gameId": "401872924",
+     "playerId": "4569618",
+     "name": "Garrett Wilson",
+     "team": "NYJ",
+     "prop": "td",
+     "prob": 0.3023
+    },
+    {
+     "gameId": "401872924",
+     "playerId": "4427366",
+     "name": "Breece Hall",
+     "team": "NYJ",
+     "prop": "td",
+     "prob": 0.2658
+    },
+    {
+     "gameId": "401872924",
+     "playerId": "3916148",
+     "name": "Tony Pollard",
+     "team": "TEN",
+     "prop": "td",
+     "prob": 0.2551
+    }
+   ],
+   "prob": 0.020497626834,
+   "adjusted": 0.0174229828089,
+   "correlation": "team",
+   "recordedAt": "2026-09-09T19:38:19.446Z"
+  },
+  {
+   "key": "game|401872656|3",
+   "scope": "game",
+   "gameId": "401872656",
+   "legs": [
+    {
+     "gameId": "401872656",
+     "playerId": "4426385",
+     "name": "Zach Charbonnet",
+     "team": "SEA",
+     "prop": "td",
+     "prob": 0.3967
+    },
+    {
+     "gameId": "401872656",
+     "playerId": "4569173",
+     "name": "Rhamondre Stevenson",
+     "team": "NE",
+     "prop": "td",
+     "prob": 0.3605
+    },
+    {
+     "gameId": "401872656",
+     "playerId": "4430878",
+     "name": "Jaxon Smith-Njigba",
+     "team": "SEA",
+     "prop": "td",
+     "prob": 0.3521
+    }
+   ],
+   "prob": 0.050353944234999996,
+   "adjusted": 0.04280085259974999,
+   "correlation": "team",
+   "recordedAt": "2026-09-09T19:38:19.446Z"
+  },
+  {
+   "key": "game|401872923|3",
+   "scope": "game",
+   "gameId": "401872923",
+   "legs": [
+    {
+     "gameId": "401872923",
+     "playerId": "4429795",
+     "name": "Jahmyr Gibbs",
+     "team": "DET",
+     "prop": "td",
+     "prob": 0.5606
+    },
+    {
+     "gameId": "401872923",
+     "playerId": "4374302",
+     "name": "Amon-Ra St. Brown",
+     "team": "DET",
+     "prop": "td",
+     "prob": 0.4235
+    },
+    {
+     "gameId": "401872923",
+     "playerId": "4239996",
+     "name": "Travis Etienne Jr.",
+     "team": "NO",
+     "prop": "td",
+     "prob": 0.3899
+    }
+   ],
+   "prob": 0.09256775759000001,
+   "adjusted": 0.0786825939515,
+   "correlation": "team",
+   "recordedAt": "2026-09-09T19:38:19.446Z"
+  },
+  {
+   "key": "game|401872660|3",
+   "scope": "game",
+   "gameId": "401872660",
+   "legs": [
+    {
+     "gameId": "401872660",
+     "playerId": "4379399",
+     "name": "James Cook III",
+     "team": "BUF",
+     "prop": "td",
+     "prob": 0.489
+    },
+    {
+     "gameId": "401872660",
+     "playerId": "3918298",
+     "name": "Josh Allen",
+     "team": "BUF",
+     "prop": "td",
+     "prob": 0.4526
+    },
+    {
+     "gameId": "401872660",
+     "playerId": "3915416",
+     "name": "DJ Moore",
+     "team": "BUF",
+     "prop": "td",
+     "prob": 0.3023
+    }
+   ],
+   "prob": 0.06690545922,
+   "adjusted": 0.056869640337,
+   "correlation": "team",
+   "recordedAt": "2026-09-09T19:38:19.446Z"
+  },
+  {
+   "key": "game|401872661|3",
+   "scope": "game",
+   "gameId": "401872661",
+   "legs": [
+    {
+     "gameId": "401872661",
+     "playerId": "4259545",
+     "name": "D'Andre Swift",
+     "team": "CHI",
+     "prop": "td",
+     "prob": 0.4094
+    },
+    {
+     "gameId": "401872661",
+     "playerId": "4431299",
+     "name": "Rome Odunze",
+     "team": "CHI",
+     "prop": "td",
+     "prob": 0.3334
+    },
+    {
+     "gameId": "401872661",
+     "playerId": "2576925",
+     "name": "Darren Waller",
+     "team": "CAR",
+     "prop": "td",
+     "prob": 0.3328
+    }
+   ],
+   "prob": 0.045425189888,
+   "adjusted": 0.0386114114048,
+   "correlation": "team",
+   "recordedAt": "2026-09-09T19:38:19.446Z"
+  },
+  {
+   "key": "game|401872657|3",
+   "scope": "game",
+   "gameId": "401872657",
+   "legs": [
+    {
+     "gameId": "401872657",
+     "playerId": "16800",
+     "name": "Davante Adams",
+     "team": "LAR",
+     "prop": "td",
+     "prob": 0.563
+    },
+    {
+     "gameId": "401872657",
+     "playerId": "4430737",
+     "name": "Kyren Williams",
+     "team": "LAR",
+     "prop": "td",
+     "prob": 0.5316
+    },
+    {
+     "gameId": "401872657",
+     "playerId": "3117251",
+     "name": "Christian McCaffrey",
+     "team": "SF",
+     "prop": "td",
+     "prob": 0.5119
+    }
+   ],
+   "prob": 0.15320696052,
+   "adjusted": 0.130225916442,
+   "correlation": "team",
+   "recordedAt": "2026-09-09T19:38:19.446Z"
+  },
+  {
+   "key": "game|401872927|3",
+   "scope": "game",
+   "gameId": "401872927",
+   "legs": [
+    {
+     "gameId": "401872927",
+     "playerId": "4047365",
+     "name": "Josh Jacobs",
+     "team": "GB",
+     "prop": "td",
+     "prob": 0.4154
+    },
+    {
+     "gameId": "401872927",
+     "playerId": "4572680",
+     "name": "Tucker Kraft",
+     "team": "GB",
+     "prop": "td",
+     "prob": 0.3089
+    },
+    {
+     "gameId": "401872927",
+     "playerId": "3886598",
+     "name": "Jauan Jennings",
+     "team": "MIN",
+     "prop": "td",
+     "prob": 0.3009
+    }
+   ],
+   "prob": 0.038610603354,
+   "adjusted": 0.032819012850900005,
+   "correlation": "team",
+   "recordedAt": "2026-09-09T19:38:19.446Z"
+  }
+ ]
 }

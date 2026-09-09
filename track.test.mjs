@@ -311,3 +311,62 @@ test("settlePlayer: touchdowns, then each counting prop against its own field", 
   assert.equal(settlePlayer({ prop: "recs", line: 5.5 }, line), 0);
   assert.equal(settlePlayer({ prop: "spread", line: -3 }, line), null, "a game prop is not a player prop");
 });
+
+/* ------------------------------------------------------------------ *
+ * The parlay forward record
+ *
+ * Oracle: the suggester itself (parlay.js) and a book's settlement: a
+ * slip dies on the first miss, pays only when every leg hits, and voids
+ * when a leg voids. Recorded pregame, first prediction wins, like every
+ * other row.
+ * ------------------------------------------------------------------ */
+import { parlayCandidates, recordSuggestedParlays, gradeParlays } from "./track-football.mjs";
+const close = (a, b, tol = 1e-9) => assert.ok(Math.abs(a - b) <= tol, `${a} ≈ ${b}`);
+
+const FUTURE = "2099-01-01T18:00Z", PAST = "2000-01-01T18:00Z";
+const td = (gameId, playerId, team, prob, kickoff = FUTURE) => ({ gameId, playerId, name: "P" + playerId, team, prop: "td", prob, kickoff });
+
+test("parlayCandidates: this day's touchdown rows whose game has not started", () => {
+  const day = { predictions: [td("g1", "a", "X", 0.6), td("g1", "b", "Y", 0.5), td("g2", "c", "Z", 0.4, PAST), { gameId: "g1", playerId: "a", prop: "recyds", prob: 0.5, kickoff: FUTURE }, { gameId: "g3", playerId: "game", prop: "spread", prob: 0.5, kickoff: FUTURE }] };
+  const c = parlayCandidates(day, Date.parse("2050-01-01T00:00Z"));
+  assert.deepEqual(c.map((x) => x.playerId), ["a", "b"], "a started game and the other props are out");
+  assert.deepEqual(c[0], { key: "g1|a|td", playerId: "a", gameId: "g1", team: "X", name: "Pa", prob: 0.6, prop: "td" });
+});
+
+test("recordSuggestedParlays: slate slips of 3, 4 and 5 and a 3-leg slip per open game, first wins", () => {
+  const day = { predictions: [
+    td("g1", "a", "X", 0.6), td("g1", "b", "Y", 0.5), td("g1", "c", "X", 0.4),
+    td("g2", "d", "Z", 0.55), td("g2", "e", "W", 0.3),
+    td("g3", "f", "V", 0.45),
+  ] };
+  const lift = { game: 1, team: 0.85 };
+  const added = recordSuggestedParlays(day, parlayCandidates(day, 0), lift, "2026-09-09T00:00:00Z");
+  assert.equal(added, 2, "a 3-leg slate slip and g1's slip; 4 and 5 legs need 4 and 5 games; g2 and g3 have too few legs");
+  const slate = day.parlays.find((s) => s.scope === "slate");
+  assert.deepEqual(slate.legs.map((l) => l.playerId), ["a", "d", "f"]);
+  close(slate.prob, 0.6 * 0.55 * 0.45); assert.equal(slate.correlation, "none"); close(slate.adjusted, slate.prob);
+  const g1 = day.parlays.find((s) => s.scope === "game");
+  assert.equal(g1.gameId, "g1"); assert.deepEqual(g1.legs.map((l) => l.playerId), ["a", "b", "c"]);
+  assert.equal(g1.correlation, "team"); close(g1.adjusted, 0.6 * 0.5 * 0.4 * 0.85);
+  // Run again with a better leg now on the board: first prediction wins.
+  day.predictions.push(td("g1", "z", "Y", 0.9));
+  assert.equal(recordSuggestedParlays(day, parlayCandidates(day, 0), lift), 0);
+  assert.deepEqual(day.parlays.find((s) => s.scope === "game").legs.map((l) => l.playerId), ["a", "b", "c"]);
+});
+
+test("gradeParlays: dies on the first miss, cashes when every leg hits, voids with a voided leg", () => {
+  const day = { predictions: [td("g1", "a", "X", 0.6), td("g1", "b", "Y", 0.5), td("g2", "c", "Z", 0.4), td("g3", "d", "V", 0.4)],
+    parlays: [
+      { key: "s1", legs: [{ gameId: "g1", playerId: "a", prop: "td" }, { gameId: "g2", playerId: "c", prop: "td" }] },
+      { key: "s2", legs: [{ gameId: "g1", playerId: "a", prop: "td" }, { gameId: "g1", playerId: "b", prop: "td" }] },
+      { key: "s3", legs: [{ gameId: "g1", playerId: "a", prop: "td" }, { gameId: "g3", playerId: "d", prop: "td" }] },
+    ] };
+  day.predictions[0].actual = 1; day.predictions[1].actual = 0; day.predictions[2].scratched = true;
+  assert.equal(gradeParlays(day), 2, "s2 lost on b, s1 voided on c; s3 waits for d");
+  assert.equal(day.parlays[1].actual, 0);
+  assert.equal(day.parlays[0].scratched, true);
+  assert.equal(day.parlays[2].actual, undefined, "an open leg keeps the slip open");
+  day.predictions[3].actual = 1;
+  assert.equal(gradeParlays(day), 1); assert.equal(day.parlays[2].actual, 1, "every leg hit");
+  assert.equal(gradeParlays(day), 0, "nothing settles twice");
+});

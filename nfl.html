@@ -40,6 +40,20 @@
 </header>
 
 <div class="note" id="note"></div>
+<div class="controls" id="parlayctl" hidden>
+  <div class="ctl">
+    <label id="lab-plegs">Suggest a parlay</label>
+    <div class="seg" id="plegs" role="group" aria-labelledby="lab-plegs"></div>
+  </div>
+  <div class="ctl">
+    <label id="lab-pscope">From</label>
+    <div class="seg" id="pscope" role="group" aria-labelledby="lab-pscope"></div>
+  </div>
+  <div class="ctl" id="pgamewrap" hidden>
+    <label id="lab-pgame" for="pgame">Game</label>
+    <select id="pgame" class="search"></select>
+  </div>
+</div>
 <div class="controls" id="controls" hidden>
   <div class="ctl">
     <label id="lab-line">Line</label>
@@ -56,6 +70,7 @@
 <script src="nfl-data.js"></script>
 <!-- Written by track-nfl.mjs. Empty until a week has been graded. -->
 <script src="nfl-record.js"></script>
+<script src="parlay.js"></script>
 <script src="football-board.js"></script>
 <script>
 /* The page is football-board.js, shared with cfb.html. What is the NFL's

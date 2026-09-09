@@ -44,6 +44,7 @@ import { fileURLToPath } from "node:url";
 import * as core from "./track-core.mjs";
 import { fetchLine } from "./fetch-football.mjs";
 import nfl from "./nfl.js"; // for the stat table, which every league shares
+import Parlay from "./parlay.js";
 
 const DIR = path.dirname(fileURLToPath(import.meta.url));
 
@@ -215,7 +216,13 @@ export function snapshot(league) {
   }
 
   day.graded = false;
+  /* The slips the board would suggest -- the whole slate at 3, 4 and 5
+     legs, and one game at 3 -- recorded the same way, so the number a
+     parlay product would sell is measured and not only the legs. */
+  const slips = recordSuggestedParlays(day, parlayCandidates(day), M.DEFAULTS.parlayLift);
+
   core.saveDay(HIST, day);
+  if (slips) console.log(`  + ${slips} suggested parlays recorded`);
   const players = new Set(day.predictions.filter((p) => p.playerId !== "game").map((p) => p.playerId)).size;
   console.log(`snapshot ${date} (${D.season} week ${D.week}): +${added} predictions ` +
     `(${day.predictions.length} total, ${players} players, ${games} new game picks)`);
@@ -275,6 +282,77 @@ export function settlePlayer(pred, line) {
   const st = nfl.STATS[pred.prop];
   if (!st) return null;
   return num(line[st.total]) > pred.line ? 1 : 0;
+}
+
+/* ------------------------------------------------------------------ *
+ * Suggested parlays, recorded and settled
+ * ------------------------------------------------------------------ */
+
+/** Legs the suggester may use: this day's touchdown rows whose game has not started. */
+export function parlayCandidates(day, now = Date.now()) {
+  return (day.predictions || [])
+    .filter((p) => p.prop === "td" && p.playerId !== "game" && !core.startedAlready(p.kickoff, now))
+    .map((p) => ({ key: `${p.gameId}|${p.playerId}|td`, playerId: p.playerId, gameId: p.gameId, team: p.team, name: p.name, prob: p.prob, prop: "td" }));
+}
+
+/**
+ * Record what the board would suggest: the slate at 3, 4 and 5 legs and
+ * every open game at 3. One row per (scope, game, legs); first wins, so
+ * a slip is what was offered when it was first offered.
+ */
+export function recordSuggestedParlays(day, candidates, lift, now = new Date().toISOString()) {
+  day.parlays = day.parlays || [];
+  const seen = new Set(day.parlays.map((s) => s.key));
+  const wanted = [3, 4, 5].map((legs) => ({ scope: "slate", legs }));
+  for (const gameId of [...new Set(candidates.map((c) => c.gameId))]) wanted.push({ scope: "game", gameId, legs: 3 });
+  let added = 0;
+  for (const w of wanted) {
+    const key = `${w.scope}|${w.gameId || "all"}|${w.legs}`;
+    if (seen.has(key)) continue;
+    const out = Parlay.suggestParlay(candidates, { legs: w.legs, scope: w.scope, gameId: w.gameId, lift });
+    if (!out) continue;
+    day.parlays.push({
+      key, scope: w.scope, gameId: w.gameId || null,
+      legs: out.legs.map((l) => ({ gameId: l.gameId, playerId: l.playerId, name: l.name, team: l.team, prop: "td", prob: l.prob })),
+      prob: out.combined.prob, adjusted: out.combined.adjusted, correlation: out.combined.correlation,
+      recordedAt: now,
+    });
+    seen.add(key); added++;
+  }
+  return added;
+}
+
+/**
+ * Settle recorded slips from their legs. A slip dies on the first miss,
+ * pays only when every leg hit, and voids when a leg voided. Returns how
+ * many were settled this call.
+ */
+export function gradeParlays(day) {
+  const byKey = new Map((day.predictions || []).map((p) => [`${p.gameId}|${p.playerId}|${p.prop}`, p]));
+  let n = 0;
+  for (const s of day.parlays || []) {
+    if (s.actual != null || s.scratched) continue;
+    const legs = s.legs.map((l) => byKey.get(`${l.gameId}|${l.playerId}|${l.prop}`));
+    if (legs.some((l) => l && l.scratched)) { s.scratched = true; n++; continue; }
+    if (legs.some((l) => l && l.actual === 0)) { s.actual = 0; n++; continue; }
+    if (legs.length && legs.every((l) => l && l.actual === 1)) { s.actual = 1; n++; }
+  }
+  return n;
+}
+
+/** The parlay record for the page: per scope, slips settled, predicted and cashed. */
+export function parlaySummary(dir) {
+  const out = {};
+  for (const d of core.listDays(dir)) {
+    for (const s of core.loadDay(dir, d).parlays || []) {
+      if (s.actual == null) continue;
+      const k = `${s.scope}${s.legs.length}`;
+      const t = out[k] || (out[k] = { scope: s.scope, legs: s.legs.length, n: 0, predicted: 0, adjusted: 0, cashed: 0 });
+      t.n++; t.predicted += s.prob; t.adjusted += s.adjusted != null ? s.adjusted : s.prob; t.cashed += s.actual;
+    }
+  }
+  for (const t of Object.values(out)) { t.predicted /= t.n; t.adjusted /= t.n; }
+  return Object.keys(out).length ? out : null;
 }
 
 /** Every player who took a snap that mattered, by ESPN athlete id. */
@@ -376,6 +454,7 @@ export async function grade(league) {
 
     const left = day.predictions.filter((p) => p.actual == null && !p.scratched).length;
     day.graded = left === 0;
+    gradeParlays(day);
     core.saveDay(HIST, day);
     const done = day.predictions.filter((p) => p.actual != null).length;
     const scratched = day.predictions.filter((p) => p.scratched).length;
@@ -439,6 +518,13 @@ export function report(league, writeRecord) {
     }
     console.log();
     if (out) out.picks = picks;
+  }
+  const parlays = parlaySummary(dir);
+  if (parlays && out) {
+    out.parlays = parlays;
+    console.log("Suggested parlays, settled like a book would:");
+    for (const t of Object.values(parlays)) console.log(`  ${t.scope.padEnd(6)} ${t.legs} legs  n=${String(t.n).padStart(4)}  predicted ${(100 * t.adjusted).toFixed(1)}%  cashed ${(100 * t.cashed / t.n).toFixed(1)}%`);
+    console.log();
   }
   if (writeRecord) {
     /* Written even when empty, from the first run. The board loads it as a
