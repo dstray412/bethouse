@@ -759,6 +759,25 @@
     return { players: out, moved, dropped };
   }
 
+  /**
+   * Does a player match what someone typed into the search box? Every
+   * word typed must begin some word of his name, team or opponent --
+   * "ne" is the Patriots, not everyone called Achane -- and case, dots,
+   * apostrophes and accents do not count. Word order does not matter.
+   * An empty query matches everyone.
+   */
+  function searchWords(s) {
+    return String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
+      .replace(/[.'\u2019]/g, "").split(/[\s-]+/).filter(Boolean);
+  }
+  function playerMatches(query, p) {
+    if (!p) return false;
+    const words = searchWords(query);
+    if (!words.length) return true;
+    const hay = [].concat(searchWords(p.name), searchWords(p.team), searchWords(p.opp));
+    return words.every((w) => hay.some((h) => h.indexOf(w) === 0));
+  }
+
   function availability(status) {
     const s = String(status || "").toLowerCase();
     if (!s) return "ok";
@@ -821,6 +840,7 @@
       empiricalOver,
       ratioPool,
       availability,
+      playerMatches,
       parseRoster,
       applyRosters,
       fairPrice,
@@ -856,6 +876,7 @@
     empiricalOver,
     ratioPool,
     availability,
+    playerMatches,
     parseRoster,
     applyRosters,
     fairPrice,

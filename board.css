@@ -63,6 +63,10 @@ header{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:1
 .seg{display:flex;gap:4px}
 .seg button{font:inherit;font-size:14px;color:var(--muted);background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:6px 11px;cursor:pointer}
 .seg button:hover{color:var(--text)}
+/* The search box: one line, the same shape as a segment button. */
+.search{font:inherit;font-size:14px;color:var(--text);background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:6px 11px;min-width:190px}
+.search::placeholder{color:var(--muted)}
+.search:focus{border-color:var(--accent);outline:none}
 .seg button[aria-pressed=true]{color:#0a0d14;background:linear-gradient(180deg,#7fe9ff,var(--accent));border-color:transparent;font-weight:600}
 .game{border:1px solid var(--line);border-radius:15px;background:var(--panel2);margin-bottom:14px;overflow:hidden}
 .ghead{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;

@@ -37,10 +37,14 @@
     var VIEWS = [{id:'td',label:'Anytime TD'}].concat(STAT_IDS.map(function(k){return {id:k,label:N.STATS[k].label};}))
       .concat([{id:'game',label:'Spread & total'}]);
     var LINES = [{id:0.7,label:'Low'},{id:1,label:'Projection'},{id:1.3,label:'High'}];
-    var state = { view:'td', lineMult:1, open:null, showAll:false };
+    var state = { view:'td', lineMult:1, open:null, showAll:false, q:'' };
     /* Twenty rows is a board; eighty is a spreadsheet. The rest are one tap away. */
     var SHOW=20, MAX=80;
-    var trim=function(rows){ var n=state.showAll?MAX:SHOW; return { rows:rows.slice(0,n), hidden:Math.min(rows.length,MAX)-Math.min(rows.length,n) }; };
+    var trim=function(rows){ var n=(state.showAll||state.q)?MAX:SHOW; return { rows:rows.slice(0,n), hidden:Math.min(rows.length,MAX)-Math.min(rows.length,n) }; };
+    /* The search box filters the props views by name, team or opponent
+       (nfl.js playerMatches). The game view has no players to find. */
+    var find=function(p){ return N.playerMatches(state.q,p); };
+    var nothing=function(){ return state.q ? '<div class="empty">No player matches <b>'+esc(state.q)+'</b> on this view.</div>' : ''; };
     var moreBtn=function(hidden){ return hidden>0 ? '<button class="more" type="button" data-more>Show '+hidden+' more</button>' : ''; };
 
     var pct=function(x,d){return (100*x).toFixed(d==null?1:d)+'%';};
@@ -95,7 +99,7 @@
     function renderTD(){
       var rows=[];
       (D.players||[]).forEach(function(p){
-        if(!available(p)) return;
+        if(!available(p)||!find(p)) return;
         var tf=(D.teamFactors[p.team]||{}).off||1;
         // The opponent's defence, the same term the backtest used.
         var of=p.opp?oppFactorFor(p.opp):1;
@@ -118,7 +122,7 @@
           '<span class="caret">›</span></button>'+
           '<div class="why" id="why'+i+'" hidden></div>';
       });
-      app.innerHTML=html+moreBtn(t.hidden)+'</div>';
+      app.innerHTML=html+(rows.length?'':nothing())+moreBtn(t.hidden)+'</div>';
       app.__rows=rows;
       app.__detail=function(r){
         var t='<table>';
@@ -148,7 +152,7 @@
       var ST=N.STATS[stat], pool=poolFor(stat), unit=stat==='recs'?' catches':' yards';
       var rows=[];
       (D.players||[]).forEach(function(p){
-        if(!available(p)) return;
+        if(!available(p)||!find(p)) return;
         // The one gate, shared with the tracker: see nfl.js statEligible.
         var y=N.statEligible(stat,p,null,{oppFactor:allowFor(p.opp,stat)});
         if(!y) return;
@@ -187,7 +191,7 @@
           '<span class="caret">›</span></button>'+
           '<div class="why" id="why'+i+'" hidden></div>';
       });
-      app.innerHTML=html+moreBtn(t.hidden)+'</div>';
+      app.innerHTML=html+(rows.length?'':nothing())+moreBtn(t.hidden)+'</div>';
       app.__rows=rows;
       /* The panel: the decision first, in two lines, then the arithmetic
          in words a bettor already uses. The constants behind each step
@@ -355,6 +359,7 @@
       seg(document.getElementById('view'),VIEWS,state.view,function(v){state.view=v;state.open=null;state.showAll=false;render();});
       seg(document.getElementById('lineseg'),LINES,state.lineMult,function(v){state.lineMult=v;state.open=null;render();});
       document.getElementById('controls').hidden = !N.STATS[state.view];
+      document.getElementById('find').hidden = state.view==='game';
       document.getElementById('tagline').textContent=cfg.league+' — '+D.season+' week '+D.week;
 
       /* One plain sentence up front; the replay numbers that back it sit
@@ -375,6 +380,14 @@
       else renderGames();
     }
 
+    var q=document.getElementById('q');
+    if(q){
+      q.addEventListener('input',function(){ state.q=q.value.trim(); state.open=null; render(); });
+      // "/" jumps to the box from anywhere on the page, like a search engine.
+      document.addEventListener('keydown',function(e){
+        if(e.key==='/'&&document.activeElement!==q&&!/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)){ e.preventDefault(); q.focus(); }
+      });
+    }
     app.addEventListener('click',function(e){
       if(e.target.closest('[data-more]')){ state.showAll=true; render(); return; }
       var btn=e.target.closest('.row'); if(!btn) return;

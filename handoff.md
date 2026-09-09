@@ -205,6 +205,13 @@ call. Report and before/after shots:
 `~/.gstack/projects/BetHouse/designs/design-audit-20260908/`. Baseline
 design score B−, AI-slop A.
 
+**Search, 2026-09-09.** A "Find" box on the football boards (`#q` in
+nfl.html / cfb.html) filters the touchdown and counting-prop views by
+player, team or opponent — `playerMatches` in `nfl.js`, tested: words in
+any order, case, dots and accents ignored. A search shows every match,
+not the first twenty; the game view hides the box; "/" focuses it. The
+baseball board has its own page script and no search yet.
+
 **Rosters, 2026-09-09.** A.J. Brown was on the Eagles' board in week 1
 after joining the Patriots: a player's team was the team of his last box
 score, which is last season's team until he plays a game. Now every

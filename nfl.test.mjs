@@ -928,3 +928,30 @@ test("applyRosters: a player's team is where the roster says; a player on no ros
   // No roster, nothing changes.
   assert.deepEqual(nfl.applyRosters(players, null).players.map((p) => p.team), ["PHI", "PHI", "PHI"]);
 });
+
+/* ------------------------------------------------------------------ *
+ * Search: find a player on the board
+ *
+ * Oracle: what a bettor types. Case, punctuation and accents do not
+ * count; every word typed has to be found somewhere in the name, the
+ * team or the opponent, in any order.
+ * ------------------------------------------------------------------ */
+
+test("playerMatches: words in any order against name, team and opponent, ignoring case, dots and accents", () => {
+  const aj = { name: "A.J. Brown", team: "NE", opp: "SEA" };
+  for (const q of ["", "  ", "aj", "a.j.", "brown", "AJ BROWN", "brown aj", "ne", "sea", "brown sea", "ne brown"]) {
+    assert.ok(nfl.playerMatches(q, aj), JSON.stringify(q));
+  }
+  for (const q of ["browne", "phi", "brown phi", "a.j. smith"]) {
+    assert.ok(!nfl.playerMatches(q, aj), JSON.stringify(q));
+  }
+  assert.ok(nfl.playerMatches("aberg", { name: "Ludvig Åberg", team: "" }), "accents fold");
+  // A word matches the START of a name, team or opponent word, never the middle:
+  // "ne" is the Patriots, not everyone called Achane or Etienne.
+  assert.ok(!nfl.playerMatches("ne", { name: "De'Von Achane", team: "MIA", opp: "LV" }));
+  assert.ok(!nfl.playerMatches("ne", { name: "Travis Etienne Jr.", team: "JAX", opp: "CLE" }));
+  assert.ok(nfl.playerMatches("ach", { name: "De'Von Achane", team: "MIA", opp: "LV" }), "a prefix of a name word");
+  assert.ok(nfl.playerMatches("devon", { name: "De'Von Achane", team: "MIA", opp: "LV" }), "the apostrophe does not split the word");
+  assert.ok(nfl.playerMatches("st brown", { name: "Amon-Ra St. Brown", team: "DET" }));
+  assert.ok(!nfl.playerMatches("x", null));
+});
