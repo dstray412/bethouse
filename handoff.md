@@ -205,6 +205,21 @@ call. Report and before/after shots:
 `~/.gstack/projects/BetHouse/designs/design-audit-20260908/`. Baseline
 design score B−, AI-slop A.
 
+**Rosters, 2026-09-09.** A.J. Brown was on the Eagles' board in week 1
+after joining the Patriots: a player's team was the team of his last box
+score, which is last season's team until he plays a game. Now every
+board build fetches every team's roster (`teamsUrl` / `rosterUrl` in the
+league table; college uses its membership ids), `parseRoster` /
+`applyRosters` in `nfl.js` put each player where the roster says and
+drop anyone on no roster (retired, released, unsigned, graduated).
+First build: NFL 137 moved, 93 dropped (430 → 386 board players);
+college 344 moved, 2,824 dropped (1,836 → 1,026). A partial roster fetch
+moves nobody rather than dropping a failed team's players. The panel
+says "now NE — every number here is from his PHI games". The week-1
+rows recorded before this under the old teams stay as recorded and will
+void at grading (the player is not in that game's box score); the moved
+players were re-recorded in their real games the same day.
+
 **One stylesheet, 2026-09-08, late (FINDING-014).** `board.css` holds
 what the five pages used to copy; each page keeps only its own rules in
 a short `<style>` after the link (baseball 173 lines, bets 84, golf 15,

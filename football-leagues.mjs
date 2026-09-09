@@ -33,6 +33,10 @@ export const NFL = {
   /* The league's injury report: every player, Active or not, with a dated
      status. Read once per board build. */
   injuriesUrl: `${SITE}/nfl/injuries`,
+  /* Who plays for whom today. The box score names last season's team
+     until a player plays a game for the new one; the roster does not. */
+  teamsUrl: `${SITE}/nfl/teams?limit=40`,
+  rosterUrl: (teamId) => `${SITE}/nfl/teams/${teamId}/roster`,
   model: nfl,
   fetcher: "fetch-nfl.mjs",
   tracker: "track-nfl.mjs",
@@ -64,6 +68,9 @@ export const CFB = {
   /* ESPN's college injuries endpoint returns three entries dated 2020-22.
      There is no report; every college player reads as available. */
   injuriesUrl: null,
+  /* Team ids come from the membership list; one roster request each. */
+  teamsUrl: null,
+  rosterUrl: (teamId) => `${SITE}/college-football/teams/${teamId}/roster`,
   model: cfb,
   fetcher: "fetch-cfb.mjs",
   tracker: "track-cfb.mjs",

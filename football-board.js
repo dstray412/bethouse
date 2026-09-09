@@ -83,9 +83,13 @@
     var available=function(p){ return N.availability(p.status)!=='out'; };
     var qTag=function(p){ return N.availability(p.status)==='questionable' ? '<span class="tag q" title="Listed Questionable">Q</span>' : ''; };
     var statusRow=function(p){
-      if(!p.status||N.availability(p.status)==='ok') return '';
-      return '<tr><td>status</td><td><b>'+esc(p.status)+'</b>'+(p.injury?' ('+esc(p.injury)+')':'')+
-        ' — listed Questionable, about 6 in 10 play; a bet on a player who does not is void, not lost</td></tr>';
+      var t='';
+      // He moved: the roster says where he is, the record says what he did.
+      if(p.movedFrom) t+='<tr><td>team</td><td>now <b>'+esc(p.team)+'</b> — every number here is from his '+esc(p.movedFrom)+' games; a new offence can change his role</td></tr>';
+      if(p.status&&N.availability(p.status)!=='ok')
+        t+='<tr><td>status</td><td><b>'+esc(p.status)+'</b>'+(p.injury?' ('+esc(p.injury)+')':'')+
+          ' — listed Questionable, about 6 in 10 play; a bet on a player who does not is void, not lost</td></tr>';
+      return t;
     };
 
     function renderTD(){

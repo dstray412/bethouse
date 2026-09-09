@@ -683,3 +683,18 @@ was one point hot, because college dresses backups the NFL does not.
 select a population have to be re-measured per input, and the comment
 has to say who is in the population, not just what the threshold is.
 Sharing the code is right; sharing the number is a hypothesis.
+
+## A box score says where he was, not where he is
+
+2026-09-09. Every player's team came from his last box score. That is
+right in week 10 and wrong in week 1, when the last box score is last
+season's and a third of the league has moved: A.J. Brown sat on the
+Eagles' board against Washington while playing for New England against
+Seattle. The record had been right for eight months and nobody looked
+at the one week a year when it is not.
+
+**Rule:** a fact that is a snapshot (team, status, price) needs a source
+that says "now", not the most recent event that implied it. When a
+derived fact has a known season in which it goes stale, write down that
+season and test the first week of it. The roster endpoint costs 32
+requests a day and was always there.

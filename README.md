@@ -1436,6 +1436,20 @@ time (n=278) and its opponent 53.3% (n=345); the margin against the line runs
 standard errors from nothing and short of break-even. Since 2011 the opponent
 has covered 53–56% in each era. Worth watching, not betting.
 
+### Rosters: where a player is, not where he was
+
+A player's team used to be the team of his last box score. That is right
+in week 10 and wrong in week 1, when the last box score is last season's and
+a third of the league has moved. Every board build now fetches every team's
+roster from ESPN (32 requests; college uses its membership list, ~150) and
+puts each player where the roster says, dropping anyone on no roster at all
+(retired, released, unsigned, graduated). The first build moved 137 NFL
+players and dropped 93; college moved 344 and dropped 2,824. A partial roster
+fetch moves nobody, because dropping a whole team by accident is worse than
+a stale board. The panel says when a player moved and that his numbers are
+from the old team, since a new offence can change his role. Nothing in the
+model uses the roster: the record still says what he did, where.
+
 ### Injuries: where they help, and where they were always priced
 
 **2026-09-06.** The NFL board reads ESPN's injury report when it is built

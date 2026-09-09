@@ -365,6 +365,52 @@ export function parseInjuries(payload) {
 }
 
 /** The team ids on a league's membership payload (core API groups/<n>/teams). */
+/** Team ids off ESPN's teams list, for the leagues that have one. */
+export function parseTeamIds(payload) {
+  const out = [];
+  for (const s of payload?.sports || []) for (const l of s?.leagues || []) for (const t of l?.teams || []) {
+    const id = t?.team?.id; if (id != null) out.push(String(id));
+  }
+  return out;
+}
+
+/**
+ * Every team's roster, as one Map by athlete id, or null when any team
+ * could not be fetched: a partial set would drop every player on the
+ * teams that failed, which is worse than moving nobody. Team ids come
+ * from the league's teams list, or its membership list where the league
+ * has one instead.
+ */
+export async function fetchRosters(league, members) {
+  if (!league.rosterUrl) return null;
+  let ids = [];
+  try {
+    if (league.teamsUrl) ids = parseTeamIds(await getJSON(league.teamsUrl));
+    else if (members && members.size) ids = [...members];
+  } catch (e) {
+    console.log(`  WARNING: no teams list for rosters (${e.message})`);
+    return null;
+  }
+  if (!ids.length) return null;
+  const roster = new Map();
+  let failed = 0;
+  const BATCH = 8;
+  for (let i = 0; i < ids.length; i += BATCH) {
+    const chunk = ids.slice(i, i + BATCH);
+    const got = await Promise.all(chunk.map((id) => getJSON(league.rosterUrl(id)).catch(() => null)));
+    for (const payload of got) {
+      if (!payload) { failed++; continue; }
+      for (const a of league.model.parseRoster(payload)) roster.set(a.id, a);
+    }
+  }
+  if (failed) {
+    console.log(`  WARNING: ${failed} of ${ids.length} rosters failed to fetch; nobody moved`);
+    return null;
+  }
+  console.log(`  rosters: ${ids.length} teams, ${roster.size} players`);
+  return roster;
+}
+
 export function parseMembers(payload) {
   const ids = new Set();
   for (const it of payload?.items || []) {
@@ -635,6 +681,19 @@ export async function buildBoard(league, history) {
   const statsSeasons = [...new Set(current.map((g) => g.season))].sort();
   const { players, usageByPlayer, teamFactors } = seasonLines(current, model);
 
+  /* Where each player is today. seasonLines named the team he did his
+     numbers for; in week 1 that is last season's team, and a player who
+     moved in the offseason sat on the wrong board (A.J. Brown, Eagles to
+     Patriots, 2026). The roster wins; a player on no roster is not
+     bettable and leaves. The pools above are built from the record and
+     do not care where he is now. */
+  const roster = await fetchRosters(league, members);
+  const placed = model.applyRosters([...players.values()], roster);
+  if (roster) {
+    const show = placed.moved.slice(0, 6).map((m) => `${m.name} ${m.from}→${m.to}`).join(", ");
+    console.log(`  rosters: ${placed.moved.length} players moved${show ? ` (${show}${placed.moved.length > 6 ? ", …" : ""})` : ""}, ${placed.dropped.length} on no roster dropped`);
+  }
+
   /* Who plays whom this week. Built from the schedule's own team codes. */
   const opponentOf = {};
   for (const g of up.games) {
@@ -739,7 +798,7 @@ export async function buildBoard(league, history) {
     })),
     ratings,
     teamFactors,
-    players: [...players.values()]
+    players: placed.players
       /* Anyone with enough games and any real workload: a skill player's
          touches, or enough attempts to be gated as a passer. */
       .filter((p) => p.games >= 3 && ((p.carries + model.receivingOpportunity(p)) >= 10 || p.passAtt >= model.DEFAULTS.passMinOpportunity))
@@ -747,6 +806,7 @@ export async function buildBoard(league, history) {
         id: p.id, name: p.name, team: p.team, games: p.games, tds: p.tds,
         carries: p.carries, targets: p.targets, recYds: p.recYds, rushYds: p.rushYds, recs: p.recs,
         passAtt: p.passAtt, passYds: p.passYds,
+        ...(p.movedFrom ? { movedFrom: p.movedFrom } : {}),
         // Who he faces this week, so the board can apply the opponent's
         // defence the same way the backtest does. null = on bye or the
         // schedule has not placed his team yet.

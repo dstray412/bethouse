@@ -711,6 +711,54 @@
    * safe failure is a row that may void, not a starter that vanishes.
    * ------------------------------------------------------------------ */
 
+  /**
+   * A team's roster, from ESPN's roster endpoint: every athlete with the
+   * team's code, his position and the roster group he sits in (offense,
+   * defense, specialTeam, injuredReserveOrOut, suspended, practiceSquad).
+   * Empty when the payload carries no team code, because a roster that
+   * cannot say which team it is cannot move anyone.
+   */
+  function parseRoster(payload) {
+    const team = payload && payload.team && payload.team.abbreviation;
+    if (!team) return [];
+    const out = [];
+    for (const g of (payload.athletes || [])) {
+      for (const a of (g && g.items) || []) {
+        if (!a || a.id == null) continue;
+        out.push({
+          id: String(a.id), name: a.fullName || a.displayName || "", team,
+          pos: (a.position && a.position.abbreviation) || "",
+          group: g.position || "", status: (a.status && a.status.name) || "",
+        });
+      }
+    }
+    return out;
+  }
+
+  /**
+   * Put every player where the rosters say he is. The season record is
+   * what he did, and the box score that produced it names the team he
+   * did it for -- last season's team until he plays a game for the new
+   * one. The roster is who he plays for today. A player on no roster at
+   * all (retired, released, unsigned) leaves the board: there is nothing
+   * to bet. Returns new player objects; the inputs are not touched.
+   * `roster` is a Map by athlete id, or null to change nothing.
+   */
+  function applyRosters(players, roster) {
+    const list = players || [];
+    if (!roster || typeof roster.get !== "function") return { players: list.slice(), moved: [], dropped: [] };
+    const out = [], moved = [], dropped = [];
+    for (const p of list) {
+      const r = roster.get(String(p.id));
+      if (!r) { dropped.push({ id: p.id, name: p.name, team: p.team }); continue; }
+      if (r.team && r.team !== p.team) {
+        out.push(Object.assign({}, p, { team: r.team, movedFrom: p.team }));
+        moved.push({ id: p.id, name: p.name, from: p.team, to: r.team });
+      } else out.push(p);
+    }
+    return { players: out, moved, dropped };
+  }
+
   function availability(status) {
     const s = String(status || "").toLowerCase();
     if (!s) return "ok";
@@ -773,6 +821,8 @@
       empiricalOver,
       ratioPool,
       availability,
+      parseRoster,
+      applyRosters,
       fairPrice,
       bind: (more) => bind(Object.assign({}, overrides || {}, more || {})),
     };
@@ -806,6 +856,8 @@
     empiricalOver,
     ratioPool,
     availability,
+    parseRoster,
+    applyRosters,
     fairPrice,
     bind,
   };

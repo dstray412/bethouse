@@ -876,3 +876,55 @@ test("bind: the stat gate follows the bound league's receiving stat", () => {
   assert.ok(C.statEligible("recs", { games: 4, recs: 10, recYds: 100 }));
   assert.ok(C.statEligible("recyds", { games: 4, recs: 10, recYds: 100 }));
 });
+
+/* ------------------------------------------------------------------ *
+ * Rosters: who a player plays for today
+ *
+ * Oracle: ESPN's team roster endpoint, the same source the schedule and
+ * box scores come from. A player's team used to be the team of his last
+ * box score, which is last season's team until he plays a game -- A.J.
+ * Brown sat on the Eagles' board in week 1 of 2026 after joining the
+ * Patriots. The roster says where he is now; the record still says what
+ * he did.
+ * ------------------------------------------------------------------ */
+
+const ROSTER_NE = { team: { id: "17", abbreviation: "NE" }, athletes: [
+  { position: "offense", items: [
+    { id: "4047646", fullName: "A.J. Brown", position: { abbreviation: "WR" }, status: { name: "Active" }, injuries: [] },
+    { id: "1", fullName: "Someone", position: { abbreviation: "QB" }, status: { name: "Active" }, injuries: [{ status: "Out" }] },
+  ] },
+  { position: "injuredReserveOrOut", items: [
+    { id: "2", fullName: "Hurt Guy", position: { abbreviation: "RB" }, status: { name: "Injured Reserve" } },
+  ] },
+  { position: "practiceSquad", items: [ { id: "3", fullName: "PS Guy", position: { abbreviation: "WR" } } ] },
+] };
+
+test("parseRoster: every athlete on the team with his position and roster group", () => {
+  const r = nfl.parseRoster(ROSTER_NE);
+  assert.equal(r.length, 4);
+  assert.deepEqual(r[0], { id: "4047646", name: "A.J. Brown", team: "NE", pos: "WR", group: "offense", status: "Active" });
+  assert.equal(r.find((a) => a.id === "2").group, "injuredReserveOrOut");
+  assert.equal(r.find((a) => a.id === "3").group, "practiceSquad");
+  assert.deepEqual(nfl.parseRoster(null), []);
+  assert.deepEqual(nfl.parseRoster({ team: { abbreviation: "NE" } }), []);
+  assert.deepEqual(nfl.parseRoster({ athletes: [{ items: [{ id: "9" }] }] }), [], "no team code, no roster");
+});
+
+test("applyRosters: a player's team is where the roster says; a player on no roster leaves the board", () => {
+  const roster = new Map(nfl.parseRoster(ROSTER_NE).map((a) => [a.id, a]));
+  roster.set("10", { id: "10", name: "Stayed", team: "PHI", pos: "WR", group: "offense", status: "Active" });
+  const players = [
+    { id: "4047646", name: "A.J. Brown", team: "PHI", games: 15 },
+    { id: "10", name: "Stayed", team: "PHI", games: 17 },
+    { id: "99", name: "Retired", team: "PHI", games: 12 },
+  ];
+  const out = nfl.applyRosters(players, roster);
+  assert.deepEqual(out.players.map((p) => [p.id, p.team, p.movedFrom || null]),
+    [["4047646", "NE", "PHI"], ["10", "PHI", null]]);
+  assert.deepEqual(out.moved.map((m) => m.name), ["A.J. Brown"]);
+  assert.deepEqual(out.dropped.map((m) => m.name), ["Retired"]);
+  // The originals are not mutated: the season record keeps saying what he did, where.
+  assert.equal(players[0].team, "PHI");
+  // No roster, nothing changes.
+  assert.deepEqual(nfl.applyRosters(players, null).players.map((p) => p.team), ["PHI", "PHI", "PHI"]);
+});
