@@ -269,7 +269,7 @@
       });
       var lined=rows.filter(function(r){return r.best;}).length;
       html+='<div class="game"><div class="ghead"><h2 class="gtitle">Week '+D.week+'</h2>'+
-        '<div class="gmeta">'+rows.length+' games · '+(lined?lined+' with a line, best value first':'no lines yet')+
+        '<div class="gmeta">'+rows.length+' games · '+(lined?lined+' with a line, best value first · the side, its chance to cover, EV at the price':'no lines yet')+
         (D.linesFetched?' · lines as of '+esc(String(D.linesFetched).slice(0,16).replace('T',' '))+' UTC':'')+'</div></div>';
       rows.forEach(function(r,i){
         var m=r.pr.margin;
@@ -284,7 +284,7 @@
              quoted price. Without one: the projection, as before. Number on
              top, label as the block sublabel under it. */
           (r.best
-            ? '<span class="prob pick">'+esc(sideName(r.g,r.best.k,r.best.prop))+'<small>'+pct(r.best.k.prob,0)+' to cover</small></span>'+
+            ? '<span class="prob pick">'+esc(sideName(r.g,r.best.k,r.best.prop))+'<small>'+pct(r.best.k.prob,0)+' cover</small></span>'+
               '<span class="be">'+evStr(r.best.ev)+'<small>EV</small></span>'
             : '<span class="prob">-'+Math.abs(m).toFixed(1)+'<small>'+esc(m>=0?r.h:r.a)+'</small></span>'+
               '<span class="be">'+r.pr.total.toFixed(1)+'<small>total</small></span>')+
