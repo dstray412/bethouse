@@ -5,54 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>BetHouse — your bets</title>
 <link rel="stylesheet" href="fonts/space-grotesk.css">
+<link rel="stylesheet" href="board.css">
 <style>
-html{color-scheme:dark}
-:root{
-  --bg:#12161f; --panel:rgba(255,255,255,0.04); --panel2:rgba(255,255,255,0.025);
-  --line:rgba(255,255,255,0.09); --text:#eef1f7; --muted:#a6b0c4;
-  --accent:#38e1ff; --accent2:#7c5cff; --warn:#e0a33f; --bad:#d8434f; --good:#5fce8f;
-  --display:'Space Grotesk',ui-sans-serif,system-ui,sans-serif;
-}
-*{box-sizing:border-box}
-/* The `hidden` attribute must actually hide. A class that sets
-   `display` (.ctl and .controls both set display:flex) beats the UA
-   stylesheet's [hidden]{display:none} because author styles win over
-   UA styles, so `el.hidden = true` silently did nothing and left dead
-   controls on screen. Standard reset idiom; !important is the point. */
-[hidden]{display:none!important}
-html,body{margin:0;padding:0}
-body{background:var(--bg);color:var(--text);font:15px/1.5 ui-sans-serif,system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased;min-height:100vh}
-body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
-  background:radial-gradient(900px 520px at 88% -8%,rgba(124,92,255,.16),transparent 60%),
-             radial-gradient(760px 480px at 4% 104%,rgba(56,225,255,.11),transparent 60%)}
-.wrap{position:relative;z-index:1;max-width:1080px;margin:0 auto;padding:22px 18px 60px}
-
-header{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:16px}
-.brand{flex:1 1 auto;min-width:200px}
-.logo{font-family:var(--display);font-size:22px;font-weight:700;letter-spacing:.14em;
-  background:linear-gradient(96deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent;margin:0}
-.tagline{font-family:var(--display);font-size:11px;font-weight:600;letter-spacing:.17em;text-transform:uppercase;color:var(--muted);margin-top:5px}
-.navlink{font-family:var(--display);font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;
-  color:var(--muted);text-decoration:none;border:1px solid var(--line);border-radius:9px;padding:7px 12px;white-space:nowrap}
-.navlink:hover{color:var(--text);border-color:var(--accent)}
-/* The other boards are wayfinding, not bet types: under the brand, smaller
-   and quieter than any control. The same block as nfl.html / cfb.html. */
-.boards{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}
-.boards .navlink{padding:4px 8px;font-size:10px}
-
-.note{color:var(--muted);font-size:14px;line-height:1.65;margin:0 2px 14px;max-width:56ch}
-.note b{color:var(--text);font-weight:600}
+/* bets.html: the bet log's own rules. Everything else is board.css. */
 .note .hot{color:var(--warn)}
-
 .controls{display:flex;flex-wrap:wrap;gap:14px 26px;align-items:flex-end;
   background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:13px 15px;margin-bottom:16px}
-.ctl{display:flex;flex-direction:column;gap:6px}
-.ctl>label{font-family:var(--display);font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
-.seg{display:flex;gap:6px;flex-wrap:wrap}
-.seg button{font:inherit;font-size:13px;color:var(--muted);background:var(--panel2);
-  border:1px solid var(--line);border-radius:9px;padding:7px 12px;cursor:pointer;white-space:nowrap}
-.seg button:hover{color:var(--text)}
-.seg button[aria-pressed=true]{color:#0a0d14;background:linear-gradient(180deg,#7fe9ff,var(--accent));border-color:transparent;font-weight:600}
+.ctl>label{font-weight:700}
+.seg{gap:6px;flex-wrap:wrap}
+.seg button{padding:7px 12px;white-space:nowrap}
 
 /* The headline record */
 .record{border:1px solid rgba(95,206,143,.32);background:rgba(95,206,143,.06);
@@ -107,18 +68,16 @@ table.bdown .gap.up{color:var(--good)} table.bdown .gap.down{color:var(--bad)}
 .leg-line .out{margin-left:auto;font-family:var(--display);font-size:10px;font-weight:700;letter-spacing:.06em}
 .leg-line .out.win{color:var(--good)} .leg-line .out.lost{color:var(--bad)} .leg-line .out.open{color:var(--muted)}
 
-.empty{padding:44px 20px;text-align:center;color:var(--muted);
-  background:var(--panel);border:1px solid var(--line);border-radius:14px}
+.empty{background:var(--panel);border:1px solid var(--line);border-radius:14px}
 .empty .big{font-family:var(--display);font-size:18px;font-weight:600;color:var(--text);margin-bottom:7px}
 
-footer{margin-top:22px;color:var(--muted);font-size:12px;line-height:1.7;max-width:56ch}
+footer{max-width:56ch}
 footer button{background:none;border:0;color:var(--muted);text-decoration:underline;
   cursor:pointer;font:inherit;font-size:12px;padding:0}
 footer button:hover{color:var(--text)}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
 
 @media (max-width:760px){
-  .wrap{padding:14px 11px 40px}
   .ctl{flex:0 0 100%;flex-direction:row;align-items:center;gap:9px}
   .ctl>label{flex:0 0 58px;font-size:9.5px;letter-spacing:.10em}
   .ctl .seg{flex:1 1 auto}
@@ -130,7 +89,7 @@ footer button:hover{color:var(--text)}
   .leg-line .meta{flex:1 0 100%;order:3}
 }
 /* Touch: fingers need 44px; the mouse does not. Same rule as index.html. */
-@media (pointer:coarse){ .seg button,.navlink,button{min-height:44px} }
+@media (pointer:coarse){ button{min-height:44px} }
 </style>
 </head>
 <body>

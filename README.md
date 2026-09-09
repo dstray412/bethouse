@@ -145,6 +145,7 @@ should be re-fitted when the run environment shifts.
 | File | What it does |
 |---|---|
 | `index.html` | The board. Open it. |
+| `board.css` | The one stylesheet every board loads: tokens, header, controls, rows, panels, the phone and touch rules. A page's own components sit in a short `<style>` after the link. |
 | `score.js` | The model. Loads in both browser and Node so the app, tests and backtest run identical code. |
 | `score.test.mjs` | 43 tests on model shape, clamping, regression, handedness and the total-bases distribution. |
 | `fetch-mlb.mjs` | Five keyless requests to statsapi → `mlb-data.js`. |

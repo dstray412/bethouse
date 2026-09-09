@@ -205,6 +205,17 @@ call. Report and before/after shots:
 `~/.gstack/projects/BetHouse/designs/design-audit-20260908/`. Baseline
 design score B−, AI-slop A.
 
+**One stylesheet, 2026-09-08, late (FINDING-014).** `board.css` holds
+what the five pages used to copy; each page keeps only its own rules in
+a short `<style>` after the link (baseball 173 lines, bets 84, golf 15,
+football 8). Drift reconciled to the football values: title 16px, big
+figure 22px, meta 13, note 15, name 15, panel prose 14, segments 14,
+golf's row grid 30/74. Proved by diffing computed styles on every page
+before and after: only those properties moved. `dom.test.mjs` now reads
+the sheet, asserts every page links it and none re-declares its core
+rules or `:root`. To change a shared rule, edit `board.css`; to override
+one on a page, repeat the selector in that page's block.
+
 **Design review, second pass (baseball, golf, bets), 2026-09-08, late.**
 Four cross-page fixes, one commit each (FINDING-015..018): board links
 under the brand on every page, 44px touch targets everywhere (the

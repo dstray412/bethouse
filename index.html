@@ -5,72 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>BetHouse — today's board</title>
 <link rel="stylesheet" href="fonts/space-grotesk.css">
+<link rel="stylesheet" href="board.css">
 <style>
-html{color-scheme:dark}
-:root{
-  --bg:#12161f; --panel:rgba(255,255,255,0.04); --panel2:rgba(255,255,255,0.025);
-  --line:rgba(255,255,255,0.09); --text:#eef1f7; --muted:#a6b0c4;
-  --accent:#38e1ff; --accent2:#7c5cff; --warn:#e0a33f; --bad:#d8434f; --good:#5fce8f;
-  --display:'Space Grotesk',ui-sans-serif,system-ui,sans-serif;
-}
-*{box-sizing:border-box}
-/* The `hidden` attribute must actually hide. A class that sets
-   `display` (.ctl and .controls both set display:flex) beats the UA
-   stylesheet's [hidden]{display:none} because author styles win over
-   UA styles, so `el.hidden = true` silently did nothing and left dead
-   controls on screen. Standard reset idiom; !important is the point. */
-[hidden]{display:none!important}
-html,body{margin:0;padding:0}
-body{background:var(--bg);color:var(--text);font:15px/1.5 ui-sans-serif,system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased;min-height:100vh}
-body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
-  background:radial-gradient(900px 520px at 88% -8%,rgba(124,92,255,.16),transparent 60%),
-             radial-gradient(760px 480px at 4% 104%,rgba(56,225,255,.11),transparent 60%)}
-.wrap{position:relative;z-index:1;max-width:1080px;margin:0 auto;padding:22px 18px 60px}
-
-header{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:16px}
-.brand{flex:1 1 auto;min-width:200px}
-.logo{font-family:var(--display);font-size:22px;font-weight:700;letter-spacing:.14em;
-  background:linear-gradient(96deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent;margin:0}
-.tagline{font-family:var(--display);font-size:11px;font-weight:600;letter-spacing:.17em;text-transform:uppercase;color:var(--muted);margin-top:5px}
-.navlink{font-family:var(--display);font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;
-  color:var(--muted);text-decoration:none;border:1px solid var(--line);border-radius:9px;padding:7px 12px;white-space:nowrap}
-.navlink:hover{color:var(--text);border-color:var(--accent)}
-/* The other boards are wayfinding, not bet types: under the brand, smaller
-   and quieter than any control. The same block as nfl.html / cfb.html. */
-.boards{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}
-.boards .navlink{padding:4px 8px;font-size:10px}
-
-/* Measure, not just size. At 12.5px across the full 1040px column this
-   line ran 166 characters wide -- more than double the 75-character
-   maximum, and long measure is what actually breaks readability: the
-   eye loses the start of the next line on the return sweep. Capping at
-   56ch brings it to 72 real characters (1ch is the width of "0", which
-   is wider than average prose -- 72ch measured 93 chars, not 72), and
-   14px makes the one paragraph
-   carrying the calibration caveats no longer the smallest prose here. */
-.note{color:var(--muted);font-size:14px;line-height:1.65;margin:0 2px 14px;max-width:56ch}
-.note b{color:var(--text);font-weight:600}
+/* index.html: the baseball board's own rules. Everything else is board.css. */
 .note .hot{color:var(--warn)}
-
-.controls{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-end;background:var(--panel);
-  border:1px solid var(--line);border-radius:13px;padding:12px 14px;margin-bottom:14px}
-.ctl{display:flex;flex-direction:column;gap:6px}
-.ctl>label{font-family:var(--display);font-size:10px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
-.seg{display:flex;gap:4px}
-.seg button{font:inherit;font-size:13px;color:var(--muted);background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:6px 11px;cursor:pointer}
-.seg button:hover{color:var(--text)}
-.seg button[aria-pressed=true]{color:#0a0d14;background:linear-gradient(180deg,#7fe9ff,var(--accent));border-color:transparent;font-weight:600}
 .priceinp{display:flex;align-items:center;gap:6px;background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:6px 10px}
 .priceinp input{font:inherit;font-size:14px;color:var(--text);background:transparent;border:0;width:64px;font-variant-numeric:tabular-nums}
 .priceinp input:focus{outline:none}
 .summary{display:flex;gap:22px;flex-wrap:wrap;margin:0 2px 14px;font-size:13px;color:var(--muted)}
 .summary b{color:var(--text);font-variant-numeric:tabular-nums}
 
-.game{border:1px solid var(--line);border-radius:15px;background:var(--panel2);margin-bottom:14px;overflow:hidden}
-.ghead{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;
-  padding:12px 15px;background:rgba(255,255,255,.03);border-bottom:1px solid var(--line)}
-.gtitle{font-family:var(--display);font-size:16px;font-weight:700;margin:0}
-.gmeta{font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums}
 /* Countdown to first pitch. Brighter than the surrounding meta so the
    queue is scannable, amber inside 30 minutes so the top of the slate
    reads as urgent without any extra chrome. */
@@ -107,13 +51,6 @@ header{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:1
 /* The outcome chip sits inline after the name, like .pos does. */
 .who .settled{margin-left:7px}
 .row:hover{background:rgba(255,255,255,.028)}
-.slot{font-family:var(--display);font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
-.who{font-weight:600;font-size:14.5px}
-.pos{color:var(--muted);font-weight:400;font-size:12px;margin-left:5px}
-.prob{font-weight:700;font-size:22px;font-variant-numeric:tabular-nums;text-align:right;letter-spacing:-.01em}
-.be{font-variant-numeric:tabular-nums;text-align:right;font-size:14px}
-.be small{display:block;color:var(--muted);font-size:11px}
-.caret{color:var(--muted);text-align:center;transition:transform .16s}
 .addleg{font:inherit;font-size:16px;line-height:1;color:var(--muted);background:var(--panel2);
   border:1px solid var(--line);border-radius:8px;width:28px;height:28px;cursor:pointer;padding:0}
 .addleg:hover{color:var(--text);border-color:var(--accent)}
@@ -179,8 +116,6 @@ select#day:hover{border-color:var(--accent)}
 .slipwarn{margin-top:11px;font-size:13px;line-height:1.6}
 .slipwarn.severe{color:var(--bad)} .slipwarn.moderate{color:var(--warn)} .slipwarn.none{color:var(--muted)}
 .row[aria-expanded=true] .caret{transform:rotate(90deg)}
-.why{padding:2px 15px 16px;background:rgba(0,0,0,.16);border-top:1px solid var(--line);font-size:13px;color:var(--muted);line-height:1.75}
-.why b{color:var(--text);font-variant-numeric:tabular-nums}
 /* The waterfall. One row per thing that moved the number, biggest first,
    with the arithmetic visibly adding up to the answer at the bottom. */
 .whylead{display:block;color:var(--text);font-size:14px;line-height:1.6;margin:4px 0 12px;max-width:56ch}
@@ -203,11 +138,7 @@ table.waterfall tr.wtot td.wl{color:var(--muted);font-size:11px;letter-spacing:.
 .game.closed:hover{opacity:.85}
 .empty{padding:44px 20px;text-align:center;color:var(--muted)}
 .empty .big{font-family:var(--display);font-size:18px;font-weight:600;color:var(--text);margin-bottom:7px}
-footer{margin-top:22px;color:var(--muted);font-size:12px;line-height:1.7}
-:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
-
 @media (max-width:760px){
-  .wrap{padding:14px 11px 40px}
   /* Four columns, not three. The row has four visible children on mobile
      (slot, name, probability, add-to-slip) because .caret is display:none.
      Declaring three columns pushed the + button onto its own grid row: every
@@ -232,7 +163,6 @@ footer{margin-top:22px;color:var(--muted);font-size:12px;line-height:1.7}
   .row.parlay{grid-template-columns:26px 1fr 58px 44px 44px 12px}
   .row.hist{grid-template-columns:26px 1fr 64px 44px 12px}
   .row.hist.parlay{grid-template-columns:26px 1fr 58px 44px 44px}
-  .caret{font-size:13px}
   /* 28px fails the 44px touch minimum, and this is the primary action on the
      page: it is how a leg gets into the parlay slip. */
   .addleg{width:44px;height:44px;font-size:20px}
@@ -248,9 +178,7 @@ footer{margin-top:22px;color:var(--muted);font-size:12px;line-height:1.7}
   .leg-line{flex-wrap:wrap}
   .leg-line .lp{flex:1 0 100%;order:3;padding-left:0}
 }
-/* Touch: fingers need 44px; the mouse does not. The row's track and
-   add-to-slip buttons are the ones tapped most, and were 28px squares. */
-@media (pointer:coarse){ .seg button,.navlink{min-height:44px} .trk,.addleg{min-width:40px;min-height:40px} }
+@media (pointer:coarse){ .trk,.addleg{min-width:40px;min-height:40px} }
 </style>
 </head>
 <body>

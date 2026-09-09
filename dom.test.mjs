@@ -57,8 +57,26 @@ const markup = (f) => src(f).replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "");
  * bet type and the NFL yardage control on two views of three, both inert.
  * ------------------------------------------------------------------ */
 
-test("every board neutralises the hidden-attribute override", () => {
+const SHEET = "board.css";
+
+test("every board loads the one shared stylesheet, and none carries its own copy", () => {
   for (const f of BOARDS) {
+    const s = src(f);
+    assert.match(s, /<link rel="stylesheet" href="board\.css">/, `${f} does not load ${SHEET}`);
+    assert.doesNotMatch(s, /:root\s*\{/, `${f} defines its own :root tokens; they live in ${SHEET}`);
+    const own = (s.match(/<style>[\s\S]*?<\/style>/g) || []).join("\n");
+    // A page may override a shared rule by repeating its selector (bets pads
+    // its segments, baseball's rows have more columns); what it may not do
+    // is carry a copy of the sheet. These are the rules that mark a copy.
+    for (const shared of [".who{", ".prob{", ".note{", ".gtitle{", "header{", ".logo{", ".why{"]) {
+      assert.ok(!own.includes("\n" + shared), `${f} re-declares ${shared} in its own <style>; edit ${SHEET} instead`);
+    }
+  }
+});
+
+test("every board neutralises the hidden-attribute override", () => {
+  {
+    const f = SHEET;
     const css = src(f);
     assert.match(
       css,
@@ -90,7 +108,8 @@ test("nothing re-introduces a display rule that could outrank it", () => {
  * ------------------------------------------------------------------ */
 
 test("the explanatory paragraph has a capped measure", () => {
-  for (const f of BOARDS) {
+  {
+    const f = SHEET;
     const rule = src(f).match(/\.note\{[^}]*\}/);
     assert.ok(rule, `${f} has no .note rule`);
     assert.match(
@@ -108,7 +127,8 @@ test("the measure cap is set in ch, and low enough to mean it", () => {
    * is over the 75-character limit in practice regardless of what the
    * number looks like.
    */
-  for (const f of BOARDS) {
+  {
+    const f = SHEET;
     const m = src(f).match(/\.note\{[^}]*max-width\s*:\s*(\d+)ch/);
     assert.ok(m, `${f}: .note max-width is not in ch`);
     const ch = Number(m[1]);
@@ -130,21 +150,10 @@ test("the measure cap is set in ch, and low enough to mean it", () => {
  * silently apply to one.
  * ------------------------------------------------------------------ */
 
-test("the design tokens are identical across every board", () => {
-  const blocks = BOARDS.map((f) => {
-    const m = src(f).match(/:root\{[^}]*\}/);
-    assert.ok(m, `${f} has no :root token block`);
-    return [f, m[0]];
-  });
-  const [, first] = blocks[0];
-  for (const [f, block] of blocks.slice(1)) {
-    assert.equal(
-      block, first,
-      `${f}'s :root tokens have drifted from ${blocks[0][0]}'s. These boards share ` +
-        `a stylesheet by copy, and divergence is what produced both the dead-control ` +
-        `bug and the inconsistent navigation names.`,
-    );
-  }
+test("the design tokens exist once, in the shared stylesheet", () => {
+  const blocks = src(SHEET).match(/:root\{[^}]*\}/g) || [];
+  assert.equal(blocks.length, 1, `${SHEET} should define :root exactly once`);
+  assert.match(blocks[0], /--accent:/);
 });
 
 /* ------------------------------------------------------------------ *
@@ -422,9 +431,9 @@ test("no board hand-prefixes a sign onto a market price", () => {
  * ------------------------------------------------------------------ */
 
 test("a sublabel inside a fixed-width row cell is a block, not wrappable text", () => {
-  const css = src("nfl.html");
+  const css = src(SHEET);
   const rule = css.match(/^([^\n{]*\bsmall\b[^\n{]*)\{([^}]*display:\s*block[^}]*)\}/m);
-  assert.ok(rule, "nfl.html has no display:block rule for row sublabels");
+  assert.ok(rule, `${SHEET} has no display:block rule for row sublabels`);
 
   const selectors = rule[1].split(",").map((s) => s.trim());
   for (const cell of [".be", ".prob"]) {

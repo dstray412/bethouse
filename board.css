@@ -1,0 +1,117 @@
+/* board.css — the one stylesheet every BetHouse board loads.
+ *
+ * Five pages used to carry a copy of this block each, kept identical by
+ * hand and a test; they drifted anyway (row grids, title and figure
+ * sizes). Now there is one. A page's own components live in a small
+ * <style> after the link, and a page overrides a shared rule only by
+ * repeating the selector there, where the override is visible.
+ *
+ * Tokens are in :root. Layout: header (brand + boards nav + a segmented
+ * control), a .note, optional .controls, then .game panels of .row
+ * buttons that open a .why panel. Mobile at 760px; touch targets under
+ * (pointer:coarse).
+ */
+html{color-scheme:dark}
+:root{
+  --bg:#12161f; --panel:rgba(255,255,255,0.04); --panel2:rgba(255,255,255,0.025);
+  --line:rgba(255,255,255,0.09); --text:#eef1f7; --muted:#a6b0c4;
+  --accent:#38e1ff; --accent2:#7c5cff; --warn:#e0a33f; --bad:#d8434f; --good:#5fce8f;
+  --display:'Space Grotesk',ui-sans-serif,system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+/* The `hidden` attribute must actually hide. A class that sets
+   `display` (.ctl and .controls both set display:flex) beats the UA
+   stylesheet's [hidden]{display:none} because author styles win over
+   UA styles, so `el.hidden = true` silently did nothing and left dead
+   controls on screen. Standard reset idiom; !important is the point. */
+[hidden]{display:none!important}
+html,body{margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font:15px/1.5 ui-sans-serif,system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased;min-height:100vh}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(900px 520px at 88% -8%,rgba(124,92,255,.16),transparent 60%),
+             radial-gradient(760px 480px at 4% 104%,rgba(56,225,255,.11),transparent 60%)}
+.wrap{position:relative;z-index:1;max-width:1080px;margin:0 auto;padding:22px 18px 60px}
+header{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:16px}
+.brand{flex:1 1 auto;min-width:200px}
+.logo{font-family:var(--display);font-size:22px;font-weight:700;letter-spacing:.14em;
+  background:linear-gradient(96deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent;margin:0}
+.tagline{font-family:var(--display);font-size:11px;font-weight:600;letter-spacing:.17em;text-transform:uppercase;color:var(--muted);margin-top:5px}
+.navlink{font-family:var(--display);font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--muted);text-decoration:none;border:1px solid var(--line);border-radius:9px;padding:7px 12px;white-space:nowrap}
+.navlink:hover{color:var(--text);border-color:var(--accent)}
+/* The other boards are wayfinding, not bet types: they live under the
+   brand, smaller and quieter than the segment they used to sit beside. */
+.boards{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}
+.boards .navlink{padding:4px 8px;font-size:10px}
+/* Measure, not just size. At 12.5px across the full 1040px column this
+   line ran 166 characters wide -- more than double the 75-character
+   maximum, and long measure is what actually breaks readability: the
+   eye loses the start of the next line on the return sweep. Capping at
+   56ch brings it to 72 real characters (1ch is the width of "0", which
+   is wider than average prose -- 72ch measured 93 chars, not 72), and
+   14px makes the one paragraph
+   carrying the calibration caveats no longer the smallest prose here. */
+.note{color:var(--muted);font-size:15px;line-height:1.65;margin:0 2px 14px;max-width:56ch}
+.note b{color:var(--text);font-weight:600}
+.note details{margin-top:4px}
+.note summary{cursor:pointer;color:var(--accent);font-size:13px;list-style-position:inside}
+.note details p{margin:6px 0 0}
+.controls{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-end;background:var(--panel);
+  border:1px solid var(--line);border-radius:13px;padding:12px 14px;margin-bottom:14px}
+.ctl{display:flex;flex-direction:column;gap:6px}
+.ctl>label{font-family:var(--display);font-size:10px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.seg{display:flex;gap:4px}
+.seg button{font:inherit;font-size:14px;color:var(--muted);background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:6px 11px;cursor:pointer}
+.seg button:hover{color:var(--text)}
+.seg button[aria-pressed=true]{color:#0a0d14;background:linear-gradient(180deg,#7fe9ff,var(--accent));border-color:transparent;font-weight:600}
+.game{border:1px solid var(--line);border-radius:15px;background:var(--panel2);margin-bottom:14px;overflow:hidden}
+.ghead{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;
+  padding:12px 15px;background:rgba(255,255,255,.03);border-bottom:1px solid var(--line)}
+.gtitle{font-family:var(--display);font-size:16px;font-weight:700;margin:0}
+.gmeta{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.row{display:grid;grid-template-columns:30px 1fr 74px 62px 20px;gap:10px;align-items:center;
+  width:100%;text-align:left;font:inherit;color:inherit;background:none;border:0;
+  padding:8px 15px;cursor:pointer;border-top:1px solid rgba(255,255,255,.045)}
+.row:hover{background:rgba(255,255,255,.028)}
+.slot{font-family:var(--display);font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+.who{font-weight:600;font-size:15px}
+.pos{color:var(--muted);font-weight:400;font-size:13px;margin-left:5px}
+.prob{font-weight:700;font-size:22px;font-variant-numeric:tabular-nums;text-align:right;letter-spacing:-.01em}
+.be{font-variant-numeric:tabular-nums;text-align:right;font-size:14px}
+.be.dim{opacity:.5}
+.prob.pick{font-size:15px;letter-spacing:.01em}
+.be small,.prob small{display:block;color:var(--muted);font-size:12px;font-weight:400;letter-spacing:.04em}
+.caret{color:var(--muted);text-align:center;transition:transform .16s}
+.row[aria-expanded=true] .caret{transform:rotate(90deg)}
+.why{padding:2px 15px 16px;background:rgba(0,0,0,.16);border-top:1px solid var(--line);font-size:14px;color:var(--muted);line-height:1.75}
+.why b{color:var(--text);font-variant-numeric:tabular-nums}
+.why table{border-collapse:collapse;margin:6px 0 4px;font-variant-numeric:tabular-nums}
+.why td{padding:2px 16px 2px 0;vertical-align:top}
+.why td:first-child{color:var(--muted)}
+.more{display:block;width:100%;padding:13px;background:none;border:0;border-top:1px solid var(--line);color:var(--accent);font:inherit;font-weight:600;cursor:pointer}
+.more:hover{background:rgba(255,255,255,.028)}
+.why p{margin:8px 0 0}
+.why .verdict{color:var(--text);font-size:14px}
+.tag{display:inline-block;margin-left:7px;padding:1px 6px;border-radius:4px;font-size:11px;font-weight:600;letter-spacing:.03em;vertical-align:1px}
+.tag.soft{background:rgba(95,206,143,.16);color:var(--good)}
+.tag.tough{background:rgba(216,67,79,.16);color:var(--bad)}
+.tag.q{background:rgba(224,163,63,.16);color:var(--warn)}
+.banner{border:1px solid rgba(224,163,63,.45);background:rgba(224,163,63,.09);border-radius:14px;padding:15px 17px;margin-bottom:16px}
+.banner h3{font-family:var(--display);font-size:12px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--warn);margin:0 0 8px}
+.banner p{margin:0 0 7px;font-size:13.5px;line-height:1.65;color:var(--text)}
+.banner b{color:var(--text)}
+.empty{padding:44px 20px;text-align:center;color:var(--muted)}
+.empty .big{font-family:var(--display);font-size:18px;font-weight:600;color:var(--text);margin-bottom:7px}
+footer{margin-top:22px;color:var(--muted);font-size:12px;line-height:1.7}
+footer b{color:var(--text)}
+footer table{border-collapse:collapse;margin:8px 0;font-variant-numeric:tabular-nums;font-size:12px}
+footer td{padding:1px 14px 1px 0}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+@media (max-width:760px){
+  .wrap{padding:14px 11px 40px}
+  .row{grid-template-columns:26px 1fr 64px 56px 12px;gap:8px;padding:8px 12px}
+  .caret{font-size:13px}
+  .prob{font-size:18px}
+}
+/* Touch: fingers need 44px; the mouse does not. Pages add their own tap targets. */
+@media (pointer:coarse){ .seg button,.navlink{min-height:44px} }
