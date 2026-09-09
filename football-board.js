@@ -37,7 +37,11 @@
     var VIEWS = [{id:'td',label:'Anytime TD'}].concat(STAT_IDS.map(function(k){return {id:k,label:N.STATS[k].label};}))
       .concat([{id:'game',label:'Spread & total'}]);
     var LINES = [{id:0.7,label:'Low'},{id:1,label:'Projection'},{id:1.3,label:'High'}];
-    var state = { view:'td', lineMult:1, open:null };
+    var state = { view:'td', lineMult:1, open:null, showAll:false };
+    /* Twenty rows is a board; eighty is a spreadsheet. The rest are one tap away. */
+    var SHOW=20, MAX=80;
+    var trim=function(rows){ var n=state.showAll?MAX:SHOW; return { rows:rows.slice(0,n), hidden:Math.min(rows.length,MAX)-Math.min(rows.length,n) }; };
+    var moreBtn=function(hidden){ return hidden>0 ? '<button class="more" type="button" data-more>Show '+hidden+' more</button>' : ''; };
 
     var pct=function(x,d){return (100*x).toFixed(d==null?1:d)+'%';};
     var sgn=function(n){return n>0?'+'+n:String(n);};
@@ -96,7 +100,7 @@
         rows.push({p:p,s:s});
       });
       rows.sort(function(a,b){return b.s.prob-a.s.prob;});
-      rows=rows.slice(0,80);
+      var t=trim(rows); rows=t.rows;
 
       var html='<div class="game"><div class="ghead"><h2 class="gtitle">Most likely to score</h2>'+
         '<div class="gmeta">'+rows.length+' players · '+seasons+' form</div></div>';
@@ -110,7 +114,7 @@
           '<span class="caret">›</span></button>'+
           '<div class="why" id="why'+i+'" hidden></div>';
       });
-      app.innerHTML=html+'</div>';
+      app.innerHTML=html+moreBtn(t.hidden)+'</div>';
       app.__rows=rows;
       app.__detail=function(r){
         var t='<table>';
@@ -150,7 +154,7 @@
         rows.push({p:p,exp:y.exp,base:y.base,oppFactor:y.oppFactor,line:line,over:over});
       });
       rows.sort(function(a,b){return b.exp-a.exp;});
-      rows=rows.slice(0,80);
+      var t=trim(rows); rows=t.rows;
       var strength=N.DEFAULTS[ST.oppShrinkKey], word=ST.label.toLowerCase();
       /* A matchup badge on the row, only where the opponent is in the
          number and only when it is clearly soft or tough (7% either side
@@ -173,7 +177,7 @@
           '<span class="caret">›</span></button>'+
           '<div class="why" id="why'+i+'" hidden></div>';
       });
-      app.innerHTML=html+'</div>';
+      app.innerHTML=html+moreBtn(t.hidden)+'</div>';
       app.__rows=rows;
       /* The panel: the decision first, in two lines, then the arithmetic
          in words a bettor already uses. The constants behind each step
@@ -338,7 +342,7 @@
     }
 
     function render(){
-      seg(document.getElementById('view'),VIEWS,state.view,function(v){state.view=v;state.open=null;render();});
+      seg(document.getElementById('view'),VIEWS,state.view,function(v){state.view=v;state.open=null;state.showAll=false;render();});
       seg(document.getElementById('lineseg'),LINES,state.lineMult,function(v){state.lineMult=v;state.open=null;render();});
       document.getElementById('controls').hidden = !N.STATS[state.view];
       document.getElementById('tagline').textContent=cfg.league+' — '+D.season+' week '+D.week;
@@ -362,6 +366,7 @@
     }
 
     app.addEventListener('click',function(e){
+      if(e.target.closest('[data-more]')){ state.showAll=true; render(); return; }
       var btn=e.target.closest('.row'); if(!btn) return;
       var i=+btn.getAttribute('data-i');
       var box=document.getElementById('why'+i);
