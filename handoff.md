@@ -190,6 +190,21 @@ player's own level again; college's 0.5 column moved to 0.2321 / 0.1779.
 `projectedStat`. The board's own `allowFor` still exists; swap it for
 `N.allowOf` when next in that file.
 
+**Design review of the NFL board, 2026-09-08, late.** `/design-review`
+(gstack) on nfl.html: fourteen findings, twelve fixed in one commit each
+(`style(design): FINDING-NNN`), all CSS or board-script only, shared by
+cfb.html. Twenty rows then "Show N more"; board links under the brand,
+bet types scroll on phones; caret kept on phones; 44px controls on
+touch; the honesty numbers behind a "How it was checked" disclosure; the
+odds column dims at the Projection line where every player prices the
+same; game rows lead with the side; Q is a tag; badge colours on tokens;
+`color-scheme: dark`; prose sizes up a step. Deferred: the five pages'
+stylesheets have drifted (golf/baseball/bets forked the boilerplate) and
+want one shared board.css, and system-ui as the body face is a taste
+call. Report and before/after shots:
+`~/.gstack/projects/BetHouse/designs/design-audit-20260908/`. Baseline
+design score B−, AI-slop A.
+
 **Readability pass on the counting props, 2026-09-08, late.** The prop
 rows lead with the projection (yards or catches), then the over chance
 and fair price; the line sits beside the matchup. A `soft D` / `tough D`
