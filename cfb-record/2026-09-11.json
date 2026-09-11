@@ -3898,7 +3898,15 @@
    "prop": "td",
    "prob": 0.2263,
    "kickoff": "2026-09-11T00:00Z",
-   "recordedAt": "2026-09-08T16:41:20.175Z"
+   "recordedAt": "2026-09-08T16:41:20.175Z",
+   "actual": 0,
+   "result": {
+    "td": 0,
+    "recYds": 0,
+    "rushYds": 21,
+    "passYds": 252,
+    "recs": 0
+   }
   },
   {
    "gameId": "401858217",
@@ -3965,7 +3973,15 @@
    "prop": "td",
    "prob": 0.5437,
    "kickoff": "2026-09-11T00:00Z",
-   "recordedAt": "2026-09-08T16:41:20.175Z"
+   "recordedAt": "2026-09-08T16:41:20.175Z",
+   "actual": 1,
+   "result": {
+    "td": 1,
+    "recYds": 16,
+    "rushYds": 0,
+    "passYds": 0,
+    "recs": 2
+   }
   },
   {
    "gameId": "401858213",
@@ -3977,7 +3993,15 @@
    "line": 67.5,
    "prob": 0.3993,
    "kickoff": "2026-09-11T00:00Z",
-   "recordedAt": "2026-09-08T16:41:20.175Z"
+   "recordedAt": "2026-09-08T16:41:20.175Z",
+   "actual": 0,
+   "result": {
+    "td": 1,
+    "recYds": 16,
+    "rushYds": 0,
+    "passYds": 0,
+    "recs": 2
+   }
   },
   {
    "gameId": "401858221",
@@ -22513,7 +22537,8 @@
    "prop": "td",
    "prob": 0.2625,
    "kickoff": "2026-09-11T00:00Z",
-   "recordedAt": "2026-09-08T16:41:20.206Z"
+   "recordedAt": "2026-09-08T16:41:20.206Z",
+   "scratched": true
   },
   {
    "gameId": "401858213",
@@ -22524,7 +22549,15 @@
    "prop": "td",
    "prob": 0.5922,
    "kickoff": "2026-09-11T00:00Z",
-   "recordedAt": "2026-09-08T16:41:20.206Z"
+   "recordedAt": "2026-09-08T16:41:20.206Z",
+   "actual": 0,
+   "result": {
+    "td": 0,
+    "recYds": 6,
+    "rushYds": 25,
+    "passYds": 0,
+    "recs": 1
+   }
   },
   {
    "gameId": "401858213",
@@ -22535,7 +22568,15 @@
    "prop": "td",
    "prob": 0.7323,
    "kickoff": "2026-09-11T00:00Z",
-   "recordedAt": "2026-09-08T16:41:20.206Z"
+   "recordedAt": "2026-09-08T16:41:20.206Z",
+   "actual": 1,
+   "result": {
+    "td": 2,
+    "recYds": 0,
+    "rushYds": 105,
+    "passYds": 0,
+    "recs": 0
+   }
   },
   {
    "gameId": "401858213",
@@ -22546,7 +22587,8 @@
    "prop": "td",
    "prob": 0.3798,
    "kickoff": "2026-09-11T00:00Z",
-   "recordedAt": "2026-09-08T16:41:20.206Z"
+   "recordedAt": "2026-09-08T16:41:20.206Z",
+   "scratched": true
   },
   {
    "gameId": "401858213",
@@ -22557,7 +22599,15 @@
    "prop": "td",
    "prob": 0.0824,
    "kickoff": "2026-09-11T00:00Z",
-   "recordedAt": "2026-09-08T16:41:20.206Z"
+   "recordedAt": "2026-09-08T16:41:20.206Z",
+   "actual": 0,
+   "result": {
+    "td": 0,
+    "recYds": 0,
+    "rushYds": 0,
+    "passYds": 0,
+    "recs": 0
+   }
   },
   {
    "gameId": "401858213",
@@ -22568,7 +22618,15 @@
    "prop": "td",
    "prob": 0.6949,
    "kickoff": "2026-09-11T00:00Z",
-   "recordedAt": "2026-09-08T16:41:20.206Z"
+   "recordedAt": "2026-09-08T16:41:20.206Z",
+   "actual": 1,
+   "result": {
+    "td": 1,
+    "recYds": 96,
+    "rushYds": 0,
+    "passYds": 0,
+    "recs": 4
+   }
   },
   {
    "gameId": "401858213",
@@ -22580,7 +22638,15 @@
    "line": 74.5,
    "prob": 0.4033,
    "kickoff": "2026-09-11T00:00Z",
-   "recordedAt": "2026-09-08T16:41:20.206Z"
+   "recordedAt": "2026-09-08T16:41:20.206Z",
+   "actual": 1,
+   "result": {
+    "td": 1,
+    "recYds": 96,
+    "rushYds": 0,
+    "passYds": 0,
+    "recs": 4
+   }
   },
   {
    "gameId": "401858213",
@@ -22591,7 +22657,8 @@
    "prop": "td",
    "prob": 0.5964,
    "kickoff": "2026-09-11T00:00Z",
-   "recordedAt": "2026-09-08T16:41:20.206Z"
+   "recordedAt": "2026-09-08T16:41:20.206Z",
+   "scratched": true
   },
   {
    "gameId": "401858213",
@@ -22603,7 +22670,8 @@
    "line": 40.5,
    "prob": 0.4005,
    "kickoff": "2026-09-11T00:00Z",
-   "recordedAt": "2026-09-08T16:41:20.206Z"
+   "recordedAt": "2026-09-08T16:41:20.206Z",
+   "scratched": true
   },
   {
    "gameId": "401858213",
@@ -22614,7 +22682,8 @@
    "prop": "td",
    "prob": 0.3114,
    "kickoff": "2026-09-11T00:00Z",
-   "recordedAt": "2026-09-08T16:41:20.206Z"
+   "recordedAt": "2026-09-08T16:41:20.206Z",
+   "scratched": true
   },
   {
    "gameId": "401858213",
@@ -22626,7 +22695,8 @@
    "line": 40.5,
    "prob": 0.4045,
    "kickoff": "2026-09-11T00:00Z",
-   "recordedAt": "2026-09-08T16:41:20.206Z"
+   "recordedAt": "2026-09-08T16:41:20.206Z",
+   "scratched": true
   },
   {
    "gameId": "401858213",
@@ -22637,7 +22707,15 @@
    "prop": "td",
    "prob": 0.3149,
    "kickoff": "2026-09-11T00:00Z",
-   "recordedAt": "2026-09-08T16:41:20.206Z"
+   "recordedAt": "2026-09-08T16:41:20.206Z",
+   "actual": 0,
+   "result": {
+    "td": 0,
+    "recYds": 9,
+    "rushYds": 0,
+    "passYds": 0,
+    "recs": 1
+   }
   },
   {
    "gameId": "401858213",
@@ -22648,7 +22726,15 @@
    "prop": "td",
    "prob": 0.3173,
    "kickoff": "2026-09-11T00:00Z",
-   "recordedAt": "2026-09-08T16:41:20.206Z"
+   "recordedAt": "2026-09-08T16:41:20.206Z",
+   "actual": 1,
+   "result": {
+    "td": 1,
+    "recYds": 55,
+    "rushYds": 0,
+    "passYds": 0,
+    "recs": 1
+   }
   },
   {
    "gameId": "401858213",
@@ -22660,7 +22746,15 @@
    "line": 28.5,
    "prob": 0.393,
    "kickoff": "2026-09-11T00:00Z",
-   "recordedAt": "2026-09-08T16:41:20.206Z"
+   "recordedAt": "2026-09-08T16:41:20.206Z",
+   "actual": 1,
+   "result": {
+    "td": 1,
+    "recYds": 55,
+    "rushYds": 0,
+    "passYds": 0,
+    "recs": 1
+   }
   },
   {
    "gameId": "401858439",
@@ -24862,7 +24956,15 @@
    "prop": "td",
    "prob": 0.5555,
    "kickoff": "2026-09-11T00:00Z",
-   "recordedAt": "2026-09-08T16:41:20.210Z"
+   "recordedAt": "2026-09-08T16:41:20.210Z",
+   "actual": 1,
+   "result": {
+    "td": 1,
+    "recYds": 35,
+    "rushYds": 17,
+    "passYds": 0,
+    "recs": 2
+   }
   },
   {
    "gameId": "401858213",
@@ -24873,7 +24975,8 @@
    "prop": "td",
    "prob": 0.3049,
    "kickoff": "2026-09-11T00:00Z",
-   "recordedAt": "2026-09-08T16:41:20.210Z"
+   "recordedAt": "2026-09-08T16:41:20.210Z",
+   "scratched": true
   },
   {
    "gameId": "401858213",
@@ -24884,7 +24987,15 @@
    "prop": "td",
    "prob": 0.2505,
    "kickoff": "2026-09-11T00:00Z",
-   "recordedAt": "2026-09-08T16:41:20.210Z"
+   "recordedAt": "2026-09-08T16:41:20.210Z",
+   "actual": 0,
+   "result": {
+    "td": 0,
+    "recYds": 7,
+    "rushYds": 0,
+    "passYds": 0,
+    "recs": 1
+   }
   },
   {
    "gameId": "401858213",
@@ -24896,7 +25007,15 @@
    "line": 24.5,
    "prob": 0.3975,
    "kickoff": "2026-09-11T00:00Z",
-   "recordedAt": "2026-09-08T16:41:20.210Z"
+   "recordedAt": "2026-09-08T16:41:20.210Z",
+   "actual": 0,
+   "result": {
+    "td": 0,
+    "recYds": 7,
+    "rushYds": 0,
+    "passYds": 0,
+    "recs": 1
+   }
   },
   {
    "gameId": "401858213",
@@ -24907,7 +25026,8 @@
    "prop": "td",
    "prob": 0.255,
    "kickoff": "2026-09-11T00:00Z",
-   "recordedAt": "2026-09-08T16:41:20.210Z"
+   "recordedAt": "2026-09-08T16:41:20.210Z",
+   "scratched": true
   },
   {
    "gameId": "401858213",
@@ -24919,7 +25039,8 @@
    "line": 21.5,
    "prob": 0.4023,
    "kickoff": "2026-09-11T00:00Z",
-   "recordedAt": "2026-09-08T16:41:20.210Z"
+   "recordedAt": "2026-09-08T16:41:20.210Z",
+   "scratched": true
   },
   {
    "gameId": "401856680",
@@ -29540,7 +29661,19 @@
    "book": "Draft Kings",
    "prob": 0.5,
    "kickoff": "2026-09-11T00:00Z",
-   "recordedAt": "2026-09-08T16:41:20.218Z"
+   "recordedAt": "2026-09-08T16:41:20.218Z",
+   "actual": 0,
+   "result": {
+    "homeScore": 77,
+    "awayScore": 7
+   },
+   "clv": -4,
+   "close": {
+    "spread": -59.5,
+    "total": 66.5,
+    "homeML": null,
+    "awayML": null
+   }
   },
   {
    "gameId": "401858213",
@@ -29558,7 +29691,19 @@
    "book": "Draft Kings",
    "prob": 0.507,
    "kickoff": "2026-09-11T00:00Z",
-   "recordedAt": "2026-09-08T16:41:20.218Z"
+   "recordedAt": "2026-09-08T16:41:20.218Z",
+   "actual": 0,
+   "result": {
+    "homeScore": 77,
+    "awayScore": 7
+   },
+   "clv": -5,
+   "close": {
+    "spread": -59.5,
+    "total": 66.5,
+    "homeML": null,
+    "awayML": null
+   }
   },
   {
    "gameId": "401858213",
@@ -29576,7 +29721,18 @@
    "book": "Draft Kings",
    "prob": 0.9987,
    "kickoff": "2026-09-11T00:00Z",
-   "recordedAt": "2026-09-08T16:41:20.218Z"
+   "recordedAt": "2026-09-08T16:41:20.218Z",
+   "actual": 1,
+   "result": {
+    "homeScore": 77,
+    "awayScore": 7
+   },
+   "close": {
+    "spread": -59.5,
+    "total": 66.5,
+    "homeML": null,
+    "awayML": null
+   }
   },
   {
    "gameId": "401858215",
@@ -34735,7 +34891,15 @@
    "line": 245.5,
    "prob": 0.5569,
    "kickoff": "2026-09-11T00:00Z",
-   "recordedAt": "2026-09-08T23:29:41.152Z"
+   "recordedAt": "2026-09-08T23:29:41.152Z",
+   "actual": 1,
+   "result": {
+    "td": 0,
+    "recYds": 0,
+    "rushYds": 21,
+    "passYds": 252,
+    "recs": 0
+   }
   },
   {
    "gameId": "401858217",
@@ -34795,7 +34959,15 @@
    "line": 4.5,
    "prob": 0.4608,
    "kickoff": "2026-09-11T00:00Z",
-   "recordedAt": "2026-09-08T23:29:41.153Z"
+   "recordedAt": "2026-09-08T23:29:41.153Z",
+   "actual": 0,
+   "result": {
+    "td": 1,
+    "recYds": 16,
+    "rushYds": 0,
+    "passYds": 0,
+    "recs": 2
+   }
   },
   {
    "gameId": "401858221",
@@ -46103,7 +46275,8 @@
    "line": 216.5,
    "prob": 0.5574,
    "kickoff": "2026-09-11T00:00Z",
-   "recordedAt": "2026-09-08T23:29:41.267Z"
+   "recordedAt": "2026-09-08T23:29:41.267Z",
+   "scratched": true
   },
   {
    "gameId": "401858213",
@@ -46115,7 +46288,15 @@
    "line": 30.5,
    "prob": 0.493,
    "kickoff": "2026-09-11T00:00Z",
-   "recordedAt": "2026-09-08T23:29:41.267Z"
+   "recordedAt": "2026-09-08T23:29:41.267Z",
+   "actual": 0,
+   "result": {
+    "td": 0,
+    "recYds": 6,
+    "rushYds": 25,
+    "passYds": 0,
+    "recs": 1
+   }
   },
   {
    "gameId": "401858213",
@@ -46127,7 +46308,15 @@
    "line": 53.5,
    "prob": 0.4925,
    "kickoff": "2026-09-11T00:00Z",
-   "recordedAt": "2026-09-08T23:29:41.267Z"
+   "recordedAt": "2026-09-08T23:29:41.267Z",
+   "actual": 1,
+   "result": {
+    "td": 2,
+    "recYds": 0,
+    "rushYds": 105,
+    "passYds": 0,
+    "recs": 0
+   }
   },
   {
    "gameId": "401858213",
@@ -46139,7 +46328,8 @@
    "line": 20.5,
    "prob": 0.4943,
    "kickoff": "2026-09-11T00:00Z",
-   "recordedAt": "2026-09-08T23:29:41.267Z"
+   "recordedAt": "2026-09-08T23:29:41.267Z",
+   "scratched": true
   },
   {
    "gameId": "401858213",
@@ -46151,7 +46341,15 @@
    "line": 6.5,
    "prob": 0.428,
    "kickoff": "2026-09-11T00:00Z",
-   "recordedAt": "2026-09-08T23:29:41.268Z"
+   "recordedAt": "2026-09-08T23:29:41.268Z",
+   "actual": 0,
+   "result": {
+    "td": 1,
+    "recYds": 96,
+    "rushYds": 0,
+    "passYds": 0,
+    "recs": 4
+   }
   },
   {
    "gameId": "401858213",
@@ -46163,7 +46361,8 @@
    "line": 4.5,
    "prob": 0.3127,
    "kickoff": "2026-09-11T00:00Z",
-   "recordedAt": "2026-09-08T23:29:41.268Z"
+   "recordedAt": "2026-09-08T23:29:41.268Z",
+   "scratched": true
   },
   {
    "gameId": "401858213",
@@ -46175,7 +46374,8 @@
    "line": 3.5,
    "prob": 0.391,
    "kickoff": "2026-09-11T00:00Z",
-   "recordedAt": "2026-09-08T23:29:41.268Z"
+   "recordedAt": "2026-09-08T23:29:41.268Z",
+   "scratched": true
   },
   {
    "gameId": "401858213",
@@ -46187,7 +46387,15 @@
    "line": 2.5,
    "prob": 0.3705,
    "kickoff": "2026-09-11T00:00Z",
-   "recordedAt": "2026-09-08T23:29:41.268Z"
+   "recordedAt": "2026-09-08T23:29:41.268Z",
+   "actual": 0,
+   "result": {
+    "td": 1,
+    "recYds": 55,
+    "rushYds": 0,
+    "passYds": 0,
+    "recs": 1
+   }
   },
   {
    "gameId": "401858439",
@@ -47253,7 +47461,15 @@
    "line": 37.5,
    "prob": 0.4985,
    "kickoff": "2026-09-11T00:00Z",
-   "recordedAt": "2026-09-08T23:29:41.281Z"
+   "recordedAt": "2026-09-08T23:29:41.281Z",
+   "actual": 0,
+   "result": {
+    "td": 1,
+    "recYds": 35,
+    "rushYds": 17,
+    "passYds": 0,
+    "recs": 2
+   }
   },
   {
    "gameId": "401858213",
@@ -47265,7 +47481,8 @@
    "line": 25.5,
    "prob": 0.4868,
    "kickoff": "2026-09-11T00:00Z",
-   "recordedAt": "2026-09-08T23:29:41.281Z"
+   "recordedAt": "2026-09-08T23:29:41.281Z",
+   "scratched": true
   },
   {
    "gameId": "401856680",
@@ -51972,7 +52189,15 @@
    "prop": "td",
    "prob": 0.4938,
    "kickoff": "2026-09-11T00:00Z",
-   "recordedAt": "2026-09-09T15:02:22.005Z"
+   "recordedAt": "2026-09-09T15:02:22.005Z",
+   "actual": 1,
+   "result": {
+    "td": 1,
+    "recYds": 38,
+    "rushYds": 0,
+    "passYds": 0,
+    "recs": 2
+   }
   },
   {
    "gameId": "401858213",
@@ -51984,7 +52209,15 @@
    "line": 52.5,
    "prob": 0.4025,
    "kickoff": "2026-09-11T00:00Z",
-   "recordedAt": "2026-09-09T15:02:22.005Z"
+   "recordedAt": "2026-09-09T15:02:22.005Z",
+   "actual": 0,
+   "result": {
+    "td": 1,
+    "recYds": 38,
+    "rushYds": 0,
+    "passYds": 0,
+    "recs": 2
+   }
   },
   {
    "gameId": "401858213",
@@ -51996,7 +52229,15 @@
    "line": 3.5,
    "prob": 0.4445,
    "kickoff": "2026-09-11T00:00Z",
-   "recordedAt": "2026-09-09T15:02:22.005Z"
+   "recordedAt": "2026-09-09T15:02:22.005Z",
+   "actual": 0,
+   "result": {
+    "td": 1,
+    "recYds": 38,
+    "rushYds": 0,
+    "passYds": 0,
+    "recs": 2
+   }
   },
   {
    "gameId": "401867929",
@@ -53873,6 +54114,60 @@
    "prob": 0.8735,
    "kickoff": "2026-09-13T01:00Z",
    "recordedAt": "2026-09-10T16:27:53.189Z"
+  },
+  {
+   "gameId": "401868241",
+   "playerId": "game",
+   "name": "FCS at ARST",
+   "team": "ARST",
+   "opp": "FCS",
+   "prop": "spread",
+   "side": "away",
+   "line": -31.5,
+   "price": -110,
+   "edge": 7.63,
+   "open": -31.5,
+   "projected": 23.87,
+   "book": "DraftKings",
+   "prob": 0.5,
+   "kickoff": "2026-09-12T23:00Z",
+   "recordedAt": "2026-09-11T16:32:15.038Z"
+  },
+  {
+   "gameId": "401868241",
+   "playerId": "game",
+   "name": "FCS at ARST",
+   "team": "ARST",
+   "opp": "FCS",
+   "prop": "total",
+   "side": "over",
+   "line": 56.5,
+   "price": -112,
+   "edge": 0.1,
+   "open": 56.5,
+   "projected": 56.6,
+   "book": "DraftKings",
+   "prob": 0.5002,
+   "kickoff": "2026-09-12T23:00Z",
+   "recordedAt": "2026-09-11T16:32:15.038Z"
+  },
+  {
+   "gameId": "401868241",
+   "playerId": "game",
+   "name": "FCS at ARST",
+   "team": "ARST",
+   "opp": "FCS",
+   "prop": "ml",
+   "side": "home",
+   "line": null,
+   "price": -9000,
+   "edge": null,
+   "open": null,
+   "projected": 23.87,
+   "book": "DraftKings",
+   "prob": 0.9255,
+   "kickoff": "2026-09-12T23:00Z",
+   "recordedAt": "2026-09-11T16:32:15.038Z"
   }
  ],
  "graded": false,
@@ -55557,7 +55852,8 @@
    "adjusted": 0.30349321102800003,
    "correlation": "team",
    "recordedAt": "2026-09-09T19:38:19.670Z",
-   "tag": "td"
+   "tag": "td",
+   "scratched": true
   },
   {
    "key": "game|401868187|3|td",
@@ -58887,7 +59183,8 @@
    "prob": 0.30349321102800003,
    "adjusted": 0.30349321102800003,
    "correlation": "team",
-   "recordedAt": "2026-09-09T20:42:09.214Z"
+   "recordedAt": "2026-09-09T20:42:09.214Z",
+   "scratched": true
   },
   {
    "key": "game|401868187|3|all",
