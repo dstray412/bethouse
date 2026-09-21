@@ -77,6 +77,10 @@ export function parseCSV(text, keep) {
   const out = [];
   let header = null, keepCol = null;
   let cells = [], field = "", quoted = false, col = 0, grab = true;
+  // Whether column 0 held anything, kept or not: a one-field row is a
+  // blank line unless its one field says something, and that has to be
+  // decided even when the first column is not among the kept ones.
+  let firstHas = false;
 
   const endField = () => {
     if (grab) cells[col] = field;
@@ -88,7 +92,7 @@ export function parseCSV(text, keep) {
     if (header === null) {
       header = cells;
       keepCol = wanted ? header.map((h) => wanted.has(h)) : null;
-    } else if (col > 1 || (cells[0] || "") !== "") {
+    } else if (col > 1 || firstHas) {
       const o = {};
       for (let i = 0; i < header.length; i++) {
         if (keepCol && !keepCol[i]) continue;
@@ -96,22 +100,22 @@ export function parseCSV(text, keep) {
       }
       out.push(o);
     }
-    cells = []; col = 0; grab = keepCol === null || keepCol[0] === true;
+    cells = []; col = 0; firstHas = false; grab = keepCol === null || keepCol[0] === true;
   };
 
   for (let i = 0; i < s.length; i++) {
     const c = s[i];
     if (quoted) {
       if (c === '"') {
-        if (s[i + 1] === '"') { if (grab) field += '"'; i++; }
+        if (s[i + 1] === '"') { if (grab) field += '"'; if (col === 0) firstHas = true; i++; }
         else quoted = false;
-      } else if (grab) field += c;
+      } else { if (grab) field += c; if (col === 0) firstHas = true; }
     } else if (c === '"') quoted = true;
     else if (c === ",") endField();
     else if (c === "\n" || c === "\r") {
       if (c === "\r" && s[i + 1] === "\n") i++;
       endRow();
-    } else if (grab) field += c;
+    } else { if (grab) field += c; if (col === 0) firstHas = true; }
   }
   if (col > 0 || field.length) endRow();
   return out;

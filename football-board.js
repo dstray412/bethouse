@@ -572,7 +572,8 @@
           if(!on(stat)) return;
           var y=N.statEligible(stat,p,null,{oppFactor:allowFor(p.opp,stat)}); if(!y) return;
           // The replay counted a counting-prop leg only with 300+ games in its pool; so does the slip.
-          var pool=poolFor(stat); if(N.poolSize(pool)<300) return;
+          // ...and "in its pool" means the games the over is actually read off, the stat's share nearest his level.
+          var pool=poolFor(stat); if(N.poolReads(pool,y.exp).length<300) return;
           var line=Math.round(y.exp*state.lineMult)+0.5, over=N.empiricalOver(y.exp,line,pool);
           if(over==null||!isFinite(over)) return;
           out.push({key:g.id+'|'+p.id+'|'+stat, playerId:String(p.id), gameId:g.id, team:p.team, opp:p.opp, name:p.name, prob:over, prop:stat, propLabel:N.STATS[stat].label+' o'+line, line:line});

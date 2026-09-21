@@ -223,3 +223,13 @@ test("the season under way is re-fetched after twelve hours; a finished season n
   assert.equal(isStale(t0, 12, t0 + 13 * 3600 * 1000), true);
   assert.equal(isStale(t0, Infinity, t0 + 1e12), false, "a finished season is never stale");
 });
+
+test("parseCSV: a one-field row is kept or dropped on its content even when column 0 is not kept", () => {
+  const text = "id,a,b\n1,x,y\n\n2,p,q\nlone\n";
+  const all = parseCSV(text);
+  assert.equal(all.length, 3, "1, 2 and the lone row; the blank line is not a row");
+  const kept = parseCSV(text, ["a", "b"]);
+  assert.equal(kept.length, 3, "the same rows whether or not the first column is materialised");
+  assert.deepEqual(kept[0], { a: "x", b: "y" });
+  assert.deepEqual(kept[2], { a: "", b: "" }, "the lone row's kept columns are empty, but it is a row");
+});

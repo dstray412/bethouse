@@ -76,6 +76,12 @@ so an older data file keeps working. The projection-line numbers moved
 with it (receiving −0.8 → +1.7pp, Brier 0.2224 → 0.2205; rushing
 0.2215 → 0.2186); the README results table is re-read.
 
+The parlay slip's 300-game floor on a counting-prop leg now counts the
+games the over was read off (`poolReads`), not the games held; the lift
+factors were measured before that and stand (the replay's pools clear 600
+within weeks). Rebuild the boards after pulling: the notes above each
+prop quote the re-read replay.
+
 **Tendencies.** `nflverse.mjs` gained play-by-play (`loadPlayByPlay`,
 gzipped, column-filtered `parseCSV(text, keep)`) and FTN charting
 (`loadFtnCharting`, 2022–2026: play action, RPO, screens, motion,

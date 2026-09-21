@@ -360,7 +360,8 @@ for (let i = START_INDEX; i < ALL.length; i++) {
         const pOver = empiricalOver(y.exp, line, pool);
         if (pOver == null) continue;
         statRows[stat].push({ season: g.season, week: g.week, prob: pOver, actual: gameValue(stat, p) > line ? 1 : 0,
-          mult, id: p.id, team: p.team, gameId: g.id, name: p.name, pool: M.poolSize(pool) });
+          // `pool` is the games the over was READ off (the stat's share nearest his level), which is what the parlay gate means by a pool.
+          mult, id: p.id, team: p.team, gameId: g.id, name: p.name, pool: M.poolReads(pool, y.exp).length });
       }
       if (LADDER) {
         const actual = gameValue(stat, p);
