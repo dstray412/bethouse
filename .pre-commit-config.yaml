@@ -24,6 +24,11 @@ repos:
       - id: check-merge-conflict
       - id: check-added-large-files
         args: ["--maxkb=1024"]
+        # The forward records are the product, and a college week with the
+        # ladder on every row is 1.4 MB before it is graded (2026-09-21).
+        # The refresh bots commit them without hooks either way; this keeps
+        # a human's commit of the same file from being refused.
+        exclude: '^(nfl-record|cfb-record|pga-record)/.*\.json$'
       - id: detect-private-key
 
   # --- secret scanning (pre-commit) ---
@@ -40,6 +45,6 @@ repos:
       - id: node-tests
         name: node --test (the whole suite; see entry for the file list)
         language: system
-        entry: node --test edge.test.mjs score.test.mjs golf.test.mjs nfl.test.mjs cfb.test.mjs parlay.test.mjs nflverse.test.mjs cfbfastr.test.mjs statcast.test.mjs bets.test.mjs track.test.mjs clv.test.mjs provenance.test.mjs dom.test.mjs
+        entry: node --test edge.test.mjs score.test.mjs golf.test.mjs nfl.test.mjs cfb.test.mjs parlay.test.mjs nflverse.test.mjs tendencies.test.mjs cfbfastr.test.mjs statcast.test.mjs bets.test.mjs track.test.mjs clv.test.mjs provenance.test.mjs dom.test.mjs
         pass_filenames: false
         stages: [pre-push]

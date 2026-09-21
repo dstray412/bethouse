@@ -112,6 +112,10 @@
     rushPrior: 25,
     passPrior: 165,
     recsPrior: 2.3,
+    /* Rushing + receiving: measured the same way (--measure, 2026-09-21):
+       35.9 a game among the 10,521 player-games with a touch, and the
+       prior sits under the mean by the same margin as the others. */
+    rushrecPrior: 31,
     /*
      * The pool floor per stat: a player-game joins a stat's ratio pool
      * (actual / his expectation at the time) only when his expectation
@@ -134,6 +138,15 @@
     rushPoolFloor: 20,
     passPoolFloor: 37.5,
     recsPoolFloor: 0.5,
+    /* Rushing + receiving takes receiving's rule, a quarter of the floor,
+       not rushing's. Tried at the board's floor first (25) on the theory
+       that the low end would be scrambles again; it was not, and the walk
+       is monotone the other way (replay, 2026-09-21, bias / Brier: floor 5
+       +0.8pp / 0.2155, 10 +0.9 / 0.2155, 20 +1.7 / 0.2157, 25 +3.1 /
+       0.2163, 35 +6.3 / 0.2200; both seasons agree at every step). The
+       sum of two stats has no population of pure noise at the bottom the
+       way rushing alone does. */
+    rushrecPoolFloor: 6.25,
     /*
      * The yards gate, in one place. A row goes on the board when the player
      * has this many games and this much receiving opportunity, and projects
@@ -152,6 +165,7 @@
     passMinOpportunity: 40,
     passFloor: 150,
     recsFloor: 2,
+    rushrecFloor: 25,
     /*
      * The opponent's defence, per stat: how much of the league's per-game
      * figure the opponent allows, regressed toward 1 over six games like
@@ -176,6 +190,55 @@
     rushOppShrink: 0.5,
     passOppShrink: 0.5,
     recsOppShrink: 0,
+    rushrecOppShrink: 0,
+    /*
+     * Which rungs of the ladder are offered: those whose chance sits
+     * between this and one minus this. A 4,000-game pool resolves a
+     * probability to a fortieth of a percent, but a rung at 99.5% is a
+     * price of -20000 that no book posts and no one should be told to
+     * take. The page shows exactly these rungs and the tracker records
+     * exactly these rungs; the replay passes 0 to grade them all.
+     */
+    ladderEdge: 0.02,
+    /*
+     * POOLS BY LEVEL: what share of a stat's pool the over is read off --
+     * the games whose expectation was nearest the player's. 0 reads the
+     * whole pool. The ladder replay (backtest-nfl.mjs --ladder,
+     * 2026-09-21) priced every rung off the whole pool, the nearest
+     * 500 / 1,000 / 1,500 / 2,500 games and the nearest fifth, third and
+     * half, both seasons, and the nearest HALF was best or level in every
+     * stat on both the projection line and the ladder:
+     *
+     *                    whole pool            nearest half
+     *                    line    ladder        line    ladder       2024 / 2025 ladder
+     *   receiving        0.2224  0.1308        0.2205  0.1290       both better
+     *   rushing          0.2215  0.1298        0.2186  0.1279       both better
+     *   rush + rec       0.2194  0.1208        0.2163  0.1190       both better
+     *   passing          0.1610  0.1513        0.1598  0.1499       2024 worse, 2025 better
+     *   receptions       0.2046  0.1193        0.2041  0.1188       2024 better, 2025 worse
+     *
+     * A count (1,500 games) helped receiving and did nothing for rushing,
+     * whose pool is a third the size; a share scales with what the stat
+     * has behind it. The three yardage stats ship at a half; passing and
+     * receptions, where the two seasons disagree, read the whole pool.
+     * With the whole pool the largest third of projections ran 7-12
+     * points too timid at the middle rungs and the smallest third 5-10
+     * too confident; at a half those gaps are inside 3 points for
+     * receiving and rushing (rush + rec's small third keeps 3-4).
+     */
+    yardPoolShare: 0.5,
+    rushPoolShare: 0.5,
+    rushrecPoolShare: 0.5,
+    passPoolShare: 0,
+    recsPoolShare: 0,
+    /* A levelled pool that does not say which stat it is (none the
+       fetcher writes) reads this share. */
+    poolShare: 0,
+    /* How many of the most recent games a pool keeps before it is
+       levelled: the four thousand of the flat pool was one and a half
+       seasons of receiving; with a window inside it the pool wants more
+       behind it, and six thousand is what the data file can carry. */
+    poolKeep: 6000,
     /*
      * Parlays: which props may be parlayed (only the one whose slips went
      * through the replay), and how a slip whose legs share a game or a
@@ -601,11 +664,41 @@
    * so a league can bind its own.
    */
   const STATS = {
-    recyds:  { label: "Receiving yards", total: "recYds",  opportunity: "receiving", box: ["rec", "yds"],  priorKey: "yardPrior", poolFloorKey: "yardPoolFloor", minOppKey: "yardMinOpportunity", floorKey: "yardFloor", oppShrinkKey: "yardOppShrink" },
-    rushyds: { label: "Rushing yards",   total: "rushYds", opportunity: "carries",   box: ["rush", "yds"], priorKey: "rushPrior", poolFloorKey: "rushPoolFloor", minOppKey: "rushMinOpportunity", floorKey: "rushFloor", oppShrinkKey: "rushOppShrink" },
-    passyds: { label: "Passing yards",   total: "passYds", opportunity: "passAtt",   box: ["pass", "yds"], priorKey: "passPrior", poolFloorKey: "passPoolFloor", minOppKey: "passMinOpportunity", floorKey: "passFloor", oppShrinkKey: "passOppShrink" },
-    recs:    { label: "Receptions",      total: "recs",    opportunity: "receiving", box: ["rec", "rec"],  priorKey: "recsPrior", poolFloorKey: "recsPoolFloor", minOppKey: "yardMinOpportunity", floorKey: "recsFloor", oppShrinkKey: "recsOppShrink" },
+    recyds:  { label: "Receiving yards", total: ["recYds"],  opportunity: "receiving", box: [["rec", "yds"]],  priorKey: "yardPrior", poolFloorKey: "yardPoolFloor", poolShareKey: "yardPoolShare", minOppKey: "yardMinOpportunity", floorKey: "yardFloor", oppShrinkKey: "yardOppShrink" },
+    rushyds: { label: "Rushing yards",   total: ["rushYds"], opportunity: "carries",   box: [["rush", "yds"]], priorKey: "rushPrior", poolFloorKey: "rushPoolFloor", poolShareKey: "rushPoolShare", minOppKey: "rushMinOpportunity", floorKey: "rushFloor", oppShrinkKey: "rushOppShrink" },
+    passyds: { label: "Passing yards",   total: ["passYds"], opportunity: "passAtt",   box: [["pass", "yds"]], priorKey: "passPrior", poolFloorKey: "passPoolFloor", poolShareKey: "passPoolShare", minOppKey: "passMinOpportunity", floorKey: "passFloor", oppShrinkKey: "passOppShrink" },
+    recs:    { label: "Receptions",      total: ["recs"],    opportunity: "receiving", box: [["rec", "rec"]],  priorKey: "recsPrior", poolFloorKey: "recsPoolFloor", poolShareKey: "recsPoolShare", minOppKey: "yardMinOpportunity", floorKey: "recsFloor", oppShrinkKey: "recsOppShrink" },
+    /* Rushing + receiving yards: the book's line for a back who catches
+       and a receiver who runs. The two totals summed, touches (carries +
+       receiving opportunity) for whether he is in that business. */
+    rushrec: { label: "Rush + rec yards", total: ["rushYds", "recYds"], opportunity: "touches", box: [["rush", "yds"], ["rec", "yds"]], priorKey: "rushrecPrior", poolFloorKey: "rushrecPoolFloor", poolShareKey: "rushrecPoolShare", minOppKey: "yardMinOpportunity", floorKey: "rushrecFloor", oppShrinkKey: "rushrecOppShrink" },
   };
+
+  /*
+   * THE LADDER. A book offers a counting prop at many lines, not one:
+   * 10+, 25+, 30+ ... receiving yards, each at its own price. The pool
+   * answers any threshold, so a rung costs nothing the projection line
+   * did not already cost; these are the thresholds the page shows and
+   * the tracker records. "N+" means at least N, and yards and catches
+   * come in whole numbers, so the rung is the over of N - 0.5.
+   */
+  const LADDERS = {
+    recyds:  [10, 20, 25, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150],
+    rushyds: [10, 20, 25, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150],
+    rushrec: [10, 20, 25, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150, 175, 200],
+    passyds: [150, 175, 200, 225, 250, 275, 300, 325, 350, 400],
+    recs:    [2, 3, 4, 5, 6, 7, 8, 9, 10],
+  };
+
+  /** A season record's (or a settled box-score line's) total for a stat:
+      the record fields the row names, summed. 0 for a stat that is not one. */
+  function statTotal(stat, record) {
+    const st = STATS[stat];
+    if (!st || !record) return 0;
+    let t = 0;
+    for (const f of st.total) t += num(record[f]);
+    return t;
+  }
 
   /** A box-score line (the fetcher's rush / rec / pass blocks) in the
       shape of a season record, so statOpportunity reads either. */
@@ -621,15 +714,18 @@
   function gameValue(stat, p) {
     const st = STATS[stat];
     if (!st || !p) return 0;
-    const block = p[st.box[0]];
-    return num(block && block[st.box[1]]);
+    let v = 0;
+    for (const [block, field] of st.box) v += num(p[block] && p[block][field]);
+    return v;
   }
 
   /** A stat's opportunity count on a season record or a game line. */
   function statOpportunity(stat, record, opts) {
     const st = STATS[stat];
     if (!st || !record) return 0;
-    return st.opportunity === "receiving" ? receivingOpportunity(record, opts) : num(record[st.opportunity]);
+    if (st.opportunity === "receiving") return receivingOpportunity(record, opts);
+    if (st.opportunity === "touches") return num(record.carries) + receivingOpportunity(record, opts);
+    return num(record[st.opportunity]);
   }
 
   /** The shrunk per-game expectation of a stat. */
@@ -637,7 +733,7 @@
     const st = STATS[stat];
     if (!st || !record) return null;
     const prior = Object.assign({}, DEFAULTS, opts || {})[st.priorKey];
-    return expectedVolume(record[st.total], record.games, prior, opts);
+    return expectedVolume(statTotal(stat, record), record.games, prior, opts);
   }
 
   /**
@@ -721,14 +817,113 @@
    * receiver and a 30-yard receiver can share a pool: each pool entry is
    * actual/expected, and it is rescaled to this player's expectation.
    */
-  function empiricalOver(expected, threshold, pool) {
+  function empiricalOver(expected, threshold, pool, opts) {
     const e = num(expected);
-    if (!(e > 0) || !pool || !pool.length) return null;
+    if (!(e > 0)) return null;
+    const o = Object.assign({}, DEFAULTS, opts || {});
+    const ratios = poolReads(pool, e, o);
+    if (!ratios || !ratios.length) return null;
     let over = 0;
-    for (let i = 0; i < pool.length; i++) {
-      if (e * pool[i] > threshold) over++;
+    for (let i = 0; i < ratios.length; i++) {
+      if (e * ratios[i] > threshold) over++;
     }
-    return over / pool.length;
+    return over / ratios.length;
+  }
+
+  /*
+   * POOLS BY LEVEL. One pool for every player prices a 20-yard
+   * projection and a 90-yard one off the same shape, and the ladder
+   * replay (backtest-nfl.mjs --ladder, 2026-09-21) showed that shape is
+   * not shared: the smallest third of projections ran 5-10 points too
+   * confident at the middle rungs and the largest third 7-12 points too
+   * timid, in every stat. A small projection misses more often and
+   * doubles more often; a big one is steadier. So a pool keeps each
+   * game's expectation beside its ratio, sorted, and says which stat it
+   * is, and a player's over is read off the share of it (the stat's
+   * poolShare) whose expectation was nearest his. A flat pool (an array
+   * of ratios, the shape before this) is still read whole, so an older
+   * data file keeps working.
+   */
+  function isLevelled(pool) {
+    return !!(pool && !Array.isArray(pool) && Array.isArray(pool.exp) && Array.isArray(pool.ratio));
+  }
+
+  /** {stat, exp, ratio} sorted by expectation, from parallel arrays. */
+  function sortedPool(exp, ratio, stat) {
+    const idx = exp.map((_, i) => i).sort((a, b) => exp[a] - exp[b]);
+    const out = { exp: idx.map((i) => num(exp[i])), ratio: idx.map((i) => num(ratio[i])) };
+    if (stat) out.stat = stat;
+    return out;
+  }
+
+  /**
+   * The ratios an over is actually read off: the stat's share of a
+   * levelled pool nearest `expected`, or the whole of a flat one. The
+   * page asks this too, to say how many games a number came from.
+   */
+  function poolReads(pool, expected, opts) {
+    if (!isLevelled(pool)) return pool || [];
+    const o = Object.assign({}, DEFAULTS, opts || {});
+    const st = STATS[pool.stat];
+    const share = num(st ? o[st.poolShareKey] : o.poolShare);
+    if (!(share > 0)) return pool.ratio;
+    return poolNear(pool, expected, Math.round(share * pool.ratio.length));
+  }
+
+  /** How many games a pool holds, whichever shape it is. */
+  function poolSize(pool) {
+    if (!pool) return 0;
+    return Array.isArray(pool) ? pool.length : isLevelled(pool) ? pool.ratio.length : 0;
+  }
+
+  /**
+   * The ratios of the `k` games nearest `expected` in a levelled pool;
+   * the whole pool when k is 0 or exceeds it; a flat pool as it is.
+   */
+  function poolNear(pool, expected, k) {
+    if (Array.isArray(pool)) return pool;
+    if (!isLevelled(pool)) return [];
+    const exp = pool.exp, ratio = pool.ratio, n = exp.length;
+    const want = num(k);
+    if (!(want > 0) || want >= n) return ratio.slice();
+    const e = num(expected);
+    // First index whose expectation is >= e (binary search), then widen
+    // toward whichever side is nearer until k are taken.
+    let lo = 0, hi = n;
+    while (lo < hi) { const mid = (lo + hi) >> 1; if (exp[mid] < e) lo = mid + 1; else hi = mid; }
+    let a = lo - 1, b = lo;
+    const out = [];
+    while (out.length < want) {
+      const da = a >= 0 ? e - exp[a] : Infinity, db = b < n ? exp[b] - e : Infinity;
+      if (da <= db) { out.push(ratio[a]); a--; } else { out.push(ratio[b]); b++; }
+    }
+    return out;
+  }
+
+  /**
+   * The ladder for one player: every rung of the stat's ladder with the
+   * chance he reaches it, read off the pool the same way the projection
+   * line is. `line` is the half-number the rung settles against. Empty
+   * when there is nothing to read it off -- no expectation, no pool, not
+   * a counting stat -- rather than a ladder of guesses.
+   */
+  function ladder(stat, expected, pool, opts) {
+    const o = Object.assign({}, DEFAULTS, opts || {});
+    const rungs = LADDERS[stat];
+    const e = num(expected);
+    if (!rungs || !(e > 0) || !poolSize(pool)) return [];
+    const edge = num(o.ladderEdge);
+    // The games nearest this projection are the same for every rung, so
+    // they are read once and each rung is counted off the same list.
+    const reads = poolReads(pool, e, o);
+    const out = [];
+    for (const at of rungs) {
+      const line = at - 0.5;
+      const prob = empiricalOver(e, line, reads, o);
+      if (prob == null || prob < edge || prob > 1 - edge) continue;
+      out.push({ at, line, prob });
+    }
+    return out;
   }
 
   /**
@@ -875,6 +1070,9 @@
       expectedVolume: (total, games, prior, opts) => expectedVolume(total, games, prior, merge(opts)),
       yardsEligible: (rec, opts, ctx) => yardsEligible(rec, merge(opts), ctx),
       STATS,
+      LADDERS,
+      statTotal,
+      ladder: (stat, exp, pool, opts) => ladder(stat, exp, pool, merge(opts)),
       gameLine,
       gameValue,
       statOpportunity: (stat, rec, opts) => statOpportunity(stat, rec, merge(opts)),
@@ -884,7 +1082,11 @@
       statOppFactor: (stat, allow, opts) => statOppFactor(stat, allow, merge(opts)),
       opponentIn,
       allowOf,
-      empiricalOver,
+      empiricalOver: (e, t, pool, opts) => empiricalOver(e, t, pool, merge(opts)),
+      sortedPool,
+      poolNear,
+      poolReads: (pool, e, opts) => poolReads(pool, e, merge(opts)),
+      poolSize,
       ratioPool,
       availability,
       playerMatches,
@@ -911,6 +1113,9 @@
     expectedVolume,
     yardsEligible,
     STATS,
+    LADDERS,
+    statTotal,
+    ladder,
     gameLine,
     gameValue,
     statOpportunity,
@@ -921,6 +1126,10 @@
     opponentIn,
     allowOf,
     empiricalOver,
+    sortedPool,
+    poolNear,
+    poolReads,
+    poolSize,
     ratioPool,
     availability,
     playerMatches,

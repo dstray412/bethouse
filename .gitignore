@@ -13,6 +13,11 @@
 nfl-history.json
 cfb-history.json
 .espn-athletes.json
+# Built by `node tendencies.mjs` from the play-by-play cache: 3.9 MB for
+# 2024-2026, which is over the 1 MB pre-commit ceiling and regenerates in
+# three seconds. Committing it is a later decision, once something reads it.
+tendencies-nfl.json
+
 nflverse/
 cfbfastr/
 .playwright-mcp/

@@ -28,6 +28,7 @@
  *   node backtest-nfl.mjs --from 2025           # only grade 2025
  *   node backtest-nfl.mjs --to 2024             # only grade 2024
  *   node backtest-nfl.mjs --measure             # the constants, read straight off the data
+ *   node backtest-nfl.mjs --ladder              # every rung of the alternate lines, graded
  *   node backtest-nfl.mjs --fit                 # sweep tdK and tdShrink
  */
 
@@ -56,8 +57,9 @@ if (Object.keys(overrides).length) console.log(`overrides: ${JSON.stringify(over
 const {
   buildTeamRatings, projectGame, spreadProbability, totalProbability,
   scoreAnytimeTD, expectedVolume, empiricalOver, usagePoolFrom, receivingOpportunity,
-  STATS, statOpportunity, statEligible, projectedStat, gameLine, gameValue, opponentIn, allowOf,
+  STATS, statOpportunity, statEligible, projectedStat, gameLine, gameValue, opponentIn, allowOf, ladder,
 } = M;
+const LADDER = args.includes("--ladder");
 const STAT_IDS = Object.keys(STATS);
 
 const HISTORY = league.historyFile;
@@ -241,7 +243,20 @@ const tdRowsRaw = []; // inputs kept so --fit can re-derive without refetching
 /* Per stat: graded rows, and the pool of actual/expected ratios, appended
    only after a game is used. Receiving yards is one of four now. */
 const statRows = Object.fromEntries(STAT_IDS.map((k) => [k, []]));
+/* Per stat, every prior game's {exp, ratio}; the pool a game is priced
+   off is the most recent poolKeep of them, levelled (nfl.js sortedPool)
+   so the over is read off the games nearest the player's projection. */
 const statPool = Object.fromEntries(STAT_IDS.map((k) => [k, []]));
+const POOL_KEEP = M.DEFAULTS.poolKeep;
+const levelled = (stat, entries) => {
+  const recent = entries.length > POOL_KEEP ? entries.slice(-POOL_KEEP) : entries;
+  return M.sortedPool(recent.map((x) => x.exp), recent.map((x) => x.ratio), stat);
+};
+/* --ladder: every rung of the alternate lines for every eligible
+   player-game, graded the same way. The projection line probes the middle
+   of the pool; the rungs probe its tails, where one pool shared by a
+   20-yard player and a 90-yard one is most likely to be wrong. */
+const ladderRows = Object.fromEntries(STAT_IDS.map((k) => [k, []]));
 const marginErr = [], totalErr = []; // the model's own projection error
 
 for (let i = START_INDEX; i < ALL.length; i++) {
@@ -333,7 +348,7 @@ for (let i = START_INDEX; i < ALL.length; i++) {
    * least a quarter of the floor.
    */
   for (const stat of STAT_IDS) {
-    const pool = statPool[stat].slice(-4000);
+    const pool = levelled(stat, statPool[stat]);
     for (const p of g.players) {
       if (!(statOpportunity(stat, gameLine(p)) >= 1)) continue;
       const opp = opponentIn(g, p);
@@ -345,7 +360,13 @@ for (let i = START_INDEX; i < ALL.length; i++) {
         const pOver = empiricalOver(y.exp, line, pool);
         if (pOver == null) continue;
         statRows[stat].push({ season: g.season, week: g.week, prob: pOver, actual: gameValue(stat, p) > line ? 1 : 0,
-          mult, id: p.id, team: p.team, gameId: g.id, name: p.name, pool: pool.length });
+          mult, id: p.id, team: p.team, gameId: g.id, name: p.name, pool: M.poolSize(pool) });
+      }
+      if (LADDER) {
+        const actual = gameValue(stat, p);
+        for (const r of ladder(stat, y.exp, pool, { ladderEdge: 0 })) {
+          ladderRows[stat].push({ season: g.season, prob: r.prob, actual: actual > r.line ? 1 : 0, at: r.at, exp: y.exp });
+        }
       }
     }
   }
@@ -362,7 +383,7 @@ for (let i = START_INDEX; i < ALL.length; i++) {
       if (!opp) continue;
       // Membership on his own level, ratio against the adjusted projection: fetch-football.mjs says why.
       const y = projectedStat(stat, rec, null, { oppFactor: st.allow(opp, stat) });
-      if (y.base >= floor) statPool[stat].push(gameValue(stat, p) / y.exp);
+      if (y.base >= floor) statPool[stat].push({ exp: y.exp, ratio: gameValue(stat, p) / y.exp });
     }
   }
 }
@@ -487,6 +508,53 @@ for (const stat of STAT_IDS) {
     console.log(`  ${season}: n=${rs.length}  bias ${(100 * bias >= 0 ? "+" : "") + (100 * bias).toFixed(2)}pp  Brier ${mean(rs.map((r) => (r.prob - r.actual) ** 2)).toFixed(4)}`);
   }
   calibration(rows, [0, 0.2, 0.35, 0.5, 0.65, 0.8, 1], `${STATS[stat].label.toLowerCase()} over`);
+}
+
+/*
+ * The ladder. Three cuts of the same rows: by predicted probability (is
+ * a 10% rung a 10% rung?), by rung (is "50+" priced right?), and by the
+ * player's projection in thirds (does the one pool hold at the tails for
+ * a small player and a big one alike?). The last is the one that can
+ * fail: ratios of a 20-yard projection are wider than a 90-yard one's.
+ */
+if (LADDER) for (const stat of STAT_IDS) {
+  const rows = ladderRows[stat];
+  if (!rows.length) continue;
+  summarise(rows, `${STATS[stat].label.toUpperCase()}, THE LADDER (every rung, every eligible player-game)`);
+  for (const season of [...new Set(rows.map((r) => r.season))].sort()) {
+    const rs = rows.filter((r) => r.season === season);
+    if (rs.length < 200) continue;
+    const bias = mean(rs.map((r) => r.prob)) - mean(rs.map((r) => r.actual));
+    console.log(`  ${season}: n=${rs.length}  bias ${(100 * bias >= 0 ? "+" : "") + (100 * bias).toFixed(2)}pp  Brier ${mean(rs.map((r) => (r.prob - r.actual) ** 2)).toFixed(4)}`);
+  }
+  calibration(rows, [0, 0.02, 0.05, 0.1, 0.2, 0.35, 0.5, 0.65, 0.8, 0.9, 0.95, 0.98, 1], `${STATS[stat].label.toLowerCase()} ladder, by predicted`);
+  console.log(`
+  BY RUNG — ${STATS[stat].label.toLowerCase()}`);
+  console.log(`  ${"rung".padEnd(8)}${"n".padStart(7)}${"predicted".padStart(12)}${"actual".padStart(10)}${"gap".padStart(10)}`);
+  for (const at of M.LADDERS[stat]) {
+    const rs = rows.filter((r) => r.at === at);
+    if (rs.length < 20) continue;
+    const p = mean(rs.map((r) => r.prob)), a = mean(rs.map((r) => r.actual)), gap = 100 * (p - a);
+    console.log(`  ${(at + "+").padEnd(8)}${String(rs.length).padStart(7)}${pct(p).padStart(12)}${pct(a).padStart(10)}${((gap >= 0 ? "+" : "") + gap.toFixed(1) + "pp").padStart(10)}`);
+  }
+  const exps = rows.map((r) => r.exp).sort((x, y) => x - y);
+  const t1 = exps[Math.floor(exps.length / 3)], t2 = exps[Math.floor((2 * exps.length) / 3)];
+  const thirds = [["small", (e) => e < t1], ["middle", (e) => e >= t1 && e < t2], ["large", (e) => e >= t2]];
+  console.log(`
+  BY PROJECTION, IN THIRDS — ${STATS[stat].label.toLowerCase()} (cuts at ${t1.toFixed(0)} and ${t2.toFixed(0)}); gap = predicted − actual`);
+  const bands = [0, 0.1, 0.3, 0.5, 0.7, 0.9, 1];
+  console.log(`  ${"third".padEnd(10)}${bands.slice(0, -1).map((lo, i) => `${pct(lo)}-${pct(bands[i + 1])}`.padStart(11)).join("")}${"Brier".padStart(9)}`);
+  for (const [name, inThird] of thirds) {
+    const rs = rows.filter((r) => inThird(r.exp));
+    const cells = bands.slice(0, -1).map((lo, i) => {
+      const hi = bands[i + 1];
+      const b = rs.filter((r) => r.prob >= lo && (i === bands.length - 2 ? r.prob <= hi : r.prob < hi));
+      if (b.length < 30) return "—".padStart(11);
+      const gap = 100 * (mean(b.map((r) => r.prob)) - mean(b.map((r) => r.actual)));
+      return `${(gap >= 0 ? "+" : "") + gap.toFixed(1)}pp`.padStart(11);
+    });
+    console.log(`  ${name.padEnd(10)}${cells.join("")}${mean(rs.map((r) => (r.prob - r.actual) ** 2)).toFixed(4).padStart(9)}`);
+  }
 }
 
 /* ------------------------------------------------------------------ *

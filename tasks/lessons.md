@@ -711,3 +711,28 @@ with no message. It worked in every fresh browser.
 that the model it got has what it needs, and say "reload" when it does
 not. A silent failure on a cache mix reads as a broken feature; a
 one-line message reads as a stale tab.
+
+## One pool for every level prices the tails off the wrong player
+
+2026-09-21. The yards model read every player's over off one pool of
+actual/expected ratios, whatever his level, and at the projection line
+that was fine: the middle of a 20-yard receiver's distribution and a
+90-yard receiver's sit in the same place once you divide by the
+expectation. The first ladder replay showed the tails do not. The
+smallest third of projections ran 5-10 points too confident at the
+middle rungs and the largest third 7-12 points too timid, in every
+stat: a small projection misses more and doubles more, a big one is
+steadier, and dividing by the expectation does not make those the same
+shape. The projection line was calibrated the whole time. Only the
+alternate lines, which nobody had priced, could see it.
+
+This is the fourth appearance of the same mistake (`mixPow`, the golf
+cut, the touchdown dilution): a shape measured on a mixture applied to
+each member of the mixture.
+
+**Rule:** when a distribution is pooled across players of different
+sizes, check calibration by size before trusting anything but its
+middle. A pool should carry each entry's level so the reader can take
+the games nearest the level being priced, and a new line further from
+the middle than the ones already checked is a new claim that needs its
+own replay before it ships.

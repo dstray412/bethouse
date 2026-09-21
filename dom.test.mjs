@@ -585,3 +585,377 @@ test("every statEligible call outside the model passes the opponent, and every p
     assert.doesNotMatch(js, /p\.team === g\.home\.team \? g\.away\.team : g\.home\.team/, `${f}: a two-way opponent lookup gives the home team to a player on neither side; use opponentIn`);
   }
 });
+
+/* ------------------------------------------------------------------ *
+ * A stat the model gains is a view the page gains — copy included
+ *
+ * The board builds one view per row of the model's stat table, so adding
+ * "Rush + rec yards" to nfl.js put a fifth view on both football boards
+ * without either page being touched. What does NOT arrive on its own is
+ * the sentence above the rows: `copy.noteStat` is keyed by stat, and a
+ * missing key renders the word `undefined` across the top of the board.
+ * ------------------------------------------------------------------ */
+
+test("the views are built from the model's stat table, not a list typed on the page", () => {
+  const js = src("football-board.js");
+  assert.match(
+    js, /Object\.keys\(N\.STATS\)/,
+    "football-board.js no longer builds its views from the model's stat table; a " +
+      "second copy of the list is how a stat the model has stops being a view the page has",
+  );
+});
+
+test("every counting prop the model has has a note on both football boards", async () => {
+  const nfl = (await import("./nfl.js")).default;
+  const stats = Object.keys(nfl.STATS);
+  assert.ok(stats.length >= 5, `expected the model's counting props, found ${stats.join(", ")}`);
+  for (const f of ["nfl.html", "cfb.html"]) {
+    const js = src(f);
+    const at = js.indexOf("noteStat:");
+    assert.ok(at > 0, `${f} defines no noteStat table`);
+    const end = js.indexOf("noteGames:", at);
+    assert.ok(end > at, `${f}: noteStat is no longer followed by noteGames; this slice is wrong`);
+    const block = js.slice(at, end);
+    for (const s of stats) {
+      assert.match(
+        block, new RegExp("\\b" + s + ":"),
+        `${f}: noteStat has no entry for "${s}", so that view renders "undefined" above its rows`,
+      );
+    }
+  }
+});
+
+/* ------------------------------------------------------------------ *
+ * The panel reads the model, it does not re-derive it
+ *
+ * A stat's season total is a LIST of record fields now (rush + rec sums
+ * two), so `r.p[ST.total]` — which worked while every row named one
+ * field — silently became `undefined`, and the panel said the player
+ * averages NaN a game.
+ * ------------------------------------------------------------------ */
+
+test("the panel reads a season total through the model, never off the record by key", () => {
+  const js = src("football-board.js");
+  assert.match(js, /N\.statTotal\(/, "football-board.js no longer asks the model for a season total");
+  assert.doesNotMatch(
+    js, /\[ST\.total\]/,
+    "football-board.js indexes a record by ST.total, which is a LIST of fields — " +
+      "that is undefined for every stat and NaN in the panel",
+  );
+});
+
+/* ------------------------------------------------------------------ *
+ * The ladder: the alternate lines, priced, inside the panel
+ *
+ * Every rung comes from the model (`ladder`, `fairPrice`) so the page and
+ * the tracker offer the same rungs, and the strip wraps or scrolls in its
+ * own box — thirteen rungs must not make the body scroll sideways on a
+ * 390px phone.
+ * ------------------------------------------------------------------ */
+
+test("the expanded counting-prop panel prices every rung off the model's ladder", () => {
+  const js = src("football-board.js");
+  assert.match(js, /N\.ladder\(/, "the panel does not ask the model for the alternate lines");
+  assert.match(js, /class="rungs"/, "the panel renders no ladder strip");
+  assert.doesNotMatch(
+    js, /LADDERS\s*[=:]/,
+    "football-board.js carries its own copy of the rungs; they live in nfl.js",
+  );
+});
+
+test("the ladder wraps inside its own box, so the page never scrolls sideways", () => {
+  const css = src(SHEET);
+  const rule = css.match(/\.rungs\{[^}]*\}/);
+  assert.ok(rule, `${SHEET} has no .rungs rule — the ladder strip is unstyled`);
+  assert.match(
+    rule[0], /repeat\(auto-fill|repeat\(auto-fit|overflow-x:\s*auto/,
+    `${SHEET}: .rungs neither wraps into columns nor scrolls in its own container, ` +
+      `so thirteen rungs push the body sideways on a phone`,
+  );
+});
+
+/* ------------------------------------------------------------------ *
+ * A leg is only parlayed on a prop the replay measured
+ *
+ * The candidate loop runs over every stat the model has, so a stat the
+ * model gains would become a parlay leg the replay never graded unless
+ * the eligibility gate is inside the loop.
+ * ------------------------------------------------------------------ */
+
+test("every counting-prop parlay leg is built inside the parlay-eligibility gate", () => {
+  const js = src("football-board.js");
+  assert.match(js, /eligible\s*=\s*N\.DEFAULTS\.parlayProps/, "the board no longer reads parlayProps from the model");
+  const loops = guardedRanges(js, "STAT_IDS.forEach(function(stat){");
+  assert.ok(loops.length, "no per-stat candidate loop found in football-board.js");
+  for (const [open, close] of loops) {
+    const body = js.slice(open, close);
+    if (!body.includes("out.push(")) continue;
+    const gate = body.indexOf("on(stat)");
+    assert.ok(gate >= 0, "the per-stat candidate loop does not ask whether the prop is parlay-eligible");
+    assert.ok(
+      gate < body.indexOf("out.push("),
+      "a counting-prop leg is pushed before the eligibility gate runs — that is how a " +
+        "prop the replay never measured becomes a leg",
+    );
+  }
+});
+
+/* ------------------------------------------------------------------ *
+ * The stale-model guard has to know every function it is guarding
+ *
+ * The page, the board script and the model are three separately cached
+ * files, so a browser can hold a new page and an old model. The board
+ * checks the model has what it needs and says "reload" instead of failing
+ * silently — which only works while the list is the whole list.
+ * ------------------------------------------------------------------ */
+
+test("every model function the board calls is named in its stale-model check", () => {
+  const js = src("football-board.js");
+  const m = js.match(/var NEEDS\s*=\s*\[([^\]]*)\]/);
+  assert.ok(m, "football-board.js no longer declares NEEDS");
+  const needs = new Set(m[1].split(",").map((s) => s.trim().replace(/^['"]|['"]$/g, "")));
+  const called = new Set([...js.matchAll(/\bN\.([A-Za-z_$][\w$]*)\s*\(/g)].map((x) => x[1]));
+  for (const fn of called) {
+    assert.ok(
+      needs.has(fn),
+      `football-board.js calls N.${fn}() but NEEDS does not list it — against a cached ` +
+        `older model that is a silent failure, which is exactly what NEEDS exists to prevent`,
+    );
+  }
+});
+
+/* ------------------------------------------------------------------ *
+ * A strip that scrolls sideways must be the thing that scrolls
+ *
+ * The football boards let the bet types scroll rather than stack, with
+ * `overflow-x:auto` on the segment strip. It never engaged: a flex item's
+ * default minimum size is its content, so the .ctl around it simply grew
+ * to the full width of the buttons and the BODY scrolled sideways instead.
+ * Measured on nfl.html at 390px: 322px of body overflow with four counting
+ * props, 458 with five, 0 once the item is allowed to shrink.
+ * ------------------------------------------------------------------ */
+
+test("a scrolling control strip sits in a box that is allowed to shrink", () => {
+  for (const f of ["nfl.html", "cfb.html"]) {
+    const own = (src(f).match(/<style>[\s\S]*?<\/style>/g) || []).join("\n");
+    if (!/\.seg\{[^}]*overflow-x\s*:\s*auto/.test(own)) continue;
+    assert.match(
+      own, /\.ctl\{[^}]*min-width\s*:\s*0/,
+      `${f} scrolls its segment strip with overflow-x but never lets the flex item ` +
+        `around it shrink (min-width:0), so the page scrolls sideways instead of the strip`,
+    );
+  }
+});
+
+/* ------------------------------------------------------------------ *
+ * How big a pool is, is the model's question
+ *
+ * A pool is a flat list of ratios in an older data file and {exp, ratio}
+ * sorted by expectation in a newer one — the levelling that stopped a
+ * 20-yard projection being priced off a 90-yard one's shape. `pool.length`
+ * is `undefined` on the second shape, which silently drops every row (the
+ * gate reads `< 300`) and prints "read off undefined real games".
+ * ------------------------------------------------------------------ */
+
+test("the board asks the model how many games a pool holds, never .length", () => {
+  const js = src("football-board.js");
+  assert.match(js, /N\.poolSize\(/, "football-board.js no longer asks the model for a pool's size");
+  assert.doesNotMatch(
+    js, /\bpool\s*\.\s*length/,
+    "football-board.js takes .length of a pool, which is undefined once the pool " +
+      "is {exp, ratio} — use N.poolSize(pool)",
+  );
+  assert.doesNotMatch(
+    js, /pool\s*\.\s*(ratio|exp)\b/,
+    "football-board.js reaches inside a pool's shape; nfl.js owns that (poolSize, poolNear)",
+  );
+});
+
+/* ------------------------------------------------------------------ *
+ * The matchup panel — the first test in this file that RENDERS
+ *
+ * Everything above asserts source invariants, for the reason at the top:
+ * no jsdom, no browser, no package.json. This one still honours that —
+ * the stub below is thirty lines of plain objects, not a dependency — but
+ * it runs the real board script and calls the real detail builder, because
+ * "the section is there for a game in the file and absent for a game that
+ * is not" is a claim about output, and a regex over the source would pass
+ * on markup that never renders.
+ * ------------------------------------------------------------------ */
+
+/* Enough of an element for football-board.js: it sets innerHTML, appends
+   created children, registers listeners, and reads back textContent. */
+function stubEl(tag) {
+  return {
+    tag, children: [], handlers: {}, attrs: {},
+    innerHTML: "", textContent: "", value: "", className: "", hidden: false,
+    appendChild(c) { this.children.push(c); return c; },
+    addEventListener(type, fn) { (this.handlers[type] = this.handlers[type] || []).push(fn); },
+    setAttribute(k, v) { this.attrs[k] = String(v); },
+    getAttribute(k) { return this.attrs[k]; },
+    focus() {},
+  };
+}
+
+function stubDoc() {
+  const byId = new Map();
+  return {
+    getElementById(id) {
+      if (!byId.has(id)) byId.set(id, stubEl(id));
+      return byId.get(id);
+    },
+    createElement(tag) { return stubEl(tag); },
+    addEventListener() {},
+    activeElement: { tagName: "BODY" },
+  };
+}
+
+/** Mount the real board against the stub and return its game-view panel builder. */
+async function mountBoard({ tendencies, games, ratings }) {
+  const nfl = (await import("./nfl.js")).default;
+  const doc = stubDoc();
+  const win = {};
+  if (tendencies !== undefined) win.BetHouseTendencies = tendencies;
+  // eslint-disable-next-line no-new-func
+  new Function("window", "document", src("football-board.js"))(win, doc);
+
+  win.BetHouseFootballBoard.mount({
+    model: nfl,
+    data: {
+      season: 2026, week: 2, statsSeasons: [2025, 2026], generated: "2026-09-21T00:00", gamesCached: 2,
+      games, ratings, teamFactors: {}, players: [], pools: {}, usagePool: [],
+    },
+    record: null,
+    league: "NFL",
+    fetcher: "fetch-nfl.mjs",
+    copy: {
+      noteTD: "n", noteStat: Object.fromEntries(Object.keys(nfl.STATS).map((k) => [k, "n"])),
+      noteGames: "n", gameBanner: "<p>n</p>", mlVerdict: "n", gameHonestly: "n", footer: "<p>n</p>",
+    },
+  });
+
+  // The game view is a segment button; click it the way a user would.
+  const seg = doc.getElementById("view");
+  const button = seg.children.find((b) => b.textContent === "Spread & total");
+  assert.ok(button, "the board no longer offers a Spread & total view");
+  button.handlers.click[0]();
+
+  const app = doc.getElementById("app");
+  assert.ok(app.__rows && app.__rows.length, "the game view rendered no rows");
+  return { app, panelFor: (i) => app.__detail(app.__rows[i]) };
+}
+
+/* Two teams in the tendencies file, two that are not. Every field the
+   panel reads is here; the values are invented and the shape is the one
+   tendencies.mjs writes. */
+const PROFILE = {
+  plays: 140, games: 2, playsPerGame: 70, passRate: 0.64, rushRate: 0.36, proe: 3.75,
+  deepRate: 0.12, shortRate: 0.88, insideRunShare: 0.81, outsideRunShare: 0.19,
+  epaPerPlay: 0.08, epaPerPass: 0.1, epaPerRush: 0.04,
+  deepEpa: 0.31, shortEpa: 0.15, insideRunEpa: -0.03, outsideRunEpa: 0.34,
+  playActionRate: 0.17, motionRate: 0.5, blitzRate: 0.27, paEpa: -0.07, blitzEpa: 0.0,
+};
+const tweak = (over) => Object.assign({}, PROFILE, over);
+const TENDENCIES = {
+  generated: "2026-09-21T00:00:00.000Z", seasons: [2025, 2026], K: 6,
+  through: { season: 2026, week: 2 },
+  current: {
+    off: { KC: tweak({ deepRate: 0.19 }), LAC: tweak({ deepRate: 0.05 }) },
+    def: { KC: tweak({ deepEpa: 0.9 }), LAC: tweak({ deepEpa: -0.4, insideRunEpa: 0.2 }) },
+    league: tweak({}),
+  },
+};
+const GAMES = [
+  { id: "g1", home: "LAC", away: "KC", date: "2030-01-01T00:00Z", completed: false },
+  { id: "g2", home: "BBB", away: "AAA", date: "2030-01-02T00:00Z", completed: false },
+];
+const RATINGS = { off: { KC: 2, LAC: 1, AAA: 0, BBB: 0 }, def: { KC: -1, LAC: 0, AAA: 0, BBB: 0 } };
+
+test("the matchup section renders for a game whose teams are in the tendencies file", async () => {
+  const { app, panelFor } = await mountBoard({ tendencies: TENDENCIES, games: GAMES, ratings: RATINGS });
+  const i = app.__rows.findIndex((r) => r.g.id === "g1");
+  const html = panelFor(i);
+  assert.match(html, /class="mu"/, "no matchup section on a game both of whose teams are profiled");
+  // Both directions, not just the home one.
+  assert.match(html, /KC offence vs LAC defence/);
+  assert.match(html, /LAC offence vs KC defence/);
+  // Every family the panel promises.
+  for (const f of ["deep pass", "short pass", "inside run", "outside run", "play action", "vs blitz"]) {
+    assert.ok(html.includes(f), `the matchup table has no "${f}" row`);
+  }
+  // The tags, on the fixture built to trigger them.
+  assert.match(html, /class="tag soft"/, "a defence 0.39 EPA worse than league is not tagged soft");
+  assert.match(html, /class="tag tough"/, "a defence 0.71 EPA better than league is not tagged stout");
+  assert.match(html, /leans in|avoids/, "an offence 7 points off the league share is not tagged");
+  // The caveat that keeps this descriptive.
+  assert.match(html, /nothing here is in a price yet/i);
+  assert.match(html, /week 2/, "the footer does not say which week the play-by-play runs through");
+});
+
+test("a game whose teams are not in the tendencies file shows no matchup section", async () => {
+  const { app, panelFor } = await mountBoard({ tendencies: TENDENCIES, games: GAMES, ratings: RATINGS });
+  const i = app.__rows.findIndex((r) => r.g.id === "g2");
+  const html = panelFor(i);
+  assert.doesNotMatch(html, /class="mu"/, "a game of two unprofiled teams still rendered a matchup section");
+  assert.ok(html.includes("projection"), "the rest of the panel disappeared with it");
+});
+
+test("a board with no tendencies file loaded renders every game without one", async () => {
+  const { app, panelFor } = await mountBoard({ tendencies: undefined, games: GAMES, ratings: RATINGS });
+  for (let i = 0; i < app.__rows.length; i++) {
+    assert.doesNotMatch(
+      panelFor(i), /class="mu"/,
+      "the matchup section rendered with no tendencies file loaded — cfb.html loads none",
+    );
+  }
+});
+
+test("the page and tendencies.mjs agree on the thresholds and the families", async () => {
+  /* tendencies.mjs is an ES module and the board is a plain script, so the
+     two tag thresholds and the family table are re-typed there rather than
+     imported. That is the duplication tasks/lessons.md warns about, so it
+     gets checked instead of trusted. */
+  const t = await import("./tendencies.mjs");
+  const js = src("football-board.js");
+
+  const lean = js.match(/LEAN_SHARE\s*=\s*([\d.]+)/);
+  const soft = js.match(/SOFT_EPA\s*=\s*([\d.]+)/);
+  assert.ok(lean && soft, "football-board.js no longer names the two thresholds");
+  assert.equal(Number(lean[1]), t.LEAN_SHARE, "the board's lean threshold has drifted from tendencies.mjs");
+  assert.equal(Number(soft[1]), t.SOFT_EPA, "the board's soft/stout threshold has drifted from tendencies.mjs");
+
+  /* The family table: same families, same metric keys, same order of
+     definition. Read off the module's source because FAMILIES is private. */
+  const modFams = [...src("tendencies.mjs").matchAll(/\{\s*family:\s*"([^"]+)",\s*share:\s*"(\w+)",\s*epa:\s*"(\w+)"/g)];
+  assert.ok(modFams.length >= 6, "tendencies.mjs no longer declares a FAMILIES table in the expected shape");
+  const boardFams = [...js.matchAll(/\{family:'([^']+)',\s*share:'(\w+)',\s*epa:'(\w+)'/g)];
+  assert.deepEqual(
+    boardFams.map((m) => [m[1], m[2], m[3]]),
+    modFams.map((m) => [m[1], m[2], m[3]]),
+    "football-board.js and tendencies.mjs disagree about the play families or their metric keys",
+  );
+  for (const [, , share, epa] of boardFams) {
+    assert.ok(t.METRICS.includes(share), `${share} is not a metric tendencies.mjs computes`);
+    assert.ok(t.METRICS.includes(epa), `${epa} is not a metric tendencies.mjs computes`);
+  }
+});
+
+test("the matchup table fits a 390px phone without widening the page", () => {
+  const css = src(SHEET);
+  const rule = css.match(/\.mfam\{[^}]*\}/);
+  assert.ok(rule, `${SHEET} has no .mfam rule — the matchup table is unstyled`);
+  const cols = rule[0].match(/grid-template-columns\s*:\s*([^;}]+)/);
+  assert.ok(cols, `${SHEET}: .mfam declares no columns`);
+  assert.match(cols[1], /^\s*1fr\b/, ".mfam's first column is not flexible, so long family names widen the page");
+  const fixed = [...cols[1].matchAll(/(\d+)px/g)].reduce((a, m) => a + Number(m[1]), 0);
+  assert.ok(
+    fixed <= 220,
+    `.mfam reserves ${fixed}px of fixed columns; a 390px phone leaves about 338px inside the panel, ` +
+      `so anything over ~220 squeezes the family name to nothing`,
+  );
+});
+
+test("the tendencies file is loaded by the board that has play-by-play, and only that one", () => {
+  assert.match(src("nfl.html"), /<script src="tendencies-data\.js"><\/script>/, "nfl.html does not load tendencies-data.js");
+  assert.doesNotMatch(src("cfb.html"), /tendencies-data/, "cfb.html loads a play-by-play file college has none of");
+});

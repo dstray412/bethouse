@@ -112,6 +112,44 @@ header{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:1
 .more:hover{background:rgba(255,255,255,.028)}
 .why p{margin:8px 0 0}
 .why .verdict{color:var(--text);font-size:14px}
+/* The ladder: every alternate line the book might offer, priced off the
+   same pool the row is. A strip that wraps into as many columns as fit
+   rather than a thirteen-row table -- three on a 390px phone, four in the
+   column -- so it stays scannable and the body never scrolls sideways.
+   The rung nearest the line on the row carries the accent. */
+.ladder{margin:10px 0 2px;max-width:60ch}
+.ladder .lhead{margin:0 0 7px}
+.rungs{display:grid;grid-template-columns:repeat(auto-fill,minmax(98px,1fr));gap:5px}
+.rung{display:grid;grid-template-columns:auto 1fr;align-items:baseline;column-gap:6px;
+  padding:5px 8px;border:1px solid var(--line);border-radius:9px;background:var(--panel2);font-variant-numeric:tabular-nums}
+.rung b{font-family:var(--display);font-size:14px}
+.rung .rp{text-align:right;font-weight:600;color:var(--text)}
+.rung .rf{grid-column:1/-1;font-size:12px;color:var(--muted)}
+.rung.near{border-color:var(--accent);background:rgba(56,225,255,.09)}
+/* The matchup panel on a game: each offence against the defence it faces,
+   from tendencies-data.js. It is descriptive -- no number in it reaches a
+   price -- so it reads quietly under the table rather than competing with
+   it. The family table's first column flexes and the two number columns
+   are fixed, which is what keeps it inside a 390px phone. */
+.mu{margin:12px 0 2px}
+.muhead{font-family:var(--display);font-size:11px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin:0 0 9px}
+.muside{padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--panel2);margin-bottom:9px}
+.mutitle{font-weight:600;color:var(--text);font-size:14px;margin-bottom:4px}
+.mline{font-size:13px;line-height:1.75}
+.rk{color:var(--muted);font-size:11px;letter-spacing:.02em;margin-left:1px}
+/* Capped so the numbers stay near the family they belong to: across a
+   1040px column a 1fr first column parks them an inch and a half away. */
+.mfam{display:grid;grid-template-columns:1fr 84px 84px;gap:0 10px;margin-top:9px;max-width:56ch;font-variant-numeric:tabular-nums}
+.mfam .fh{font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding-bottom:4px;border-bottom:1px solid var(--line)}
+.mfam .fn,.mfam .fv{padding:5px 0 4px;border-top:1px solid rgba(255,255,255,.045)}
+.mfam .fh.fv{border-top:0}
+.mfam .fn{color:var(--text)}
+.mfam .fn small{color:var(--muted);font-size:11px;margin-left:6px}
+.mfam .fv{text-align:right}
+.mfam .fv small{display:block;color:var(--muted);font-size:11px;font-weight:400;letter-spacing:.02em}
+.mfam .tag{margin-left:6px}
+.mufoot{margin:2px 0 0;font-size:12px;max-width:60ch}
+.tag.lean{background:rgba(56,225,255,.14);color:var(--accent)}
 .tag{display:inline-block;margin-left:7px;padding:1px 6px;border-radius:4px;font-size:11px;font-weight:600;letter-spacing:.03em;vertical-align:1px}
 .tag.soft{background:rgba(95,206,143,.16);color:var(--good)}
 .tag.tough{background:rgba(216,67,79,.16);color:var(--bad)}

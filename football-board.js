@@ -35,11 +35,17 @@
        an old model. Every function this script calls on the model has to
        exist, or the first keystroke fails silently (the search box did,
        2026-09-09). Say so instead. */
-    var NEEDS = ['STATS','statEligible','statOppFactor','allowOf','scoreAnytimeTD','empiricalOver','fairPrice','availability','playerMatches'];
+    var NEEDS = ['STATS','statEligible','statOppFactor','allowOf','scoreAnytimeTD','empiricalOver','fairPrice','availability','playerMatches',
+      'statTotal','statOpportunity','ladder','projectGame','pickGame','poolSize','poolReads'];
     var missing = NEEDS.filter(function(k){ return typeof N[k] !== 'function' && k !== 'STATS' || (k === 'STATS' && !N.STATS); });
-    if (missing.length) {
+    /* The same mix the other way: a fresh model with a data file from
+       before the pools were levelled (2026-09-21) would price every prop
+       off the whole pool -- the shape the ladder replay measured as wrong
+       by size -- and look normal doing it. A flat pool is the tell. */
+    var stalePools = Object.keys(D.pools||{}).some(function(k){ return Array.isArray(D.pools[k]); });
+    if (missing.length || stalePools) {
       app.innerHTML = '<div class="empty"><div class="big">Reload this page</div>' +
-        '<div>Your browser has a newer page than model script. A hard refresh (Cmd/Ctrl+Shift+R) fixes it.</div></div>';
+        '<div>Your browser has a '+(stalePools?'newer model than data file':'newer page than model script')+'. A hard refresh (Cmd/Ctrl+Shift+R) fixes it.</div></div>';
       return;
     }
 
@@ -88,7 +94,10 @@
     }
 
     var usagePool = D.usagePool && D.usagePool.length ? D.usagePool : null;
-    var poolFor=function(stat){ var p=D.pools&&D.pools[stat]; return p&&p.length?p:null; };
+    /* A pool is a flat list of ratios in an older data file and {exp, ratio}
+       sorted by expectation in a newer one, so how many games it holds is
+       the model's question, not this file's (nfl.js poolSize). */
+    var poolFor=function(stat){ var p=D.pools&&D.pools[stat]; return p&&N.poolSize(p)?p:null; };
 
     /* Team codes come from the schedule now. They used to be recovered by
        searching each abbreviation inside the full team name, which dropped
@@ -183,6 +192,9 @@
       rows.sort(function(a,b){return b.exp-a.exp;});
       var t=trim(rows); rows=t.rows;
       var strength=N.DEFAULTS[ST.oppShrinkKey], word=ST.label.toLowerCase();
+      /* Whose real games the pool is made of. The board gains a view the
+         moment the model gains a stat, so this says the new one too. */
+      var poolWord=stat==='passyds'?'quarterbacks':stat==='rushyds'?'backs':stat==='rushrec'?'backs and receivers':'receivers';
       /* A matchup badge on the row, only where the opponent is in the
          number and only when it is clearly soft or tough (7% either side
          of average); in between it says nothing, so that when it shows it
@@ -210,14 +222,39 @@
           '<span class="caret">›</span></button>'+
           '<div class="why" id="why'+i+'" hidden></div>';
       });
-      app.innerHTML=html+(rows.length?'':nothing())+moreBtn(t.hidden)+'</div>';
+      /* A stat the model has and this data file has no pool for: the view
+         arrived with the model, the pool arrives with the next build. Say
+         which, rather than showing an empty panel with no explanation. */
+      var empty=pool?nothing():'<div class="empty"><div class="big">No pool yet</div>'+
+        '<div>Pricing '+esc(word)+' needs a pool of comparable real games. Run <code>node '+cfg.fetcher+'</code> to build it.</div></div>';
+      app.innerHTML=html+(rows.length?'':empty)+moreBtn(t.hidden)+'</div>';
       app.__rows=rows;
-      /* The panel: the decision first, in two lines, then the arithmetic
-         in words a bettor already uses. The constants behind each step
-         are in nfl.js and the README; they do not belong here. */
+      /* The alternate lines: every rung of the model's ladder, priced off
+         the same pool the row is. The rung nearest the line on the row is
+         marked, so the eye lands where the board's own number sits. */
+      var ladderHtml=function(r){
+        var rungs=N.ladder(stat,r.exp,pool);
+        if(!rungs.length) return '';
+        var near=0;
+        rungs.forEach(function(g,i){ if(Math.abs(g.line-r.line)<Math.abs(rungs[near].line-r.line)) near=i; });
+        var h='<div class="ladder"><p class="lhead">Alternate lines. The chance he reaches each number, '+
+          'read off the same games; bet a rung only if the book beats its fair price. '+
+          'The rung nearest his line above is marked.</p><div class="rungs">';
+        rungs.forEach(function(g,i){
+          h+='<div class="rung'+(i===near?' near':'')+'"'+(i===near?' aria-current="true"':'')+'>'+
+            '<b>'+g.at+'+</b><span class="rp">'+pct(g.prob,0)+'</span>'+
+            '<span class="rf">'+sgn(N.fairPrice(g.prob))+' fair</span></div>';
+        });
+        return h+'</div></div>';
+      };
+      /* The panel: the decision first, in two lines, then the alternate
+         lines, then the arithmetic in words a bettor already uses. The
+         constants behind each step are in nfl.js and the README; they do
+         not belong here. */
       app.__detail=function(r){
-        var fair=sgn(N.fairPrice(r.over)), games=r.p.games, avg=r.p[ST.total]/games;
-        var oppWordFor = ST.opportunity==='receiving' ? oppWord : ST.opportunity==='carries' ? 'carries' : 'attempts';
+        var fair=sgn(N.fairPrice(r.over)), games=r.p.games, avg=N.statTotal(stat,r.p)/games;
+        var oppWordFor = ST.opportunity==='receiving' ? oppWord : ST.opportunity==='carries' ? 'carries'
+          : ST.opportunity==='touches' ? 'touches' : 'attempts';
         var onOpp = (stat==='recs' && N.DEFAULTS.receivingStat==='recs') ? '' :
           ' on '+N.statOpportunity(stat,r.p)+' '+oppWordFor;
         var h='<p class="verdict">Over <b>'+r.line+'</b> hits <b>'+pct(r.over,0)+'</b> of the time. Fair price <b>'+fair+'</b>. '+
@@ -233,13 +270,24 @@
           w+=esc(r.p.opp)+' gives up <b>'+Math.abs(d)+'% '+(d>=0?'more':'fewer')+'</b> '+word+' than average, which '+
             (delta>=0?'adds':'takes off')+' <b>'+Math.abs(delta).toFixed(0)+'</b>. ';
         } else if(allow) {
-          w+='The opponent is not in this number: on the replay it made no difference for '+word+'. ';
+          /* Why the opponent is out of THIS prop is a measured claim and a
+             different one per stat and per league, so it is the note above
+             the board (copy.noteStat) that says it, once. The panel used to
+             repeat "on the replay it made no difference", which was true of
+             receiving yards and receptions and never measured for a stat the
+             model gained later. */
+          w+='The opponent is not in this number. ';
         }
-        w+='Projects to <b>'+r.exp.toFixed(0)+'</b>. The chance of the over is read off '+pool.length.toLocaleString('en-US')+' real games by '+
-          (stat==='passyds'?'quarterbacks':stat==='rushyds'?'backs':'receivers')+' against their own projections.</p>';
+        /* How many games this player's over was actually read off: the
+           whole pool in an older data file, the stat's share of the games
+           nearest his projection in a levelled one. Asking the model which games
+           it used keeps the sentence true under either shape. */
+        var used=N.poolReads(pool,r.exp).length, held=N.poolSize(pool);
+        w+='Projects to <b>'+r.exp.toFixed(0)+'</b>. The chance of the over is read off '+used.toLocaleString('en-US')+' real games by '+
+          poolWord+(used<held?' whose own projection was nearest his':' against their own projections')+'.</p>';
         var s=statusRow(r.p);
         if(s) s='<p>'+s.replace(/<\/?t[rd]>/g,'').replace(/^status/,'')+'</p>';
-        return h+w+s;
+        return h+ladderHtml(r)+w+s;
       };
     }
 
@@ -262,6 +310,130 @@
       if(open==null||!isFinite(open)||open===now) return fmtLine(now,plain);
       return fmtLine(open,plain)+' → '+fmtLine(now,plain);
     };
+
+    /* ---- the matchup panel ----
+     *
+     * tendencies-data.js, written by tendencies.mjs out of nflverse
+     * play-by-play: how each offence plays, what each defence gives up,
+     * and where the two meet. nfl.html loads it; college has no
+     * play-by-play, so cfb.html does not, and everything here is guarded
+     * on the file being there rather than on which league this is.
+     *
+     * It is DESCRIPTIVE. The replay that would say whether any of it
+     * belongs in a projection is not run, so no number here reaches one
+     * and the panel's last line says so.
+     *
+     * tendencies.mjs is an ES module and this page is plain scripts, so
+     * the two thresholds and the family table are re-typed rather than
+     * imported -- the duplication tasks/lessons.md warns about, so
+     * dom.test.mjs asserts they still agree with the module.
+     */
+    var TEND=(function(t){
+      return t&&t.current&&t.current.off&&t.current.def&&t.current.league?t:null;
+    })(window.BetHouseTendencies);
+    /* tendencies.mjs LEAN_SHARE: a share this far from the league's is a
+       lean. SOFT_EPA: EPA per play this far from the league's is soft or
+       stout. Both chosen there for legibility, not fitted. */
+    // TODO(simplify): tendencies.mjs is ESM-only; give it a UMD wrapper like nfl.js and
+    // call its rank / matchup / thresholds here instead of re-typing them. Trigger: the
+    // third constant or family that has to be copied.
+    var LEAN_SHARE=0.03, SOFT_EPA=0.05;
+    var FAMILIES=[
+      {family:'deep pass',   share:'deepRate',        epa:'deepEpa',       unit:'of throws'},
+      {family:'short pass',  share:'shortRate',       epa:'shortEpa',      unit:'of throws'},
+      {family:'inside run',  share:'insideRunShare',  epa:'insideRunEpa',  unit:'of runs'},
+      {family:'outside run', share:'outsideRunShare', epa:'outsideRunEpa', unit:'of runs'},
+      {family:'play action', share:'playActionRate',  epa:'paEpa',         unit:'of dropbacks'},
+      {family:'vs blitz',    share:'blitzRate',       epa:'blitzEpa',      unit:'of dropbacks, the defence\'s call', who:'def'}
+    ];
+    /* Where a team stands among the league on one metric, ties sharing a
+       place (tendencies.mjs rank). Solved once per metric, not once per
+       game, because every game asks for the same dozen. */
+    var rankCache={};
+    var rankIn=function(side,key,hi){
+      var ck=side+'|'+key+'|'+(hi?1:0);
+      if(rankCache[ck]) return rankCache[ck];
+      var tbl=TEND.current[side], rows=[];
+      Object.keys(tbl).forEach(function(t){ if(tbl[t]&&tbl[t][key]!=null) rows.push([t,tbl[t][key]]); });
+      rows.sort(function(a,b){ return hi?b[1]-a[1]:a[1]-b[1]; });
+      var out={}, prev=null, place=0;
+      rows.forEach(function(row,i){ if(prev===null||row[1]!==prev){ place=i+1; prev=row[1]; } out[row[0]]=place; });
+      rankCache[ck]=out; return out;
+    };
+    var ord=function(n){ var s=['th','st','nd','rd'], v=n%100; return n+(s[(v-20)%10]||s[v]||s[0]); };
+    var rk=function(side,key,team,hi){ var r=rankIn(side,key,hi)[team]; return r?'<span class="rk">'+ord(r)+'</span>':''; };
+    var shareOf=function(v){ return v==null?'—':Math.round(v*100)+'%'; };
+    var epaOf=function(v){ return v==null?'—':(v>=0?'+':'-')+Math.abs(v).toFixed(2); };
+    var pts=function(v){ return (v>=0?'+':'-')+Math.abs(v).toFixed(1); };
+    /* One offence against the defence it faces. '' when either side is
+       not in the file, so a game of two unprofiled teams shows nothing
+       rather than a row of dashes. */
+    function matchupSide(offTeam,defTeam){
+      var off=TEND.current.off[offTeam], def=TEND.current.def[defTeam], lg=TEND.current.league;
+      if(!off||!def) return '';
+      var h='<div class="muside"><div class="mutitle">'+esc(offTeam)+' offence vs '+esc(defTeam)+' defence</div>';
+      /* Plays a game is this season's raw count, not a blended rate, so a
+         team yet to snap the ball has none rather than zero. */
+      h+='<div class="mline">'+(off.playsPerGame!=null?'<b>'+Math.round(off.playsPerGame)+'</b> plays a game '+rk('off','playsPerGame',offTeam,true)+' · ':'')+
+        'pass <b>'+shareOf(off.passRate)+'</b> '+rk('off','passRate',offTeam,true)+
+        (off.proe!=null?' ('+pts(off.proe)+' over expected)':'')+
+        ' · deep <b>'+shareOf(off.deepRate)+'</b> '+rk('off','deepRate',offTeam,true)+
+        ' · inside run <b>'+shareOf(off.insideRunShare)+'</b> '+rk('off','insideRunShare',offTeam,true)+
+        ' · play action <b>'+shareOf(off.playActionRate)+'</b> '+rk('off','playActionRate',offTeam,true)+
+        ' · motion <b>'+shareOf(off.motionRate)+'</b> '+rk('off','motionRate',offTeam,true)+'</div>';
+      /* The defence's ranks run the other way: 1st is the stingiest. */
+      h+='<div class="mline">'+esc(defTeam)+' allows <b>'+epaOf(def.epaPerPlay)+'</b> EPA a play '+rk('def','epaPerPlay',defTeam,false)+
+        ' · pass <b>'+epaOf(def.epaPerPass)+'</b> '+rk('def','epaPerPass',defTeam,false)+
+        ' · rush <b>'+epaOf(def.epaPerRush)+'</b> '+rk('def','epaPerRush',defTeam,false)+
+        ' · blitzes <b>'+shareOf(def.blitzRate)+'</b> '+rk('def','blitzRate',defTeam,true)+
+        ' · sees <b>'+shareOf(def.passRate)+'</b> pass '+rk('def','passRate',defTeam,true)+'</div>';
+      /* What works against this defence: the families it gives up most,
+         relative to the league, with this offence's own appetite beside
+         each. Positive EPA allowed is the offence's gain, so softest is
+         first and every number in the row reads from the offence's side. */
+      var fams=[];
+      FAMILIES.forEach(function(f){
+        /* The blitz is the defence's call: its share is how often the
+           DEFENCE blitzes (tendencies.mjs FAMILIES), and the offence gets
+           no leans-in/avoids tag for a choice it did not make. */
+        var defsCall=f.who==='def';
+        var os=defsCall?def[f.share]:off[f.share], da=def[f.epa], ls=lg[f.share], le=lg[f.epa];
+        if(os==null&&da==null) return;
+        fams.push({f:f, os:os, da:da, ls:ls, le:le,
+          lean:(defsCall||os==null||ls==null)?null:os-ls, edge:(da==null||le==null)?null:da-le});
+      });
+      if(!fams.length) return h+'</div>';
+      fams.sort(function(a,b){ return (b.edge==null?-Infinity:b.edge)-(a.edge==null?-Infinity:a.edge); });
+      h+='<div class="mfam"><span class="fh">what works</span><span class="fh fv">'+esc(defTeam)+' allows</span>'+
+        '<span class="fh fv">'+esc(offTeam)+' uses</span>';
+      fams.forEach(function(x){
+        var tags='';
+        if(x.edge!=null&&x.edge>=SOFT_EPA) tags+='<span class="tag soft">soft</span>';
+        else if(x.edge!=null&&x.edge<=-SOFT_EPA) tags+='<span class="tag tough">stout</span>';
+        if(x.lean!=null&&x.lean>=LEAN_SHARE) tags+='<span class="tag lean">leans in</span>';
+        else if(x.lean!=null&&x.lean<=-LEAN_SHARE) tags+='<span class="tag lean">avoids</span>';
+        /* The unit ("of throws") belongs to the family, not to the number,
+           and it is the one string long enough to wrap an 84px column and
+           set the row height off the length of a word. It goes in the
+           flexible first column, where wrapping costs nothing. */
+        h+='<span class="fn">'+x.f.family+tags+'<small>'+x.f.unit+'</small></span>'+
+          '<span class="fv">'+epaOf(x.da)+'<small>lg '+epaOf(x.le)+'</small></span>'+
+          '<span class="fv">'+shareOf(x.os)+'<small>'+(x.f.who==='def'?esc(defTeam)+' blitzes · ':'')+'lg '+shareOf(x.ls)+'</small></span>';
+      });
+      return h+'</div></div>';
+    }
+    /* Both directions of one game, or '' when the file has neither side. */
+    function matchupHtml(r){
+      if(!TEND) return '';
+      var body=matchupSide(r.a,r.h)+matchupSide(r.h,r.a);
+      if(!body) return '';
+      var w=TEND.through&&TEND.through.week;
+      /* The board is week W; play-by-play through W-1 is current. Older than that and the panel says so. */
+      var behind=TEND.through&&D.week!=null&&(Number(TEND.through.season)!==Number(D.season)||Number(TEND.through.week)<Number(D.week)-1);
+      return '<div class="mu"><h4 class="muhead">Matchup</h4>'+body+
+        '<p class="mufoot">Play-by-play'+(w?' through week '+Number(w)+(behind?' — <b>behind this board</b>, the last build failed or has not run':''):'')+' (nflverse); each rate regressed toward last season by '+
+        Number(TEND.K||0)+' games. Descriptive: nothing here is in a price yet.</p></div>';
+    }
 
     function renderGames(){
       var html=slipHtml()+'<div class="banner"><h3>Read this before betting a side</h3>'+C.gameBanner+'</div>';
@@ -370,7 +542,7 @@
           esc(r.a)+' offence <b>'+(D.ratings.off[r.a]||0).toFixed(2)+
           '</b>, defence <b>'+(D.ratings.def[r.a]||0).toFixed(2)+'</b></td></tr>';
         t+='<tr><td>honestly</td><td>'+C.gameHonestly+'</td></tr>';
-        return t+'</table>';
+        return t+'</table>'+matchupHtml(r);
       };
     }
 
@@ -400,7 +572,7 @@
           if(!on(stat)) return;
           var y=N.statEligible(stat,p,null,{oppFactor:allowFor(p.opp,stat)}); if(!y) return;
           // The replay counted a counting-prop leg only with 300+ games in its pool; so does the slip.
-          var pool=poolFor(stat); if(!pool||pool.length<300) return;
+          var pool=poolFor(stat); if(N.poolSize(pool)<300) return;
           var line=Math.round(y.exp*state.lineMult)+0.5, over=N.empiricalOver(y.exp,line,pool);
           if(over==null||!isFinite(over)) return;
           out.push({key:g.id+'|'+p.id+'|'+stat, playerId:String(p.id), gameId:g.id, team:p.team, opp:p.opp, name:p.name, prob:over, prop:stat, propLabel:N.STATS[stat].label+' o'+line, line:line});

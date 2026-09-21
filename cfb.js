@@ -112,6 +112,10 @@
     rushPrior: 23,
     passPrior: 120,
     recsPrior: 2.1,
+    /* Rushing + receiving: 34.3 a game among the 40,782 player-games with
+       a touch (--league cfb --measure, 2026-09-21), the prior under it in
+       the same proportion as the others. */
+    rushrecPrior: 29,
     yardPoolFloor: 5,
     rushPoolFloor: 20, // the board's floor, as in the NFL: below it the pool is scrambles (5 read -8.6pp, 20 +0.9pp)
     /* Half the floor, not the NFL's quarter: the college passers expected
@@ -120,6 +124,12 @@
        150 +3.5). Half is the cold side of the crossing. */
     passPoolFloor: 75,
     recsPoolFloor: 0.5,
+    /* Rush + receiving keeps the board's floor here, where the NFL took a
+       quarter of it: college at 25 reads -0.1pp / Brier 0.2280 (seasons
+       +0.8 / -0.5) and at 6.25 -1.6pp / 0.2282 (-1.0 / -1.8). Like
+       passing, the college pool below the floor is a different crowd
+       (--league cfb, 2026-09-21). */
+    rushrecPoolFloor: 25,
     /* College slips cash about the product in every class but one
        (--parlay, 2026-09-09, random: other games 1.03-1.45, one game
        1.03-1.18, mixed 1.04-1.14, all one team 1.04-1.54), so no discount,

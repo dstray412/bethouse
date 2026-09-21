@@ -1211,18 +1211,21 @@ node backtest-nfl.mjs          # does any of it work?
 node backtest-nfl.mjs --fit    # re-derive the shrinkage constant
 ```
 
-Two seasons replayed a week at a time: 544 games, 10,694 player-games, 543
-closing lines. Everything predicting week W comes from weeks already played.
+Two seasons and the start of a third replayed a week at a time: 575 games,
+closing lines on 543. Everything predicting week W comes from weeks already
+played. The counting-prop rows were re-read on 2026-09-21 with the pools
+levelled (below); the touchdown and game-line rows are as first measured.
 
 ### The results, including the one that failed
 
 | bet | measured | verdict |
 |---|---|---|
 | Anytime touchdown | bias **&minus;0.8pp**, Brier 0.1591 vs 0.1718 | calibrated |
-| Receiving yards | bias **−1.2pp**, Brier 0.2224 vs 0.2460 (n=22,360) | calibrated |
-| Rushing yards | bias **+1.4pp**, Brier 0.2220 vs 0.2481 (n=10,500) · seasons +1.6 / +1.3 | calibrated; opponent at half strength; see the pool note below |
-| Passing yards | bias **+1.1pp**, Brier 0.1611 vs 0.2490 (n=4,265) · seasons −1.0 / +2.6 | approximate: too timid at both ends; opponent at half strength |
-| Receptions | bias **−0.5pp**, Brier 0.2047 vs 0.2374 (n=22,610) · seasons −3.8 / +1.9 | approximate: the seasons disagree |
+| Receiving yards | bias **+1.7pp**, Brier 0.2205 vs 0.2458 (n=23,805) · seasons 0.0 / +3.2 | calibrated; pool read at the player's level (the ladder note below) |
+| Rushing yards | bias **+0.9pp**, Brier 0.2186 vs 0.2477 (n=11,150) · seasons +0.4 / +1.0 | calibrated; opponent at half strength; pool at the player's level |
+| Rush + rec yards | bias **+0.8pp**, Brier 0.2155 vs 0.2464 (n=30,245) · seasons −0.3 / +1.8 | calibrated; added 2026-09-21 with the ladder; pool at the player's level, floor a quarter of the board's |
+| Passing yards | bias **+1.1pp**, Brier 0.1610 vs 0.2488 (n=4,560) · seasons −1.0 / +2.6 | approximate: too timid at both ends, 300+ priced high; opponent at half strength |
+| Receptions | bias **−0.1pp**, Brier 0.2046 vs 0.2369 (n=24,015) · seasons −3.8 / +2.4 | approximate: the seasons disagree |
 | Spread vs closing line | **48.1%** of 480, needs 52.4% | **no edge** |
 | Total vs closing line | **52.5%** of 478, needs 52.4% | **inside the noise** |
 
@@ -1649,6 +1652,132 @@ membership adjusted too; re-run on the shipped rule the 0.5 column reads
 team code matches neither side of the schedule gets no opponent rather than
 the home team, in every loop, through one `opponentIn`.
 
+### Alternate lines: the ladder, and the flaw it exposed
+
+2026-09-21. A book does not offer one line on a receiver; it offers 10+, 20+,
+25+, 30+ … 150+ yards, each at its own price. The model's over probability
+was always read off a pool of real actual/expected ratios, so a rung costs
+nothing the projection line did not: `LADDERS` in `nfl.js` names the rungs
+per stat, `ladder(stat, exp, pool)` prices them, and "N+" settles as the over
+of N − 0.5 because yards and catches come in whole numbers. The board shows
+the ladder in every counting-prop panel, the tracker records every rung the
+board shows (`ladder`, rung → chance, on the projection-line row; a rung
+settles off the row's own box-score `result`, and the rungs are summarised
+apart from the projection lines), and `backtest-nfl.mjs --ladder` grades
+every rung of every eligible player-game walk-forward. A fifth stat came with it: **rushing
++ receiving yards** (`rushrec`), the two totals summed, touches for
+opportunity, its own prior (31 in the NFL, 29 in college, under the measured
+means of 35.9 and 34.3 like the others) and its own pool.
+
+**The ladder found what the projection line could not.** Priced off one pool
+for every level, the rungs were fine on average and wrong by size: cut the
+player-games into thirds by projection, and the smallest third ran 5–10
+points too confident at the middle rungs while the largest third ran 7–12
+points too timid, in every stat. A 20-yard projection misses more often and
+doubles more often than a 90-yard one; dividing by the expectation does not
+make those the same shape. The line at the projection sits where the two
+shapes cross, which is why two seasons of calibrated replays never saw it
+(`tasks/lessons.md`, "One pool for every level").
+
+So the pool now carries each game's expectation beside its ratio, sorted
+(`sortedPool`), and a player's over is read off the games whose expectation
+was nearest his — a **share** of the pool, per stat, because a fixed count
+(1,500 games) helped receiving and did nothing for rushing, whose pool is a
+third the size. Whole pool / nearest fifth / third / half, both seasons, on
+the projection line and on the ladder:
+
+```
+                      whole pool           nearest half
+                      line     ladder      line     ladder     seasons
+  receiving yards     0.2224   0.1308      0.2205   0.1290     both better, both tables
+  rushing yards       0.2215   0.1298      0.2186   0.1279     both better, both tables
+  rush + rec yards    0.2194   0.1208      0.2163   0.1190     both better, both tables
+  passing yards       0.1610   0.1513      0.1598   0.1499     2024 worse, 2025 better
+  receptions          0.2046   0.1193      0.2041   0.1188     2024 better, 2025 worse
+```
+
+The three yardage stats ship at **half** (`yardPoolShare`, `rushPoolShare`,
+`rushrecPoolShare` = 0.5); passing and receptions, where the seasons
+disagree, read the whole pool (share 0). At a half the by-thirds gaps are
+inside 3 points for receiving and rushing. Passing's largest third still
+prices 300+ about 7 points too high whatever the window: that is the
+"too timid at both ends" already on record for the prop, now with a
+direction. The main-line biases moved with the pool (receiving −0.8 → +1.7,
+rushing +1.5 → +0.9); the table above is the shipped model.
+
+**The rush + rec pool floor.** The pool began on rushing's rule, the
+board's own floor, on the theory that the bottom of a rush + rec pool would
+be scrambles and end-arounds again. It is not — the sum of two stats has no
+population of pure noise at the bottom — and at 25 the prop ran 3.1 points
+hot (seasons +1.6 / +4.1). The walk is monotone the other way:
+
+```
+rushrecPoolFloor     5       10       20       25       35
+bias              +0.8     +0.9     +1.7     +3.1     +6.3
+Brier           0.2155   0.2155   0.2157   0.2163   0.2200
+```
+
+So it takes receiving's rule, **a quarter of the floor** (6.25), which the
+scan cannot tell from 5 or 10. Both seasons agree at every step. College
+is the other way, as it was for passing: at the board's floor it reads
+−0.1pp (Brier 0.2280, seasons +0.8 / −0.5) and at a quarter −1.6pp
+(0.2282), so `cfb.js` keeps 25.
+
+**College inherits the shares** and they hold there too, both seasons:
+receiving 0.2304 → 0.2288, rushing 0.2323 → 0.2297, rush + rec 0.2297 →
+0.2280 (whole pool → nearest half), passing and receptions untouched.
+
+Rungs whose chance sits outside 2%–98% (`ladderEdge`) are not shown and not
+recorded: a 4,000-game pool resolves them, but a rung at −20000 is not a
+line anyone is offered. The ladder is not parlay-eligible; the lifts were
+measured on projection lines.
+
+### What an offence does and what a defence allows
+
+2026-09-21. The NFL game view carries a **Matchup** panel: each offence's
+profile (plays a game, pass rate with the rate over expected, deep-throw
+share, inside-run share, play action, motion), the defence it faces (EPA
+allowed per play, per pass, per rush, blitz rate, pass rate faced), each
+with its rank among 32, and "what works against this defence": the play
+families — deep pass, short pass, inside run, outside run, play action, vs
+blitz — sorted by the EPA the defence has allowed on them against the
+league, with the offence's own share of each beside it, tagged soft/stout
+when the defence is 0.05 EPA off the league and leans in/avoids when the
+offence is 3 points of share off it.
+
+It is built from nflverse play-by-play (every snap since 2024, gzipped
+under `nflverse/`) and FTN charting (play action, RPOs, screens, motion,
+pass rushers; 2022 on), by `tendencies.mjs`: `node tendencies.mjs` writes
+`tendencies-data.js` for the page (what is true now) and
+`tendencies-nfl.json` (the walk-forward table, one entry per week, what was
+known before that week, gitignored at 4 MB). Each rate is regressed toward
+the same team's last season by six games, weighted in plays per metric so a
+deep-throw rate on four throws a game is not regressed like a pass rate on
+sixty. A rate under twenty plays is null, not a number. A dropback is
+`pass === 1` (sacks and scrambles included); run shares are of the runs
+the charting can place.
+
+**It is descriptive, and the panel's footer says so.** `experiment-
+tendencies.mjs` replayed the counting props with each of ten play-by-play
+candidates as a factor on the projection (the defence's yards per carry and
+per dropback allowed, success rate allowed, explosive-pass rate allowed,
+pass and run share faced, pace, the offence's own pace, the closing spread
+as game script, the closing total), at strength 0, 0.5 and 1, walk-forward,
+with the pools re-divided by the adjusted projection. The baseline
+reproduces `backtest-nfl.mjs` to four decimals. Full strength is worse than
+half strength in 105 of 105 pairs; the winners of a finer sweep sit at its
+low edge. One candidate has an interior optimum: the opponent's **pass
+success rate allowed**, at half strength, on receiving yards (Brier
+−0.0004, both seasons) and receptions (−0.0005, both seasons) — the two
+props that carry no opponent factor. That is a quarter of what the yards
+allowed factor gave rushing and passing, and it would put a daily
+play-by-play download under the board's numbers, so it is not in them;
+re-run when 2026 is a whole season. Explosive-pass rate allowed at full
+strength is the emphatic loser (+0.005 / +0.007 Brier): a defence that has
+given up big plays is not one that will. The play-by-play sees the game
+the box score cannot; on these props, the pool of real outcomes had
+already priced most of what it sees.
+
 ---
 
 ## College football
@@ -1728,8 +1857,9 @@ two populations agree to the third decimal, which is why it never came up there.
 | bet | measured | verdict |
 |---|---|---|
 | Anytime touchdown | bias **−1.4pp**, Brier 0.1743 vs 0.1921 · top 20% scored 47.3%, bottom 20% 9.5% | calibrated, a little cold |
-| Receiving yards | bias **−3.2pp**, Brier 0.2300 vs 0.2492 (n=58,140) | cold; see the pool note above |
-| Rushing yards | bias **+0.9pp**, Brier 0.2321 vs 0.2500 (n=40,170) · seasons +1.3 / +0.4 | calibrated, pool floor 20 as in the NFL; opponent at half strength |
+| Receiving yards | bias **−1.9pp**, Brier 0.2288 vs 0.2492 (n=62,595) · seasons −1.4 / −1.7 | cold; pool at the player's level (was −3.2pp on the whole pool) |
+| Rushing yards | bias **+0.5pp**, Brier 0.2297 vs 0.2500 (n=43,770) · seasons +0.4 / +0.3 | calibrated, pool floor 20 as in the NFL; opponent at half strength; pool at the player's level |
+| Rush + rec yards | bias **−0.1pp**, Brier 0.2280 (n=94,580) · seasons +0.8 / −0.5 | calibrated; pool floor 25, the board's own (a quarter reads −1.6pp here) |
 | Passing yards | bias **−1.6pp**, Brier 0.1779 vs 0.2421 (n=9,125) · seasons −3.4 / −0.2 | approximate: timid at both ends; opponent at half strength |
 | Receptions | bias **−1.1pp**, Brier 0.2131 vs 0.2454 (n=49,600) · seasons −2.4 / 0.0 | calibrated |
 | Spread vs closing line | **51.7%** of 1,488, needs 52.4% | inside the noise |

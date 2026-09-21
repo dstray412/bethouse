@@ -22,21 +22,33 @@
  *                  report status and practice status
  *   depth_charts   the weekly depth chart since 2001, so "the starter" is
  *                  the depth chart's word and not a guess from stats
+ *   pbp            every play since 1999, gzipped, 372 columns: the play
+ *                  call, where the ball went, EPA, and the pass rate the
+ *                  situation expected. What a box score cannot see.
+ *   ftn_charting   FTN's charting since 2022: play action, RPOs, screens,
+ *                  motion, how many rushers came. Joins to pbp on
+ *                  game_id + play_id (97.6% of 2024–2026 snaps).
  *
  * WHAT IT IS NOT
  * --------------
  * Not a replacement for the ESPN cache, which carries box scores, the
  * opening line and college. Not wired into any board or record. A history
- * for asking questions, cached under nflverse/ (gitignored, ~70 MB).
+ * for asking questions, cached under nflverse/ (gitignored, ~70 MB plus
+ * 19 MB per season of gzipped play-by-play). tendencies.mjs is what reads
+ * the play-by-play.
  *
  * THE ONE TRAP
  * ------------
  * nflverse's spread_line is POSITIVE when the home side is favoured. Ours
  * is negative. `toGame` negates it, and nflverse.test.mjs pins the sign
- * against a game both sources hold. Team codes are nflverse's (LA, WAS,
- * OAK before 2020) and are not translated: nothing here is joined to ESPN.
+ * against a game both sources hold. Team codes on the SCHEDULE path are
+ * nflverse's (LA, WAS, OAK before 2020) and are not translated: nothing
+ * there is joined to ESPN. The play-by-play path is the other way round —
+ * `loadPlayByPlay` runs every code through `toEspnTeam`, because those
+ * plays are meant to sit next to a board that speaks LAR and WSH.
  */
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync, statSync, unlinkSync } from "node:fs";
+import { gunzipSync } from "node:zlib";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -48,34 +60,61 @@ const RELEASE = "https://github.com/nflverse/nflverse-data/releases/download";
  * CSV, with no dependency
  * ------------------------------------------------------------------ */
 
-/** RFC-4180-ish: quoted fields may hold commas, newlines and doubled quotes. */
-export function parseCSV(text) {
-  const rows = [];
-  let row = [], field = "", quoted = false;
+/**
+ * RFC-4180-ish: quoted fields may hold commas, newlines and doubled quotes.
+ *
+ * `keep` (an array or Set of column names) is a memory door, not a
+ * convenience. A season of play-by-play is 372 columns by ~50,000 rows, and
+ * building an object with all of them costs about 18 million strings for
+ * the forty this repo reads — `desc`, the play's English, being the
+ * largest field in the file. With `keep` the parser still walks every
+ * character (it must, or a comma inside `desc` would shift every column
+ * after it) but never builds the strings it was not asked for.
+ */
+export function parseCSV(text, keep) {
   const s = String(text || "");
+  const wanted = keep == null ? null : (keep instanceof Set ? keep : new Set(keep));
+  const out = [];
+  let header = null, keepCol = null;
+  let cells = [], field = "", quoted = false, col = 0, grab = true;
+
+  const endField = () => {
+    if (grab) cells[col] = field;
+    field = ""; col++;
+    grab = keepCol === null || keepCol[col] === true;
+  };
+  const endRow = () => {
+    endField();
+    if (header === null) {
+      header = cells;
+      keepCol = wanted ? header.map((h) => wanted.has(h)) : null;
+    } else if (col > 1 || (cells[0] || "") !== "") {
+      const o = {};
+      for (let i = 0; i < header.length; i++) {
+        if (keepCol && !keepCol[i]) continue;
+        o[header[i]] = cells[i] ?? "";
+      }
+      out.push(o);
+    }
+    cells = []; col = 0; grab = keepCol === null || keepCol[0] === true;
+  };
+
   for (let i = 0; i < s.length; i++) {
     const c = s[i];
     if (quoted) {
       if (c === '"') {
-        if (s[i + 1] === '"') { field += '"'; i++; }
+        if (s[i + 1] === '"') { if (grab) field += '"'; i++; }
         else quoted = false;
-      } else field += c;
+      } else if (grab) field += c;
     } else if (c === '"') quoted = true;
-    else if (c === ",") { row.push(field); field = ""; }
+    else if (c === ",") endField();
     else if (c === "\n" || c === "\r") {
       if (c === "\r" && s[i + 1] === "\n") i++;
-      row.push(field); field = "";
-      rows.push(row); row = [];
-    } else field += c;
+      endRow();
+    } else if (grab) field += c;
   }
-  if (field.length || row.length) { row.push(field); rows.push(row); }
-  if (rows.length < 2) return [];
-  const header = rows[0];
-  return rows.slice(1).filter((r) => r.length > 1 || (r.length === 1 && r[0] !== "")).map((r) => {
-    const o = {};
-    header.forEach((h, i) => { o[h] = r[i] ?? ""; });
-    return o;
-  });
+  if (col > 0 || field.length) endRow();
+  return out;
 }
 
 const num = (v) => { const n = Number(v); return v === "" || v == null || !isFinite(n) ? null : n; };
@@ -130,17 +169,60 @@ async function fetchText(url) {
   return res.text();
 }
 
-/** The cached file's text, downloading it first if it is not there. */
-export async function cached(name, url) {
+/**
+ * The cached file's contents, downloading it first if it is not there.
+ * `binary` keeps the bytes as they arrived, which is what the gzipped
+ * play-by-play releases need: `res.text()` would mangle them.
+ */
+/**
+ * How old a cached release file may be before it is fetched again. A
+ * finished season never changes; the season under way grows every week,
+ * and a cache that is restored between CI runs (the NFL refresh carries
+ * nflverse/ the way it carries the box scores) would otherwise freeze the
+ * in-progress play-by-play at whichever week was first downloaded.
+ */
+export function maxAgeHoursFor(season, now = new Date()) {
+  return Number(season) >= now.getUTCFullYear() ? 12 : Infinity;
+}
+
+/** Is a file whose mtime is `mtimeMs` older than `maxAgeHours`? */
+export function isStale(mtimeMs, maxAgeHours, nowMs = Date.now()) {
+  if (!(maxAgeHours < Infinity)) return false;
+  return nowMs - mtimeMs > maxAgeHours * 3600 * 1000;
+}
+
+export async function cached(name, url, opts = {}) {
   mkdirSync(CACHE, { recursive: true });
   const f = path.join(CACHE, name);
+  if (existsSync(f) && opts.maxAgeHours != null && isStale(statSync(f).mtimeMs, opts.maxAgeHours)) {
+    process.stdout.write(`  ${name} is older than ${opts.maxAgeHours}h, `);
+    unlinkSync(f);
+  }
   if (!existsSync(f)) {
     process.stdout.write(`  fetching ${name} ... `);
-    const text = await fetchText(url);
-    writeFileSync(f, text);
-    console.log(`${Math.round(text.length / 1e6 * 10) / 10} MB`);
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`${url}: HTTP ${res.status}`);
+    const body = opts.binary ? Buffer.from(await res.arrayBuffer()) : await res.text();
+    writeFileSync(f, body);
+    console.log(`${Math.round(body.length / 1e6 * 10) / 10} MB`);
   }
-  return readFileSync(f, "utf8");
+  return opts.binary ? readFileSync(f) : readFileSync(f, "utf8");
+}
+
+/** A gzipped cache file as text. Exported so the gz path is testable offline. */
+export function gunzipFile(file) {
+  return gunzipSync(readFileSync(file)).toString("utf8");
+}
+
+/**
+ * A gzipped release file's text. The .gz is what stays on disk: 2 MB
+ * instead of 11 for the 2026 play-by-play so far, 19 MB instead of ~120 for
+ * a finished season. Decompressing on every load costs a second or two and
+ * saves a hundred megabytes per season.
+ */
+export async function cachedGz(name, url, opts = {}) {
+  await cached(name, url, { ...opts, binary: true });
+  return gunzipFile(path.join(CACHE, name));
 }
 
 export async function loadGames(opts) {
@@ -200,6 +282,147 @@ export async function loadStarters(seasons) {
 }
 
 /* ------------------------------------------------------------------ *
+ * Play-by-play, and the FTN charting that joins to it
+ *
+ * `loadPlayByPlay` is the one place in this repo that translates team
+ * codes. nflverse writes LA and WAS; ESPN — and therefore every cache,
+ * board and record here — writes LAR and WSH. The other thirty agree.
+ * `loadGames` above deliberately does NOT translate, because nothing is
+ * joined to ESPN on that path; these plays are meant to be.
+ * ------------------------------------------------------------------ */
+
+const ESPN_TEAM = { LA: "LAR", WAS: "WSH" };
+
+/** An nflverse team code in ESPN's spelling. Measured against nfl-history.json. */
+export const toEspnTeam = (code) => ESPN_TEAM[code] || code || "";
+
+/* The forty columns the tendencies work reads, out of 372. Anything else a
+   caller wants comes in through `keep`. */
+export const PBP_COLUMNS = [
+  "game_id", "play_id", "season", "week", "season_type", "posteam", "defteam", "play_type",
+  "yards_gained", "shotgun", "no_huddle", "qb_dropback", "qb_kneel", "qb_spike", "qb_scramble",
+  "pass_length", "pass_location", "air_yards", "yards_after_catch", "run_location", "run_gap",
+  "down", "ydstogo", "yardline_100", "score_differential", "game_seconds_remaining",
+  "epa", "success", "pass", "rush", "sack", "qb_hit", "complete_pass", "incomplete_pass",
+  "interception", "fumble_lost", "touchdown", "xpass", "pass_oe", "cpoe", "wp", "vegas_wp",
+  "spread_line", "total_line", "passer_player_id", "rusher_player_id", "receiver_player_id",
+  "aborted_play", "special",
+];
+
+const PBP_NUM = new Set([
+  "play_id", "season", "week", "yards_gained", "shotgun", "no_huddle", "qb_dropback",
+  "qb_kneel", "qb_spike", "qb_scramble", "air_yards", "yards_after_catch", "down", "ydstogo",
+  "yardline_100", "score_differential", "game_seconds_remaining", "epa", "success",
+  "pass", "rush", "sack", "qb_hit", "complete_pass", "incomplete_pass", "interception",
+  "fumble_lost", "touchdown", "xpass", "pass_oe", "cpoe", "wp", "vegas_wp",
+  "spread_line", "total_line", "aborted_play", "special",
+]);
+
+/**
+ * Is this a snap from scrimmage that a play-call profile should count?
+ *
+ * `play_type` in (pass, run) already drops kickoffs, punts, kicks, kneels,
+ * spikes and the GAME / END QUARTER markers. It also drops `no_play` — 567
+ * rows in 2026 weeks 1–2 — where a penalty wiped the snap out and
+ * yards_gained, epa and success describe the penalty rather than the call.
+ *
+ * The second clause is the important one. nflverse sets `pass` on sacks AND
+ * on scrambles, which carry play_type "run" with rush=0. Reading `rush` or
+ * `play_type` alone would file 149 scrambles (2026 weeks 1–2) as designed
+ * runs. `qb_dropback` would be the obvious flag instead, but it is 0 on ten
+ * of those 149, so `pass` is the one that counts snaps correctly.
+ */
+export function isScrimmage(p) {
+  return (p.play_type === "pass" || p.play_type === "run")
+    && (p.pass === 1 || p.rush === 1)
+    && p.aborted_play !== 1 && p.special !== 1 && p.qb_kneel !== 1 && p.qb_spike !== 1;
+}
+
+/** Parsed play-by-play rows → plays: numbers coerced, team codes translated. */
+export function toPlays(rows, opts = {}) {
+  const out = [];
+  for (const r of rows) {
+    if (!opts.postseason && r.season_type !== "REG") continue;
+    if (!r.posteam) continue;
+    const p = {};
+    for (const k in r) p[k] = PBP_NUM.has(k) ? num(r[k]) : r[k];
+    p.posteam = toEspnTeam(p.posteam);
+    p.defteam = toEspnTeam(p.defteam);
+    if (opts.scrimmageOnly !== false && !isScrimmage(p)) continue;
+    out.push(p);
+  }
+  return out;
+}
+
+/**
+ * Regular-season plays from scrimmage for the given seasons.
+ *   loadPlayByPlay([2024, 2025, 2026])
+ *   loadPlayByPlay([2026], { keep: ["desc"], scrimmageOnly: false })
+ */
+export async function loadPlayByPlay(seasons, opts = {}) {
+  const keep = new Set(PBP_COLUMNS);
+  for (const k of opts.keep || []) keep.add(k);
+  const out = [];
+  for (const s of seasons) {
+    const text = await cachedGz(`play_by_play_${s}.csv.gz`, `${RELEASE}/pbp/play_by_play_${s}.csv.gz`, { maxAgeHours: maxAgeHoursFor(s) });
+    for (const p of toPlays(parseCSV(text, keep), opts)) out.push(p);
+  }
+  return out;
+}
+
+/* ------------------------------------------------------------------ *
+ * FTN charting
+ *
+ * What the box score cannot see: play action, RPOs, screens, motion, how
+ * many rushers came. Plain CSV, not gzipped, ~8 MB a season, 2022 onward.
+ * The join is nflverse_game_id + nflverse_play_id against pbp's game_id +
+ * play_id; both are the same "2026_01_NE_SEA" / 64 pair, and `main` below
+ * reports the join rate rather than assuming it.
+ * ------------------------------------------------------------------ */
+
+/** The key a play and its charting row meet on. */
+export const ftnKey = (gameId, playId) => `${gameId}|${Number(playId)}`;
+
+const bool = (v) => (v === "TRUE" || v === "1" ? true : v === "FALSE" || v === "0" ? false : null);
+
+const FTN_BOOL = [
+  "is_no_huddle", "is_motion", "is_play_action", "is_screen_pass", "is_rpo", "is_trick_play",
+  "is_qb_out_of_pocket", "is_interception_worthy", "is_throw_away", "is_catchable_ball",
+  "is_contested_ball", "is_created_reception", "is_drop", "is_qb_sneak", "is_qb_fault_sack",
+];
+const FTN_NUM = ["n_offense_backfield", "n_defense_box", "n_blitzers", "n_pass_rushers", "read_thrown"];
+const FTN_TEXT = ["starting_hash", "qb_location"];
+
+export const FTN_COLUMNS = [
+  "nflverse_game_id", "nflverse_play_id", "season", "week",
+  ...FTN_BOOL, ...FTN_NUM, ...FTN_TEXT,
+];
+
+/** Parsed charting rows → Map keyed by ftnKey. */
+export function toFtnMap(rows) {
+  const m = new Map();
+  for (const r of rows) {
+    if (!r.nflverse_game_id || r.nflverse_play_id === "") continue;
+    const o = { season: num(r.season), week: num(r.week) };
+    for (const k of FTN_BOOL) o[k] = bool(r[k]);
+    for (const k of FTN_NUM) o[k] = num(r[k]);
+    for (const k of FTN_TEXT) o[k] = r[k] || "";
+    m.set(ftnKey(r.nflverse_game_id, r.nflverse_play_id), o);
+  }
+  return m;
+}
+
+/** FTN charting for the given seasons, keyed so a play can look itself up. */
+export async function loadFtnCharting(seasons) {
+  const m = new Map();
+  for (const s of seasons) {
+    const text = await cached(`ftn_charting_${s}.csv`, `${RELEASE}/ftn_charting/ftn_charting_${s}.csv`, { maxAgeHours: maxAgeHoursFor(s) });
+    for (const [k, v] of toFtnMap(parseCSV(text, new Set(FTN_COLUMNS)))) m.set(k, v);
+  }
+  return m;
+}
+
+/* ------------------------------------------------------------------ *
  * Main: fill the cache and say what is in it
  * ------------------------------------------------------------------ */
 
@@ -217,6 +440,18 @@ async function main() {
   console.log(`injuries: ${inj.length} report rows, ${seasons[0]}–${seasons.at(-1)}`);
   const st = await loadStarters(seasons);
   console.log(`starters: ${st.length} depth-chart starters, ${st.filter((x) => x.pos === "QB").length} at QB`);
+
+  /* Play-by-play and charting are reported, not fetched: a season of
+     play-by-play is 19 MB gzipped and nothing here needs 27 of them.
+     `node tendencies.mjs` pulls the seasons it actually reads. */
+  const have = (re) => (existsSync(CACHE) ? readdirSync(CACHE) : []).filter((f) => re.test(f)).sort();
+  const mb = (f) => Math.round(statSync(path.join(CACHE, f)).size / 1e5) / 10;
+  const show = (label, files, hint) => {
+    if (!files.length) return console.log(`${label}: nothing cached — ${hint}`);
+    console.log(`${label}: ${files.length} cached, ${files.map((f) => `${f.match(/(\d{4})/)[1]} ${mb(f)} MB`).join(", ")}`);
+  };
+  show("play-by-play", have(/^play_by_play_\d{4}\.csv\.gz$/), "node tendencies.mjs fetches what it reads");
+  show("ftn charting", have(/^ftn_charting_\d{4}\.csv$/), "2022 onward, ~8 MB a season");
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {

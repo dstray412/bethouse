@@ -18,14 +18,98 @@ commit you are reading and how old the data on disk is.
 | page | what |
 |---|---|
 | `index.html` | baseball. 1+ H/R/RBI, total bases, home runs, suggested parlay |
-| `nfl.html` | anytime TD, receiving yards. Spreads and totals shown with the board saying they do not beat the close |
-| `cfb.html` | college football, the same three bets. Added 2026-09-05 |
+| `nfl.html` | anytime TD; receiving, rushing, rush + rec and passing yards and receptions, each with a ladder of alternate lines; game matchups from play-by-play. Spreads and totals shown with the board saying they do not beat the close |
+| `cfb.html` | college football, the same props and ladders (no matchups). Added 2026-09-05 |
 | `golf.html` | PGA Tour make-the-cut |
 | `bets.html` | the bet log: history, win rate by bet type, closing line value |
 
 Zero dependencies, no build step, no server, no API key. `node --test` with
 **named files** — bare discovery pulls in the backtests, which fire live API
 calls. The list lives in seven places and `dom.test.mjs` checks all seven.
+
+## Alternate lines, levelled pools and tendencies, 2026-09-21
+
+Three things landed together; the second was found by the first.
+
+**The ladder.** Every counting prop now carries the book's alternate
+lines: `LADDERS` in `nfl.js` names the rungs (10+, 20+, 25+ … 150+ for
+the yardage stats, 150+ … 400+ passing, 2+ … 10+ catches),
+`ladder(stat, exp, pool)` prices them off the same pool as the projection
+line, and "N+" settles as the over of N − 0.5. Rungs outside 2%–98%
+(`ladderEdge`) are neither shown nor recorded. The board shows the ladder
+in every counting-prop panel (`football-board.js`, `.ladder` in
+`board.css`); the tracker records every shown rung on the projection-line
+row as `ladder` (rung → chance) — a row per rung was tried first and one
+college week came to 7.5 MB, over the 1 MB file limit — settles a rung
+off the row's graded `result` with `statTotal`, and prints a per-rung
+table (`ladderSummary`, `out.ladder` in the record) apart from the
+projection lines; rungs are never parlay legs. `backtest-nfl.mjs --ladder` grades every rung walk-forward and
+prints calibration by predicted, by rung and by projection third.
+
+**Rush + receiving yards** is a fifth `STATS` row (`rushrec`): totals
+summed (`total` is now a list on every row, `box` a list of pairs;
+`statTotal` sums), touches for opportunity, prior 31 NFL / 29 college
+(under the measured 35.9 / 34.3 like the others), floor 25, pool floor
+**a quarter of the floor** (6.25) in the NFL — NOT rushing's rule: at the
+board's floor it ran 3.1pp hot and the walk is monotone (README, "The
+rush + rec pool floor") — and **25** in college, which reads the other
+way (−0.1pp at 25, −1.6 at a quarter; `cfb.js`). Opponent strength 0
+(0.5 read worse). Replay: NFL +0.8pp, Brier 0.2155, seasons −0.3 / +1.8;
+college −0.1pp, 0.2280. College inherits the pool shares and they hold
+there (receiving 0.2304 → 0.2288, rushing 0.2323 → 0.2297).
+
+**Pools by level — the finding.** The first ladder replay, on one pool
+per stat, was calibrated on average and wrong by size: the smallest
+third of projections 5–10pp too confident at the middle rungs, the
+largest third 7–12pp too timid, every stat. Pools now carry each game's
+expectation beside its ratio (`sortedPool` → `{stat, exp, ratio}`,
+sorted; `poolKeep` 6,000 most recent; the data files' `pools[stat]` are
+this shape now, `stat` included) and `empiricalOver` reads the over off
+the share of the pool nearest the player's projection (`poolReads`,
+`poolNear`; `poolSize` is the one way to ask a pool how big it is —
+`.length` on the new shape is undefined and reads as an empty board).
+The share is per stat: **0.5** for receiving, rushing and rush + rec
+(better in both seasons on both the line and the ladder), **0** for
+passing and receptions (the seasons disagree). Sweep table in
+`DEFAULTS` and README "Alternate lines". A flat pool still reads whole,
+so an older data file keeps working. The projection-line numbers moved
+with it (receiving −0.8 → +1.7pp, Brier 0.2224 → 0.2205; rushing
+0.2215 → 0.2186); the README results table is re-read.
+
+**Tendencies.** `nflverse.mjs` gained play-by-play (`loadPlayByPlay`,
+gzipped, column-filtered `parseCSV(text, keep)`) and FTN charting
+(`loadFtnCharting`, 2022–2026: play action, RPO, screens, motion,
+blitzers), team codes translated to ESPN's (LA → LAR, WAS → WSH).
+`tendencies.mjs` is the pure module: `profile`, `teamProfiles`, `rank`,
+`matchup`, `describe`, `profilesThrough` (walk-forward, regressed toward
+last season by K = 6 games, weighted in plays per metric). `node
+tendencies.mjs` writes `tendencies-nfl.json` (3.9 MB walk-forward table,
+gitignored) and `tendencies-data.js` (105 KB, committed, the current
+profiles for the page; the NFL refresh workflow rebuilds it daily and
+caches `nflverse/`). Three definitions to know: a dropback is `pass ===
+1` (sacks and scrambles included); inside/outside run shares are of the
+classifiable runs; any rate under 20 plays is null. College has no
+tendencies (cfbfastr has play-by-play; not built).
+**Does any of it predict the props?** `experiment-tendencies.mjs`
+replays the counting props walk-forward (it reproduces the backtest to
+four decimals) with each candidate as a multiplier on the projection at
+strength 0 / 0.5 / 1: the defence's yards-per-carry and yards-per-dropback
+allowed, pass success rate allowed, explosive-pass rate allowed, pass and
+run share faced, plays per game (theirs and the offence's own), the
+closing spread as game script, the closing total. **Nothing shipped.**
+Full strength is worse than half in 105 of 105 stat–candidate pairs, and
+the strength sweep's winners sit at its low edge, which is a signal
+drowned in the variance it adds. The one interior optimum is
+`defSuccPass` at 0.5 on receiving yards (Brier −0.0004, both seasons,
+Δ/SE −2.9) and receptions (−0.0005, −3.6) — the two props that carry no
+opponent factor today. That is a quarter of the opponent factor's gain
+and would make the board's numbers depend on a daily play-by-play
+download, so it is recorded here, not wired in. Re-run it when 2026 is
+a full season; if it clears on three, put it in `allow` beside the yards.
+Explosive-pass rate allowed at full strength is emphatically wrong
+(+0.005 / +0.007, Δ/SE +10 / +14): a defence that has given up big plays
+is not one that will. The matchup panel on the game view is descriptive
+and says so on its footer.
 
 ## College football, 2026-09-05
 

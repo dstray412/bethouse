@@ -751,7 +751,7 @@ test("STATS: the four props, each with a total, an opportunity, a box-score fiel
   for (const id of ["recyds", "rushyds", "passyds", "recs"]) {
     const st = nfl.STATS[id];
     assert.ok(st, id);
-    assert.ok(st.label && st.total && st.opportunity && st.box.length === 2, id);
+    assert.ok(st.label && st.total.length === 1 && st.opportunity && st.box.length === 1 && st.box[0].length === 2, id);
     for (const k of ["priorKey", "poolFloorKey", "minOppKey"]) assert.ok(nfl.DEFAULTS[st[k]] > 0, `${id}.${k}`);
     assert.ok(nfl.DEFAULTS[st.floorKey] >= 0, id);
   }
@@ -954,4 +954,160 @@ test("playerMatches: words in any order against name, team and opponent, ignorin
   assert.ok(nfl.playerMatches("devon", { name: "De'Von Achane", team: "MIA", opp: "LV" }), "the apostrophe does not split the word");
   assert.ok(nfl.playerMatches("st brown", { name: "Amon-Ra St. Brown", team: "DET" }));
   assert.ok(!nfl.playerMatches("x", null));
+});
+
+/* ------------------------------------------------------------------ *
+ * Alternate lines: the ladder, and rushing + receiving yards
+ *
+ * Oracle: `empiricalOver`, which already answers "P(actual > t)" for any
+ * t. A rung "N+" is the book's phrase for actual >= N, and yards come in
+ * whole numbers, so it is the over of N - 0.5 -- never N, which would
+ * turn an exact N into a loss that the book pays. Rushing + receiving is
+ * a fifth row of the same table: the two totals summed, touches for
+ * opportunity, its own prior and floor.
+ * ------------------------------------------------------------------ */
+
+test("STATS: every row's total and box-score fields are lists, and rushrec sums two of them", () => {
+  for (const id of ["recyds", "rushyds", "passyds", "recs", "rushrec"]) {
+    const st = nfl.STATS[id];
+    assert.ok(st, id);
+    assert.ok(Array.isArray(st.total) && st.total.length >= 1, `${id}.total is a list of record fields`);
+    assert.ok(Array.isArray(st.box) && st.box.every((b) => b.length === 2), `${id}.box is a list of [block, field]`);
+    for (const k of ["priorKey", "poolFloorKey", "minOppKey"]) assert.ok(nfl.DEFAULTS[st[k]] > 0, `${id}.${k}`);
+    assert.ok(nfl.DEFAULTS[st.floorKey] >= 0, id);
+  }
+  assert.deepEqual(nfl.STATS.rushrec.total, ["rushYds", "recYds"]);
+  assert.equal(nfl.STATS.rushrec.opportunity, "touches");
+});
+
+test("statTotal: a season record's total for a stat, summed when the stat is a sum", () => {
+  const rec = { games: 5, carries: 80, targets: 20, rushYds: 400, recYds: 120, recs: 15, passAtt: 0, passYds: 0 };
+  assert.equal(nfl.statTotal("rushyds", rec), 400);
+  assert.equal(nfl.statTotal("recyds", rec), 120);
+  assert.equal(nfl.statTotal("rushrec", rec), 520);
+  assert.equal(nfl.statTotal("recs", rec), 15);
+  assert.equal(nfl.statTotal("rushrec", { rushYds: 30 }), 30, "an absent field is zero");
+  assert.equal(nfl.statTotal("spread", rec), 0, "not a counting stat");
+  // The tracker's box-score line has the same field names, so it settles through the same call.
+  assert.equal(nfl.statTotal("rushrec", { td: 1, recYds: 20, rushYds: 30, passYds: 0, recs: 3 }), 50);
+});
+
+test("rushrec: touches for opportunity, the two yardages summed off a box score", () => {
+  const p = { rush: { att: 12, yds: 80, td: 1 }, rec: { tgt: 6, rec: 4, yds: 41 } };
+  assert.equal(nfl.gameValue("rushrec", p), 121);
+  assert.equal(nfl.statOpportunity("rushrec", nfl.gameLine(p)), 18, "carries + targets in the NFL");
+  const college = nfl.bind({ receivingStat: "recs" });
+  assert.equal(college.statOpportunity("rushrec", college.gameLine(p)), 16, "carries + receptions where targets are not recorded");
+  const rec = { games: 4, carries: 60, targets: 12, rushYds: 300, recYds: 80 };
+  assert.equal(nfl.statOpportunity("rushrec", rec), 72);
+  const y = nfl.statEligible("rushrec", rec);
+  assert.ok(y && y.exp > 0, "a back with touches is on the rush + rec board");
+  close(y.base, nfl.expectedVolume(380, 4, nfl.DEFAULTS.rushrecPrior));
+  assert.equal(nfl.statEligible("rushrec", { games: 4, carries: 4, targets: 3, rushYds: 20, recYds: 10 }), null, "too few touches");
+});
+
+test("ladder: every rung is the over of N - 0.5, read off the pool, and never gets easier as N rises", () => {
+  const pool = [0.2, 0.5, 0.8, 1, 1.1, 1.3, 1.6, 2, 2.5, 3];
+  const L = nfl.ladder("recyds", 40, pool, { ladderEdge: 0 });
+  assert.ok(L.length > 0);
+  assert.deepEqual(L.map((r) => r.at), nfl.LADDERS.recyds.filter((n) => L.some((r) => r.at === n)), "rungs come from the stat's ladder, in order");
+  for (const r of L) {
+    close(r.line, r.at - 0.5);
+    close(r.prob, empiricalOver(40, r.at - 0.5, pool));
+  }
+  for (let i = 1; i < L.length; i++) assert.ok(L[i].prob <= L[i - 1].prob, "monotone");
+  // Exactly N counts as N+: a 40-yard projection with a ratio of 1 lands on 40, and 40+ includes it.
+  const exact = nfl.ladder("recyds", 40, [1], { ladderEdge: 0 });
+  assert.equal(exact.find((r) => r.at === 40).prob, 1);
+  assert.equal(exact.find((r) => r.at === 50).prob, 0);
+});
+
+test("ladder: rungs no book would post are left off, unless asked for", () => {
+  // 1,000 ratios: one in a thousand clears 4x, so 160+ on a 40-yard projection is 0.1%.
+  const pool = []; for (let i = 0; i < 1000; i++) pool.push(i === 0 ? 5 : 0.5 + i / 1000);
+  const shown = nfl.ladder("recyds", 40, pool);
+  assert.ok(shown.every((r) => r.prob >= DEFAULTS.ladderEdge && r.prob <= 1 - DEFAULTS.ladderEdge));
+  assert.ok(!shown.some((r) => r.at === 150), "150+ at 0.1% is not offered");
+  const all = nfl.ladder("recyds", 40, pool, { ladderEdge: 0 });
+  assert.ok(all.some((r) => r.at === 150), "the replay grades every rung");
+  assert.equal(all.length, nfl.LADDERS.recyds.length);
+  const C = nfl.bind({ ladderEdge: 0 });
+  assert.equal(C.ladder("recyds", 40, pool).length, all.length, "a bound league's edge is its own");
+});
+
+test("ladder: refuses rather than inventing, and every stat has one", () => {
+  assert.deepEqual(nfl.ladder("recyds", 0, [1, 2]), []);
+  assert.deepEqual(nfl.ladder("recyds", 40, []), []);
+  assert.deepEqual(nfl.ladder("spread", 40, [1, 2]), []);
+  for (const id of Object.keys(nfl.STATS)) {
+    const rungs = nfl.LADDERS[id];
+    assert.ok(Array.isArray(rungs) && rungs.length >= 5, `${id} has a ladder`);
+    for (let i = 1; i < rungs.length; i++) assert.ok(rungs[i] > rungs[i - 1], `${id} ladder ascends`);
+  }
+  assert.ok(nfl.LADDERS.recyds.includes(10) && nfl.LADDERS.recyds.includes(25), "the rungs a book offers");
+  assert.ok(nfl.LADDERS.passyds[0] >= 100, "passing rungs are in passing yards");
+  assert.ok(nfl.LADDERS.recs[0] <= 2 && Number.isInteger(nfl.LADDERS.recs[0]), "catches are whole");
+});
+
+test("ladder: a bound league keeps the same rungs and its own constants", () => {
+  const C = nfl.bind({ rushrecPrior: 40 });
+  assert.deepEqual(C.LADDERS, nfl.LADDERS);
+  const rec = { games: 4, carries: 60, targets: 12, rushYds: 300, recYds: 80 };
+  close(C.expectedStat("rushrec", rec), nfl.expectedVolume(380, 4, 40));
+  assert.deepEqual(C.ladder("rushrec", 60, [0.5, 1, 1.5]).map((r) => r.at), nfl.ladder("rushrec", 60, [0.5, 1, 1.5]).map((r) => r.at));
+});
+
+/* ------------------------------------------------------------------ *
+ * Pools by level: the games nearest a player's own projection
+ *
+ * Oracle: the ladder replay (backtest-nfl.mjs --ladder, 2026-09-21). One
+ * pool for every level priced the smallest third of projections 5-10
+ * points too confident at the middle rungs and the largest third 7-12
+ * points too timid: a 20-yard projection's ratios are wider than a
+ * 90-yard one's. So a pool carries each game's expectation beside its
+ * ratio, and the over is read off the `poolWindow` games whose
+ * expectation was nearest this player's.
+ * ------------------------------------------------------------------ */
+
+test("poolNear: the K games nearest an expectation, from a pool sorted by expectation", () => {
+  const pool = { exp: [10, 20, 30, 40, 50, 60, 70], ratio: [1, 2, 3, 4, 5, 6, 7] };
+  assert.deepEqual(nfl.poolNear(pool, 40, 3).sort(), [3, 4, 5]);
+  assert.deepEqual(nfl.poolNear(pool, 41, 2).sort(), [4, 5], "ties break toward the nearer side");
+  assert.deepEqual(nfl.poolNear(pool, 5, 2).sort(), [1, 2], "one-sided at the bottom");
+  assert.deepEqual(nfl.poolNear(pool, 500, 2).sort(), [6, 7], "one-sided at the top");
+  assert.deepEqual(nfl.poolNear(pool, 40, 100).sort(), [1, 2, 3, 4, 5, 6, 7], "asking for more than there is gives everything");
+  assert.deepEqual(nfl.poolNear(pool, 40, 0), [1, 2, 3, 4, 5, 6, 7], "no window is the whole pool");
+  assert.deepEqual(nfl.poolNear([1, 2, 3], 40, 2), [1, 2, 3], "a flat pool has no levels to choose by");
+  assert.deepEqual(nfl.poolNear(null, 40, 2), []);
+});
+
+test("empiricalOver / ladder: a levelled pool is read through the window, a flat one as before", () => {
+  // Small projections miss a lot; big ones do not. One pool of both would price a 60 like a 15.
+  const exp = [], ratio = [];
+  for (let i = 0; i < 100; i++) { exp.push(15); ratio.push(i < 50 ? 0 : 2); }     // coin flip to double, else nothing
+  for (let i = 0; i < 100; i++) { exp.push(60); ratio.push(0.9 + (i % 10) / 50); } // 0.9 .. 1.08, never a zero
+  const pool = nfl.sortedPool(exp, ratio, "recyds");
+  assert.deepEqual(pool.exp.slice(0, 3), [15, 15, 15]);
+  assert.equal(pool.stat, "recyds");
+  const C = nfl.bind({ yardPoolShare: 0.5 });
+  close(C.empiricalOver(60, 40, pool), 1, 1e-12, "a 60-yard player clears 40 in every one of his own games");
+  close(C.empiricalOver(15, 10, pool), 0.5, 1e-12, "a 15-yard player is a coin flip to reach 10");
+  close(nfl.bind({ yardPoolShare: 0 }).empiricalOver(60, 40, pool), 0.75, 1e-12, "no share: the mixed answer");
+  close(nfl.empiricalOver(60, 40, [0, 0, 2, 2]), 0.5, 1e-12, "a flat pool is read as it always was");
+  const L = C.ladder("recyds", 60, pool, { ladderEdge: 0 });
+  close(L.find((r) => r.at === 40).prob, 1);
+  // The share is the pool's stat's: a receptions pool at share 0 is read whole even by a league whose yards are halved.
+  const recs = nfl.sortedPool(exp, ratio, "recs");
+  close(nfl.bind({ recsPoolShare: 0, yardPoolShare: 0.5 }).empiricalOver(60, 40, recs), 0.75, 1e-12);
+  // A levelled pool that names no stat reads the fallback share.
+  const anon = nfl.sortedPool(exp, ratio);
+  close(nfl.bind({ poolShare: 0.5 }).empiricalOver(60, 40, anon), 1, 1e-12);
+  close(nfl.empiricalOver(60, 40, anon), 0.75, 1e-12);
+  assert.equal(C.poolReads(pool, 60).length, 100, "what the page says the number was read off");
+  assert.equal(nfl.poolReads([1, 2, 3], 60).length, 3);
+  for (const id of Object.keys(nfl.STATS)) assert.ok(nfl.DEFAULTS[nfl.STATS[id].poolShareKey] >= 0, `${id} names its share`);
+  assert.equal(nfl.poolSize(pool), 200);
+  assert.equal(nfl.poolSize([1, 2, 3]), 3);
+  assert.equal(nfl.poolSize(null), 0);
+  assert.equal(nfl.poolSize({ exp: [], ratio: [] }), 0);
 });

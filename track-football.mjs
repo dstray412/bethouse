@@ -29,10 +29,25 @@
  *
  * WHAT IT RECORDS
  * ---------------
- * The two player props, and -- since 2026-09-06, when the board started
+ * Anytime touchdown, every counting prop in the model's stat table at its
+ * projection line, and -- since 2026-09-06, when the board started
  * showing which side it likes against a real line -- the game picks:
  * spread, total and moneyline. A pick shown on a page is a claim, and a
  * claim that is not recorded before kickoff cannot be checked afterwards.
+ *
+ * Since 2026-09-21 a counting-prop row also carries the LADDER the board
+ * offers on it: `ladder` is rung -> probability for exactly the rungs the
+ * page shows. A board that prices a receiver at 30+, 40+ and 50+ yards is
+ * making three claims and not one, and the ladder is where a shape error
+ * shows itself -- a model can be right on average and still promise too
+ * much at 100 yards and too little at 30. The rungs get their own summary
+ * (`ladderSummary`), apart from the per-prop tables, because thirteen
+ * rungs to a player's one line would otherwise be the whole record.
+ *
+ * They ride on the row rather than becoming rows because a row per rung
+ * does not fit: one college week came to 23,562 rung rows and a 7.5 MB
+ * record file against a 1 MB limit, and nine tenths of that was the same
+ * name, team and kickoff written out thirteen times.
  * The game picks are graded two ways: did the side win, and did the
  * closing line move toward it (closing line value, in points). The NFL
  * replay says these do not beat the close; the record is how that claim
@@ -48,17 +63,35 @@ import Parlay from "./parlay.js";
 
 const DIR = path.dirname(fileURLToPath(import.meta.url));
 
-const PROPS = [
-  { id: "td", label: "Anytime touchdown" },
-  { id: "recyds", label: "Receiving yards, over" },
-  { id: "rushyds", label: "Rushing yards, over" },
-  { id: "passyds", label: "Passing yards, over" },
-  { id: "recs", label: "Receptions, over" },
-  { id: "spread", label: "Spread, the side the model likes" },
-  { id: "total", label: "Total, the side the model likes" },
-  { id: "ml", label: "Moneyline, the side the model likes" },
-];
+/**
+ * What the record reports, in the order it reports it. The counting props
+ * come from the stat table rather than a list typed out here: a stat added
+ * to the model (rush + rec yards, 2026-09-21) is recorded by the loop below
+ * whether or not anyone remembers this file, and a stat that is recorded
+ * but not reported is a number nobody ever sees.
+ */
+export function propsFor(M) {
+  return [
+    { id: "td", label: "Anytime touchdown" },
+    ...Object.keys(M.STATS).map((id) => ({ id, label: `${M.STATS[id].label}, over` })),
+    { id: "spread", label: "Spread, the side the model likes" },
+    { id: "total", label: "Total, the side the model likes" },
+    { id: "ml", label: "Moneyline, the side the model likes" },
+  ];
+}
 const GAME_PROPS = new Set(["spread", "total", "ml"]);
+
+/**
+ * A prediction's identity, and the whole of rule 1: a row whose key is
+ * already on the day is never written again. A player's ladder rides on
+ * his projection-line row rather than becoming rows of its own, so this
+ * is still one key per player per prop.
+ *
+ * Rule 1 applies to the ladder too, by consequence and correctly: a row
+ * recorded before the boards showed ladders carries no ladder and never
+ * will, because those rungs were never offered.
+ */
+export const predKey = (p) => `${p.gameId}|${p.playerId}|${p.prop}`;
 
 /* The board's default view. Recording a different line from the one on
    screen would grade a bet the board never offered. */
@@ -99,9 +132,91 @@ function board(league) {
  * snapshot
  * ---------------------------------------------------------------- */
 
+/**
+ * Every prediction one player's row on the board amounts to: his anytime
+ * touchdown, and his projection line for each counting stat with that
+ * stat's whole ladder on it. One row per prop, never one per rung --
+ * a row per rung put 23,562 rows into a single college week and took the
+ * record file to 7.5 MB against a 1 MB limit, nine tenths of it the same
+ * name, team and kickoff written out again. Each row carries its own
+ * `key` and no timestamp, so the caller can apply rule 1 and stamp what
+ * survives.
+ *
+ * Pure, and separated from snapshot() for that reason: snapshot reads the
+ * board off disk and writes the record back, so the part worth testing is
+ * the part that turns a player into claims.
+ *
+ * The gate is the model's own -- `statEligible` for whether a row exists,
+ * `ladder` for which rungs are offered -- so the record can never hold a
+ * bet the board did not show.
+ */
+export function playerRows(M, D, p, g) {
+  const out = [];
+  /* The workload pool is a flat list of multipliers and stays one; the
+     stat pools are levelled ({exp, ratio}, sorted) so a projection is
+     priced off games near its own level, and that shape has no `.length`.
+     `poolSize` is the one question that reads either -- asked here and
+     nowhere else, because a pool mistaken for an empty one produces no
+     rows at all and an empty board reads as a quiet week, not as a bug. */
+  const usagePool = D.usagePool && D.usagePool.length ? D.usagePool : null;
+  const poolFor = (stat) => {
+    const pool = D.pools && D.pools[stat];
+    return M.poolSize(pool) > 0 ? pool : null;
+  };
+  const teamFactors = D.teamFactors || {};
+  const oppDef = (team) => {
+    const f = teamFactors[team];
+    return f && isFinite(f.def) ? f.def : 1;
+  };
+  const p4 = (v) => Math.round(v * 10000) / 10000;
+  const common = {
+    gameId: g.id, playerId: String(p.id), name: p.name, team: p.team,
+    opp: p.opp || null,
+  };
+  const row = (fields) => {
+    const r = { ...common, ...fields, kickoff: g.date };
+    return { ...r, key: predKey(r) };
+  };
+
+  const td = M.scoreAnytimeTD(p, {
+    teamFactor: (teamFactors[p.team] || {}).off || 1,
+    oppFactor: p.opp ? oppDef(p.opp) : 1,
+    usagePool,
+  });
+  if (td && isFinite(td.prob)) out.push(row({ prop: "td", prob: p4(td.prob) }));
+
+  /* The counting props, each behind the same gate the board applies
+     before it will show a row -- the model's own, so the two cannot
+     drift. A record of players the board never displayed would grade a
+     bet nobody was offered. */
+  for (const stat of Object.keys(M.STATS)) {
+    const y = M.statEligible(stat, p, null, { oppFactor: p.opp ? M.allowOf(teamFactors, p.opp, stat) : null });
+    if (!y) continue;
+    const pool = poolFor(stat);
+
+    const line = Math.round(y.exp * LINE_MULT) + 0.5;
+    const over = M.empiricalOver(y.exp, line, pool);
+    if (over == null || !isFinite(over)) continue;
+
+    /* The ladder: the book's other lines on the same player, which the
+       board shows and so the record holds. `ladder` returns exactly the
+       rungs whose chance clears DEFAULTS.ladderEdge -- the rungs the page
+       prints -- so the two cannot disagree about what was offered.
+       Rung -> probability, on the row the rungs belong to: a dozen
+       numbers stored as a dozen numbers. Absent when nothing was
+       offered, which is a different fact from a ladder of nothing. */
+    const rungs = M.ladder(stat, y.exp, pool);
+    const ladder = {};
+    for (const r of rungs) ladder[r.at] = p4(r.prob);
+
+    out.push(row({ prop: stat, line, prob: p4(over), ...(rungs.length ? { ladder } : {}) }));
+  }
+  return out;
+}
+
 export function snapshot(league) {
   const M = league.model;
-  const HIST = path.join(DIR, league.recordDir);
+  const HIST = path.resolve(DIR, league.recordDir);
   const D = board(league);
   /* A week, not a day: a football slate spans several days, and every
      game in it belongs to the same board. The file is named for the first
@@ -116,7 +231,7 @@ export function snapshot(league) {
   const day = core.loadDay(HIST, date);
   day.season = D.season;
   day.week = D.week;
-  const seen = new Set(day.predictions.map((p) => `${p.gameId}|${p.playerId}|${p.prop}`));
+  const seen = new Set(day.predictions.map(predKey));
 
   const gameFor = {};
   for (const g of D.games || []) {
@@ -124,15 +239,7 @@ export function snapshot(league) {
     if (g.away) gameFor[g.away] = g;
   }
 
-  const usagePool = D.usagePool && D.usagePool.length ? D.usagePool : null;
-  const poolFor = (stat) => (D.pools && D.pools[stat] && D.pools[stat].length ? D.pools[stat] : null);
-  const oppFactorFor = (team) => {
-    const f = D.teamFactors[team];
-    return f && isFinite(f.def) ? f.def : 1;
-  };
-  const allowFor = (team, stat) => M.allowOf(D.teamFactors, team, stat);
-
-  let added = 0, skippedStarted = 0, skippedNoGame = 0, skippedOut = 0;
+  let added = 0, rungs = 0, skippedStarted = 0, skippedNoGame = 0, skippedOut = 0;
 
   for (const p of D.players || []) {
     const g = gameFor[p.team];
@@ -143,44 +250,12 @@ export function snapshot(league) {
        and the record does not carry him. The same rule as the page. */
     if (M.availability(p.status) === "out") { skippedOut++; continue; }
 
-    const tf = (D.teamFactors[p.team] || {}).off || 1;
-    const of = p.opp ? oppFactorFor(p.opp) : 1;
-
-    const td = M.scoreAnytimeTD(p, { teamFactor: tf, oppFactor: of, usagePool });
-    if (td && isFinite(td.prob)) {
-      const key = `${g.id}|${p.id}|td`;
-      if (!seen.has(key)) {                       // Rule 1: first prediction wins
-        day.predictions.push({
-          gameId: g.id, playerId: String(p.id), name: p.name, team: p.team,
-          opp: p.opp || null, prop: "td",
-          prob: Math.round(td.prob * 10000) / 10000,
-          kickoff: g.date, recordedAt: new Date().toISOString(),
-        });
-        seen.add(key);
-        added++;
-      }
-    }
-
-    /* The counting props, each behind the same gate the board applies
-       before it will show a row -- the model's own, so the two cannot
-       drift. A record of players the board never displayed would grade a
-       bet nobody was offered. */
-    for (const stat of Object.keys(M.STATS)) {
-      const y = M.statEligible(stat, p, null, { oppFactor: p.opp ? allowFor(p.opp, stat) : null });
-      if (!y) continue;
-      const line = Math.round(y.exp * LINE_MULT) + 0.5;
-      const over = M.empiricalOver(y.exp, line, poolFor(stat));
-      if (over == null || !isFinite(over)) continue;
-      const key = `${g.id}|${p.id}|${stat}`;
-      if (seen.has(key)) continue;
-      day.predictions.push({
-        gameId: g.id, playerId: String(p.id), name: p.name, team: p.team,
-        opp: p.opp || null, prop: stat, line,
-        prob: Math.round(over * 10000) / 10000,
-        kickoff: g.date, recordedAt: new Date().toISOString(),
-      });
+    for (const { key, ...r } of playerRows(M, D, p, g)) {
+      if (seen.has(key)) continue;                // Rule 1: first prediction wins
+      day.predictions.push({ ...r, recordedAt: new Date().toISOString() });
       seen.add(key);
       added++;
+      rungs += r.ladder ? Object.keys(r.ladder).length : 0;
     }
   }
 
@@ -225,7 +300,7 @@ export function snapshot(league) {
   if (slips) console.log(`  + ${slips} suggested parlays recorded`);
   const players = new Set(day.predictions.filter((p) => p.playerId !== "game").map((p) => p.playerId)).size;
   console.log(`snapshot ${date} (${D.season} week ${D.week}): +${added} predictions ` +
-    `(${day.predictions.length} total, ${players} players, ${games} new game picks)`);
+    `(${day.predictions.length} total, ${players} players, ${games} new game picks, ${rungs} new ladder rungs)`);
   if (skippedStarted) console.log(`  skipped ${skippedStarted} players whose game has kicked off`);
   if (skippedNoGame) console.log(`  skipped ${skippedNoGame} players with no game on this board`);
   if (skippedOut) console.log(`  skipped ${skippedOut} players ruled out`);
@@ -275,13 +350,16 @@ export function gradeGamePick(pick, result, close) {
 /**
  * Settle a player prop against his box-score line. 1 or 0; null for a prop
  * this file does not know. Over means strictly more than the line, which
- * is a half number so there is no push.
+ * is a half number so there is no push. A rung settles against its own
+ * line like any other row -- the line is the only thing that decides.
+ *
+ * `statTotal` is the model's own summation, so a stat made of two fields
+ * (rush + rec yards) settles on both without this file knowing which.
  */
 export function settlePlayer(pred, line) {
   if (pred.prop === "td") return line.td > 0 ? 1 : 0;
-  const st = nfl.STATS[pred.prop];
-  if (!st) return null;
-  return num(line[st.total]) > pred.line ? 1 : 0;
+  if (!nfl.STATS[pred.prop]) return null;
+  return nfl.statTotal(pred.prop, line) > pred.line ? 1 : 0;
 }
 
 /* ------------------------------------------------------------------ *
@@ -292,6 +370,13 @@ export function settlePlayer(pred, line) {
  * Legs the suggester may use: this day's rows on the parlay-eligible props
  * (the model's parlayProps) whose game has not started. A spread pick's
  * team is the side it took; a total's is nobody's.
+ *
+ * A leg is the projection line and never a rung. The lift factors were
+ * measured on slips built from the boards' projection lines, so a
+ * 90%-rung leg would be priced by a number that measurement never saw --
+ * the mistake `parlayEligible` exists to prevent on the baseball board.
+ * Nothing has to be filtered out for that: a row's ladder is a field it
+ * carries, and the candidate below takes the line and leaves it behind.
  */
 export function parlayCandidates(day, props = ["td"], now = Date.now()) {
   const ok = new Set(props);
@@ -340,7 +425,7 @@ export function recordSuggestedParlays(day, candidates, lift, now = new Date().t
  * many were settled this call.
  */
 export function gradeParlays(day) {
-  const byKey = new Map((day.predictions || []).map((p) => [`${p.gameId}|${p.playerId}|${p.prop}`, p]));
+  const byKey = new Map((day.predictions || []).map((p) => [predKey(p), p]));
   let n = 0;
   for (const s of day.parlays || []) {
     if (s.actual != null || s.scratched) continue;
@@ -396,7 +481,7 @@ export function boxScoreLines(summary) {
 }
 
 export async function grade(league) {
-  const HIST = path.join(DIR, league.recordDir);
+  const HIST = path.resolve(DIR, league.recordDir);
   const weeks = core.listDays(HIST);
   if (!weeks.length) {
     console.log(`Nothing recorded yet. Run node ${league.tracker} snapshot.`);
@@ -513,9 +598,61 @@ export function gamePickSummary(dir) {
   return out;
 }
 
+/**
+ * The ladder's own record: per stat, per rung, how often the model said
+ * the player would clear it and how often he did.
+ *
+ * It is kept apart from the per-prop tables because it answers a
+ * different question. Those ask whether the projection line was true;
+ * this asks whether the model's SHAPE is true -- a model can be right on
+ * average and still promise too much at 100 yards and too little at 30,
+ * and a rung is where that shows up. A per-rung bias that grows with the
+ * rung is a shape error, which this repo has now made in three sports.
+ */
+export function ladderSummary(dir, M = nfl) {
+  /* One graded row becomes one outcome per rung it offered. Nothing extra
+     was stored to make this possible: the row already carries the box
+     line it was settled against, and a rung is that same line read
+     against a different number, by the same `settlePlayer` rule. */
+  const rows = [];
+  for (const d of core.listDays(dir)) {
+    for (const p of core.loadDay(dir, d).predictions) {
+      if (!p.ladder || p.actual == null || !p.result) continue;
+      for (const [at, prob] of Object.entries(p.ladder)) {
+        const rung = Number(at);
+        const actual = settlePlayer({ prop: p.prop, line: rung - 0.5 }, p.result);
+        if (actual == null || !isFinite(prob)) continue;
+        rows.push({ prop: p.prop, rung, prob, actual });
+      }
+    }
+  }
+  if (!rows.length) return null;
+  const pp = (v) => Math.round(v * 1000) / 10;
+  const line = (r) => {
+    const e = core.evaluate(r);
+    return { n: e.n, predicted: pp(e.meanP), actual: pp(e.meanA), bias: pp(e.bias), brier: Math.round(e.brier * 10000) / 10000 };
+  };
+  const stats = {};
+  for (const stat of Object.keys(M.STATS)) {
+    const r = rows.filter((p) => p.prop === stat);
+    if (!r.length) continue;
+    const rungs = [...new Set(r.map((p) => p.rung))]
+      .sort((a, b) => a - b)
+      .map((at) => {
+        const rr = r.filter((p) => p.rung === at);
+        const { brier, ...rest } = line(rr);
+        return { rung: at, ...rest };
+      });
+    stats[stat] = { label: M.STATS[stat].label, ...line(r), rungs };
+  }
+  return { stats, all: line(rows) };
+}
+
 export function report(league, writeRecord) {
-  const dir = path.join(DIR, league.recordDir);
-  const out = core.report(dir, PROPS, {
+  /* resolve, not join: a relative recordDir still hangs off the repo, and
+     a test can hand this an absolute directory of its own. */
+  const dir = path.resolve(DIR, league.recordDir);
+  const out = core.report(dir, propsFor(league.model), {
     title: `BetHouse ${league.label} running record`,
     hint: `Run: node ${league.fetcher} && node ${league.tracker} snapshot   (then grade after the games end)`,
   });
@@ -537,6 +674,29 @@ export function report(league, writeRecord) {
     console.log("Suggested parlays, settled like a book would:");
     for (const t of Object.values(parlays)) console.log(`  ${t.scope.padEnd(6)} ${t.legs} legs  n=${String(t.n).padStart(4)}  predicted ${(100 * t.adjusted).toFixed(1)}%  cashed ${(100 * t.cashed / t.n).toFixed(1)}%`);
     console.log();
+  }
+  const ladder = ladderSummary(dir, league.model);
+  if (ladder && out) {
+    out.ladder = ladder;
+    console.log("Ladder rungs, every line the board offers under and over the projection:");
+    for (const s of Object.values(ladder.stats)) {
+      console.log(
+        `  ${s.label}  n=${String(s.n).padStart(5)}  predicted ${s.predicted.toFixed(1)}%  actual ${s.actual.toFixed(1)}%  ` +
+          `bias ${s.bias >= 0 ? "+" : ""}${s.bias.toFixed(1)}pp  Brier ${s.brier.toFixed(4)}`,
+      );
+      for (const r of s.rungs) {
+        console.log(
+          `    ${String(r.rung + "+").padStart(5)}  n=${String(r.n).padStart(5)}   ` +
+            `predicted ${r.predicted.toFixed(1)}%  actual ${r.actual.toFixed(1)}%  ` +
+            `${r.bias >= 0 ? "+" : ""}${r.bias.toFixed(1)}pp`,
+        );
+      }
+    }
+    console.log(
+      `  All rungs  n=${ladder.all.n}  predicted ${ladder.all.predicted.toFixed(1)}%  actual ${ladder.all.actual.toFixed(1)}%  ` +
+        `bias ${ladder.all.bias >= 0 ? "+" : ""}${ladder.all.bias.toFixed(1)}pp  Brier ${ladder.all.brier.toFixed(4)}`,
+    );
+    console.log("\nA bias that grows with the rung is a shape error, not a level error.\n");
   }
   if (writeRecord) {
     /* Written even when empty, from the first run. The board loads it as a

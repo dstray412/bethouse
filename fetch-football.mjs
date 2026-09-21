@@ -744,7 +744,7 @@ export async function buildBoard(league, history) {
   const pools = {};
   for (const stat of Object.keys(model.STATS)) {
     const floor = model.DEFAULTS[model.STATS[stat].poolFloorKey];
-    const pool = [];
+    const exp = [], ratio = [];
     for (const g of current) {
       for (const p of g.players) {
         const line = model.gameLine(p);
@@ -758,10 +758,14 @@ export async function buildBoard(league, history) {
         const opp = model.opponentIn(g, p);
         if (!opp) continue;
         const y = model.projectedStat(stat, r, null, { oppFactor: model.allowOf(teamFactors, opp, stat) });
-        if (y.base >= floor) pool.push(model.gameValue(stat, p) / y.exp);
+        if (y.base >= floor) { exp.push(y.exp); ratio.push(model.gameValue(stat, p) / y.exp); }
       }
     }
-    pools[stat] = pool.slice(-4000);
+    /* Levelled (nfl.js sortedPool): the expectation stays beside the
+       ratio so the page reads a player's over off the games nearest his
+       own projection. The most recent poolKeep games. */
+    const keep = model.DEFAULTS.poolKeep;
+    pools[stat] = model.sortedPool(exp.slice(-keep), ratio.slice(-keep), stat);
   }
 
   /* The injury report, where the league publishes one. Each board player
@@ -816,7 +820,7 @@ export async function buildBoard(league, history) {
     injuries: hurtByTeam,
     injuriesAt: league.injuriesUrl ? new Date().toISOString() : null,
     usagePool: round(usagePool.slice(0, 4000), 3),
-    pools: Object.fromEntries(Object.entries(pools).map(([k, v]) => [k, round(v, 3)])),
+    pools: Object.fromEntries(Object.entries(pools).map(([k, v]) => [k, { stat: k, exp: round(v.exp, 1), ratio: round(v.ratio, 3) }])),
     seasonsCached: history.seasons,
     gamesCached: history.games.length,
   };
@@ -827,7 +831,7 @@ export async function buildBoard(league, history) {
   );
   console.log(
     `wrote ${league.dataFile}: ${payload.players.length} players, ${payload.games.length} games, ` +
-      `pools usage ${payload.usagePool.length}, ${Object.entries(payload.pools).map(([k, v]) => `${k} ${v.length}`).join(", ")}`,
+      `pools usage ${payload.usagePool.length}, ${Object.entries(payload.pools).map(([k, v]) => `${k} ${v.ratio.length}`).join(", ")}`,
   );
 }
 

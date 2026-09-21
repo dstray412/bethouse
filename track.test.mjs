@@ -380,3 +380,207 @@ test("gradeParlays: dies on the first miss, cashes when every leg hits, voids wi
   assert.equal(gradeParlays(day), 1); assert.equal(day.parlays[2].actual, 1, "every leg hit");
   assert.equal(gradeParlays(day), 0, "nothing settles twice");
 });
+
+/* ------------------------------------------------------------------ *
+ * The ladder
+ *
+ * A book prices a counting prop at many lines, not one, and since
+ * 2026-09-21 the boards show every rung whose chance clears
+ * DEFAULTS.ladderEdge. A rung shown on a page is a claim like any other,
+ * so it is recorded before kickoff and graded afterwards.
+ *
+ * It rides on the projection-line row rather than becoming rows of its
+ * own. One row per rung put 23,562 rows into a single college week and
+ * took the record file to 7.5 MB against a 1 MB pre-commit limit, and
+ * nine tenths of that was the same player, team and kickoff written out
+ * again for each rung. The ladder is a dozen numbers; it is stored as a
+ * dozen numbers.
+ *
+ * Oracle for the rungs below is arithmetic done by hand off the pool,
+ * not the model's own output: a pool of [0.5, 1, 1.5, 2] rescaled to the
+ * player's expectation gives four possible outcomes, so every rung's
+ * chance is a quarter, a half or three quarters and can be counted.
+ * ------------------------------------------------------------------ */
+import { playerRows, ladderSummary, propsFor, report as footballReport } from "./track-football.mjs";
+
+/* Four outcomes, evenly spaced around the projection. */
+const POOL = [0.5, 1, 1.5, 2];
+const LD = {
+  teamFactors: { X: { off: 1, def: 1 }, Y: { off: 1, def: 1 } },
+  usagePool: [],
+  /* Receptions deliberately has no pool: a stat the fetcher could not
+     build a pool for must produce no row at all rather than a guess. */
+  pools: { recyds: POOL, rushrec: POOL },
+};
+/* 400 receiving yards in 4 games, shrunk over yardK=5 games toward
+   yardPrior=25: (400 + 125) / 9 = 58.33. Rushing and passing are out on
+   opportunity; rush+rec is the same 400 over (400 + 155) / 9 = 61.67. */
+const LP = { id: 9, name: "R Ceiver", team: "X", opp: "Y", games: 4, tds: 3, carries: 0, targets: 40, recYds: 400, rushYds: 0, recs: 28, passAtt: 0, passYds: 0 };
+const LG = { id: "g1", date: FUTURE, home: "X", away: "Y" };
+
+test("playerRows: a counting prop's row carries the whole ladder, and stays one row", () => {
+  const rows = playerRows(nflModel, LD, LP, LG);
+  const rec = rows.filter((r) => r.prop === "recyds");
+  assert.equal(rec.length, 1, "one row per stat, however many lines the book offers on it");
+  assert.equal(rec[0].line, 58.5, "round(58.33) + 0.5");
+  assert.equal(rec[0].prob, 0.5, "two of the four outcomes clear 58.5");
+
+  /* Outcomes are 29.17, 58.33, 87.5, 116.67. Rungs at 10, 20 and 25 are
+     certainties (4/4) and 125 and 150 are impossibilities (0/4); at
+     ladderEdge = 0.02 neither is a price anyone can take, so neither is
+     shown and neither is recorded. */
+  assert.deepEqual(rec[0].ladder, { 30: 0.75, 40: 0.75, 50: 0.75, 60: 0.5, 70: 0.5, 80: 0.5, 90: 0.25, 100: 0.25 });
+  assert.ok(rows.every((r) => r.rung === undefined), "a rung is never a row of its own");
+});
+
+test("playerRows: one player is at most one row per stat plus his touchdown", () => {
+  /* The size rule, pinned. A row per rung was 23,562 rows for one college
+     week; the ceiling here is six. */
+  const rows = playerRows(nflModel, LD, LP, LG);
+  assert.ok(rows.length <= Object.keys(nflModel.STATS).length + 1, `${rows.length} rows is too many`);
+  const perProp = {};
+  for (const r of rows) perProp[r.prop] = (perProp[r.prop] || 0) + 1;
+  assert.deepEqual(Object.entries(perProp).filter(([, n]) => n > 1), [], "nothing is recorded twice");
+});
+
+test("playerRows: no ladder at all when the pool cannot price one", () => {
+  /* A pool of a single ratio answers every rung with 0 or 1, and neither
+     is a price anyone can take. The row then carries no ladder field
+     rather than an empty one: nothing was offered, which is a different
+     fact from a ladder of nothing. */
+  const one = { ...LD, pools: { recyds: [1] } };
+  const rec = playerRows(nflModel, one, LP, LG).filter((r) => r.prop === "recyds");
+  assert.equal(rec.length, 1);
+  assert.equal("ladder" in rec[0], false);
+  assert.equal(playerRows(nflModel, LD, LP, LG).filter((r) => r.prop === "recs").length, 0, "no pool, no row");
+});
+
+test("playerRows: nothing here knows how many stats there are", () => {
+  /* rushrec was added to the stat table without touching this file. If the
+     tracker held its own list of props, these rows would not exist. */
+  const rows = playerRows(nflModel, LD, LP, LG);
+  const rr = rows.filter((r) => r.prop === "rushrec");
+  assert.equal(rr.length, 1);
+  // Outcomes 30.83, 61.67, 92.5, 123.33 against a projection of 61.67.
+  assert.deepEqual(rr[0].ladder, { 40: 0.75, 50: 0.75, 60: 0.75, 70: 0.5, 80: 0.5, 90: 0.5, 100: 0.25 });
+  assert.equal(rows.filter((r) => r.prop === "rushyds").length, 0, "no carries, no row");
+  const ids = propsFor(nflModel).map((p) => p.id);
+  for (const stat of Object.keys(nflModel.STATS)) assert.ok(ids.includes(stat), `${stat} is reported`);
+});
+
+test("playerRows: the key stays the three-part one, and a second snapshot adds nothing", () => {
+  const rows = playerRows(nflModel, LD, LP, LG);
+  const keys = rows.map((r) => r.key);
+  assert.equal(new Set(keys).size, keys.length, "rule 1 needs one key per claim");
+  assert.deepEqual(keys.filter((k) => k.startsWith("g1|9|recyds")), ["g1|9|recyds"]);
+  // Rule 1: a second snapshot of the same week adds nothing.
+  const seen = new Set(keys);
+  assert.equal(playerRows(nflModel, LD, LP, LG).filter((r) => !seen.has(r.key)).length, 0);
+});
+
+test("playerRows: a levelled pool is a pool, not an empty one", () => {
+  /* The fetcher keeps each pool game's expectation beside its ratio
+     ({exp, ratio}) so a projection is priced off games near its own
+     level. The shape has no `.length`, so a truthiness check on one reads
+     a full pool as empty and silently drops every row the board shows --
+     an empty board looks like a quiet week rather than like a bug.
+     `M.poolSize` is the one question to ask of either shape. */
+  const levelled = nflModel.sortedPool([50, 55, 60, 65], POOL);
+  assert.equal(nflModel.poolSize(levelled), 4);
+  assert.equal(levelled.length, undefined, "nothing here may ask a pool for its length");
+
+  const LL = { ...LD, pools: { recyds: levelled, rushrec: levelled } };
+  /* poolWindow (1500) exceeds four games, so every game is in the window
+     and the two shapes must price identically. */
+  assert.deepEqual(playerRows(nflModel, LL, LP, LG), playerRows(nflModel, LD, LP, LG));
+
+  // A levelled pool with nothing in it is still empty.
+  const empty = { ...LD, pools: { recyds: nflModel.sortedPool([], []) } };
+  assert.equal(playerRows(nflModel, empty, LP, LG).filter((r) => r.prop === "recyds").length, 0);
+});
+
+test("settlePlayer: rush + rec is both fields, and a rung settles at its own line", () => {
+  // Oracle: the book's rule, against a box-score line of 84 rushing and 61 receiving.
+  const line = { td: 1, recYds: 61, rushYds: 84, passYds: 251, recs: 5 };
+  assert.equal(settlePlayer({ prop: "rushrec", line: 144.5 }, line), 1, "145 yards");
+  assert.equal(settlePlayer({ prop: "rushrec", line: 145.5 }, line), 0);
+  // A rung is settled by the same rule at the rung's own half-number.
+  assert.equal(settlePlayer({ prop: "recyds", line: 60 - 0.5 }, line), 1);
+  assert.equal(settlePlayer({ prop: "recyds", line: 70 - 0.5 }, line), 0);
+  assert.equal(settlePlayer({ prop: "recs", line: 5 - 0.5 }, line), 1);
+});
+
+test("parlayCandidates: a rung is never a parlay leg", () => {
+  /* The lift factors were measured on slips built from the boards'
+     projection lines. A 90%-rung leg dropped into one would be priced by
+     a number that measurement never saw. The ladder is a field on the
+     row, so a candidate takes the line and leaves the rungs behind. */
+  const day = { predictions: [
+    { gameId: "g1", playerId: "a", name: "Pa", team: "X", prop: "recyds", line: 60.5, prob: 0.54, ladder: { 30: 0.9, 100: 0.1 }, kickoff: FUTURE },
+  ] };
+  const c = parlayCandidates(day, ["recyds"], Date.parse("2050-01-01T00:00Z"));
+  assert.equal(c.length, 1);
+  assert.deepEqual(c[0], { key: "g1|a|recyds", playerId: "a", gameId: "g1", team: "X", name: "Pa", prob: 0.54, prop: "recyds", line: 60.5, side: null });
+  assert.equal("ladder" in c[0], false, "a leg is the line, never a rung");
+});
+
+test("ladderSummary: every rung is graded off the row's own box line", () => {
+  /* Nothing new is stored to grade a rung: the row already carries the
+     box-score line it was settled against, and a rung is that line
+     against a different number. */
+  const dir = tmp();
+  const row = (playerId, recYds, extra = {}) => ({
+    gameId: "g1", playerId, name: "P" + playerId, team: "X", prop: "recyds",
+    line: 58.5, prob: 0.5, ladder: { 30: 0.8, 100: 0.2 }, kickoff: PAST,
+    actual: recYds > 58.5 ? 1 : 0, result: { td: 0, recYds, rushYds: 0, passYds: 0, recs: 4 },
+    ...extra,
+  });
+  core.saveDay(dir, { date: "2026-09-10", predictions: [
+    /* 30 and 100 yards exactly. "30+" settles at 29.5, so 30 yards CASHES
+       it -- the half number is the whole point of the rung, and settling
+       at 30 instead would turn a winner into a loser. */
+    row("9", 100),
+    row("10", 30),
+    // Recorded, not yet graded: counted by nobody, like every pending row.
+    { gameId: "g1", playerId: "11", prop: "recyds", line: 58.5, prob: 0.5, ladder: { 30: 0.8 }, kickoff: PAST },
+    // Half-written: a box line but no settlement. A rung is only ever as
+    // graded as the row it rides on.
+    { gameId: "g1", playerId: "12", prop: "recyds", line: 58.5, prob: 0.5, ladder: { 30: 0.8 }, kickoff: PAST,
+      result: { td: 0, recYds: 90, rushYds: 0, passYds: 0, recs: 4 } },
+  ], graded: false });
+
+  const L = ladderSummary(dir, nflModel);
+  // 100 clears both rungs; 30 clears 29.5 and misses 99.5.
+  assert.deepEqual(L.stats.recyds.rungs.map((r) => [r.rung, r.n, r.predicted, r.actual, r.bias]), [
+    [30, 2, 80, 100, -20],
+    [100, 2, 20, 50, -30],
+  ]);
+  assert.equal(L.all.n, 4, "two graded rows, two rungs each; the other two are in nothing");
+  // 0.8 against 1, 0.8 against 1, 0.2 against 1, 0.2 against 0.
+  assert.equal(L.all.brier, 0.19);
+  assert.equal(ladderSummary(tmp(), nflModel), null, "no rungs is nothing, not an empty table");
+});
+
+test("report: a row is one prediction however many rungs it carries", () => {
+  const dir = tmp();
+  const row = (playerId, recYds) => ({
+    gameId: "g1", playerId, prop: "recyds", line: 58.5, prob: 0.5,
+    ladder: { 30: 0.8, 100: 0.2 }, kickoff: PAST,
+    actual: recYds > 58.5 ? 1 : 0, result: { td: 0, recYds, rushYds: 0, passYds: 0, recs: 4 },
+  });
+  core.saveDay(dir, { date: "2026-09-10", predictions: [row("9", 70), row("10", 20)], graded: true });
+
+  const real = console.log;
+  console.log = () => {};
+  let out;
+  try {
+    out = footballReport({ recordDir: dir, label: "Test", fetcher: "f.mjs", tracker: "t.mjs", model: nflModel }, false);
+  } finally {
+    console.log = real;
+  }
+  assert.equal(out.total, 2, "two projection lines, not two lines and four rungs");
+  assert.equal(out.props.recyds.n, 2);
+  assert.equal(out.props.recyds.predicted, 50);
+  assert.equal(out.ladder.all.n, 4);
+  assert.equal(out.ladder.stats.recyds.label, "Receiving yards");
+});

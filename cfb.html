@@ -9,7 +9,13 @@
 <style>
 /* nfl.html / cfb.html: the football boards' own rules. Everything else is board.css. */
 @media (max-width:760px){
-  /* Bet types scroll sideways rather than stacking into three rows. */
+  /* Bet types scroll sideways rather than stacking into three rows.
+     min-width:0 is what makes that true: a flex item's default minimum is
+     its content, so the .ctl grew to the full width of the buttons and the
+     overflow-x below never engaged -- the PAGE scrolled sideways instead
+     of the strip. Measured at 390px on nfl.html: 322px of body overflow
+     before a fifth counting prop was added, 458 after, 0 with this line. */
+  .ctl{min-width:0}
   .ctl .seg{overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none;margin-right:-11px;padding-right:11px}
   .ctl .seg::-webkit-scrollbar{display:none}
   .seg button{white-space:nowrap;flex:0 0 auto}
@@ -104,7 +110,11 @@ BetHouseFootballBoard.mount({
         'at both ends. Read it as approximate. The shape comes from real quarterback games, not a bell curve.',
       recs: 'Chance of going <b>over</b> a receptions line. Checked against <b>49,600</b> unseen '+
         'player-games — bias 1.1 points, cold, every band within 3. The opponent is shown but not applied: on the replay it '+
-        'made this prop worse. The shape comes from real receiver games, not a bell curve.'
+        'made this prop worse. The shape comes from real receiver games, not a bell curve.',
+      rushrec: 'Chance of going <b>over</b> a <b>rushing plus receiving</b> yards line — the back who catches and the '+
+        'receiver who runs, his two yardages added and priced as one number, off real games by backs and receivers. '+
+        'Replayed over 94,580 player-games on college constants: bias 0.1 points, the seasons within a point. The '+
+        'opponent is not applied. Tap a player for every alternate line with its fair price.'
     },
     noteGames: 'The side the model likes on each game, against a real line, with its expected value at the price. '+
       '<b>Not proven against the closing line</b> — read the note below before betting one.',

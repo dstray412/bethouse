@@ -9,7 +9,13 @@
 <style>
 /* nfl.html / cfb.html: the football boards' own rules. Everything else is board.css. */
 @media (max-width:760px){
-  /* Bet types scroll sideways rather than stacking into three rows. */
+  /* Bet types scroll sideways rather than stacking into three rows.
+     min-width:0 is what makes that true: a flex item's default minimum is
+     its content, so the .ctl grew to the full 837px of buttons and the
+     overflow-x below never engaged -- the PAGE scrolled sideways instead
+     of the strip. Measured at 390px: 322px of body overflow before a fifth
+     counting prop was added, 458 after, 0 with this line. */
+  .ctl{min-width:0}
   .ctl .seg{overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none;margin-right:-11px;padding-right:11px}
   .ctl .seg::-webkit-scrollbar{display:none}
   .seg button{white-space:nowrap;flex:0 0 auto}
@@ -72,6 +78,10 @@
 <script src="edge.js"></script>
 <script src="nfl.js"></script>
 <script src="nfl-data.js"></script>
+<!-- Written by tendencies.mjs from nflverse play-by-play. The matchup
+     panel on the game view reads it; the board works without it, and
+     college has no play-by-play, so cfb.html loads no such file. -->
+<script src="tendencies-data.js"></script>
 <!-- Written by track-nfl.mjs. Empty until a week has been graded. -->
 <script src="nfl-record.js"></script>
 <script src="parlay.js"></script>
@@ -101,7 +111,11 @@ BetHouseFootballBoard.mount({
         'the bands say the number is too timid at both ends. Read it as approximate. The shape comes from real quarterback games, not a bell curve.',
       recs: 'Chance of going <b>over</b> a receptions line. Checked against <b>22,610</b> unseen '+
         'player-games — bias 0.5 points, cold, though the two seasons disagree by 6. The opponent is shown but not applied: '+
-        'on the replay it moved nothing. The shape comes from real receiver games, not a bell curve.'
+        'on the replay it moved nothing. The shape comes from real receiver games, not a bell curve.',
+      rushrec: 'Chance of going <b>over</b> a <b>rushing plus receiving</b> yards line — the back who catches and the '+
+        'receiver who runs, his two yardages added and priced as one number, off real games by backs and receivers. '+
+        'Replayed over 30,245 player-games: bias 0.8 points, the seasons within two. The opponent is not applied: on the '+
+        'replay it read worse. Tap a player for every alternate line with its fair price.'
     },
     noteGames: 'The side the model likes on each game, against a real line, with its expected value at the price. '+
       '<b>This model did not beat the closing line over two seasons</b> — read the note below before betting one.',
