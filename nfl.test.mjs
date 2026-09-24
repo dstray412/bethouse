@@ -891,18 +891,31 @@ test("bind: the stat gate follows the bound league's receiving stat", () => {
 const ROSTER_NE = { team: { id: "17", abbreviation: "NE" }, athletes: [
   { position: "offense", items: [
     { id: "4047646", fullName: "A.J. Brown", position: { abbreviation: "WR" }, status: { name: "Active" }, injuries: [] },
-    { id: "1", fullName: "Someone", position: { abbreviation: "QB" }, status: { name: "Active" }, injuries: [{ status: "Out" }] },
+    { id: "1", fullName: "Someone", position: { abbreviation: "QB" }, status: { name: "Active" }, injuries: [{ status: "Out", date: "2026-09-13T15:09Z" }] },
+    { id: "4", fullName: "Back Already", position: { abbreviation: "TE" }, status: { name: "Active" }, injuries: [{ status: "Active", date: "2026-09-20T15:09Z" }] },
+    { id: "5", fullName: "Downgraded", position: { abbreviation: "WR" }, status: { name: "Active" }, injuries: [{ status: "Out", date: "2026-09-06T15:09Z" }, { status: "Questionable", date: "2026-09-20T15:09Z" }] },
   ] },
   { position: "injuredReserveOrOut", items: [
-    { id: "2", fullName: "Hurt Guy", position: { abbreviation: "RB" }, status: { name: "Injured Reserve" } },
+    { id: "2", fullName: "Hurt Guy", position: { abbreviation: "RB" }, status: { name: "Injured Reserve" }, injuries: [{ status: "Questionable", date: "2026-09-11T15:09Z" }] },
   ] },
   { position: "practiceSquad", items: [ { id: "3", fullName: "PS Guy", position: { abbreviation: "WR" } } ] },
 ] };
 
 test("parseRoster: every athlete on the team with his position and roster group", () => {
   const r = nfl.parseRoster(ROSTER_NE);
-  assert.equal(r.length, 4);
-  assert.deepEqual(r[0], { id: "4047646", name: "A.J. Brown", team: "NE", pos: "WR", group: "offense", status: "Active" });
+  assert.equal(r.length, 6);
+  assert.deepEqual(r[0], { id: "4047646", name: "A.J. Brown", team: "NE", pos: "WR", group: "offense", status: "Active", listed: "", listedAt: "" });
+  // What the roster lists him as. The league report missed Josh Jacobs'
+  // suspension (2026-09-24, status "News", injuries [{status: "Out"}]);
+  // the roster is the second source, the group when there is no entry.
+  assert.equal(r.find((a) => a.id === "1").listed, "Out", "the athlete's own injury entry");
+  assert.equal(r.find((a) => a.id === "1").listedAt, "2026-09-13T15:09Z", "and when it was entered");
+  assert.equal(r.find((a) => a.id === "2").listed, "Injured Reserve", "the roster group outranks a dated entry from before the move");
+  assert.equal(r.find((a) => a.id === "2").listedAt, "", "and is not dated, so it cannot read as stale");
+  assert.equal(r.find((a) => a.id === "5").listed, "Questionable", "the latest entry, not the first");
+  assert.equal(r.find((a) => a.id === "5").listedAt, "2026-09-20T15:09Z");
+  assert.equal(r.find((a) => a.id === "3").listed, "");
+  assert.equal(r.find((a) => a.id === "4").listed, "", "an entry that says Active is not a listing (parseInjuries skips the same)");
   assert.equal(r.find((a) => a.id === "2").group, "injuredReserveOrOut");
   assert.equal(r.find((a) => a.id === "3").group, "practiceSquad");
   assert.deepEqual(nfl.parseRoster(null), []);
@@ -1110,4 +1123,111 @@ test("empiricalOver / ladder: a levelled pool is read through the window, a flat
   assert.equal(nfl.poolSize([1, 2, 3]), 3);
   assert.equal(nfl.poolSize(null), 0);
   assert.equal(nfl.poolSize({ exp: [], ratio: [] }), 0);
+});
+
+/* ------------------------------------------------------------------ *
+ * One quarterback throws for a team
+ *
+ * Oracle: the box score. Every quarterback with 40 attempts on file --
+ * last season's starter, the backup who filled in for six games -- got
+ * a passing line, and the one-game slip paired the Falcons' three
+ * passers with each other (2026-09-24). A book posts passing yards for
+ * the starter alone. The starter is whoever threw most in the team's
+ * last game, unless he is ruled out today, then the next by attempts
+ * per game.
+ * ------------------------------------------------------------------ */
+
+test("startingPasser: most attempts over the team's recent games, then on file, skipping anyone out", () => {
+  const { startingPasser } = nfl;
+  const love = { id: "love", passAtt: 510, recentAtt: 96, out: false };
+  const taylor = { id: "taylor", passAtt: 134, recentAtt: 0, out: false };
+  assert.equal(startingPasser([taylor, love]), "love");
+  assert.equal(startingPasser([{ ...love, out: true }, taylor]), "taylor", "the starter is out: the backup starts");
+  // Week 1: nobody has thrown this season, so the record decides -- the
+  // week-18 fill-in with 40 attempts in a finale does not beat the starter.
+  assert.equal(startingPasser([{ ...love, recentAtt: 0 }, { ...taylor, passAtt: 300, recentAtt: 0 }]), "love");
+  // Starter out: recent attempts first (the mop-up man IS the active backup), then the record.
+  const qb2 = { id: "qb2", passAtt: 300, recentAtt: 0, out: false }, qb3 = { id: "qb3", passAtt: 20, recentAtt: 3, out: false };
+  assert.equal(startingPasser([{ ...love, out: true }, qb2, qb3]), "qb3");
+  assert.equal(startingPasser([{ ...love, out: true }, qb2, { ...qb3, recentAtt: 0 }]), "qb2");
+  assert.equal(startingPasser([{ ...love, out: true }, { ...taylor, out: true }]), null, "everyone out: nobody");
+  assert.equal(startingPasser([]), null);
+  assert.equal(startingPasser(null), null);
+});
+
+test("backupPassers: quarterbacks only, judged on this season's last three games, the record before the season", async () => {
+  const { backupPassers } = await import("./fetch-football.mjs");
+  const game = (id, season, date, home, away, rows) => ({ id, season, date, home: { team: home }, away: { team: away },
+    players: rows.map(([pid, team, att]) => ({ id: pid, name: pid, team, pass: { att, yds: att * 7 } })) });
+  const games = [
+    game("a", 2025, "2025-12-28T18:00Z", "KC", "DEN", [["mahomes", "KC", 30], ["nix", "DEN", 28]]),
+    game("b", 2025, "2026-01-04T18:00Z", "KC", "LV", [["oladokun", "KC", 17], ["mahomes", "KC", 0], ["punter", "KC", 1], ["stidham", "LV", 25]]),
+    game("c", 2026, "2026-09-07T17:00Z", "DEN", "KC", [["mahomes", "KC", 8], ["oladokun", "KC", 25], ["nix", "DEN", 33], ["wr", "DEN", 1]]),
+    game("d", 2026, "2026-09-14T17:00Z", "KC", "NYG", [["mahomes", "KC", 34], ["dart", "NYG", 30]]),
+  ];
+  const players = [
+    { id: "mahomes", team: "KC", games: 20, passAtt: 572 }, { id: "oladokun", team: "KC", games: 4, passAtt: 42 },
+    { id: "punter", team: "KC", games: 20, passAtt: 1 }, { id: "nix", team: "DEN", games: 18, passAtt: 540 },
+    { id: "wr", team: "DEN", games: 18, passAtt: 1 }, { id: "stidham", team: "LV", games: 3, passAtt: 90 },
+    { id: "dart", team: "NYG", games: 2, passAtt: 30 }, { id: "wilson", team: "NYG", games: 17, passAtt: 480 },
+  ];
+  const roster = new Map(players.map((p) => [p.id, { id: p.id, team: p.team, pos: p.id === "punter" ? "P" : p.id === "wr" ? "WR" : "QB" }]));
+  const M = nfl;
+  // In season: the last three games this season. Mahomes left game c early
+  // and Oladokun threw 25, but weeks together say Mahomes.
+  let b = backupPassers(M, players, games, roster, {}, 2026);
+  assert.deepEqual([...b].sort(), ["oladokun", "wilson"], "the backups; Dart threw NYG's games this season");
+  assert.ok(!b.has("punter") && !b.has("wr"), "a punter or receiver with a trick-play attempt is not a quarterback");
+  // Week 1 (no games this season on file): the record, not the finale where the backup threw.
+  b = backupPassers(M, players, games, roster, {}, 2027);
+  assert.ok(b.has("oladokun") && !b.has("mahomes"), "the week-18 fill-in does not become the starter");
+  assert.ok(b.has("dart") && !b.has("wilson"), "before he has thrown a game, the veteran's record wins");
+  // The starter ruled out: the next man up gets the line.
+  b = backupPassers(M, players, games, roster, { mahomes: { status: "Out" } }, 2026);
+  assert.ok(b.has("mahomes") && !b.has("oladokun"));
+  // No roster: anyone with the attempts the board gates on counts as a quarterback.
+  b = backupPassers(M, players, games, null, {}, 2026);
+  assert.ok(b.has("oladokun") && !b.has("mahomes") && !b.has("punter"), "the punter is below the gate, not a backup");
+  assert.deepEqual([...backupPassers(M, [], games, roster, {}, 2026)], []);
+  // Attempts thrown AGAINST the team (before a trade) are not attempts for it.
+  const traded = games.concat([game("e", 2026, "2026-09-21T17:00Z", "KC", "DEN", [["nix", "DEN", 40], ["mahomes", "KC", 20]])]);
+  const moved = players.map((p) => (p.id === "nix" ? { ...p, team: "KC", movedFrom: "DEN" } : p));
+  roster.get("nix").team = "KC";
+  b = backupPassers(M, moved, traded, roster, {}, 2026);
+  assert.ok(b.has("nix") && !b.has("mahomes"), "Nix's 40 against Kansas City do not make him its starter");
+  roster.get("nix").team = "DEN";
+  // Ids are matched as strings, the way applyRosters does.
+  b = backupPassers(M, players.map((p) => ({ ...p, id: p.id === "punter" ? "punter" : p.id })), games, roster, {}, 2026);
+  assert.ok(!b.has("punter"));
+});
+
+test("statEligible: a backup quarterback gets no passing line; his other props gate as before", () => {
+  const rec = { games: 17, passAtt: 510, passYds: 3913, carries: 60, rushYds: 300, targets: 0, recYds: 0, recs: 0 };
+  assert.ok(nfl.statEligible("passyds", rec), "a passer with the attempts is eligible");
+  assert.equal(nfl.statEligible("passyds", { ...rec, backupQB: true }), null, "not when he is the backup");
+  assert.equal(!!nfl.statEligible("rushyds", { ...rec, backupQB: true }), !!nfl.statEligible("rushyds", rec), "rushing is gated on touches, not on the depth chart");
+});
+
+test("notActive: the league report, then the roster's own listing for anyone the report missed", async () => {
+  const { notActive } = await import("./fetch-football.mjs");
+  const report = { "4362249": { name: "Jayden Reed", team: "GB", pos: "WR", status: "Doubtful", detail: "Neck", date: "2026-09-23" } };
+  const roster = new Map([
+    ["4362249", { id: "4362249", name: "Jayden Reed", team: "GB", pos: "WR", group: "offense", status: "Active", listed: "Out" }],
+    ["4047365", { id: "4047365", name: "Josh Jacobs", team: "GB", pos: "RB", group: "offense", status: "News", listed: "Out" }],
+    ["4036378", { id: "4036378", name: "Jordan Love", team: "GB", pos: "QB", group: "offense", status: "Active", listed: "" }],
+  ]);
+  const out = notActive(report, roster);
+  assert.equal(out["4362249"].status, "Doubtful", "the report is the dated word and wins");
+  assert.deepEqual(out["4047365"], { name: "Josh Jacobs", team: "GB", pos: "RB", status: "Out", detail: "" }, "the roster fills in what the report missed");
+  assert.equal(out["4036378"], undefined, "listed as nothing: available");
+  assert.deepEqual(notActive(report, null), report, "no roster: the report alone");
+  assert.deepEqual(notActive({}, roster)["4047365"].status, "Out");
+  // A listing the player has played through is stale: an entry ESPN never
+  // cleared would void him on every board after his return.
+  roster.get("4047365").listedAt = "2026-09-13T15:09Z";
+  const played = new Map([["4047365", "2026-09-20T17:00Z"]]);
+  assert.equal(notActive({}, roster, played)["4047365"], undefined, "played after the entry: not listed");
+  assert.equal(notActive({}, roster, new Map([["4047365", "2026-09-06T17:00Z"]]))["4047365"].status, "Out", "played before it: listed");
+  roster.get("4047365").listedAt = "";
+  assert.equal(notActive({}, roster, played)["4047365"].status, "Out", "an undated listing (the roster group) is never stale");
 });

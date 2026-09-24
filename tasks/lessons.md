@@ -736,3 +736,17 @@ middle. A pool should carry each entry's level so the reader can take
 the games nearest the level being priced, and a new line further from
 the middle than the ones already checked is a new claim that needs its
 own replay before it ships.
+
+## "The most recent game" is a week-18 finale for the first week of every season
+
+The first starting-quarterback rule took whoever threw most in the team's
+last game on file. Fine in week 3. In week 1 the last game on file is last
+season's finale, where starters rest: in 15 of 32 finales of 2025 the top
+passer was not the starter, and Mahomes would have been the backup. A
+punter with one trick-play attempt was in the race too.
+
+**Rule:** when a rule reads "the most recent X", ask what X is at the
+season boundary and after an early exit, and replay it against the history
+file before shipping -- one query over `nfl-history.json` found both
+failures in a minute. Filter the population by what it is (the roster's
+position), not by what it did once.

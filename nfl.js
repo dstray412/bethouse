@@ -785,6 +785,8 @@
     const st = STATS[stat];
     if (!st || !record) return null;
     if (!(num(record.games) >= o.yardMinGames)) return null;
+    // A backup quarterback has the attempts on file and no passing line: see startingPasser.
+    if (stat === "passyds" && record.backupQB) return null;
     if (!(statOpportunity(stat, record, o) >= o[st.minOppKey])) return null;
     const base = expectedStat(stat, record, o);
     if (!(base >= o[st.floorKey])) return null;
@@ -959,7 +961,16 @@
    * defense, specialTeam, injuredReserveOrOut, suspended, practiceSquad).
    * Empty when the payload carries no team code, because a roster that
    * cannot say which team it is cannot move anyone.
+   *
+   * `listed` is what the roster says of his availability: the athlete's
+   * own injury entry (Out, Injured Reserve, Doubtful ...), or, with no
+   * entry, what his group implies -- suspended, injured reserve -- and
+   * "" when neither says anything. The league's injury report is the
+   * dated word, but it is not complete: Josh Jacobs, suspended, was on
+   * no report and the board offered him (2026-09-24). The roster had
+   * him status "News", injuries [{status: "Out"}].
    */
+  const GROUP_LISTED = { suspended: "Suspended", injuredReserveOrOut: "Injured Reserve" };
   function parseRoster(payload) {
     const team = payload && payload.team && payload.team.abbreviation;
     if (!team) return [];
@@ -967,14 +978,46 @@
     for (const g of (payload.athletes || [])) {
       for (const a of (g && g.items) || []) {
         if (!a || a.id == null) continue;
+        // The latest entry that does not say Active: Active is a return, not
+        // a listing (parseInjuries skips the same). The roster group outranks
+        // any entry -- a man moved to injured reserve on Tuesday still carries
+        // Friday's Questionable -- and a group carries no date.
+        const entry = (Array.isArray(a.injuries) ? a.injuries : [])
+          .filter((i) => i && i.status && !/^active$/i.test(String(i.status)))
+          .sort((x, y) => String(y.date || "").localeCompare(String(x.date || "")))[0];
+        const byGroup = GROUP_LISTED[g.position] || "";
         out.push({
           id: String(a.id), name: a.fullName || a.displayName || "", team,
           pos: (a.position && a.position.abbreviation) || "",
           group: g.position || "", status: (a.status && a.status.name) || "",
+          listed: byGroup || (entry ? String(entry.status) : ""),
+          listedAt: !byGroup && entry ? String(entry.date || "") : "",
         });
       }
     }
     return out;
+  }
+
+  /**
+   * One quarterback throws for a team, and a book posts passing yards
+   * for him alone. Every passer with the attempts on file used to get a
+   * line -- last season's starter, the backup who filled in for six
+   * games -- and the one-game slip paired a team's passers with each
+   * other (2026-09-24). `passers` are a team's quarterbacks, each with
+   * `recentAtt`, his attempts over the team's last three games this
+   * season (fetch-football.mjs backupPassers), `passAtt`, his attempts
+   * on file, and `out`, whether he is ruled out today. The starter is
+   * whoever is not out with the most recent attempts, then the most on
+   * file: the record decides in week 1, when nobody has thrown this
+   * season, so a week-18 finale where the backup threw does not name
+   * him. The depth chart read off the box scores, since nobody publishes
+   * one worth trusting. Returns his id, or null.
+   */
+  function startingPasser(passers) {
+    const list = (Array.isArray(passers) ? passers : []).filter((p) => p && p.id != null && !p.out);
+    if (!list.length) return null;
+    list.sort((a, b) => num(b.recentAtt) - num(a.recentAtt) || num(b.passAtt) - num(a.passAtt) || String(a.id).localeCompare(String(b.id)));
+    return String(list[0].id);
   }
 
   /**
@@ -1092,6 +1135,7 @@
       playerMatches,
       parseRoster,
       applyRosters,
+      startingPasser,
       fairPrice,
       bind: (more) => bind(Object.assign({}, overrides || {}, more || {})),
     };
@@ -1135,6 +1179,7 @@
     playerMatches,
     parseRoster,
     applyRosters,
+    startingPasser,
     fairPrice,
     bind,
   };

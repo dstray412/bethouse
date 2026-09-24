@@ -1528,9 +1528,54 @@ tracker cannot disagree about who is playing. The athlete id is not a field on
 an injury entry; it is in the player-card link, which is the only place ESPN
 puts it, and an entry with no link is dropped rather than matched by name.
 
+**The report is not complete, so the roster is read too (2026-09-24).** A
+suspension is not an injury: Josh Jacobs, suspended, was on no injury
+report and the board offered him, and the suggested parlay took him, the
+night of a game he could not play. The roster (`parseRoster`, `listed`)
+carries each athlete's own injury entry -- his was status "News",
+injuries `[{status: "Out"}]` -- and the group he sits in (`suspended`,
+`injuredReserveOrOut`). `notActive` in `fetch-football.mjs` merges the two:
+the report's dated, detailed entry wins, and the roster fills in anyone it
+missed. An entry that says Active is a return, not a listing, and a dated
+listing the player has played through is stale and ignored, so an entry
+ESPN never cleared cannot void him on every board after his return. On the
+week-3 board 76 of 403 players carry a status and 42 are ruled out; a
+check against the box scores found no roster entry a board player had
+played through.
+
 **College has no injury report.** ESPN's college endpoint returns three
-entries dated 2020–22. Every college player reads as available, and the
-college record will keep voiding the ones who turn out not to be.
+entries dated 2020–22. The roster listing above is read there too and found
+nobody on the week-4 rosters, so every college player reads as available, and the college record will
+keep voiding the ones who turn out not to be.
+
+### One quarterback throws for a team
+
+**2026-09-24.** Every passer with 40 attempts on file got a passing-yards
+line: last season's starter, the backup who filled in for six games, the
+veteran just signed. The Falcons had three. The one-game slip, which takes
+the best legs one per player, paired them with each other -- two
+quarterbacks on one team over their passing yards, a parlay that cannot
+cash. A book posts passing yards for the starter alone.
+
+The starter is read off the box scores, since nobody publishes a depth
+chart worth trusting. `backupPassers` in `fetch-football.mjs` takes each
+team's quarterbacks by roster position -- a punter with a trick-play
+attempt is not in the race -- and `startingPasser` in `nfl.js` names the
+one not ruled out with the most attempts over the team's last three games
+this season, then the most on file. The record decides in week 1, when
+nobody has thrown this season: the last game on file is then a week-18
+finale, and in 15 of 32 finales of 2025 the top passer was not the
+starter. Every other quarterback is marked `backupQB` in the data and
+`statEligible` gives him no passing line; his touchdown and rushing props
+gate on touches as before. The board and the tracker share the gate, so
+the slip cannot see a leg the board does not show. Twenty-eight
+quarterbacks lost a line on the week-3 board and every team has at most
+one. What this does not know: a starter benched or hurt after the daily
+build, and a newly signed quarterback starting his first game. The box
+scores are wrong for one week in both cases; they were wrong every week
+before. A starter listed Doubtful reads as out, the same as everywhere
+else on the board, so his backup carries the line; if he plays, the
+backup's line voids.
 
 ### Line movement: real information, already spent by the time you can bet it
 

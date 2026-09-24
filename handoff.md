@@ -27,6 +27,41 @@ Zero dependencies, no build step, no server, no API key. `node --test` with
 **named files** — bare discovery pulls in the backtests, which fire live API
 calls. The list lives in seven places and `dom.test.mjs` checks all seven.
 
+## Availability off the roster, and one passer per team, 2026-09-24
+
+Two things the suggested parlay got wrong on the Thursday board, both
+fixed at the source (the fetcher and the one gate) rather than in the
+slip. README, "Injuries" and "One quarterback throws for a team".
+
+**Josh Jacobs, suspended, was on the board.** The league injury report
+does not list suspensions; the roster's own athlete entry did
+(`injuries: [{status: "Out"}]`, status "News"). `parseRoster` now carries
+`listed` and `listedAt` -- the athlete's injury entry (not one that says
+Active), else his roster group (`suspended`, `injuredReserveOrOut`) --
+and `notActive` in `fetch-football.mjs` merges it under the report,
+dropping a dated listing he has played through. 76 of 403 week-3 board
+players carry a status, 42 ruled out.
+
+**Two quarterbacks on one team, both over their passing yards.** Every
+passer with 40 attempts on file had a line. `backupPassers`
+(fetch-football.mjs, tested) takes each team's quarterbacks by roster
+position and `startingPasser` (nfl.js) names one: not ruled out, most
+attempts over the team's last three games this season, then most on
+file. The first cut used the last game alone; the review found that in
+week 1 that is a week-18 finale where the backup threw (15 of 32 teams
+in 2025), and that punters with a trick-play attempt were in the race.
+The fetcher marks the rest `backupQB` and `statEligible` gives a backup
+no passing line. Board and tracker share the gate. Limits: a mid-week
+change of starter is not seen until the next daily build; a quarterback
+with no game on file for his new team (Tua at Atlanta) reads as the
+backup until he throws one; a Doubtful starter reads as out, as he does
+everywhere on the board.
+
+The day's record (`nfl-record/`) already carried the old rows before
+kickoff and is left alone: Jacobs settles void on `played`, and the
+backups' passing rows grade as the board offered them. First prediction
+wins.
+
 ## Alternate lines, levelled pools and tendencies, 2026-09-21
 
 Three things landed together; the second was found by the first.

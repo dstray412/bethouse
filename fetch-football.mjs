@@ -364,6 +364,68 @@ export function parseInjuries(payload) {
   return out;
 }
 
+/**
+ * Everyone not available, from both sources: the league's injury report
+ * (parseInjuries), which is dated and detailed and wins, and the roster's
+ * own listing (nfl.js parseRoster, `listed`) for anyone the report missed.
+ * The report is not complete: a suspension is not an injury, and Josh
+ * Jacobs, suspended, was on no report and on the board (2026-09-24). Same
+ * shape as the report; a roster entry has no detail.
+ */
+export function notActive(report, roster, lastPlayed) {
+  const out = { ...(report || {}) };
+  if (!roster || typeof roster.forEach !== "function") return out;
+  roster.forEach((a) => {
+    if (!a || !a.listed || out[a.id]) return;
+    /* A dated listing he has played through is stale: an entry ESPN never
+       cleared would void him on every board after his return. */
+    if (a.listedAt && lastPlayed && (lastPlayed.get(a.id) || "") > a.listedAt) return;
+    out[a.id] = { name: a.name, team: a.team, pos: a.pos, status: String(a.listed), detail: "" };
+  });
+  return out;
+}
+
+/**
+ * The passers who get no passing line: every quarterback on a team but
+ * its starter (nfl.js startingPasser). Quarterbacks by the roster's
+ * position -- a punter or receiver with a trick-play attempt is not in
+ * the race -- or, with no roster, anyone with the attempts the board
+ * gates on. `games` are the seasons on file; a quarterback's recent
+ * attempts are those over his team's last three games in `season`,
+ * zero for everyone before the season has one. `injuries` is the merged
+ * not-active map. Returns a Set of player ids.
+ */
+export function backupPassers(model, players, games, roster, injuries, season) {
+  const isQB = (p) => (roster && roster.has(String(p.id))) ? roster.get(String(p.id)).pos === "QB" : p.passAtt >= model.DEFAULTS.passMinOpportunity;
+  const recent = new Map();
+  for (const g of games || []) {
+    if (g.season !== season) continue;
+    for (const t of [g.home.team, g.away.team]) {
+      if (!recent.has(t)) recent.set(t, []);
+      recent.get(t).push(g);
+    }
+  }
+  for (const list of recent.values()) { list.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0)); list.splice(3); }
+  const byTeam = new Map();
+  for (const p of players || []) {
+    if (!(p.passAtt > 0) || !isQB(p)) continue;
+    if (!byTeam.has(p.team)) byTeam.set(p.team, []);
+    byTeam.get(p.team).push(p);
+  }
+  const out = new Set();
+  for (const [team, list] of byTeam) {
+    const rg = recent.get(team) || [];
+    // His attempts FOR the team: a game he threw against it before a trade is not one.
+    const recentAtt = (id) => rg.reduce((s, g) => { const row = g.players.find((x) => String(x.id) === String(id) && x.team === team); return s + ((row && row.pass && row.pass.att) || 0); }, 0);
+    const starter = model.startingPasser(list.map((p) => ({
+      id: p.id, passAtt: p.passAtt, recentAtt: recentAtt(p.id),
+      out: model.availability(injuries && injuries[p.id] && injuries[p.id].status) === "out",
+    })));
+    for (const p of list) if (p.id !== starter) out.add(p.id);
+  }
+  return out;
+}
+
 /** The team ids on a league's membership payload (core API groups/<n>/teams). */
 /** Team ids off ESPN's teams list, for the leagues that have one. */
 export function parseTeamIds(payload) {
@@ -781,12 +843,20 @@ export async function buildBoard(league, history) {
       console.log(`  WARNING: no injury report (${e.message})`);
     }
   }
+  /* ...and the roster's own listing for anyone the report missed, unless
+     he has played since it was dated. */
+  const lastPlayed = new Map();
+  for (const g of current) for (const p of g.players) if ((lastPlayed.get(p.id) || "") < g.date) lastPlayed.set(p.id, g.date);
+  injuries = notActive(injuries, roster, lastPlayed);
   const hurtByTeam = {};
   for (const [id, inj] of Object.entries(injuries)) {
     if (!/^(QB|RB|WR|TE|FB)$/.test(inj.pos)) continue;
     if (model.availability(inj.status) === "ok") continue;
     (hurtByTeam[inj.team] = hurtByTeam[inj.team] || []).push({ id, name: inj.name, pos: inj.pos, status: inj.status, detail: inj.detail });
   }
+
+  /* One quarterback throws for a team: see backupPassers. */
+  const backups = backupPassers(model, placed.players, current, roster, injuries, season);
 
   const round = (a, n) => Array.from(a, (x) => Number(x.toFixed(n)));
   const payload = {
@@ -816,6 +886,7 @@ export async function buildBoard(league, history) {
         // schedule has not placed his team yet.
         opp: opponentOf[p.team] || null,
         ...(injuries[p.id] ? { status: injuries[p.id].status, injury: injuries[p.id].detail || undefined } : {}),
+        ...(backups.has(p.id) ? { backupQB: true } : {}),
       })),
     injuries: hurtByTeam,
     injuriesAt: league.injuriesUrl ? new Date().toISOString() : null,
@@ -825,6 +896,10 @@ export async function buildBoard(league, history) {
     gamesCached: history.games.length,
   };
 
+  /* Counted over the board as written, not over the roster. */
+  const onBoard = payload.players;
+  const count = (f) => onBoard.filter(f).length;
+  console.log(`  availability: ${count((p) => p.status)} of ${onBoard.length} board players carry a status, ${count((p) => model.availability(p.status) === "out")} ruled out; ${count((p) => p.backupQB)} backup quarterbacks get no passing line`);
   writeFileSync(
     league.dataFile,
     `/* generated by ${league.fetcher} — do not edit */\nwindow.${league.dataGlobal} = ${JSON.stringify(payload)};\n`,
