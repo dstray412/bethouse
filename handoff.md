@@ -58,6 +58,16 @@ through `E.evPct`; the `.px` row cell (`#px<i>`) and the panel's
 `.row.priced` six-column grid, `.px`, `.pxrow/.pxin/.pxedge`, phone
 rules hide the cell.
 
+**After review.** The price key carries the slate (`league|season-week|
+player|prop|line`) and `W.forSlate` keeps only the board's slate, so a
+week-4 price is never a week-5 edge; the store getter is inside
+try/catch (a browser that refuses storage still renders); teams come
+from the players (a bye team is still a choice) and positions are
+restricted to `POS_ORDER`; a page without `watchlist.js` renders plain
+rows with no price cell; a price committed (`change`) re-sorts when the
+order is by edge, a keystroke never does; `edgeClass` is the one colour
+rule (`.edge.good/.warn/.bad`), used by the slip too.
+
 **Constraints met.** `.px small` joined the block list; the price map is
 only ever indexed by a `W.priceKey` result (dom.test.mjs pins both); the
 live tests mount the real script with edge.js and watchlist.js and a

@@ -1711,17 +1711,22 @@ took one.
 The arithmetic is `edge.js`'s: expected value of the model's chance at
 that American price, the same call the slip makes and the same colour
 rule the baseball board uses for its market chip (over 2% green, at or
-above zero amber, below zero red). A price is keyed by league, player,
-prop and -- for a counting prop -- the line, so a price typed at o59.5
-is not read as an edge at o77.5 when the Low / High setting moves the
-line. `watchlist.js` owns the key and the versioned storage key
-(`bethouse.prices.v1`); the page owns the try/catch around
-`localStorage`, which a private window can refuse, in which case the
-price lasts the visit.
+above zero amber, below zero red). A price is keyed by league, slate
+(season and week), player, prop and -- for a counting prop -- the line,
+so a price typed at o59.5 is not read as an edge at o77.5 when the Low /
+High setting moves the line, and last week's price is never shown as this
+week's against a new opponent; only the slate on the board is kept, so
+the store does not carry every week ever typed. `watchlist.js` owns the
+key and the versioned storage key (`bethouse.prices.v1`); the page owns
+the try/catch around `localStorage`, which a private window can refuse,
+in which case the price lasts the visit and the board renders regardless.
 
-**Filters and sort.** Team (from the schedule) and position (from the
-roster, written into the data file as `pos`; an older file without it
-hides the strip) narrow the rows the same way the search box does. Sort
+**Filters and sort.** Team (every team on the board, a bye week included)
+and position (from the roster, written into the data file as `pos`; only
+the positions the board files under are buttons, so a safety with a
+trick-play record is under All and is not navigation; an older file
+without positions hides the strip) narrow the rows the same way the
+search box does. Sort
 by **projection** is the board's own order; by **edge** puts the rows you
 have priced first, best edge first, the rest in projection order; by
 **boost** re-orders by projection over his own per-game rate -- for a

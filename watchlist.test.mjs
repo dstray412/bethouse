@@ -12,14 +12,23 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import W from "./watchlist.js";
 
-test("priceKey: the line is part of a counting prop's key, and no part of a touchdown's", () => {
-  const rec = { league: "NFL", playerId: "4241479", prop: "recyds", line: 59.5 };
-  assert.equal(W.priceKey(rec), "NFL|4241479|recyds|59.5");
+test("priceKey: the slate and the line are part of a counting prop's key, the slate alone of a touchdown's", () => {
+  const rec = { league: "NFL", slate: "2026-4", playerId: "4241479", prop: "recyds", line: 59.5 };
+  assert.equal(W.priceKey(rec), "NFL|2026-4|4241479|recyds|59.5");
   // The same player at the High line setting is a different price.
   assert.notEqual(W.priceKey(rec), W.priceKey({ ...rec, line: 77.5 }));
-  assert.equal(W.priceKey({ league: "NFL", playerId: "4241479", prop: "td" }), "NFL|4241479|td");
-  assert.equal(W.priceKey({ league: "NFL", playerId: "4241479", prop: "td", line: 0.5 }), "NFL|4241479|td", "a line on a touchdown is ignored");
+  // ...and last week's price is not this week's: a new opponent, a new number at the book.
+  assert.notEqual(W.priceKey(rec), W.priceKey({ ...rec, slate: "2026-5" }));
+  assert.equal(W.priceKey({ league: "NFL", slate: "2026-4", playerId: "4241479", prop: "td" }), "NFL|2026-4|4241479|td");
+  assert.equal(W.priceKey({ league: "NFL", slate: "2026-4", playerId: "4241479", prop: "td", line: 0.5 }), "NFL|2026-4|4241479|td", "a line on a touchdown is ignored");
   assert.notEqual(W.priceKey({ ...rec, league: "CFB" }), W.priceKey(rec), "leagues share ids; the key keeps them apart");
+});
+
+test("forSlate: only this slate's prices are kept, so the store does not carry every week ever typed", () => {
+  const m = { "NFL|2026-3|1|td": -120, "NFL|2026-4|1|td": -140, "CFB|2026-4|9|rushyds|88.5": 105, "NFL|2026-4|2|recyds|59.5": 110 };
+  assert.deepEqual(W.forSlate(m, "NFL", "2026-4"), { "NFL|2026-4|1|td": -140, "NFL|2026-4|2|recyds|59.5": 110 });
+  assert.deepEqual(W.forSlate(m, "NFL", "2026-9"), {});
+  assert.deepEqual(W.forSlate(null, "NFL", "2026-4"), {});
 });
 
 test("validPrice: an American price is a whole number at or beyond ±100", () => {
@@ -31,12 +40,12 @@ test("parsePrices: bad JSON is an empty map, and only valid prices under string 
   assert.deepEqual(W.parsePrices("not json"), {});
   assert.deepEqual(W.parsePrices(null), {});
   assert.deepEqual(W.parsePrices("[1,2]"), {}, "a list is not a map");
-  const raw = JSON.stringify({ "NFL|1|td": -120, "NFL|2|recyds|59.5": "+140", "NFL|3|td": 50, "NFL|4|td": "x", "": -110 });
-  assert.deepEqual(W.parsePrices(raw), { "NFL|1|td": -120, "NFL|2|recyds|59.5": 140 });
+  const raw = JSON.stringify({ "NFL|2026-4|1|td": -120, "NFL|2026-4|2|recyds|59.5": "+140", "NFL|2026-4|3|td": 50, "NFL|2026-4|4|td": "x", "": -110 });
+  assert.deepEqual(W.parsePrices(raw), { "NFL|2026-4|1|td": -120, "NFL|2026-4|2|recyds|59.5": 140 });
 });
 
 test("serialise / parsePrices round-trip, and the key carries a version", () => {
-  const m = { "NFL|1|td": -120, "CFB|9|rushyds|88.5": 105 };
+  const m = { "NFL|2026-4|1|td": -120, "CFB|2026-4|9|rushyds|88.5": 105 };
   assert.deepEqual(W.parsePrices(W.serialise(m)), m);
   assert.match(W.PRICE_KEY, /^bethouse\.prices\.v\d+$/);
 });

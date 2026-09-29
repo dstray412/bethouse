@@ -69,11 +69,20 @@
        watchlist.js so the same player at another line is another price.
        The store can refuse (a private window); then nothing is kept and
        the board still works for the visit. */
-    var store=(typeof window!=='undefined'&&window.localStorage)||null;
-    var readPrices=function(){ if(!W||!store) return {}; try{ return W.parsePrices(store.getItem(W.PRICE_KEY)); }catch(e){ return {}; } };
-    var savePrices=function(){ if(!W||!store) return; try{ store.setItem(W.PRICE_KEY,W.serialise(state.prices)); }catch(e){} };
-    state.prices=readPrices();
-    var priceKeyOf=function(p,prop,line){ return W?W.priceKey({league:cfg.league,playerId:p.id,prop:prop,line:line}):null; };
+    var store=null; try{ store=(typeof window!=='undefined'&&window.localStorage)||null; }catch(e){ store=null; }
+    var slate=String(D.season)+'-'+String(D.week);
+    var readAll=function(){ if(!W||!store) return {}; try{ return W.parsePrices(store.getItem(W.PRICE_KEY)); }catch(e){ return {}; } };
+    /* Save this league's slate over whatever it held before; the other
+       board's prices in the same store are left alone. */
+    var savePrices=function(){
+      if(!W||!store) return;
+      var all=readAll();
+      Object.keys(all).forEach(function(k){ if(k.indexOf(cfg.league+'|')===0) delete all[k]; });
+      Object.keys(state.prices).forEach(function(k){ all[k]=state.prices[k]; });
+      try{ store.setItem(W.PRICE_KEY,W.serialise(all)); }catch(e){}
+    };
+    state.prices=W?W.forSlate(readAll(),cfg.league,slate):{};
+    var priceKeyOf=function(p,prop,line){ return W?W.priceKey({league:cfg.league,slate:slate,playerId:p.id,prop:prop,line:line}):null; };
     /* The price typed against a row and the edge at it: edge.js's expected
        value of the model's chance at that price. null when nothing is typed. */
     function priceEdge(prob,pk){
@@ -81,10 +90,14 @@
       if(price==null||!E||!(prob>0&&prob<1)) return null;
       return {price:price, ev:E.evPct(prob,E.americanToDecimal(price))};
     }
-    var edgeClass=function(ev){ return ev>0.02?'good':ev>=0?'warn':'bad'; };
-    /* The row cell: the price and its edge, or an invitation. */
+    /* One colour rule for an edge, wherever it is shown: the slip, the row, the panel. */
+    var edgeClass=function(ev){ return 'edge '+(ev>0.02?'good':ev>=0?'warn':'bad'); };
+    /* The row cell: the price and its edge, or an invitation. Nothing at
+       all when watchlist.js did not load: no cell that promises an input
+       the panel cannot give. */
     var pxInner=function(pe){ return pe?sgn(pe.price)+'<small class="'+edgeClass(pe.ev)+'">'+E.formatPct(pe.ev)+' edge</small>':'<span class="none">price?</span><small>&nbsp;</small>'; };
-    var pxCell=function(i,pe){ return '<span class="px" id="px'+i+'">'+pxInner(pe)+'</span>'; };
+    var pxCell=function(i,pe){ return W?'<span class="px" id="px'+i+'">'+pxInner(pe)+'</span>':''; };
+    var rowClass=W?'row priced':'row';
     var pxEdgeInner=function(pe){ return pe?'<b class="'+edgeClass(pe.ev)+'">'+E.formatPct(pe.ev)+'</b> edge at '+sgn(pe.price):'the edge shows here'; };
     /* The panel's input: type the book's price, the row above follows. */
     var pxInput=function(r){
@@ -197,7 +210,7 @@
         '<div class="gmeta">'+rows.length+' players · '+seasons+' form · type the book\'s price in a row for your edge</div></div>';
       rows.forEach(function(r,i){
         r.i=i;
-        html+='<button class="row priced" aria-expanded="false" data-i="'+i+'">'+
+        html+='<button class="'+rowClass+'" aria-expanded="false" data-i="'+i+'">'+
           '<span class="slot">'+(i+1)+'</span>'+
           '<span class="who">'+esc(r.p.name)+'<span class="pos">'+esc(r.p.team)+
             (r.p.opp?' vs '+esc(r.p.opp):'')+'</span>'+qTag(r.p)+'</span>'+
@@ -273,7 +286,7 @@
         ' · type the book\'s price in a row for your edge</div></div>';
       rows.forEach(function(r,i){
         r.i=i;
-        html+='<button class="row priced" aria-expanded="false" data-i="'+i+'">'+
+        html+='<button class="'+rowClass+'" aria-expanded="false" data-i="'+i+'">'+
           '<span class="slot">'+(i+1)+'</span>'+
           '<span class="who">'+esc(r.p.name)+'<span class="pos">'+esc(r.p.team)+(r.p.opp?' vs '+esc(r.p.opp):'')+' · o'+r.line+'</span>'+badge(r.p)+qTag(r.p)+'</span>'+
           '<span class="prob">'+Math.round(r.exp)+'<small>'+(stat==='recs'?'catches':'yards')+'</small></span>'+
@@ -697,8 +710,7 @@
     function edgeHtml(p){
       if(state.slipPrice==null||!isFinite(state.slipPrice)||state.slipPrice===0||!E) return '';
       var ev=E.evPct(p,E.americanToDecimal(state.slipPrice));
-      var col=ev>0.02?'var(--good)':ev>=0?'var(--warn)':'var(--bad)';
-      return '<span class="big" style="color:'+col+'">'+E.formatPct(ev)+'</span><span class="lbl">edge at that price</span>';
+      return '<span class="big '+edgeClass(ev)+'">'+E.formatPct(ev)+'</span><span class="lbl">edge at that price</span>';
     }
     function renderParlayControls(){
       var box=document.getElementById('parlayctl'); if(!box) return;
@@ -725,21 +737,28 @@
     }
 
     var SORTS=[{id:'proj',label:'Projection'},{id:'edge',label:'Edge'},{id:'boost',label:'Boost'}];
+    /* The positions the board files under, in depth-chart order. A safety
+       with a trick-play record is on the board under All and is not a
+       button: roster noise is not navigation. */
     var POS_ORDER=['QB','RB','WR','TE','FB'];
-    /* Team from the schedule, position from the data file where it has
-       one (older files do not: then the strip stays hidden). */
+    /* Both lists come from the players, once: a team on a bye has no game
+       this week and is still on the board, so it is still a choice. */
+    var TEAMS=[], POSS=[];
+    (D.players||[]).forEach(function(p){
+      if(p.team&&TEAMS.indexOf(p.team)<0) TEAMS.push(p.team);
+      if(p.pos&&POS_ORDER.indexOf(p.pos)>=0&&POSS.indexOf(p.pos)<0) POSS.push(p.pos);
+    });
+    TEAMS.sort(); POSS.sort(function(a,b){ return POS_ORDER.indexOf(a)-POS_ORDER.indexOf(b); });
+    var teamSel=document.getElementById('teamsel');
+    if(teamSel){
+      var allTeams=el('option',null,'All teams'); allTeams.value=''; teamSel.appendChild(allTeams);
+      TEAMS.forEach(function(t){ var o=el('option',null,t); o.value=t; teamSel.appendChild(o); });
+      teamSel.onchange=function(){ state.team=teamSel.value||''; state.open=null; render(); };
+    }
     function renderFilters(){
-      var sel=document.getElementById('teamsel');
-      if(sel){
-        sel.innerHTML='';
-        var all=el('option',null,'All teams'); all.value=''; all.selected=!state.team; sel.appendChild(all);
-        Object.keys(gameOf).sort().forEach(function(t){ var o=el('option',null,t); o.value=t; o.selected=t===state.team; sel.appendChild(o); });
-        sel.onchange=function(){ state.team=sel.value||''; state.open=null; render(); };
-      }
-      var poss=[]; (D.players||[]).forEach(function(p){ if(p.pos&&poss.indexOf(p.pos)<0) poss.push(p.pos); });
-      poss.sort(function(a,b){ var ia=POS_ORDER.indexOf(a), ib=POS_ORDER.indexOf(b); return (ia<0?9:ia)-(ib<0?9:ib)||a.localeCompare(b); });
-      var wrap=document.getElementById('poswrap'); if(wrap) wrap.hidden=!poss.length;
-      if(poss.length) seg(document.getElementById('posseg'),[{id:'',label:'All'}].concat(poss.map(function(x){return {id:x,label:x};})),state.pos,function(v){state.pos=v;state.open=null;render();});
+      if(teamSel) teamSel.value=state.team;
+      var wrap=document.getElementById('poswrap'); if(wrap) wrap.hidden=!POSS.length;
+      if(POSS.length) seg(document.getElementById('posseg'),[{id:'',label:'All'}].concat(POSS.map(function(x){return {id:x,label:x};})),state.pos,function(v){state.pos=v;state.open=null;render();});
     }
 
     function render(){
@@ -797,6 +816,12 @@
       var v=parseFloat(t.value); state.slipPrice=isFinite(v)?v:null;
       var s=state.slip, box=document.getElementById('slipedge');
       if(s&&box) box.innerHTML=edgeHtml(s.combined.adjusted!=null?s.combined.adjusted:s.combined.prob);
+    });
+    /* A price committed (blur, Enter) re-orders the rows when the order
+       is by edge; a keystroke never does, so the box keeps the cursor. */
+    app.addEventListener('change',function(e){
+      var t=e.target, pk=t&&t.getAttribute?t.getAttribute('data-pk'):null;
+      if(pk&&state.sort==='edge'){ state.open=null; render(); }
     });
     app.addEventListener('click',function(e){
       if(e.target.closest('[data-clearslip]')){ state.slip=null; state.slipError=null; state.slipLegs=null; render(); return; }

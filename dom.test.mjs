@@ -994,18 +994,21 @@ const PLAYERS = [
   { id: "a", name: "Alpha Wide", team: "KC", pos: "WR", games: 10, tds: 8, carries: 0, targets: 80, recYds: 900, rushYds: 0, recs: 60, passAtt: 0, passYds: 0, opp: "LAC" },
   { id: "b", name: "Bravo Back", team: "LAC", pos: "RB", games: 10, tds: 2, carries: 150, targets: 20, recYds: 100, rushYds: 700, recs: 15, passAtt: 0, passYds: 0, opp: "KC" },
   { id: "c", name: "Charlie End", team: "KC", pos: "TE", games: 10, tds: 0, carries: 0, targets: 60, recYds: 500, rushYds: 0, recs: 45, passAtt: 0, passYds: 0, opp: "LAC" },
+  // On a bye this week: no game, no opponent, still on the board.
+  { id: "d", name: "Delta Bye", team: "ZZZ", pos: "RB", games: 10, tds: 3, carries: 120, targets: 10, recYds: 60, rushYds: 500, recs: 8, passAtt: 0, passYds: 0, opp: null },
+  // A defensive listing with a trick-play record: not a position the board files under.
+  { id: "e", name: "Echo Safety", team: "LAC", pos: "S", games: 10, tds: 1, carries: 12, targets: 0, recYds: 0, rushYds: 40, recs: 0, passAtt: 0, passYds: 0, opp: "KC" },
 ];
 
 /** Mount the real board on the TD view with players, edge.js and watchlist.js present. */
-async function mountPlayers({ players, storage }) {
+async function mountPlayers({ players, storage, storageThrows, noWatchlist }) {
   const nfl = (await import("./nfl.js")).default;
   const doc = stubDoc();
   const store = new Map(Object.entries(storage || {}));
-  const win = {
-    BetHouseEdge: (await import("./edge.js")).default,
-    BetHouseWatchlist: (await import("./watchlist.js")).default,
-    localStorage: { getItem: (k) => (store.has(k) ? store.get(k) : null), setItem: (k, v) => store.set(k, String(v)), removeItem: (k) => store.delete(k) },
-  };
+  const win = { BetHouseEdge: (await import("./edge.js")).default };
+  if (!noWatchlist) win.BetHouseWatchlist = (await import("./watchlist.js")).default;
+  if (storageThrows) Object.defineProperty(win, "localStorage", { get() { throw new Error("SecurityError: storage is disabled"); } });
+  else win.localStorage = { getItem: (k) => (store.has(k) ? store.get(k) : null), setItem: (k, v) => store.set(k, String(v)), removeItem: (k) => store.delete(k) };
   // eslint-disable-next-line no-new-func
   new Function("window", "document", src("football-board.js"))(win, doc);
   win.BetHouseFootballBoard.mount({
@@ -1030,21 +1033,48 @@ async function mountPlayers({ players, storage }) {
   return { app, doc, win, store, press };
 }
 
-test("team and position filters narrow the rows, and clearing them brings every row back", async () => {
+test("team and position filters narrow the rows, a bye team is still a team, roster noise is not a position", async () => {
   const { app, doc, press } = await mountPlayers({ players: PLAYERS });
-  assert.equal(app.__rows.length, 3);
+  assert.equal(app.__rows.length, 5);
   press("posseg", "WR");
   assert.deepEqual(app.__rows.map((r) => r.p.id), ["a"]);
   press("posseg", "All");
+  // The stub's innerHTML setter keeps old children, so read the distinct labels.
+  const labels = [...new Set(doc.getElementById("posseg").children.map((b) => b.textContent))];
+  assert.deepEqual(labels, ["All", "QB", "RB", "WR", "TE"].filter((l) => l === "All" || PLAYERS.some((p) => p.pos === l)), "only the positions the board files under, in depth-chart order");
+  assert.ok(!labels.includes("S"), "a safety with a trick-play record is not a filter button");
   const sel = doc.getElementById("teamsel");
+  const teams = sel.children.map((o) => o.value);
+  assert.ok(teams.includes("ZZZ"), "a team on a bye is still on the board, so it is still a choice");
   sel.value = "KC"; sel.onchange();
   assert.deepEqual(app.__rows.map((r) => r.p.id).sort(), ["a", "c"]);
   sel.value = ""; sel.onchange();
-  assert.equal(app.__rows.length, 3);
+  assert.equal(app.__rows.length, 5);
+});
+
+test("a browser that refuses storage still gets a board, and a page without watchlist.js gets rows with no price cell", async () => {
+  const { app } = await mountPlayers({ players: PLAYERS, storageThrows: true });
+  assert.equal(app.__rows.length, 5, "the board did not render");
+  const bare = await mountPlayers({ players: PLAYERS, noWatchlist: true });
+  assert.ok(!bare.app.innerHTML.includes('class="px"'), "a price cell with nothing behind it");
+  assert.ok(!bare.app.__detail(bare.app.__rows[0]).includes("pxin"), "a price input with nothing behind it");
+});
+
+test("with Sort by edge on, a price committed in the panel re-orders the rows; a keystroke does not", async () => {
+  const { app, doc, press, win } = await mountPlayers({ players: PLAYERS });
+  const W = win.BetHouseWatchlist;
+  press("sortseg", "Edge");
+  const i = app.__rows.length - 1, last = app.__rows[i];
+  const key = W.priceKey({ league: "NFL", slate: "2026-2", playerId: last.p.id, prop: "td" });
+  const input = stubEl("input"); input.setAttribute("data-pk", key); input.setAttribute("data-i", String(i)); input.value = "+400";
+  app.handlers.input[0]({ target: input });
+  assert.equal(app.__rows[i].p.id, last.p.id, "typing must not re-order under the cursor");
+  app.handlers.change[0]({ target: input });
+  assert.equal(app.__rows[0].p.id, last.p.id, "committing the price put the priced row first");
 });
 
 test("sort by boost orders rows by projection over his own rate, with no rate last; sort by edge puts priced rows first", async () => {
-  const { app, doc, press, win } = await mountPlayers({ players: PLAYERS, storage: { [ (await import("./watchlist.js")).default.PRICE_KEY ]: JSON.stringify({ "NFL|c|td": "+400" }) } });
+  const { app, doc, press, win } = await mountPlayers({ players: PLAYERS, storage: { [ (await import("./watchlist.js")).default.PRICE_KEY ]: JSON.stringify({ "NFL|2026-2|c|td": "+400", "NFL|2026-1|a|td": "-500" }) } });
   press("sortseg", "Boost");
   const ratio = (r) => r.s.observedRate > 0 ? r.s.lambda / r.s.observedRate : -Infinity;
   const got = app.__rows.map(ratio);
@@ -1052,6 +1082,7 @@ test("sort by boost orders rows by projection over his own rate, with no rate la
   assert.equal(app.__rows[app.__rows.length - 1].p.id, "c", "no touchdowns yet: no baseline, so last");
   press("sortseg", "Edge");
   assert.equal(app.__rows[0].p.id, "c", "the one priced row comes first");
+  assert.ok(!app.__rows.find((r) => r.p.id === "a").pe, "last week's price is not this week's edge");
   const E = win.BetHouseEdge;
   const ev = E.evPct(app.__rows[0].s.prob, E.americanToDecimal(400));
   assert.ok(app.innerHTML.includes(E.formatPct(ev)), "the row does not show the edge at the stored price");
@@ -1062,7 +1093,7 @@ test("typing a price in the panel prices the row at once, through edge.js, and i
   const W = win.BetHouseWatchlist, E = win.BetHouseEdge;
   const i = app.__rows.findIndex((r) => r.p.id === "a");
   const panel = app.__detail(app.__rows[i]);
-  const key = W.priceKey({ league: "NFL", playerId: "a", prop: "td" });
+  const key = W.priceKey({ league: "NFL", slate: "2026-2", playerId: "a", prop: "td" });
   assert.ok(panel.includes(`data-pk="${key}"`), "the panel has no price input for this row");
   const input = stubEl("input"); input.setAttribute("data-pk", key); input.setAttribute("data-i", String(i)); input.value = "-120";
   app.handlers.input[0]({ target: input });
@@ -1073,4 +1104,9 @@ test("typing a price in the panel prices the row at once, through edge.js, and i
   app.handlers.input[0]({ target: input });
   assert.deepEqual(W.parsePrices(store.get(W.PRICE_KEY)), {}, "clearing the box forgets the price");
   assert.ok(!doc.getElementById("px" + i).innerHTML.includes("edge"), "a cleared price still shows an edge");
+});
+
+test("one edge colour rule: the slip and the row share edgeClass", () => {
+  const js = src("football-board.js");
+  assert.equal((js.match(/ev>0\.02\?/g) || []).length, 1, "the good/warn/bad threshold appears more than once");
 });

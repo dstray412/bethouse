@@ -179,9 +179,8 @@ footer td{padding:1px 14px 1px 0}
 .row.priced{grid-template-columns:30px 1fr 74px 62px 82px 20px}
 .px{text-align:right;font-variant-numeric:tabular-nums;font-size:14px;font-weight:600}
 .px .none{color:var(--muted);font-weight:400}
-.px small.good,.pxedge .good{color:var(--good)}
-.px small.warn,.pxedge .warn{color:var(--warn)}
-.px small.bad,.pxedge .bad{color:var(--bad)}
+/* One colour rule for an edge wherever it is shown: the slip, the row, the panel. */
+.edge.good{color:var(--good)} .edge.warn{color:var(--warn)} .edge.bad{color:var(--bad)}
 .pxrow{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin:8px 0 2px}
 .pxrow label{display:flex;gap:8px;align-items:center;color:var(--text)}
 .pxin{font:inherit;font-size:16px;font-weight:700;width:96px;background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:5px 9px;color:var(--text);font-variant-numeric:tabular-nums}
