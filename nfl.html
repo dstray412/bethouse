@@ -81,15 +81,20 @@
     <label id="lab-pos">Position</label>
     <div class="seg" id="posseg" role="group" aria-labelledby="lab-pos"></div>
   </div>
+  <div class="ctl" id="starwrap" hidden>
+    <label id="lab-star">Watchlist</label>
+    <div class="seg" id="starseg" role="group" aria-labelledby="lab-star"></div>
+  </div>
 </div>
 <div id="app"><div class="empty"><div class="big">Loading…</div>
   <div>If this does not clear, run <code>node fetch-nfl.mjs</code>.</div></div></div>
 <div class="scrim" id="scrim" hidden></div>
 <div class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="dtitle" hidden>
-  <div class="dhead"><div><h2 id="dtitle"></h2><div class="dsub" id="dsub"></div></div><button type="button" class="dclose" id="dclose" aria-label="Close">×</button></div>
+  <div class="dhead"><div><h2 id="dtitle"></h2><div class="dsub" id="dsub"></div></div><div class="dbtns"><button type="button" class="dcompare" id="dcompare" hidden>Compare</button><button type="button" class="dclose" id="dclose" aria-label="Close">×</button></div></div>
   <div class="seg dtabs" id="dtabs" role="group" aria-label="Sections"></div>
   <div class="why dbody" id="dbody"></div>
 </div>
+<div class="tray" id="tray" hidden><div class="tcards" id="tcards"></div><button type="button" class="tclear" id="tclear">Clear compare</button></div>
 <footer id="foot"></footer>
 </div>
 

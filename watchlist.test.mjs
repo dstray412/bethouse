@@ -49,3 +49,27 @@ test("serialise / parsePrices round-trip, and the key carries a version", () => 
   assert.deepEqual(W.parsePrices(W.serialise(m)), m);
   assert.match(W.PRICE_KEY, /^bethouse\.prices\.v\d+$/);
 });
+
+/* Stars: the players you are watching, per league. A star is on the
+   player, not on a prop -- you watch a man, then look at his props. */
+test("watchKey: league and player, so the two boards' stars stay apart", () => {
+  assert.equal(W.watchKey({ league: "NFL", playerId: "4241479" }), "NFL|4241479");
+  assert.notEqual(W.watchKey({ league: "CFB", playerId: "4241479" }), W.watchKey({ league: "NFL", playerId: "4241479" }));
+});
+
+test("parseWatch: bad JSON is nothing, and only distinct string keys survive", () => {
+  assert.deepEqual(W.parseWatch("nope"), []);
+  assert.deepEqual(W.parseWatch(null), []);
+  assert.deepEqual(W.parseWatch('{"a":1}'), [], "a map is not a list");
+  assert.deepEqual(W.parseWatch('["NFL|1","NFL|1",7,null,"","CFB|2"]'), ["NFL|1", "CFB|2"]);
+});
+
+test("toggle / has: a star goes on, then off, and a list is never mutated in place", () => {
+  const a = ["NFL|1"];
+  const b = W.toggle(a, "NFL|2");
+  assert.deepEqual(b, ["NFL|1", "NFL|2"]); assert.deepEqual(a, ["NFL|1"], "the input list was mutated");
+  assert.deepEqual(W.toggle(b, "NFL|1"), ["NFL|2"]);
+  assert.ok(W.has(b, "NFL|2")); assert.ok(!W.has(b, "NFL|9")); assert.ok(!W.has(null, "NFL|2"));
+  assert.deepEqual(W.parseWatch(W.serialise(b)), b);
+  assert.match(W.WATCH_KEY, /^bethouse\.watch\.v\d+$/);
+});

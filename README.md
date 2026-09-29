@@ -1776,6 +1776,28 @@ line gives (`recentValues`), and a rung is cleared at N − 0.5
 (`recentHits`), the way the ladder settles it. Nothing here is a
 prediction: it is what he did, beside what the board says he will do.
 
+### Stars, and the compare tray
+
+**2026-09-29, phase 3.** A star beside every player row keeps him on a
+watchlist in your browser (`bethouse.watch.v1`, per league; the star is
+on the player, not on a prop -- you watch a man, then look at his props).
+**Starred only**, in the control strip, narrows the board to them on any
+view. The parlay suggester gains a third source, **Starred**: the same
+candidates the slate builds, through the same gates (a counting prop
+needs 300 games read, a rung is never a leg), narrowed to the starred
+players, then one leg per game as the slate does; when the stars cannot
+fill the legs the board says how many starred players had a leg on
+offer and in how many games. The button is outside the row, because a
+button inside a button is not a thing in HTML.
+
+The drawer gains **Compare**: up to three players in a tray at the foot
+of the page, each with the number the current view ranks by -- the
+chance to score, or the projection with the over and the fair price --
+and the price you typed with its edge. The tray follows the view: switch
+from touchdowns to receiving yards and the cards re-price; a player not
+on the view says so. Three at a time, drop one to add another; the tray
+lasts the visit and is not stored.
+
 ### Alternate lines: the ladder, and the flaw it exposed
 
 2026-09-21. A book does not offer one line on a receiver; it offers 10+, 20+,

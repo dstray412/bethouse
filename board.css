@@ -219,5 +219,36 @@ button.rung:hover{border-color:var(--accent)}
 @media (max-width:760px){
   .drawer{top:auto;left:0;right:0;width:100%;max-height:88vh;border-left:0;border-top:1px solid var(--line);border-radius:16px 16px 0 0;padding:14px 14px 24px}
 }
+/* Stars: a button beside the row, outside it (a button inside a button
+   is not a thing), lit for a player on the watchlist. */
+.rowline{display:flex;align-items:stretch}
+.rowline .row{flex:1;min-width:0}
+.star{font:inherit;font-size:18px;line-height:1;color:var(--muted);background:none;border:0;border-top:1px solid rgba(255,255,255,.045);width:40px;cursor:pointer;flex:none}
+.star:hover{color:var(--text)}
+.star[aria-pressed=true]{color:var(--warn)}
+/* The compare tray: up to three players side by side at the foot of
+   the page, each with the number the current view ranks by. */
+.dbtns{display:flex;gap:8px;align-items:center;flex:none}
+.dcompare{font:inherit;font-size:13px;color:var(--muted);background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:0 11px;height:36px;cursor:pointer}
+.dcompare:hover{color:var(--text);border-color:var(--accent)}
+.dcompare[disabled]{opacity:.5;cursor:default}
+.tray{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--bg);border-top:1px solid var(--line);padding:10px 14px;
+  display:flex;gap:10px;align-items:stretch;box-shadow:0 -12px 40px rgba(0,0,0,.45)}
+.tray:not([hidden])~footer{margin-bottom:150px}
+.tcards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;flex:1;min-width:0}
+.tcard{position:relative;border:1px solid var(--line);border-radius:12px;padding:8px 34px 8px 12px;background:var(--panel2);font-size:13px;color:var(--muted)}
+.tcard .tname{font-weight:600;font-size:14px;color:var(--text)}
+.tcard .tnum{font-family:var(--display);font-size:20px;font-weight:700;color:var(--text);font-variant-numeric:tabular-nums;margin-top:2px}
+.tcard .tnum small{font-family:inherit;font-size:12px;font-weight:400;color:var(--muted);margin-left:5px}
+.tcard button{position:absolute;top:6px;right:6px;font:inherit;font-size:16px;line-height:1;color:var(--muted);background:none;border:0;cursor:pointer;width:24px;height:24px}
+.tcard button:hover{color:var(--text)}
+.tclear{font:inherit;font-size:13px;color:var(--muted);background:none;border:1px solid var(--line);border-radius:9px;padding:6px 11px;cursor:pointer;align-self:center;flex:none}
+.tclear:hover{color:var(--text);border-color:var(--accent)}
+@media (max-width:760px){
+  .tray{flex-wrap:wrap;padding:8px 10px}
+  .tcards{display:flex;overflow-x:auto;scrollbar-width:none;flex:1 0 100%}
+  .tcard{flex:0 0 200px}
+  .tclear{margin-left:auto}
+}
 /* Touch: fingers need 44px; the mouse does not. Pages add their own tap targets. */
 @media (pointer:coarse){ .seg button,.navlink{min-height:44px} }

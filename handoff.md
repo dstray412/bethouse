@@ -27,6 +27,27 @@ Zero dependencies, no build step, no server, no API key. `node --test` with
 **named files** — bare discovery pulls in the backtests, which fire live API
 calls. The list lives in seven places and `dom.test.mjs` checks all seven.
 
+## The interactive football board, phase 3 of 3, 2026-09-29
+
+Stars and the compare tray; the three-phase plan is complete. README,
+"Stars, and the compare tray". `watchlist.js` gains `WATCH_KEY`,
+`watchKey({league, playerId})` (player-level, not per prop -- a change
+from the plan, so a starred man shows on every view), `parseWatch`,
+`toggle`, `has`. `football-board.js`: `state.watch / starOnly / compare`;
+`starBtn(p)` renders a `button.star[data-star]` **beside** the row inside
+`div.rowline` (a button inside a button is invalid), handled before
+`.row` in the delegated click; `keep()` honours `starOnly`; `#starseg`
+is a one-button toggle; `SCOPES` gains `stars` and `suggest()` filters
+`buildCandidates()` (the one builder; dom.test.mjs pins it) to starred
+players then runs the slate rule; `tdRow(p)` / `statRow(stat,p,pool)`
+are the row functions the board and the tray share; `renderTray()` runs
+at the end of every `render()` and `renderDrawer()`; `#dcompare` in the
+drawer head adds or drops the open player (disabled with a title when
+three are in); `[data-untray]` and `#tclear` are delegated on `#tray`.
+`board.css`: `.rowline/.star`, `.dbtns/.dcompare`, `.tray/.tcards/.tcard/
+.tclear`, `.tray:not([hidden])~footer` clears the footer, phone cards
+scroll sideways.
+
 ## The interactive football board, phase 2 of 3, 2026-09-29
 
 The drawer. README, "The player drawer: a row is a link". `football-

@@ -1,7 +1,7 @@
 /* watchlist.js — what the browser remembers about the football boards.
  *
  * The price you typed against a row, so the board can show your edge at
- * it and still show it tomorrow. Nothing here touches localStorage: the
+ * it and still show it tomorrow, and the players you starred. Nothing here touches localStorage: the
  * page reads and writes the store (try/catch, a private window can
  * refuse) and hands the raw string in and out, the way index.html does
  * for the bet log. Same shape as bets.js: a versioned key, a parse that
@@ -22,6 +22,31 @@
   "use strict";
 
   const PRICE_KEY = "bethouse.prices.v1";
+  const WATCH_KEY = "bethouse.watch.v1";
+
+  /* A star is on the player, per league: you watch a man, then look at his props. */
+  function watchKey(e) {
+    return String(e.league) + "|" + String(e.playerId);
+  }
+  function parseWatch(raw) {
+    let data;
+    try {
+      data = JSON.parse(raw);
+    } catch (e) {
+      return [];
+    }
+    if (!Array.isArray(data)) return [];
+    const out = [];
+    for (const k of data) if (typeof k === "string" && k && out.indexOf(k) < 0) out.push(k);
+    return out;
+  }
+  function has(list, key) {
+    return Array.isArray(list) && list.indexOf(key) >= 0;
+  }
+  function toggle(list, key) {
+    const cur = Array.isArray(list) ? list : [];
+    return has(cur, key) ? cur.filter((k) => k !== key) : cur.concat([key]);
+  }
 
   function priceKey(e) {
     const base = String(e.league) + "|" + String(e.slate) + "|" + String(e.playerId) + "|" + String(e.prop);
@@ -67,5 +92,5 @@
     return JSON.stringify(map);
   }
 
-  return { PRICE_KEY, priceKey, forSlate, validPrice, parsePrices, serialise };
+  return { PRICE_KEY, priceKey, forSlate, validPrice, parsePrices, serialise, WATCH_KEY, watchKey, parseWatch, toggle, has };
 });

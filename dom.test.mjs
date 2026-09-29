@@ -1000,14 +1000,16 @@ const PLAYERS = [
   { id: "d", name: "Delta Bye", team: "ZZZ", pos: "RB", games: 10, tds: 3, carries: 120, targets: 10, recYds: 60, rushYds: 500, recs: 8, passAtt: 0, passYds: 0, opp: null },
   // A defensive listing with a trick-play record: not a position the board files under.
   { id: "e", name: "Echo Safety", team: "LAC", pos: "S", games: 10, tds: 1, carries: 12, targets: 0, recYds: 0, rushYds: 40, recs: 0, passAtt: 0, passYds: 0, opp: "KC" },
+  // In the other game, so a slip from stars can carry two legs.
+  { id: "f", name: "Foxtrot Back", team: "AAA", pos: "RB", games: 10, tds: 4, carries: 140, targets: 20, recYds: 120, rushYds: 600, recs: 15, passAtt: 0, passYds: 0, opp: "BBB" },
 ];
 
 /** Mount the real board on the TD view with players, edge.js and watchlist.js present. */
-async function mountPlayers({ players, storage, storageThrows, noWatchlist, search, pools }) {
+async function mountPlayers({ players, storage, storageThrows, noWatchlist, search, pools, games }) {
   const nfl = (await import("./nfl.js")).default;
   const doc = stubDoc();
   const store = new Map(Object.entries(storage || {}));
-  const win = { BetHouseEdge: (await import("./edge.js")).default, pushed: [], listeners: {} };
+  const win = { BetHouseEdge: (await import("./edge.js")).default, BetHouseParlay: (await import("./parlay.js")).default, pushed: [], listeners: {} };
   win.location = { search: search || "", pathname: "/nfl.html" };
   win.history = { pushState(_s, _t, url) { win.pushed.push(url); }, replaceState(_s, _t, url) { win.pushed.push(url); } };
   win.addEventListener = (type, fn) => { (win.listeners[type] = win.listeners[type] || []).push(fn); };
@@ -1020,7 +1022,7 @@ async function mountPlayers({ players, storage, storageThrows, noWatchlist, sear
     model: nfl,
     data: {
       season: 2026, week: 2, statsSeasons: [2025, 2026], generated: "2026-09-21T00:00", gamesCached: 2,
-      games: GAMES, ratings: RATINGS, teamFactors: {}, players, pools: pools || {}, usagePool: [],
+      games: games || GAMES, ratings: RATINGS, teamFactors: {}, players, pools: pools || {}, usagePool: [],
     },
     record: null, league: "NFL", fetcher: "fetch-nfl.mjs",
     copy: {
@@ -1040,7 +1042,7 @@ async function mountPlayers({ players, storage, storageThrows, noWatchlist, sear
 
 test("team and position filters narrow the rows, a bye team is still a team, roster noise is not a position", async () => {
   const { app, doc, press } = await mountPlayers({ players: PLAYERS });
-  assert.equal(app.__rows.length, 5);
+  assert.equal(app.__rows.length, 6);
   press("posseg", "WR");
   assert.deepEqual(app.__rows.map((r) => r.p.id), ["a"]);
   press("posseg", "All");
@@ -1054,12 +1056,12 @@ test("team and position filters narrow the rows, a bye team is still a team, ros
   sel.value = "KC"; sel.onchange();
   assert.deepEqual(app.__rows.map((r) => r.p.id).sort(), ["a", "c"]);
   sel.value = ""; sel.onchange();
-  assert.equal(app.__rows.length, 5);
+  assert.equal(app.__rows.length, 6);
 });
 
 test("a browser that refuses storage still gets a board, and a page without watchlist.js gets rows with no price cell", async () => {
   const { app } = await mountPlayers({ players: PLAYERS, storageThrows: true });
-  assert.equal(app.__rows.length, 5, "the board did not render");
+  assert.equal(app.__rows.length, 6, "the board did not render");
   const bare = await mountPlayers({ players: PLAYERS, noWatchlist: true });
   assert.ok(!bare.app.innerHTML.includes('class="px"'), "a price cell with nothing behind it");
   assert.ok(!bare.app.__detail(bare.app.__rows[0]).includes("pxin"), "a price input with nothing behind it");
@@ -1282,11 +1284,95 @@ test("the slash shortcut stays out of an open drawer", async () => {
 
 test("a page without the drawer markup is told to reload, like a stale model", async () => {
   const nfl = (await import("./nfl.js")).default;
-  const doc = stubDoc(); const missing = new Set(["drawer", "scrim", "dbody"]);
+  const doc = stubDoc(); const missing = new Set(["starseg", "tray"]);
   const real = doc.getElementById.bind(doc);
   doc.getElementById = (id) => (missing.has(id) ? null : real(id));
   const win = {};
   new Function("window", "document", src("football-board.js"))(win, doc);
   win.BetHouseFootballBoard.mount({ model: nfl, data: { season: 2026, week: 2, games: [], ratings: {}, teamFactors: {}, players: [], pools: {} }, record: null, league: "NFL", fetcher: "x", copy: { noteTD: "", noteStat: {}, noteGames: "", footer: "" } });
   assert.match(doc.getElementById("app").innerHTML, /Reload this page/);
+});
+
+/* ------------------------------------------------------------------ *
+ * Stars and the compare tray (phase 3, 2026-09-29)
+ *
+ * A star beside a row keeps the player in the browser; "Starred only"
+ * narrows the board to them; the slip can be built from them, through
+ * the same candidate builder and gates as the slate; the drawer adds a
+ * player to a tray that holds up to three side by side.
+ * ------------------------------------------------------------------ */
+
+test("both football boards carry the star strip, the compare button and the tray", () => {
+  for (const page of ["nfl.html", "cfb.html"]) {
+    const html = src(page);
+    for (const id of ["starseg", "dcompare", "tray", "tcards", "tclear"]) assert.match(html, new RegExp(`id="${id}"`), `${page}: no #${id}`);
+  }
+  const css = src(SHEET);
+  assert.match(css, /\.tray\{[^}]*position:fixed/, "the tray is not fixed to the viewport");
+});
+
+/* A star click, with the button it landed on: the row around it must not open. */
+const clickStar = (app, key) => {
+  const btn = stubEl("button"); btn.setAttribute("data-star", key);
+  app.handlers.click[0]({ target: { closest: (sel) => (sel === "[data-star]" ? btn : sel === ".row" ? stubEl("button") : null) } });
+  return btn;
+};
+
+test("a star is kept in the browser and lit in place without opening the row; Starred only narrows the board; another tab's stars survive a save", async () => {
+  const { app, doc, win, store, press } = await mountPlayers({ players: PLAYERS, storage: { "bethouse.watch.v1": JSON.stringify(["CFB|zz"]) } });
+  const W = win.BetHouseWatchlist;
+  const ka = W.watchKey({ league: "NFL", playerId: "a" }), kf = W.watchKey({ league: "NFL", playerId: "f" });
+  const btn = clickStar(app, ka);
+  assert.equal(btn.getAttribute("aria-pressed"), "true", "the star did not light in place");
+  assert.equal(doc.getElementById("dtitle").textContent, "", "a star click opened the drawer");
+  clickStar(app, kf);
+  assert.deepEqual(W.parseWatch(store.get(W.WATCH_KEY)).sort(), ["CFB|zz", ka, kf].sort(), "the stars were not remembered, or the other board's were lost");
+  press("starseg", "Starred only");
+  assert.deepEqual(app.__rows.map((r) => r.p.id).sort(), ["a", "f"]);
+  assert.ok(app.innerHTML.includes('data-star="' + ka + '" aria-pressed="true"'), "a re-render does not light the star");
+  press("starseg", "Starred only");
+  assert.equal(app.__rows.length, 6, "the toggle did not come back off");
+});
+
+test("the slip from stars is the starred players' legs and nothing else, one per game, through the same gates", async () => {
+  // A third game, so three stars can fill three legs.
+  const games = GAMES.concat([{ id: "g3", home: "DDD", away: "CCC", date: "2030-01-03T00:00Z", completed: false }]);
+  const players = PLAYERS.concat([{ id: "g", name: "Golf End", team: "CCC", pos: "TE", games: 10, tds: 5, carries: 0, targets: 70, recYds: 600, rushYds: 0, recs: 50, passAtt: 0, passYds: 0, opp: "DDD" }]);
+  const { app, win, press } = await mountPlayers({ players, games });
+  const W = win.BetHouseWatchlist, key = (id) => W.watchKey({ league: "NFL", playerId: id });
+  clickStar(app, key("a")); clickStar(app, key("f"));
+  press("pscope", "Starred");
+  press("plegs", "3 legs");
+  assert.ok(app.innerHTML.includes("Cannot build that slip"), "two stars cannot fill three legs");
+  clickStar(app, key("g"));
+  press("plegs", "3 legs");
+  const why = (app.innerHTML.match(/Cannot build that slip<\/h3><div>([^<]*)/) || [])[1];
+  assert.ok(!app.innerHTML.includes("Cannot build that slip"), "three stars in three games did not build: " + why + " | candidates " + JSON.stringify((app.__candidates || []).map((c) => c.playerId + "@" + c.gameId)));
+  assert.ok(app.__candidates.length, "no candidates");
+  for (const c of app.__candidates) assert.ok(["a", "f", "g"].includes(String(c.playerId)), "a candidate nobody starred: " + c.playerId);
+  assert.match(app.innerHTML, /Alpha Wide[\s\S]*Foxtrot Back|Foxtrot Back[\s\S]*Alpha Wide/, "the starred legs are not on the slip");
+  // Unstar g and star b, who shares a game with a: one leg per game leaves two games, so three legs refuse.
+  clickStar(app, key("g")); clickStar(app, key("b"));
+  press("plegs", "3 legs");
+  assert.ok(app.innerHTML.includes("Cannot build that slip"), "two games filled three legs");
+});
+
+test("the compare tray takes a player from the drawer, holds three at most, drops one on demand, and clears", async () => {
+  const { app, doc } = await mountPlayers({ players: PLAYERS });
+  const compare = doc.getElementById("dcompare"), tray = doc.getElementById("tray");
+  const add = (id) => { clickRow(app, app.__rows.findIndex((r) => r.p.id === id)); compare.handlers.click[0](); };
+  add("a");
+  assert.equal(tray.hidden, false, "the tray did not appear");
+  assert.equal((doc.getElementById("tcards").innerHTML.match(/class="tcard"/g) || []).length, 1);
+  add("b"); add("c");
+  assert.equal((doc.getElementById("tcards").innerHTML.match(/class="tcard"/g) || []).length, 3);
+  add("f");
+  assert.equal((doc.getElementById("tcards").innerHTML.match(/class="tcard"/g) || []).length, 3, "a fourth was taken");
+  assert.equal(compare.disabled, true, "the full tray does not disable the button");
+  tray.handlers.click[0]({ target: { closest: (sel) => (sel === "[data-untray]" ? { getAttribute: () => "b" } : null) } });
+  assert.equal((doc.getElementById("tcards").innerHTML.match(/class="tcard"/g) || []).length, 2);
+  assert.ok(!doc.getElementById("tcards").innerHTML.includes("Bravo Back"));
+  assert.equal(compare.disabled, false, "the button did not come back once a card was dropped");
+  doc.getElementById("tclear").handlers.click[0]();
+  assert.equal(tray.hidden, true);
 });

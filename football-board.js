@@ -45,7 +45,7 @@
     var stalePools = Object.keys(D.pools||{}).some(function(k){ return Array.isArray(D.pools[k]); });
     /* ...and an older page than script: the drawer's markup arrived with
        phase 2 (2026-09-29); without it a row click would go nowhere. */
-    var stalePage = !document.getElementById('drawer') || !document.getElementById('dbody');
+    var stalePage = ['drawer','dbody','starseg','tray','tcards','dcompare'].some(function(id){ return !document.getElementById(id); });
     if (missing.length || stalePools || stalePage) {
       app.innerHTML = '<div class="empty"><div class="big">Reload this page</div>' +
         '<div>Your browser has a '+(stalePools?'newer model than data file':stalePage?'newer script than page':'newer page than model script')+'. A hard refresh (Cmd/Ctrl+Shift+R) fixes it.</div></div>';
@@ -85,6 +85,33 @@
       try{ store.setItem(W.PRICE_KEY,W.serialise(all)); }catch(e){}
     };
     state.prices=W?W.forSlate(readAll(),cfg.league,slate):{};
+    /* The stars: the players on the watchlist, per league; and the compare
+       tray, which lasts the visit. */
+    var readWatch=function(){ if(!W||!store) return []; try{ return W.parseWatch(store.getItem(W.WATCH_KEY)); }catch(e){ return []; } };
+    /* This league's stars over whatever the store held for it; the other
+       board's stars, and anything another tab starred meanwhile, stay. */
+    var saveWatch=function(){
+      if(!W||!store) return;
+      var mine=readWatch().filter(function(k){ return k.indexOf(cfg.league+'|')!==0; }).concat(state.watch);
+      try{ store.setItem(W.WATCH_KEY,W.serialise(mine)); }catch(e){}
+    };
+    state.watch=readWatch().filter(function(k){ return k.indexOf(cfg.league+'|')===0; }); state.starOnly=false; state.compare=[];
+    var watchKeyOf=function(p){ return W?W.watchKey({league:cfg.league,playerId:p.id}):null; };
+    var isStarred=function(p){ return !!W&&W.has(state.watch,watchKeyOf(p)); };
+    var toggleStar=function(key,btn){
+      if(!W) return;
+      state.watch=W.toggle(state.watch,key); saveWatch();
+      var on=W.has(state.watch,key);
+      /* The button changes in place, so a keyboard user keeps his place;
+         only Starred only, whose row set just changed, re-renders. */
+      if(btn&&btn.setAttribute){ btn.setAttribute('aria-pressed',String(on)); btn.textContent=on?'★':'☆'; }
+      if(state.starOnly) render(); else renderTray();
+    };
+    var starBtn=function(p){
+      if(!W) return '';
+      var on=isStarred(p);
+      return '<button type="button" class="star" data-star="'+esc(watchKeyOf(p))+'" aria-pressed="'+on+'" aria-label="'+(on?'Unstar ':'Star ')+esc(p.name)+'">'+(on?'★':'☆')+'</button>';
+    };
     var priceKeyOf=function(p,prop,line){ return W?W.priceKey({league:cfg.league,slate:slate,playerId:p.id,prop:prop,line:line}):null; };
     /* The price typed against a row and the edge at it: edge.js's expected
        value of the model's chance at that price. null when nothing is typed. */
@@ -112,7 +139,7 @@
     /* Which rows show: ruled out never, then the search box, the team and
        the position. One gate for every player view. */
     var keep=function(p){
-      return available(p)&&find(p)&&(!state.team||p.team===state.team)&&(!state.pos||p.pos===state.pos);
+      return available(p)&&find(p)&&(!state.team||p.team===state.team)&&(!state.pos||p.pos===state.pos)&&(!state.starOnly||isStarred(p));
     };
     /* Ranking. Projection is the board's own order. Edge puts the rows a
        price has been typed against first, best edge first, the rest in
@@ -199,17 +226,22 @@
       return t;
     };
 
+    /* One player's touchdown row, or null. The board's rows and the
+       compare tray's cards come from the same function. */
+    function tdRow(p){
+      var tf=(D.teamFactors[p.team]||{}).off||1;
+      // The opponent's defence, the same term the backtest used.
+      var of=p.opp?oppFactorFor(p.opp):1;
+      var s=N.scoreAnytimeTD(p,{teamFactor:tf, oppFactor:of, usagePool:usagePool});
+      if(!s) return null;
+      var pk=priceKeyOf(p,'td');
+      return {p:p,s:s,chance:s.prob,pk:pk,pe:priceEdge(s.prob,pk)};
+    }
     function renderTD(){
       var rows=[];
       (D.players||[]).forEach(function(p){
         if(!keep(p)) return;
-        var tf=(D.teamFactors[p.team]||{}).off||1;
-        // The opponent's defence, the same term the backtest used.
-        var of=p.opp?oppFactorFor(p.opp):1;
-        var s=N.scoreAnytimeTD(p,{teamFactor:tf, oppFactor:of, usagePool:usagePool});
-        if(!s) return;
-        var pk=priceKeyOf(p,'td');
-        rows.push({p:p,s:s,chance:s.prob,pk:pk,pe:priceEdge(s.prob,pk)});
+        var r=tdRow(p); if(r) rows.push(r);
       });
       sortRows(rows,{proj:function(r){return r.s.prob;}, boost:function(r){return r.s.observedRate>0?r.s.lambda/r.s.observedRate:null;}});
       var t=trim(rows); rows=t.rows;
@@ -218,14 +250,14 @@
         '<div class="gmeta">'+rows.length+' players · '+seasons+' form · type the book\'s price in a row for your edge</div></div>';
       rows.forEach(function(r,i){
         r.i=i;
-        html+='<button class="'+rowClass+'" aria-haspopup="dialog" data-i="'+i+'">'+
+        html+='<div class="rowline"><button class="'+rowClass+'" aria-haspopup="dialog" data-i="'+i+'">'+
           '<span class="slot">'+(i+1)+'</span>'+
           '<span class="who">'+esc(r.p.name)+'<span class="pos">'+esc(r.p.team)+
             (r.p.opp?' vs '+esc(r.p.opp):'')+'</span>'+qTag(r.p)+'</span>'+
           '<span class="prob">'+pct(r.s.prob,0)+'</span>'+
           '<span class="be">'+sgn(N.fairPrice(r.s.prob))+'<small>fair</small></span>'+
           pxCell(i,r.pe)+
-          '<span class="caret">›</span></button>';
+          '<span class="caret">›</span></button>'+starBtn(r.p)+'</div>';
       });
       app.innerHTML=html+(rows.length?'':nothing())+moreBtn(t.hidden)+'</div>';
       app.__rows=rows; app.__ladder=null;
@@ -253,19 +285,23 @@
       };
     }
 
+    /* One player's counting-prop row at the line setting in force, or null. */
+    function statRow(stat,p,pool){
+      // The one gate, shared with the tracker: see nfl.js statEligible.
+      var y=N.statEligible(stat,p,null,{oppFactor:allowFor(p.opp,stat)});
+      if(!y) return null;
+      var line=Math.round(y.exp*state.lineMult)+0.5;
+      var over=N.empiricalOver(y.exp,line,pool);
+      if(over==null) return null;
+      var pk=priceKeyOf(p,stat,line);
+      return {p:p,exp:y.exp,base:y.base,oppFactor:y.oppFactor,line:line,over:over,chance:over,pk:pk,pe:priceEdge(over,pk)};
+    }
     function renderStat(stat){
       var ST=N.STATS[stat], pool=poolFor(stat), unit=stat==='recs'?' catches':' yards';
       var rows=[];
       (D.players||[]).forEach(function(p){
         if(!keep(p)) return;
-        // The one gate, shared with the tracker: see nfl.js statEligible.
-        var y=N.statEligible(stat,p,null,{oppFactor:allowFor(p.opp,stat)});
-        if(!y) return;
-        var line=Math.round(y.exp*state.lineMult)+0.5;
-        var over=N.empiricalOver(y.exp,line,pool);
-        if(over==null) return;
-        var pk=priceKeyOf(p,stat,line);
-        rows.push({p:p,exp:y.exp,base:y.base,oppFactor:y.oppFactor,line:line,over:over,chance:over,pk:pk,pe:priceEdge(over,pk)});
+        var r=statRow(stat,p,pool); if(r) rows.push(r);
       });
       sortRows(rows,{proj:function(r){return r.exp;}, boost:function(r){ var avg=N.statTotal(stat,r.p)/r.p.games; return avg>0?r.exp/avg:null; }});
       var t=trim(rows); rows=t.rows;
@@ -293,13 +329,13 @@
         ' · type the book\'s price in a row for your edge</div></div>';
       rows.forEach(function(r,i){
         r.i=i;
-        html+='<button class="'+rowClass+'" aria-haspopup="dialog" data-i="'+i+'">'+
+        html+='<div class="rowline"><button class="'+rowClass+'" aria-haspopup="dialog" data-i="'+i+'">'+
           '<span class="slot">'+(i+1)+'</span>'+
           '<span class="who">'+esc(r.p.name)+'<span class="pos">'+esc(r.p.team)+(r.p.opp?' vs '+esc(r.p.opp):'')+' · o'+r.line+'</span>'+badge(r.p)+qTag(r.p)+'</span>'+
           '<span class="prob">'+Math.round(r.exp)+'<small>'+(stat==='recs'?'catches':'yards')+'</small></span>'+
           '<span class="be'+(atProj?' dim':'')+'">'+pct(r.over,0)+'<small>'+sgn(N.fairPrice(r.over))+' fair</small></span>'+
           pxCell(i,r.pe)+
-          '<span class="caret">›</span></button>';
+          '<span class="caret">›</span></button>'+starBtn(r.p)+'</div>';
       });
       /* A stat the model has and this data file has no pool for: the view
          arrived with the model, the pool arrives with the next build. Say
@@ -658,11 +694,11 @@
     function openById(id,quiet){
       var i=findRow(id);
       if(i<0){
-        var was={showAll:state.showAll,team:state.team,pos:state.pos,q:state.q};
-        state.showAll=true; state.team=''; state.pos=''; state.q=''; state.pin=id;
+        var was={showAll:state.showAll,team:state.team,pos:state.pos,q:state.q,starOnly:state.starOnly};
+        state.showAll=true; state.team=''; state.pos=''; state.q=''; state.starOnly=false; state.pin=id;
         var qEl=document.getElementById('q'); if(qEl) qEl.value='';
         render(); i=findRow(id);
-        if(i<0){ state.showAll=was.showAll; state.team=was.team; state.pos=was.pos; state.q=was.q; state.pin=null; render(); closeDrawer('replace'); return; }
+        if(i<0){ state.showAll=was.showAll; state.team=was.team; state.pos=was.pos; state.q=was.q; state.starOnly=was.starOnly; state.pin=null; render(); closeDrawer('replace'); return; }
       }
       openDrawer(i,null,quiet);
     }
@@ -683,6 +719,7 @@
       seg(document.getElementById('dtabs'),tabs,d.tab,function(v){ if(state.drawer){ state.drawer.tab=v; renderDrawer(); } });
       document.getElementById('dbody').innerHTML = d.tab==='ladder'?ladderTab(r):d.tab==='recent'?recentTab(r):app.__detail(r);
       drawerEl.hidden=false; if(scrimEl) scrimEl.hidden=false;
+      syncCompareBtn();
     }
     /* The alternate lines as buttons. The rung nearest the row's line is
        pressed first; a press moves the headline and the recent-games
@@ -743,6 +780,52 @@
     var dcloseEl=document.getElementById('dclose');
     if(dcloseEl&&dcloseEl.addEventListener) dcloseEl.addEventListener('click',function(){ closeDrawer(); });
     if(scrimEl&&scrimEl.addEventListener) scrimEl.addEventListener('click',function(){ closeDrawer(); });
+    /* ---- the compare tray ----
+       Up to three players side by side, each with the number the current
+       view ranks by, through the same row functions the board uses. */
+    var trayEl=document.getElementById('tray');
+    var rowFor=function(p){ return state.view==='td'?tdRow(p):N.STATS[state.view]?statRow(state.view,p,poolFor(state.view)):null; };
+    var playerById=function(id){ var ps=D.players||[]; for(var i=0;i<ps.length;i++) if(String(ps[i].id)===id) return ps[i]; return null; };
+    function renderTray(){
+      if(!trayEl) return;
+      var ids=state.compare.filter(function(id){ return !!playerById(id); }); state.compare=ids;
+      trayEl.hidden=!ids.length;
+      var h='';
+      ids.forEach(function(id){
+        var p=playerById(id), r=rowFor(p);
+        h+='<div class="tcard"><div class="tname">'+esc(p.name)+'<span class="pos">'+esc(p.team)+(p.opp?' vs '+esc(p.opp):'')+'</span></div>';
+        if(!r) h+='<div class="tnum">—<small>not on this view</small></div>';
+        else if(state.view==='td') h+='<div class="tnum">'+pct(r.s.prob,0)+'<small>to score · '+sgn(N.fairPrice(r.s.prob))+' fair</small></div>';
+        else h+='<div class="tnum">'+Math.round(r.exp)+'<small>'+(state.view==='recs'?'catches':'yards')+' · o'+r.line+' hits '+pct(r.over,0)+' · '+sgn(N.fairPrice(r.over))+' fair</small></div>';
+        if(r&&r.pe) h+='<div>'+sgn(r.pe.price)+' <span class="'+edgeClass(r.pe.ev)+'">'+E.formatPct(r.pe.ev)+' edge</span></div>';
+        h+='<button type="button" data-untray="'+esc(id)+'" aria-label="Remove '+esc(p.name)+' from compare">×</button></div>';
+      });
+      document.getElementById('tcards').innerHTML=h;
+      syncCompareBtn();
+    }
+    /* The drawer's Compare button says where the open player stands. */
+    function syncCompareBtn(){
+      var c=document.getElementById('dcompare'), d=state.drawer; if(!c) return;
+      var ids=state.compare, inTray=d&&d.kind==='p'&&ids.indexOf(d.id)>=0, full=ids.length>=3;
+      c.hidden=!(d&&d.kind==='p');
+      c.textContent=inTray?'In compare ✓':'Compare';
+      c.disabled=!!(full&&!inTray);
+      c.title=c.disabled?'Three at a time: drop one from the tray first':'';
+    }
+    var dcompareEl=document.getElementById('dcompare');
+    if(dcompareEl&&dcompareEl.addEventListener) dcompareEl.addEventListener('click',function(){
+      var d=state.drawer; if(!d||d.kind!=='p') return;
+      var at=state.compare.indexOf(d.id);
+      if(at>=0) state.compare.splice(at,1); else if(state.compare.length<3) state.compare.push(d.id); else return;
+      renderTray();
+    });
+    if(trayEl&&trayEl.addEventListener) trayEl.addEventListener('click',function(e){
+      var b=e.target&&e.target.closest?e.target.closest('[data-untray]'):null; if(!b) return;
+      state.compare=state.compare.filter(function(id){ return id!==b.getAttribute('data-untray'); }); renderTray();
+    });
+    var tclearEl=document.getElementById('tclear');
+    if(tclearEl&&tclearEl.addEventListener) tclearEl.addEventListener('click',function(){ state.compare=[]; renderTray(); });
+
     /* The URL names a player or a game: open on it, and follow the back button. */
     function syncFromUrl(){
       if(!loc) return;
@@ -758,7 +841,7 @@
 
     /* ---- the parlay slip ---- */
     var LEGS=[{id:3,label:'3 legs'},{id:4,label:'4 legs'},{id:5,label:'5 legs'}];
-    var SCOPES=[{id:'slate',label:'All games'},{id:'game',label:'One game'}];
+    var SCOPES=[{id:'slate',label:'All games'},{id:'game',label:'One game'}].concat(W?[{id:'stars',label:'Starred'}]:[]);
     var KINDS=[{id:'td',label:'Touchdowns'},{id:'props',label:'Yards & catches'},{id:'game',label:'Spread & total'}];
     var lift=N.DEFAULTS.parlayLift||{game:1,team:1};
     var eligible=N.DEFAULTS.parlayProps||['td'];
@@ -801,14 +884,22 @@
       return out;
     }
     function suggest(n){
-      state.candidates=buildCandidates();
-      var out=P?P.suggestParlay(state.candidates,{legs:n,scope:state.slipScope,gameId:state.slipGame,lift:lift}):null;
+      /* From the stars: the same candidates, the same gates, narrowed to
+         the players on the watchlist, then one leg per game as the slate. */
+      var stars=state.slipScope==='stars';
+      state.candidates = stars
+        ? buildCandidates().filter(function(c){ return c.playerId!=='game'&&W&&W.has(state.watch,W.watchKey({league:cfg.league,playerId:c.playerId})); })
+        : buildCandidates();
+      app.__candidates=state.candidates; // what the suggester saw, for the tests
+      var out=P?P.suggestParlay(state.candidates,{legs:n,scope:state.slipScope==='game'?'game':'slate',gameId:state.slipGame,lift:lift}):null;
       if(!out){
-        var games={}; state.candidates.forEach(function(c){games[c.gameId]=1;});
-        var have=Object.keys(games).length;
+        var games={}, who={}; state.candidates.forEach(function(c){games[c.gameId]=1; who[c.playerId]=1;});
+        var have=Object.keys(games).length, starred=Object.keys(who).length;
         state.slipError = state.slipScope==='game'
           ? (state.slipGame?'That game does not have '+n+' legs of the kinds switched on.':'Pick a game first.')
-          : 'Only '+have+' game'+(have===1?'':'s')+' still open — a '+n+'-leg parlay from the slate needs '+n+', one leg per game.';
+          : stars
+            ? 'Only '+starred+' starred player'+(starred===1?'':'s')+' with a leg on offer, in '+have+' game'+(have===1?'':'s')+' — a '+n+'-leg slip from your stars needs '+n+' games, one leg per game. Star more, or switch on more kinds.'
+            : 'Only '+have+' game'+(have===1?'':'s')+' still open — a '+n+'-leg parlay from the slate needs '+n+', one leg per game.';
         state.slip=null;
       } else { state.slip=out; state.slipError=null; }
       state.slipLegs=n; render();
@@ -820,7 +911,7 @@
       var c=s.combined, g=state.slipScope==='game'&&gameOf[s.legs[0].team];
       h+='<div class="slip"><h3>Suggested parlay — '+s.legs.length+' legs · '+(g?esc(g.away+' at '+g.home):'from '+c.distinctGames+' different games')+'</h3>';
       var kinds=KINDS.filter(function(k){return state.kinds[k.id];}).map(function(k){return k.label.toLowerCase();}).join(', ')||'nothing';
-      h+='<div class="how">The '+(g?'best legs in this game, one per player':'best leg from each of '+s.legs.length+' different games')+
+      h+='<div class="how">The '+(g?'best legs in this game, one per player':(state.slipScope==='stars'?'best leg from your stars, one per game, across ':'best leg from each of ')+s.legs.length+' different games')+
         ', drawn from '+esc(kinds)+'. Ranked by chance to cash, <b>not</b> by price: it cannot see what you are being offered.</div>';
       s.legs.forEach(function(l){
         h+='<div class="leg"><div>'+esc(l.name)+' <span class="lp">'+(l.playerId==='game'?'':esc(l.team)+(l.opp?' vs '+esc(l.opp):'')+' · ')+esc(l.propLabel)+'</span></div><div><span class="lp">'+pct(l.prob,0)+'</span></div></div>';
@@ -894,6 +985,8 @@
     }
     function renderFilters(){
       if(teamSel) teamSel.value=state.team;
+      var sw=document.getElementById('starwrap'); if(sw) sw.hidden=!W;
+      if(W) seg(document.getElementById('starseg'),[{id:'on',label:'Starred only'}],state.starOnly?'on':'',function(){ state.starOnly=!state.starOnly; render(); });
       var wrap=document.getElementById('poswrap'); if(wrap) wrap.hidden=!POSS.length;
       if(POSS.length) seg(document.getElementById('posseg'),[{id:'',label:'All'}].concat(POSS.map(function(x){return {id:x,label:x};})),state.pos,function(v){state.pos=v;render();});
     }
@@ -926,6 +1019,7 @@
       else if(N.STATS[state.view]) renderStat(state.view);
       else renderGames();
       renderDrawer();
+      renderTray();
     }
 
     var q=document.getElementById('q');
@@ -942,7 +1036,8 @@
       if(e.key==='Escape'){ e.preventDefault(); closeDrawer(); return; }
       /* Tab stays inside the drawer while it is open. */
       if(e.key==='Tab'&&drawerEl.querySelectorAll){
-        var f=drawerEl.querySelectorAll('button,input,select,a[href]'); if(!f.length) return;
+        var f=Array.prototype.filter.call(drawerEl.querySelectorAll('button,input,select,a[href]'),function(el){ return !el.hidden&&!el.disabled; });
+        if(!f.length) return;
         var first=f[0], last=f[f.length-1];
         if(e.shiftKey&&document.activeElement===first){ e.preventDefault(); last.focus(); }
         else if(!e.shiftKey&&document.activeElement===last){ e.preventDefault(); first.focus(); }
@@ -980,6 +1075,7 @@
     app.addEventListener('click',function(e){
       if(e.target.closest('[data-clearslip]')){ state.slip=null; state.slipError=null; state.slipLegs=null; render(); return; }
       if(e.target.closest('[data-more]')){ state.showAll=true; render(); return; }
+      var st=e.target.closest('[data-star]'); if(st){ toggleStar(st.getAttribute('data-star'),st); return; }
       var btn=e.target.closest('.row'); if(!btn) return;
       openDrawer(+btn.getAttribute('data-i'),btn);
     });
