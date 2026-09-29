@@ -27,6 +27,47 @@ Zero dependencies, no build step, no server, no API key. `node --test` with
 **named files** — bare discovery pulls in the backtests, which fire live API
 calls. The list lives in seven places and `dom.test.mjs` checks all seven.
 
+## The interactive football board, phase 1 of 3, 2026-09-29
+
+The user wants the football boards to feel like nhlpropking.com's
+projections page (screenshots in `.gstack/browse-reports/2026-09-29-1410/`).
+Approved plan in three phases: (1) a typed price with the edge on every
+row, team and position filters, sort by projection / edge / boost;
+(2) a player drawer with tabs (overview, the ladder as threshold buttons,
+recent games as a bar chart from a new compact `recent` array the
+fetcher writes) and `?player=<id>` in the URL; (3) a starred watchlist
+that feeds the parlay slip and a compare tray. Phase 1 shipped here.
+
+**Why typed, not a feed.** ESPN's keyless core API has NFL game lines but
+`propBets` returns 404 for NFL events (probed against TB @ DAL
+2026-10-09); `fetch-odds.mjs` (The Odds API) needs a key that is not
+configured and cannot afford props for sixteen games on the free tier.
+The user chose typing. README, "Typing a price, and what the edge means".
+
+**What landed.** `watchlist.js` (UMD like `bets.js`): `PRICE_KEY`,
+`priceKey` (league|player|prop|line; td has no line), `validPrice`,
+`parsePrices`, `serialise`; `watchlist.test.mjs`, listed in all seven
+gates. `fetch-football.mjs boardPlayer` builds the player row and adds
+`pos` off the roster (tested). `football-board.js`: `keep()` is the one
+row gate (available, search, team, position); `sortRows()`; `priceEdge()`
+through `E.evPct`; the `.px` row cell (`#px<i>`) and the panel's
+`.pxin` input (`data-pk`, `data-i`), updated in place by the delegated
+`input` handler so the box keeps the cursor; `renderFilters()`. Pages:
+`#sortseg`, `#teamsel`, `#poswrap/#posseg`, `#linewrap` inside
+`#controls`, which now hides only on the game view. `board.css`:
+`.row.priced` six-column grid, `.px`, `.pxrow/.pxin/.pxedge`, phone
+rules hide the cell.
+
+**Constraints met.** `.px small` joined the block list; the price map is
+only ever indexed by a `W.priceKey` result (dom.test.mjs pins both); the
+live tests mount the real script with edge.js and watchlist.js and a
+Map-backed `localStorage` on the stub window (`mountPlayers`).
+
+**Phase 2 notes.** The row is a `<button>`, which is why the input lives
+in the panel rather than the row (interactive content inside a button is
+invalid and would fight the row's click). The drawer inherits that: the
+input moves into the drawer. Game-view rows keep the five-column grid.
+
 ## The baseball refresh on an off day, 2026-09-29
 
 `Refresh board` failed four times running from 2026-09-28: `fetch-mlb.mjs`

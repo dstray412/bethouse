@@ -84,7 +84,7 @@ header{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:1
 .be{font-variant-numeric:tabular-nums;text-align:right;font-size:14px}
 .be.dim{opacity:.5}
 .prob.pick{font-size:15px;letter-spacing:.01em}
-.be small,.prob small{display:block;color:var(--muted);font-size:12px;font-weight:400;letter-spacing:.04em}
+.be small,.prob small,.px small{display:block;color:var(--muted);font-size:12px;font-weight:400;letter-spacing:.04em}
 .caret{color:var(--muted);text-align:center;transition:transform .16s}
 .row[aria-expanded=true] .caret{transform:rotate(90deg)}
 .why{padding:2px 15px 16px;background:rgba(0,0,0,.16);border-top:1px solid var(--line);font-size:14px;color:var(--muted);line-height:1.75}
@@ -170,6 +170,26 @@ footer td{padding:1px 14px 1px 0}
   .row{grid-template-columns:26px 1fr 64px 56px 12px;gap:8px;padding:8px 12px}
   .caret{font-size:13px}
   .prob{font-size:18px}
+}
+/* The price you are offered, typed in a row's panel and shown on the row
+   beside the fair price with the edge at it: edge.js's expected value of
+   the model's chance at that price, coloured the way the baseball board
+   colours its market chip (over 2% good, at or above zero a warning, else
+   bad). A phone has no room for the cell, so the panel carries it there. */
+.row.priced{grid-template-columns:30px 1fr 74px 62px 82px 20px}
+.px{text-align:right;font-variant-numeric:tabular-nums;font-size:14px;font-weight:600}
+.px .none{color:var(--muted);font-weight:400}
+.px small.good,.pxedge .good{color:var(--good)}
+.px small.warn,.pxedge .warn{color:var(--warn)}
+.px small.bad,.pxedge .bad{color:var(--bad)}
+.pxrow{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin:8px 0 2px}
+.pxrow label{display:flex;gap:8px;align-items:center;color:var(--text)}
+.pxin{font:inherit;font-size:16px;font-weight:700;width:96px;background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:5px 9px;color:var(--text);font-variant-numeric:tabular-nums}
+.pxin:focus{border-color:var(--accent);outline:none}
+.pxedge b{font-variant-numeric:tabular-nums}
+@media (max-width:760px){
+  .row.priced{grid-template-columns:26px 1fr 64px 56px 12px}
+  .row .px{display:none}
 }
 /* Touch: fingers need 44px; the mouse does not. Pages add their own tap targets. */
 @media (pointer:coarse){ .seg button,.navlink{min-height:44px} }

@@ -718,6 +718,29 @@ export function seasonLines(games, model) {
   return { players, usageByPlayer, teamFactors };
 }
 
+/**
+ * The row the board reads for a player: the record's numbers, where he
+ * is today, who he faces this week (null on a bye or unplaced), what the
+ * league lists him as, and whether he is the backup passer. Nothing is
+ * written that a source did not say -- no position without a roster, no
+ * status without a listing -- so an older data file reads the same as a
+ * new one where a field is missing.
+ */
+export function boardPlayer(p, { roster, injuries, backups, opponentOf }) {
+  const on = roster && typeof roster.get === "function" ? roster.get(String(p.id)) : null;
+  const inj = injuries && injuries[p.id];
+  return {
+    id: p.id, name: p.name, team: p.team, games: p.games, tds: p.tds,
+    carries: p.carries, targets: p.targets, recYds: p.recYds, rushYds: p.rushYds, recs: p.recs,
+    passAtt: p.passAtt, passYds: p.passYds,
+    ...(on && on.pos ? { pos: on.pos } : {}),
+    ...(p.movedFrom ? { movedFrom: p.movedFrom } : {}),
+    opp: (opponentOf && opponentOf[p.team]) || null,
+    ...(inj ? { status: inj.status, ...(inj.detail ? { injury: inj.detail } : {}) } : {}),
+    ...(backups && backups.has(p.id) ? { backupQB: true } : {}),
+  };
+}
+
 export async function buildBoard(league, history) {
   const model = league.model;
   const season = new Date().getUTCFullYear();
@@ -876,18 +899,7 @@ export async function buildBoard(league, history) {
       /* Anyone with enough games and any real workload: a skill player's
          touches, or enough attempts to be gated as a passer. */
       .filter((p) => p.games >= 3 && ((p.carries + model.receivingOpportunity(p)) >= 10 || p.passAtt >= model.DEFAULTS.passMinOpportunity))
-      .map((p) => ({
-        id: p.id, name: p.name, team: p.team, games: p.games, tds: p.tds,
-        carries: p.carries, targets: p.targets, recYds: p.recYds, rushYds: p.rushYds, recs: p.recs,
-        passAtt: p.passAtt, passYds: p.passYds,
-        ...(p.movedFrom ? { movedFrom: p.movedFrom } : {}),
-        // Who he faces this week, so the board can apply the opponent's
-        // defence the same way the backtest does. null = on bye or the
-        // schedule has not placed his team yet.
-        opp: opponentOf[p.team] || null,
-        ...(injuries[p.id] ? { status: injuries[p.id].status, injury: injuries[p.id].detail || undefined } : {}),
-        ...(backups.has(p.id) ? { backupQB: true } : {}),
-      })),
+      .map((p) => boardPlayer(p, { roster, injuries, backups, opponentOf })),
     injuries: hurtByTeam,
     injuriesAt: league.injuriesUrl ? new Date().toISOString() : null,
     usagePool: round(usagePool.slice(0, 4000), 3),

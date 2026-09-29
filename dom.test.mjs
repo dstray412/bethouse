@@ -436,7 +436,7 @@ test("a sublabel inside a fixed-width row cell is a block, not wrappable text", 
   assert.ok(rule, `${SHEET} has no display:block rule for row sublabels`);
 
   const selectors = rule[1].split(",").map((s) => s.trim());
-  for (const cell of [".be", ".prob"]) {
+  for (const cell of [".be", ".prob", ".px"]) {
     assert.ok(
       selectors.includes(`${cell} small`),
       `${cell} small is not blocked — content can wrap and set the row height`,
@@ -958,4 +958,119 @@ test("the matchup table fits a 390px phone without widening the page", () => {
 test("the tendencies file is loaded by the board that has play-by-play, and only that one", () => {
   assert.match(src("nfl.html"), /<script src="tendencies-data\.js"><\/script>/, "nfl.html does not load tendencies-data.js");
   assert.doesNotMatch(src("cfb.html"), /tendencies-data/, "cfb.html loads a play-by-play file college has none of");
+});
+
+/* ------------------------------------------------------------------ *
+ * A typed price, filters and sorts on the football boards (2026-09-29)
+ *
+ * The rows take the price the book offers and show the edge at once,
+ * remembered in the browser. The arithmetic is edge.js's, the key is
+ * watchlist.js's, and the rows are narrowed by team and position and
+ * re-ordered by projection, edge or boost. Source contracts first, then
+ * the real script mounted against the stub.
+ * ------------------------------------------------------------------ */
+
+test("both football boards load watchlist.js before the board script", () => {
+  for (const page of ["nfl.html", "cfb.html"]) {
+    const html = src(page);
+    const w = html.indexOf('src="watchlist.js"'), b = html.indexOf('src="football-board.js"');
+    assert.ok(w >= 0, `${page} does not load watchlist.js`);
+    assert.ok(w < b, `${page} loads watchlist.js after the board`);
+  }
+});
+
+test("the board keys a typed price through watchlist.js and prices it through edge.js, never by hand", () => {
+  const js = src("football-board.js");
+  assert.match(js, /W\.priceKey\(/, "no W.priceKey( call: the key would be built by hand");
+  // The price map is only ever indexed by a key variable, never by a string the board glued together.
+  assert.doesNotMatch(js, /state\.prices\[['"]|state\.prices\[[^\]]*\+/, "a hand-built price key");
+  const priced = js.match(/function priceEdge[\s\S]*?\n    }/);
+  assert.ok(priced, "no priceEdge helper");
+  assert.match(priced[0], /E\.evPct\(/, "the edge is not edge.js's");
+});
+
+/* Enough players for every filter and sort to have something to do. */
+const PLAYERS = [
+  { id: "a", name: "Alpha Wide", team: "KC", pos: "WR", games: 10, tds: 8, carries: 0, targets: 80, recYds: 900, rushYds: 0, recs: 60, passAtt: 0, passYds: 0, opp: "LAC" },
+  { id: "b", name: "Bravo Back", team: "LAC", pos: "RB", games: 10, tds: 2, carries: 150, targets: 20, recYds: 100, rushYds: 700, recs: 15, passAtt: 0, passYds: 0, opp: "KC" },
+  { id: "c", name: "Charlie End", team: "KC", pos: "TE", games: 10, tds: 0, carries: 0, targets: 60, recYds: 500, rushYds: 0, recs: 45, passAtt: 0, passYds: 0, opp: "LAC" },
+];
+
+/** Mount the real board on the TD view with players, edge.js and watchlist.js present. */
+async function mountPlayers({ players, storage }) {
+  const nfl = (await import("./nfl.js")).default;
+  const doc = stubDoc();
+  const store = new Map(Object.entries(storage || {}));
+  const win = {
+    BetHouseEdge: (await import("./edge.js")).default,
+    BetHouseWatchlist: (await import("./watchlist.js")).default,
+    localStorage: { getItem: (k) => (store.has(k) ? store.get(k) : null), setItem: (k, v) => store.set(k, String(v)), removeItem: (k) => store.delete(k) },
+  };
+  // eslint-disable-next-line no-new-func
+  new Function("window", "document", src("football-board.js"))(win, doc);
+  win.BetHouseFootballBoard.mount({
+    model: nfl,
+    data: {
+      season: 2026, week: 2, statsSeasons: [2025, 2026], generated: "2026-09-21T00:00", gamesCached: 2,
+      games: GAMES, ratings: RATINGS, teamFactors: {}, players, pools: {}, usagePool: [],
+    },
+    record: null, league: "NFL", fetcher: "fetch-nfl.mjs",
+    copy: {
+      noteTD: "n", noteStat: Object.fromEntries(Object.keys(nfl.STATS).map((k) => [k, "n"])),
+      noteGames: "n", gameBanner: "<p>n</p>", mlVerdict: "n", gameHonestly: "n", footer: "<p>n</p>",
+    },
+  });
+  const app = doc.getElementById("app");
+  assert.ok(app.__rows && app.__rows.length, "the touchdown view rendered no rows");
+  const press = (id, label) => {
+    const b = doc.getElementById(id).children.find((x) => x.textContent === label);
+    assert.ok(b, `no "${label}" button in #${id}`);
+    b.handlers.click[0]();
+  };
+  return { app, doc, win, store, press };
+}
+
+test("team and position filters narrow the rows, and clearing them brings every row back", async () => {
+  const { app, doc, press } = await mountPlayers({ players: PLAYERS });
+  assert.equal(app.__rows.length, 3);
+  press("posseg", "WR");
+  assert.deepEqual(app.__rows.map((r) => r.p.id), ["a"]);
+  press("posseg", "All");
+  const sel = doc.getElementById("teamsel");
+  sel.value = "KC"; sel.onchange();
+  assert.deepEqual(app.__rows.map((r) => r.p.id).sort(), ["a", "c"]);
+  sel.value = ""; sel.onchange();
+  assert.equal(app.__rows.length, 3);
+});
+
+test("sort by boost orders rows by projection over his own rate, with no rate last; sort by edge puts priced rows first", async () => {
+  const { app, doc, press, win } = await mountPlayers({ players: PLAYERS, storage: { [ (await import("./watchlist.js")).default.PRICE_KEY ]: JSON.stringify({ "NFL|c|td": "+400" }) } });
+  press("sortseg", "Boost");
+  const ratio = (r) => r.s.observedRate > 0 ? r.s.lambda / r.s.observedRate : -Infinity;
+  const got = app.__rows.map(ratio);
+  for (let i = 1; i < got.length; i++) assert.ok(got[i - 1] >= got[i], `boost not descending at ${i}: ${got}`);
+  assert.equal(app.__rows[app.__rows.length - 1].p.id, "c", "no touchdowns yet: no baseline, so last");
+  press("sortseg", "Edge");
+  assert.equal(app.__rows[0].p.id, "c", "the one priced row comes first");
+  const E = win.BetHouseEdge;
+  const ev = E.evPct(app.__rows[0].s.prob, E.americanToDecimal(400));
+  assert.ok(app.innerHTML.includes(E.formatPct(ev)), "the row does not show the edge at the stored price");
+});
+
+test("typing a price in the panel prices the row at once, through edge.js, and is remembered", async () => {
+  const { app, doc, win, store } = await mountPlayers({ players: PLAYERS });
+  const W = win.BetHouseWatchlist, E = win.BetHouseEdge;
+  const i = app.__rows.findIndex((r) => r.p.id === "a");
+  const panel = app.__detail(app.__rows[i]);
+  const key = W.priceKey({ league: "NFL", playerId: "a", prop: "td" });
+  assert.ok(panel.includes(`data-pk="${key}"`), "the panel has no price input for this row");
+  const input = stubEl("input"); input.setAttribute("data-pk", key); input.setAttribute("data-i", String(i)); input.value = "-120";
+  app.handlers.input[0]({ target: input });
+  const ev = E.evPct(app.__rows[i].s.prob, E.americanToDecimal(-120));
+  assert.ok(doc.getElementById("px" + i).innerHTML.includes(E.formatPct(ev)), "the row cell did not update");
+  assert.deepEqual(W.parsePrices(store.get(W.PRICE_KEY)), { [key]: -120 }, "the price was not remembered");
+  input.value = "";
+  app.handlers.input[0]({ target: input });
+  assert.deepEqual(W.parsePrices(store.get(W.PRICE_KEY)), {}, "clearing the box forgets the price");
+  assert.ok(!doc.getElementById("px" + i).innerHTML.includes("edge"), "a cleared price still shows an edge");
 });

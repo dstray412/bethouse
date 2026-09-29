@@ -1697,6 +1697,41 @@ membership adjusted too; re-run on the shipped rule the 0.5 column reads
 team code matches neither side of the schedule gets no opponent rather than
 the home team, in every loop, through one `opponentIn`.
 
+### Typing a price, and what the edge means
+
+**2026-09-29.** Every football row now takes the price the book is offering
+and shows your edge at it, on the row and in the row's panel, and
+remembers it in your browser. There is no price feed behind the football
+boards: ESPN's keyless API carries game lines but no player props (probed
+2026-09-29, `propBets` returns 404 for NFL events), and the keyed
+alternative costs credits the free tier cannot spend on sixteen games of
+props. So the price is yours to type, the way the parlay slip already
+took one.
+
+The arithmetic is `edge.js`'s: expected value of the model's chance at
+that American price, the same call the slip makes and the same colour
+rule the baseball board uses for its market chip (over 2% green, at or
+above zero amber, below zero red). A price is keyed by league, player,
+prop and -- for a counting prop -- the line, so a price typed at o59.5
+is not read as an edge at o77.5 when the Low / High setting moves the
+line. `watchlist.js` owns the key and the versioned storage key
+(`bethouse.prices.v1`); the page owns the try/catch around
+`localStorage`, which a private window can refuse, in which case the
+price lasts the visit.
+
+**Filters and sort.** Team (from the schedule) and position (from the
+roster, written into the data file as `pos`; an older file without it
+hides the strip) narrow the rows the same way the search box does. Sort
+by **projection** is the board's own order; by **edge** puts the rows you
+have priced first, best edge first, the rest in projection order; by
+**boost** re-orders by projection over his own per-game rate -- for a
+touchdown, expected touchdowns over his scoring rate; for a counting
+prop, the projection over his season average -- two numbers the panel
+already prints. Boost is a re-ordering and nothing else: it never
+reaches a price or a parlay probability, and a player with no rate yet
+(no touchdowns) sorts last. On a phone the row has no room for the price
+cell, so the panel carries it there.
+
 ### Alternate lines: the ladder, and the flaw it exposed
 
 2026-09-21. A book does not offer one line on a receiver; it offers 10+, 20+,

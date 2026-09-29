@@ -1231,3 +1231,34 @@ test("notActive: the league report, then the roster's own listing for anyone the
   roster.get("4047365").listedAt = "";
   assert.equal(notActive({}, roster, played)["4047365"].status, "Out", "an undated listing (the roster group) is never stale");
 });
+
+/* ------------------------------------------------------------------ *
+ * The board row the fetcher writes for a player
+ *
+ * Oracle: the roster (position), the merged not-active map (status) and
+ * the starter rule (backupQB), each already tested above; this pins that
+ * the row carries each one and carries nothing when the source has
+ * nothing, so an older data file without positions still reads.
+ * ------------------------------------------------------------------ */
+
+test("boardPlayer: position off the roster, status off the report, backup off the starter rule, and nothing invented", async () => {
+  const { boardPlayer } = await import("./fetch-football.mjs");
+  const rec = { id: "1", name: "A", team: "KC", games: 5, tds: 1, carries: 0, targets: 30, recYds: 300, rushYds: 0, recs: 20, passAtt: 0, passYds: 0 };
+  const ctx = {
+    roster: new Map([["1", { id: "1", team: "KC", pos: "WR" }]]),
+    injuries: { "1": { status: "Questionable", detail: "Knee" } },
+    backups: new Set(["2"]), opponentOf: { KC: "LAC" },
+  };
+  const a = boardPlayer(rec, ctx);
+  assert.equal(a.pos, "WR");
+  assert.equal(a.opp, "LAC");
+  assert.equal(a.status, "Questionable"); assert.equal(a.injury, "Knee");
+  assert.equal("backupQB" in a, false);
+  assert.equal(a.recYds, 300, "the record's numbers come through");
+  const b = boardPlayer({ ...rec, id: "2", passAtt: 100, movedFrom: "DEN" }, { ...ctx, roster: null, opponentOf: {} });
+  assert.equal("pos" in b, false, "no roster: no position, not an empty one");
+  assert.equal(b.backupQB, true);
+  assert.equal("status" in b, false); assert.equal("injury" in b, false);
+  assert.equal(b.opp, null, "on bye or unplaced");
+  assert.equal(b.movedFrom, "DEN");
+});
