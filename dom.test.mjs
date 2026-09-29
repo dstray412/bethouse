@@ -793,7 +793,7 @@ function stubEl(tag) {
     addEventListener(type, fn) { (this.handlers[type] = this.handlers[type] || []).push(fn); },
     setAttribute(k, v) { this.attrs[k] = String(v); },
     getAttribute(k) { return this.attrs[k]; },
-    focus() {},
+    focus() { this.focused = true; },
   };
 }
 
@@ -805,7 +805,8 @@ function stubDoc() {
       return byId.get(id);
     },
     createElement(tag) { return stubEl(tag); },
-    addEventListener() {},
+    listeners: {},
+    addEventListener(type, fn) { (this.listeners[type] = this.listeners[type] || []).push(fn); },
     activeElement: { tagName: "BODY" },
   };
 }
@@ -991,7 +992,8 @@ test("the board keys a typed price through watchlist.js and prices it through ed
 
 /* Enough players for every filter and sort to have something to do. */
 const PLAYERS = [
-  { id: "a", name: "Alpha Wide", team: "KC", pos: "WR", games: 10, tds: 8, carries: 0, targets: 80, recYds: 900, rushYds: 0, recs: 60, passAtt: 0, passYds: 0, opp: "LAC" },
+  { id: "a", name: "Alpha Wide", team: "KC", pos: "WR", games: 10, tds: 8, carries: 0, targets: 80, recYds: 900, rushYds: 0, recs: 60, passAtt: 0, passYds: 0, opp: "LAC",
+    recent: [["260928", "DEN", 110, 8, 0, 0, 1], ["260921", "NYG", 40, 3, 0, 0, 0], ["250914", "LV", 75, 6, 0, 0, 2]] },
   { id: "b", name: "Bravo Back", team: "LAC", pos: "RB", games: 10, tds: 2, carries: 150, targets: 20, recYds: 100, rushYds: 700, recs: 15, passAtt: 0, passYds: 0, opp: "KC" },
   { id: "c", name: "Charlie End", team: "KC", pos: "TE", games: 10, tds: 0, carries: 0, targets: 60, recYds: 500, rushYds: 0, recs: 45, passAtt: 0, passYds: 0, opp: "LAC" },
   // On a bye this week: no game, no opponent, still on the board.
@@ -1001,11 +1003,14 @@ const PLAYERS = [
 ];
 
 /** Mount the real board on the TD view with players, edge.js and watchlist.js present. */
-async function mountPlayers({ players, storage, storageThrows, noWatchlist }) {
+async function mountPlayers({ players, storage, storageThrows, noWatchlist, search, pools }) {
   const nfl = (await import("./nfl.js")).default;
   const doc = stubDoc();
   const store = new Map(Object.entries(storage || {}));
-  const win = { BetHouseEdge: (await import("./edge.js")).default };
+  const win = { BetHouseEdge: (await import("./edge.js")).default, pushed: [], listeners: {} };
+  win.location = { search: search || "", pathname: "/nfl.html" };
+  win.history = { pushState(_s, _t, url) { win.pushed.push(url); }, replaceState(_s, _t, url) { win.pushed.push(url); } };
+  win.addEventListener = (type, fn) => { (win.listeners[type] = win.listeners[type] || []).push(fn); };
   if (!noWatchlist) win.BetHouseWatchlist = (await import("./watchlist.js")).default;
   if (storageThrows) Object.defineProperty(win, "localStorage", { get() { throw new Error("SecurityError: storage is disabled"); } });
   else win.localStorage = { getItem: (k) => (store.has(k) ? store.get(k) : null), setItem: (k, v) => store.set(k, String(v)), removeItem: (k) => store.delete(k) };
@@ -1015,7 +1020,7 @@ async function mountPlayers({ players, storage, storageThrows, noWatchlist }) {
     model: nfl,
     data: {
       season: 2026, week: 2, statsSeasons: [2025, 2026], generated: "2026-09-21T00:00", gamesCached: 2,
-      games: GAMES, ratings: RATINGS, teamFactors: {}, players, pools: {}, usagePool: [],
+      games: GAMES, ratings: RATINGS, teamFactors: {}, players, pools: pools || {}, usagePool: [],
     },
     record: null, league: "NFL", fetcher: "fetch-nfl.mjs",
     copy: {
@@ -1109,4 +1114,179 @@ test("typing a price in the panel prices the row at once, through edge.js, and i
 test("one edge colour rule: the slip and the row share edgeClass", () => {
   const js = src("football-board.js");
   assert.equal((js.match(/ev>0\.02\?/g) || []).length, 1, "the good/warn/bad threshold appears more than once");
+});
+
+/* ------------------------------------------------------------------ *
+ * The player drawer (phase 2, 2026-09-29)
+ *
+ * A row opens a drawer instead of an inline panel: the player's id goes
+ * in the URL so a row is a link, Escape and the back button close it,
+ * and its tabs are the overview, the ladder as threshold buttons, and
+ * the recent games the fetcher wrote. Page and stylesheet contracts
+ * first, then the real script against the stub window.
+ * ------------------------------------------------------------------ */
+
+test("both football boards carry the drawer and its scrim, and the stylesheet fixes them to the viewport", () => {
+  for (const page of ["nfl.html", "cfb.html"]) {
+    const html = src(page);
+    assert.match(html, /<div[^>]*id="drawer"[^>]*role="dialog"[^>]*aria-modal="true"[^>]*hidden/, `${page}: no dialog drawer`);
+    assert.match(html, /id="scrim"[^>]*hidden/, `${page}: no scrim`);
+    assert.match(html, /id="dclose"/, `${page}: no close button`);
+  }
+  const css = src(SHEET);
+  assert.match(css, /\.drawer\{[^}]*position:fixed/, "the drawer is not fixed to the viewport");
+  assert.match(css, /\.scrim\{[^}]*position:fixed/, "the scrim is not fixed to the viewport");
+  assert.match(css, /@media \(max-width:760px\)\{[^@]*\.drawer\{[^}]*(bottom:0|max-height)/, "no phone sheet rule for the drawer");
+});
+
+test("the board feature-detects the history API before touching it, and names its recent-games model calls", () => {
+  const js = src("football-board.js");
+  assert.match(js, /typeof window\.history/, "history is used without a feature check");
+  assert.match(js, /N\.recentValues\(/); assert.match(js, /N\.recentHits\(/);
+  assert.doesNotMatch(js, /id="why/, "the inline panel is still rendered");
+});
+
+const clickRow = (app, i) => {
+  const btn = stubEl("button"); btn.setAttribute("data-i", String(i)); btn.setAttribute("aria-expanded", "false");
+  app.handlers.click[0]({ target: { closest: (sel) => (sel === ".row" ? btn : null) } });
+  return btn;
+};
+
+test("a row opens the drawer with the player in the URL; Escape and the back button close it and give focus back", async () => {
+  const { app, doc, win } = await mountPlayers({ players: PLAYERS });
+  const i = app.__rows.findIndex((r) => r.p.id === "a");
+  const btn = clickRow(app, i);
+  const drawer = doc.getElementById("drawer");
+  assert.equal(drawer.hidden, false, "the drawer did not open");
+  assert.equal(doc.getElementById("scrim").hidden, false);
+  assert.ok(doc.getElementById("dbody").innerHTML.includes("carries"), "the overview is not the reasoning table");
+  assert.ok(doc.getElementById("dtitle").textContent.includes("Alpha Wide"));
+  assert.deepEqual(win.pushed.slice(-1), ["?player=a&prop=td"], "the URL does not name the player");
+  const closeBtn = doc.getElementById("dclose");
+  assert.ok(closeBtn.focused, "focus did not move to the close button");
+  // Escape closes, the URL goes back to the bare board, focus returns to the row.
+  const keys = doc.listeners.keydown; assert.ok(keys && keys.length, "no document keydown handler");
+  keys[keys.length - 1]({ key: "Escape", preventDefault() {} });
+  assert.equal(drawer.hidden, true);
+  assert.equal(win.pushed.slice(-1)[0], "/nfl.html");
+  assert.ok(btn.focused, "focus did not return to the row");
+  // Open again, then the back button: a popstate to the bare path closes it without pushing.
+  clickRow(app, i);
+  const n = win.pushed.length;
+  win.location.search = "";
+  win.listeners.popstate[0]({});
+  assert.equal(drawer.hidden, true);
+  assert.equal(win.pushed.length, n, "a popstate must not push");
+});
+
+test("a deep link opens the drawer on that player, even one beyond the twenty-row cut", async () => {
+  const many = [];
+  for (let k = 0; k < 30; k++) many.push({ ...PLAYERS[0], id: "p" + k, name: "Player " + k, tds: 8 - (k % 7), recent: undefined });
+  // p27 has the fewest touchdowns of the thirty, so he ranks under the cut.
+  const { app, doc } = await mountPlayers({ players: many, search: "?player=p27&prop=td" });
+  assert.equal(doc.getElementById("drawer").hidden, false, "the deep link did not open the drawer");
+  assert.ok(doc.getElementById("dtitle").textContent.includes("Player 27"));
+  assert.ok(app.__rows.length > 20, "the cut was not lifted to reach the player");
+});
+
+test("the recent-games tab draws one bar per row and the hit rate at the threshold, and nothing for a player with none", async () => {
+  const { app, doc, press } = await mountPlayers({ players: PLAYERS });
+  clickRow(app, app.__rows.findIndex((r) => r.p.id === "a"));
+  press("dtabs", "Recent games");
+  const body = doc.getElementById("dbody").innerHTML;
+  assert.equal((body.match(/<rect class="bar/g) || []).length, 3, "one bar per recent row");
+  assert.match(body, /scored in <b>2<\/b> of the last <b>3<\/b>/, "touchdowns: how many of the last games he scored in");
+  clickRow(app, app.__rows.findIndex((r) => r.p.id === "b"));
+  press("dtabs", "Recent games");
+  assert.doesNotMatch(doc.getElementById("dbody").innerHTML, /<rect class="bar/, "a player with no rows has no chart");
+  assert.match(doc.getElementById("dbody").innerHTML, /no game log/i);
+});
+
+/* A levelled receiving-yards pool: 400 games around a 60-yard projection. */
+function recPool(nfl) {
+  const exp = [], ratio = [];
+  for (let k = 0; k < 400; k++) { exp.push(40 + (k % 40)); ratio.push(0.2 + ((k * 37) % 100) / 60); }
+  return { recyds: nfl.sortedPool(exp, ratio, "recyds") };
+}
+
+test("the ladder tab is the model's rungs as buttons: the near rung pressed first, a press moves the headline and the recent-games threshold", async () => {
+  const nfl = (await import("./nfl.js")).default;
+  const { app, doc, press } = await mountPlayers({ players: PLAYERS, pools: recPool(nfl) });
+  press("view", "Receiving yards");
+  const i = app.__rows.findIndex((r) => r.p.id === "a");
+  assert.ok(i >= 0, "no receiving row for a");
+  clickRow(app, i);
+  press("dtabs", "Alternate lines");
+  let body = doc.getElementById("dbody").innerHTML;
+  assert.match(body, /class="rungs"/);
+  const rungs = nfl.ladder("recyds", app.__rows[i].exp, recPool(nfl).recyds);
+  assert.equal((body.match(/<button class="rung/g) || []).length, rungs.length, "one button per rung");
+  assert.match(body, /aria-pressed="true"/, "no rung pressed");
+  const far = rungs[rungs.length - 1];
+  const drawer = doc.getElementById("drawer");
+  drawer.handlers.click[0]({ target: { closest: (sel) => (sel === "[data-rung]" ? { getAttribute: () => String(far.at) } : null) } });
+  body = doc.getElementById("dbody").innerHTML;
+  assert.ok(body.includes("<b>" + far.at + "+</b>"), "the headline did not move to the pressed rung");
+  press("dtabs", "Recent games");
+  body = doc.getElementById("dbody").innerHTML;
+  const hits = nfl.recentHits("recyds", PLAYERS[0].recent, far.at);
+  assert.match(body, new RegExp("reached <b>" + far.at + "\\+</b> in <b>" + hits + "</b> of the last <b>3</b>"), "the recent tab does not use the pressed rung");
+});
+
+test("the back button never pushes: a popstate to another player's URL switches the view and opens him without a new entry", async () => {
+  const nfl = (await import("./nfl.js")).default;
+  const { app, doc, win } = await mountPlayers({ players: PLAYERS, pools: recPool(nfl) });
+  // The back on the touchdown view, then Back lands on the wide receiver's receiving-yards link:
+  // the view switches, the back is not on it, and nothing may be pushed while doing so.
+  clickRow(app, app.__rows.findIndex((r) => r.p.id === "b"));
+  const n = win.pushed.length;
+  win.location.search = "?player=a&prop=recyds";
+  win.listeners.popstate[0]({});
+  assert.equal(doc.getElementById("dtitle").textContent, "Alpha Wide");
+  assert.equal(win.pushed.length, n, "a popstate pushed");
+  assert.equal(doc.getElementById("drawer").hidden, false);
+});
+
+test("re-clicking the open row does not stack a duplicate URL", async () => {
+  const { app, win } = await mountPlayers({ players: PLAYERS });
+  const i = app.__rows.findIndex((r) => r.p.id === "a");
+  clickRow(app, i); clickRow(app, i);
+  assert.deepEqual(win.pushed, ["?player=a&prop=td"]);
+});
+
+test("a deep link to a player hidden by a filter clears the filter; one to nobody on the view closes quietly and leaves the cut alone", async () => {
+  const { app, doc, win } = await mountPlayers({ players: PLAYERS, storage: {}, search: "?player=a&prop=td" });
+  assert.equal(doc.getElementById("drawer").hidden, false);
+  // Filter him out, then follow a link to him: the filter goes, he opens.
+  const sel = doc.getElementById("teamsel"); sel.value = "LAC"; sel.onchange();
+  assert.equal(doc.getElementById("drawer").hidden, true, "the drawer stayed open on a row the filter removed");
+  win.location.search = "?player=a&prop=td"; win.listeners.popstate[0]({});
+  assert.equal(doc.getElementById("drawer").hidden, false, "the deep link did not clear the filter");
+  assert.equal(sel.value, "", "the team filter was not cleared");
+  // A link to nobody: closed, quiet, and the twenty-row cut untouched.
+  const before = win.pushed.length;
+  win.location.search = "?player=nobody&prop=td"; win.listeners.popstate[0]({});
+  assert.equal(doc.getElementById("drawer").hidden, true);
+  assert.equal(win.pushed.length, before);
+  assert.ok(app.__rows.length <= 20);
+});
+
+test("the slash shortcut stays out of an open drawer", async () => {
+  const { app, doc } = await mountPlayers({ players: PLAYERS });
+  clickRow(app, 0);
+  const q = doc.getElementById("q"); q.focused = false;
+  doc.activeElement = { tagName: "BUTTON" };
+  for (const h of doc.listeners.keydown) h({ key: "/", preventDefault() {} });
+  assert.ok(!q.focused, "the search box took focus from behind the dialog");
+});
+
+test("a page without the drawer markup is told to reload, like a stale model", async () => {
+  const nfl = (await import("./nfl.js")).default;
+  const doc = stubDoc(); const missing = new Set(["drawer", "scrim", "dbody"]);
+  const real = doc.getElementById.bind(doc);
+  doc.getElementById = (id) => (missing.has(id) ? null : real(id));
+  const win = {};
+  new Function("window", "document", src("football-board.js"))(win, doc);
+  win.BetHouseFootballBoard.mount({ model: nfl, data: { season: 2026, week: 2, games: [], ratings: {}, teamFactors: {}, players: [], pools: {} }, record: null, league: "NFL", fetcher: "x", copy: { noteTD: "", noteStat: {}, noteGames: "", footer: "" } });
+  assert.match(doc.getElementById("app").innerHTML, /Reload this page/);
 });

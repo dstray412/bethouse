@@ -36,16 +36,19 @@
        exist, or the first keystroke fails silently (the search box did,
        2026-09-09). Say so instead. */
     var NEEDS = ['STATS','statEligible','statOppFactor','allowOf','scoreAnytimeTD','empiricalOver','fairPrice','availability','playerMatches',
-      'statTotal','statOpportunity','ladder','projectGame','pickGame','poolSize','poolReads'];
+      'statTotal','statOpportunity','ladder','projectGame','pickGame','poolSize','poolReads','recentValues','recentHits','recentDate'];
     var missing = NEEDS.filter(function(k){ return typeof N[k] !== 'function' && k !== 'STATS' || (k === 'STATS' && !N.STATS); });
     /* The same mix the other way: a fresh model with a data file from
        before the pools were levelled (2026-09-21) would price every prop
        off the whole pool -- the shape the ladder replay measured as wrong
        by size -- and look normal doing it. A flat pool is the tell. */
     var stalePools = Object.keys(D.pools||{}).some(function(k){ return Array.isArray(D.pools[k]); });
-    if (missing.length || stalePools) {
+    /* ...and an older page than script: the drawer's markup arrived with
+       phase 2 (2026-09-29); without it a row click would go nowhere. */
+    var stalePage = !document.getElementById('drawer') || !document.getElementById('dbody');
+    if (missing.length || stalePools || stalePage) {
       app.innerHTML = '<div class="empty"><div class="big">Reload this page</div>' +
-        '<div>Your browser has a '+(stalePools?'newer model than data file':'newer page than model script')+'. A hard refresh (Cmd/Ctrl+Shift+R) fixes it.</div></div>';
+        '<div>Your browser has a '+(stalePools?'newer model than data file':stalePage?'newer script than page':'newer page than model script')+'. A hard refresh (Cmd/Ctrl+Shift+R) fixes it.</div></div>';
       return;
     }
 
@@ -55,9 +58,9 @@
     var VIEWS = [{id:'td',label:'Anytime TD'}].concat(STAT_IDS.map(function(k){return {id:k,label:N.STATS[k].label};}))
       .concat([{id:'game',label:'Spread & total'}]);
     var LINES = [{id:0.7,label:'Low'},{id:1,label:'Projection'},{id:1.3,label:'High'}];
-    var state = { view:'td', lineMult:1, open:null, showAll:false, q:'',
+    var state = { view:'td', lineMult:1, showAll:false, q:'',
       /* The parlay slip: what the suggester built, or why it could not. */
-      candidates:[], slip:null, slipError:null, slipLegs:null, slipScope:'slate', slipGame:null, slipPrice:null,
+      candidates:[], slip:null, slipError:null, slipLegs:null, slipScope:'slate', slipGame:null, slipPrice:null, pin:null,
       sort:'proj', team:'', pos:'', prices:{},
       /* Which kinds of leg the suggester may draw on: touchdowns, the counting props, the game lines. */
       kinds:{ td:true, props:true, game:true } };
@@ -132,7 +135,12 @@
     }
     /* Twenty rows is a board; eighty is a spreadsheet. The rest are one tap away. */
     var SHOW=20, MAX=80;
-    var trim=function(rows){ var n=(state.showAll||state.q)?MAX:SHOW; return { rows:rows.slice(0,n), hidden:Math.min(rows.length,MAX)-Math.min(rows.length,n) }; };
+    var trim=function(rows){
+      var n=(state.showAll||state.q)?MAX:SHOW, kept=rows.slice(0,n);
+      /* A deep link to a player under the cap keeps his row on the board. */
+      if(state.pin){ var extra=rows.slice(n).filter(function(r){ return r.p&&String(r.p.id)===state.pin; }); kept=kept.concat(extra); }
+      return { rows:kept, hidden:Math.min(rows.length,MAX)-Math.min(rows.length,n) };
+    };
     /* The search box filters the props views by name, team or opponent
        (nfl.js playerMatches). The game view has no players to find. */
     var find=function(p){ return N.playerMatches(state.q,p); };
@@ -210,18 +218,17 @@
         '<div class="gmeta">'+rows.length+' players · '+seasons+' form · type the book\'s price in a row for your edge</div></div>';
       rows.forEach(function(r,i){
         r.i=i;
-        html+='<button class="'+rowClass+'" aria-expanded="false" data-i="'+i+'">'+
+        html+='<button class="'+rowClass+'" aria-haspopup="dialog" data-i="'+i+'">'+
           '<span class="slot">'+(i+1)+'</span>'+
           '<span class="who">'+esc(r.p.name)+'<span class="pos">'+esc(r.p.team)+
             (r.p.opp?' vs '+esc(r.p.opp):'')+'</span>'+qTag(r.p)+'</span>'+
           '<span class="prob">'+pct(r.s.prob,0)+'</span>'+
           '<span class="be">'+sgn(N.fairPrice(r.s.prob))+'<small>fair</small></span>'+
           pxCell(i,r.pe)+
-          '<span class="caret">›</span></button>'+
-          '<div class="why" id="why'+i+'" hidden></div>';
+          '<span class="caret">›</span></button>';
       });
       app.innerHTML=html+(rows.length?'':nothing())+moreBtn(t.hidden)+'</div>';
-      app.__rows=rows;
+      app.__rows=rows; app.__ladder=null;
       app.__detail=function(r){
         var t=pxInput(r)+'<table>';
         t+='<tr><td>workload</td><td><b>'+r.s.perGameCarries.toFixed(1)+'</b> carries and <b>'+
@@ -286,14 +293,13 @@
         ' · type the book\'s price in a row for your edge</div></div>';
       rows.forEach(function(r,i){
         r.i=i;
-        html+='<button class="'+rowClass+'" aria-expanded="false" data-i="'+i+'">'+
+        html+='<button class="'+rowClass+'" aria-haspopup="dialog" data-i="'+i+'">'+
           '<span class="slot">'+(i+1)+'</span>'+
           '<span class="who">'+esc(r.p.name)+'<span class="pos">'+esc(r.p.team)+(r.p.opp?' vs '+esc(r.p.opp):'')+' · o'+r.line+'</span>'+badge(r.p)+qTag(r.p)+'</span>'+
           '<span class="prob">'+Math.round(r.exp)+'<small>'+(stat==='recs'?'catches':'yards')+'</small></span>'+
           '<span class="be'+(atProj?' dim':'')+'">'+pct(r.over,0)+'<small>'+sgn(N.fairPrice(r.over))+' fair</small></span>'+
           pxCell(i,r.pe)+
-          '<span class="caret">›</span></button>'+
-          '<div class="why" id="why'+i+'" hidden></div>';
+          '<span class="caret">›</span></button>';
       });
       /* A stat the model has and this data file has no pool for: the view
          arrived with the model, the pool arrives with the next build. Say
@@ -303,23 +309,8 @@
       app.innerHTML=html+(rows.length?'':empty)+moreBtn(t.hidden)+'</div>';
       app.__rows=rows;
       /* The alternate lines: every rung of the model's ladder, priced off
-         the same pool the row is. The rung nearest the line on the row is
-         marked, so the eye lands where the board's own number sits. */
-      var ladderHtml=function(r){
-        var rungs=N.ladder(stat,r.exp,pool);
-        if(!rungs.length) return '';
-        var near=0;
-        rungs.forEach(function(g,i){ if(Math.abs(g.line-r.line)<Math.abs(rungs[near].line-r.line)) near=i; });
-        var h='<div class="ladder"><p class="lhead">Alternate lines. The chance he reaches each number, '+
-          'read off the same games; bet a rung only if the book beats its fair price. '+
-          'The rung nearest his line above is marked.</p><div class="rungs">';
-        rungs.forEach(function(g,i){
-          h+='<div class="rung'+(i===near?' near':'')+'"'+(i===near?' aria-current="true"':'')+'>'+
-            '<b>'+g.at+'+</b><span class="rp">'+pct(g.prob,0)+'</span>'+
-            '<span class="rf">'+sgn(N.fairPrice(g.prob))+' fair</span></div>';
-        });
-        return h+'</div></div>';
-      };
+         the same pool the row is. The drawer's ladder tab renders them. */
+      app.__ladder=function(r){ return N.ladder(stat,r.exp,pool); };
       /* The panel: the decision first, in two lines, then the alternate
          lines, then the arithmetic in words a bettor already uses. The
          constants behind each step are in nfl.js and the README; they do
@@ -360,7 +351,7 @@
           poolWord+(used<held?' whose own projection was nearest his':' against their own projections')+'.</p>';
         var s=statusRow(r.p);
         if(s) s='<p>'+s.replace(/<\/?t[rd]>/g,'').replace(/^status/,'')+'</p>';
-        return h+pxInput(r)+ladderHtml(r)+w+s;
+        return h+pxInput(r)+w+s;
       };
     }
 
@@ -545,7 +536,7 @@
         (D.linesFetched?' · lines as of '+esc(String(D.linesFetched).slice(0,16).replace('T',' '))+' UTC':'')+'</div></div>';
       rows.forEach(function(r,i){
         var m=r.pr.margin;
-        html+='<button class="row" aria-expanded="false" data-i="'+i+'">'+
+        html+='<button class="row" aria-haspopup="dialog" data-i="'+i+'">'+
           '<span class="slot">'+(i+1)+'</span>'+
           '<span class="who">'+esc(r.a)+(r.g.neutral?' vs ':' at ')+esc(r.h)+
             '<span class="pos">'+(r.g.line
@@ -560,11 +551,10 @@
               '<span class="be">'+evStr(r.best.ev)+'<small>EV</small></span>'
             : '<span class="prob">-'+Math.abs(m).toFixed(1)+'<small>'+esc(m>=0?r.h:r.a)+'</small></span>'+
               '<span class="be">'+r.pr.total.toFixed(1)+'<small>total</small></span>')+
-          '<span class="caret">›</span></button>'+
-          '<div class="why" id="why'+i+'" hidden></div>';
+          '<span class="caret">›</span></button>';
       });
       app.innerHTML=html+'</div>';
-      app.__rows=rows;
+      app.__rows=rows; app.__ladder=null;
       app.__detail=function(r){
         var t='<table>';
         t+='<tr><td>projection</td><td><b>'+esc(r.h)+' '+r.pr.homePts.toFixed(1)+
@@ -618,6 +608,153 @@
         return t+'</table>'+matchupHtml(r);
       };
     }
+
+    /* ---- the drawer ----
+       A row opens it; the player's id goes in the URL so a row is a link;
+       Escape, the scrim, the close button and the back button close it.
+       Its tabs: the overview (the row's reasoning), the alternate lines as
+       buttons, the recent games the data file carries. Everything about
+       the window is feature-detected so the board mounts without one. */
+    var hist=(typeof window!=='undefined'&&typeof window.history!=='undefined'&&window.history&&window.history.pushState)?window.history:null;
+    var loc=(typeof window!=='undefined'&&window.location)||null;
+    var drawerEl=document.getElementById('drawer'), scrimEl=document.getElementById('scrim');
+    state.drawer=null;
+    var rowIdOf=function(r){ return r.p?String(r.p.id):r.g?String(r.g.id):null; };
+    var findRow=function(id){ var rows=app.__rows||[]; for(var i=0;i<rows.length;i++) if(rowIdOf(rows[i])===id) return i; return -1; };
+    /* Only a gesture pushes a history entry; the board's own tidying
+       (a row that vanished under a filter, a link to nobody) replaces
+       the entry it is on, so Back and Forward keep meaning what they did. */
+    var setUrl=function(id,kind,replace){
+      if(!hist||!loc) return;
+      var url=id?'?'+(kind==='g'?'game':'player')+'='+encodeURIComponent(id)+'&prop='+encodeURIComponent(state.view):(loc.pathname||'');
+      try{ if(replace&&hist.replaceState) hist.replaceState(null,'',url); else hist.pushState(null,'',url); }catch(e){}
+    };
+    function openDrawer(i,opener,quiet){
+      var r=app.__rows&&app.__rows[i]; if(!r) return;
+      var id=rowIdOf(r), kind=r.p?'p':'g', d=state.drawer;
+      var same=d&&d.id===id&&d.kind===kind;
+      state.drawer={id:id, kind:kind, tab:same?d.tab:'over', rung:same?d.rung:null, opener:opener||(d&&d.opener)||null};
+      if(!quiet&&!same) setUrl(id,kind);
+      renderDrawer();
+      var c=document.getElementById('dclose'); if(c&&c.focus) c.focus();
+    }
+    /* Focus goes back to the row that opened the drawer -- the live one,
+       since a re-render in between rebuilt the rows. */
+    var liveOpener=function(d){
+      var i=findRow(d.id);
+      if(i>=0&&app.querySelector){ var el=app.querySelector('.row[data-i="'+i+'"]'); if(el) return el; }
+      return d.opener;
+    };
+    function closeDrawer(how){
+      if(!state.drawer) return;
+      var d=state.drawer, op=liveOpener(d); state.drawer=null; state.pin=null;
+      if(drawerEl) drawerEl.hidden=true; if(scrimEl) scrimEl.hidden=true;
+      if(how==='replace') setUrl(null,null,true); else if(!how) setUrl(null);
+      if(op&&op.focus) op.focus();
+    }
+    /* A player by id. Under the twenty-row cut, the cut lifts; behind a
+       filter, the filter clears; under the eighty-row cap, his row is
+       pinned. On no view at all: closed, quietly, the board as it was. */
+    function openById(id,quiet){
+      var i=findRow(id);
+      if(i<0){
+        var was={showAll:state.showAll,team:state.team,pos:state.pos,q:state.q};
+        state.showAll=true; state.team=''; state.pos=''; state.q=''; state.pin=id;
+        var qEl=document.getElementById('q'); if(qEl) qEl.value='';
+        render(); i=findRow(id);
+        if(i<0){ state.showAll=was.showAll; state.team=was.team; state.pos=was.pos; state.q=was.q; state.pin=null; render(); closeDrawer('replace'); return; }
+      }
+      openDrawer(i,null,quiet);
+    }
+    var propLabelOf=function(r){
+      if(!r.p) return '';
+      return state.view==='td'?'Anytime TD':N.STATS[state.view]?N.STATS[state.view].label+' o'+r.line:'';
+    };
+    function renderDrawer(){
+      var d=state.drawer; if(!d||!drawerEl) return;
+      var i=findRow(d.id); if(i<0){ closeDrawer('replace'); return; }
+      var r=app.__rows[i]; r.i=i;
+      document.getElementById('dtitle').textContent = r.p ? r.p.name : (r.a+' at '+r.h);
+      document.getElementById('dsub').textContent = r.p ? (r.p.team+(r.p.opp?' vs '+r.p.opp:'')+' · '+propLabelOf(r)) : ('week '+D.week);
+      var tabs=[{id:'over',label:'Overview'}];
+      if(r.p&&app.__ladder) tabs.push({id:'ladder',label:'Alternate lines'});
+      if(r.p) tabs.push({id:'recent',label:'Recent games'});
+      if(!tabs.some(function(t){return t.id===d.tab;})) d.tab='over';
+      seg(document.getElementById('dtabs'),tabs,d.tab,function(v){ if(state.drawer){ state.drawer.tab=v; renderDrawer(); } });
+      document.getElementById('dbody').innerHTML = d.tab==='ladder'?ladderTab(r):d.tab==='recent'?recentTab(r):app.__detail(r);
+      drawerEl.hidden=false; if(scrimEl) scrimEl.hidden=false;
+    }
+    /* The alternate lines as buttons. The rung nearest the row's line is
+       pressed first; a press moves the headline and the recent-games
+       threshold. */
+    function ladderTab(r){
+      var rungs=app.__ladder?app.__ladder(r):[];
+      if(!rungs.length) return '<p>No alternate lines for this row.</p>';
+      var d=state.drawer, near=0;
+      rungs.forEach(function(g,i){ if(Math.abs(g.line-r.line)<Math.abs(rungs[near].line-r.line)) near=i; });
+      if(d.rung==null||!rungs.some(function(g){return g.at===d.rung;})) d.rung=rungs[near].at;
+      var cur=rungs.filter(function(g){return g.at===d.rung;})[0];
+      var h='<p class="verdict"><b>'+cur.at+'+</b> hits <b>'+pct(cur.prob,0)+'</b> of the time. Fair price <b>'+sgn(N.fairPrice(cur.prob))+'</b>. '+
+        'Bet it only if the book is offering better than that.</p>'+
+        '<p class="lhead">Every alternate line the book might offer, priced off the same games as the row. Press one.</p><div class="rungs" id="rungs">';
+      rungs.forEach(function(g){
+        var on=g.at===d.rung;
+        h+='<button class="rung'+(on?' near':'')+'" type="button" data-rung="'+g.at+'" aria-pressed="'+on+'">'+
+          '<b>'+g.at+'+</b><span class="rp">'+pct(g.prob,0)+'</span><span class="rf">'+sgn(N.fairPrice(g.prob))+' fair</span></button>';
+      });
+      return h+'</div>';
+    }
+    /* The recent games the data file carries: a bar a game, newest on the
+       right, the threshold the pressed rung (or the row's line; for a
+       touchdown, one), and how many games cleared it. */
+    function recentTab(r){
+      var rec=r.p&&r.p.recent;
+      if(!rec||!rec.length) return '<p>No game log for him yet: the data file carries a player\'s last few games, and he has none on file.</p>';
+      var stat=N.STATS[state.view]?state.view:null, d=state.drawer;
+      var thr=stat?(d.rung!=null?d.rung:Math.ceil(r.line)):1;
+      var vals=stat?N.recentValues(stat,rec):rec.map(function(x){return Number(x[6])||0;});
+      var hits=stat?N.recentHits(stat,rec,thr):vals.filter(function(v){return v>=1;}).length;
+      var head=stat
+        ? '<p class="verdict">He reached <b>'+thr+'+</b> in <b>'+hits+'</b> of the last <b>'+rec.length+'</b> games.</p>'
+        : '<p class="verdict">He scored in <b>'+hits+'</b> of the last <b>'+rec.length+'</b> games.</p>';
+      var rows=rec.slice().reverse(), vs=vals.slice().reverse();
+      var max=Math.max(thr,Math.max.apply(null,vs),1), H=110, step=34, Wd=rows.length*step+8;
+      var svg='<svg class="bars" viewBox="0 0 '+Wd+' '+(H+30)+'" role="img" aria-label="The last '+rec.length+' games, newest on the right">';
+      rows.forEach(function(x,k){
+        var v=vs[k], h=Math.max(1,Math.round(v/max*H)), bx=k*step+6;
+        // The value above the bar, or inside its top when the bar reaches the top of the chart.
+        var ly=H-h-3, inBar=ly<10; if(inBar) ly=H-h+13;
+        svg+='<rect class="bar'+(v>=thr-0.5?' hit':'')+'" x="'+bx+'" y="'+(H-h)+'" width="22" height="'+h+'"></rect>'+
+          '<text class="bv'+(inBar?' in':'')+'" x="'+(bx+11)+'" y="'+ly+'" text-anchor="middle">'+v+'</text>'+
+          '<text class="bl" x="'+(bx+11)+'" y="'+(H+13)+'" text-anchor="middle">'+esc(x[1])+'</text>';
+      });
+      var ty=H-Math.round(thr/max*H);
+      svg+='<line class="thr" x1="0" x2="'+Wd+'" y1="'+ty+'" y2="'+ty+'"></line></svg>';
+      var t='<table class="glog"><tr><td>game</td><td>rec yds (catches)</td><td>rush</td><td>pass</td><td>TD</td></tr>';
+      rec.forEach(function(x){
+        t+='<tr><td>'+esc(N.recentDate(x[0]))+' '+esc(x[1])+'</td><td>'+x[2]+' ('+x[3]+')</td><td>'+x[4]+'</td><td>'+x[5]+'</td><td>'+x[6]+'</td></tr>';
+      });
+      return head+svg+t+'</table><p>Newest on the right; the dashed line is the threshold; a bar in the accent cleared it.</p>';
+    }
+    if(drawerEl&&drawerEl.addEventListener) drawerEl.addEventListener('click',function(e){
+      var b=e.target&&e.target.closest?e.target.closest('[data-rung]'):null;
+      if(b&&state.drawer){ state.drawer.rung=+b.getAttribute('data-rung'); renderDrawer(); }
+    });
+    var dcloseEl=document.getElementById('dclose');
+    if(dcloseEl&&dcloseEl.addEventListener) dcloseEl.addEventListener('click',function(){ closeDrawer(); });
+    if(scrimEl&&scrimEl.addEventListener) scrimEl.addEventListener('click',function(){ closeDrawer(); });
+    /* The URL names a player or a game: open on it, and follow the back button. */
+    function syncFromUrl(){
+      if(!loc) return;
+      var q; try{ q=new URLSearchParams(loc.search||''); }catch(e){ return; }
+      var id=q.get('player')||q.get('game'), prop=q.get('prop');
+      if(!id){ closeDrawer(true); return; }
+      /* Whatever is open closes quietly first: the URL is the word now. */
+      if(state.drawer&&state.drawer.id!==String(id)) closeDrawer(true);
+      if(prop&&prop!==state.view&&(prop==='td'||prop==='game'||Object.prototype.hasOwnProperty.call(N.STATS,prop))){ state.view=prop; render(); }
+      openById(String(id),true);
+    }
+    if(typeof window!=='undefined'&&window.addEventListener) window.addEventListener('popstate',syncFromUrl);
 
     /* ---- the parlay slip ---- */
     var LEGS=[{id:3,label:'3 legs'},{id:4,label:'4 legs'},{id:5,label:'5 legs'}];
@@ -674,7 +811,7 @@
           : 'Only '+have+' game'+(have===1?'':'s')+' still open — a '+n+'-leg parlay from the slate needs '+n+', one leg per game.';
         state.slip=null;
       } else { state.slip=out; state.slipError=null; }
-      state.slipLegs=n; state.open=null; render();
+      state.slipLegs=n; render();
     }
     function slipHtml(){
       var h='';
@@ -753,18 +890,18 @@
     if(teamSel){
       var allTeams=el('option',null,'All teams'); allTeams.value=''; teamSel.appendChild(allTeams);
       TEAMS.forEach(function(t){ var o=el('option',null,t); o.value=t; teamSel.appendChild(o); });
-      teamSel.onchange=function(){ state.team=teamSel.value||''; state.open=null; render(); };
+      teamSel.onchange=function(){ state.team=teamSel.value||''; render(); };
     }
     function renderFilters(){
       if(teamSel) teamSel.value=state.team;
       var wrap=document.getElementById('poswrap'); if(wrap) wrap.hidden=!POSS.length;
-      if(POSS.length) seg(document.getElementById('posseg'),[{id:'',label:'All'}].concat(POSS.map(function(x){return {id:x,label:x};})),state.pos,function(v){state.pos=v;state.open=null;render();});
+      if(POSS.length) seg(document.getElementById('posseg'),[{id:'',label:'All'}].concat(POSS.map(function(x){return {id:x,label:x};})),state.pos,function(v){state.pos=v;render();});
     }
 
     function render(){
-      seg(document.getElementById('view'),VIEWS,state.view,function(v){state.view=v;state.open=null;state.showAll=false;render();});
-      seg(document.getElementById('lineseg'),LINES,state.lineMult,function(v){state.lineMult=v;state.open=null;render();});
-      seg(document.getElementById('sortseg'),SORTS,state.sort,function(v){state.sort=v;state.open=null;render();});
+      seg(document.getElementById('view'),VIEWS,state.view,function(v){state.view=v;closeDrawer();state.showAll=false;render();});
+      seg(document.getElementById('lineseg'),LINES,state.lineMult,function(v){state.lineMult=v;render();});
+      seg(document.getElementById('sortseg'),SORTS,state.sort,function(v){state.sort=v;render();});
       renderFilters();
       document.getElementById('controls').hidden = state.view==='game';
       document.getElementById('linewrap').hidden = !N.STATS[state.view];
@@ -788,17 +925,30 @@
       if(state.view==='td') renderTD();
       else if(N.STATS[state.view]) renderStat(state.view);
       else renderGames();
+      renderDrawer();
     }
 
     var q=document.getElementById('q');
     if(q){
-      q.addEventListener('input',function(){ state.q=q.value.trim(); state.open=null; render(); });
+      q.addEventListener('input',function(){ state.q=q.value.trim(); render(); });
       // "/" jumps to the box from anywhere on the page, like a search engine.
       document.addEventListener('keydown',function(e){
+        if(state.drawer) return; // the search box is behind the dialog
         if(e.key==='/'&&document.activeElement!==q&&!/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)){ e.preventDefault(); q.focus(); }
       });
     }
-    app.addEventListener('input',function(e){
+    document.addEventListener('keydown',function(e){
+      if(!state.drawer||!drawerEl) return;
+      if(e.key==='Escape'){ e.preventDefault(); closeDrawer(); return; }
+      /* Tab stays inside the drawer while it is open. */
+      if(e.key==='Tab'&&drawerEl.querySelectorAll){
+        var f=drawerEl.querySelectorAll('button,input,select,a[href]'); if(!f.length) return;
+        var first=f[0], last=f[f.length-1];
+        if(e.shiftKey&&document.activeElement===first){ e.preventDefault(); last.focus(); }
+        else if(!e.shiftKey&&document.activeElement===last){ e.preventDefault(); first.focus(); }
+      }
+    });
+    var onPriceInput=function(e){
       var t=e.target, pk=t&&t.getAttribute?t.getAttribute('data-pk'):null;
       if(pk){
         /* Type a price, keep it, and let the row above follow at once --
@@ -816,24 +966,22 @@
       var v=parseFloat(t.value); state.slipPrice=isFinite(v)?v:null;
       var s=state.slip, box=document.getElementById('slipedge');
       if(s&&box) box.innerHTML=edgeHtml(s.combined.adjusted!=null?s.combined.adjusted:s.combined.prob);
-    });
+    };
+    app.addEventListener('input',onPriceInput);
+    if(drawerEl) drawerEl.addEventListener('input',onPriceInput);
     /* A price committed (blur, Enter) re-orders the rows when the order
        is by edge; a keystroke never does, so the box keeps the cursor. */
-    app.addEventListener('change',function(e){
+    var onPriceCommit=function(e){
       var t=e.target, pk=t&&t.getAttribute?t.getAttribute('data-pk'):null;
-      if(pk&&state.sort==='edge'){ state.open=null; render(); }
-    });
+      if(pk&&state.sort==='edge'){ render(); }
+    };
+    app.addEventListener('change',onPriceCommit);
+    if(drawerEl) drawerEl.addEventListener('change',onPriceCommit);
     app.addEventListener('click',function(e){
       if(e.target.closest('[data-clearslip]')){ state.slip=null; state.slipError=null; state.slipLegs=null; render(); return; }
       if(e.target.closest('[data-more]')){ state.showAll=true; render(); return; }
       var btn=e.target.closest('.row'); if(!btn) return;
-      var i=+btn.getAttribute('data-i');
-      var box=document.getElementById('why'+i);
-      var open=btn.getAttribute('aria-expanded')==='true';
-      btn.setAttribute('aria-expanded',open?'false':'true');
-      if(open){box.hidden=true;return;}
-      if(!box.innerHTML) box.innerHTML=app.__detail(app.__rows[i]);
-      box.hidden=false;
+      openDrawer(+btn.getAttribute('data-i'),btn);
     });
 
     /* The forward record: what this board actually predicted, graded after the
@@ -896,6 +1044,7 @@
       ' UTC from '+D.gamesCached+' games.</p>';
 
     render();
+    syncFromUrl();
   }
 
   window.BetHouseFootballBoard = { mount: mount };

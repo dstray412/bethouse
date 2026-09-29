@@ -190,5 +190,34 @@ footer td{padding:1px 14px 1px 0}
   .row.priced{grid-template-columns:26px 1fr 64px 56px 12px}
   .row .px{display:none}
 }
+/* The player drawer: a row opens it in place of the old inline panel. A
+   sheet on the right at desktop width, a sheet from the bottom on a
+   phone; the scrim behind it closes it, so does Escape and the back
+   button. Its body reuses the .why table styles. */
+.scrim{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:40}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(560px,100%);background:var(--bg);border-left:1px solid var(--line);
+  z-index:41;overflow-y:auto;padding:16px 18px 28px;box-shadow:-20px 0 60px rgba(0,0,0,.5)}
+.dhead{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:10px}
+.dhead h2{font-family:var(--display);font-size:18px;font-weight:700;margin:0}
+.dsub{color:var(--muted);font-size:13px;margin-top:3px}
+.dclose{font:inherit;font-size:20px;line-height:1;color:var(--muted);background:var(--panel2);border:1px solid var(--line);border-radius:9px;width:36px;height:36px;cursor:pointer;flex:none}
+.dclose:hover{color:var(--text);border-color:var(--accent)}
+.dtabs{margin-bottom:12px;flex-wrap:wrap}
+.dbody{padding:0;background:none;border-top:0}
+/* Alternate lines as buttons: press one and the headline and the
+   recent-games threshold follow it. */
+button.rung{font:inherit;color:inherit;cursor:pointer;text-align:left}
+button.rung:hover{border-color:var(--accent)}
+/* Recent games: a bar a game, newest on the right, the dashed line the
+   threshold, the bars that clear it in the accent. */
+.bars{display:block;width:100%;max-width:520px;height:auto;margin:8px 0 4px}
+.bars .bar{fill:rgba(255,255,255,.18)} .bars .bar.hit{fill:var(--accent)}
+.bars .bv{fill:var(--text);font-size:11px;font-variant-numeric:tabular-nums} .bars .bv.in{fill:#0a0d14;font-weight:700} .bars .bl{fill:var(--muted);font-size:10px}
+.bars .thr{stroke:var(--warn);stroke-width:1;stroke-dasharray:4 3}
+.glog td{padding:1px 14px 1px 0;font-variant-numeric:tabular-nums}
+.glog tr:first-child td{color:var(--muted);font-size:12px}
+@media (max-width:760px){
+  .drawer{top:auto;left:0;right:0;width:100%;max-height:88vh;border-left:0;border-top:1px solid var(--line);border-radius:16px 16px 0 0;padding:14px 14px 24px}
+}
 /* Touch: fingers need 44px; the mouse does not. Pages add their own tap targets. */
 @media (pointer:coarse){ .seg button,.navlink{min-height:44px} }

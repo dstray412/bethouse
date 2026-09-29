@@ -1262,3 +1262,65 @@ test("boardPlayer: position off the roster, status off the report, backup off th
   assert.equal(b.opp, null, "on bye or unplaced");
   assert.equal(b.movedFrom, "DEN");
 });
+
+/* ------------------------------------------------------------------ *
+ * Recent games: the compact rows the fetcher writes, read back by the model
+ *
+ * Oracle: gameValue on the full box-score line. A compact row is
+ * [MMDD, opp, recYds, recs, rushYds, passYds, tds]; rebuilt into the
+ * box shape it must give every stat the same number the full line does,
+ * and a rung is cleared at N - 0.5, the way the ladder settles it.
+ * ------------------------------------------------------------------ */
+
+test("recentLine / recentValues / recentHits: a compact row reads like the box line it came from", () => {
+  const { recentLine, recentValues, recentHits, gameValue, STATS } = nfl;
+  const box = { id: "1", name: "A", team: "KC", rush: { att: 12, yds: 55, td: 1 }, rec: { tgt: 5, rec: 4, yds: 38, td: 0 }, pass: { att: 0, cmp: 0, yds: 0, td: 0, int: 0 } };
+  const row = ["260921", "LAC", 38, 4, 55, 0, 1];
+  for (const stat of Object.keys(STATS)) assert.equal(gameValue(stat, recentLine(row)), gameValue(stat, box), stat);
+  const recent = [["260928", "DEN", 10, 1, 0, 0, 0], row, ["250914", "NYG", 120, 9, 0, 0, 2]];
+  assert.deepEqual(recentValues("recyds", recent), [10, 38, 120]);
+  assert.deepEqual(recentValues("rushrec", recent), [10, 93, 120]);
+  assert.deepEqual(recentValues("recs", recent), [1, 4, 9]);
+  assert.equal(recentHits("recyds", recent, 10), 3, "a 10-yard game clears 10+");
+  assert.equal(recentHits("recyds", recent, 20), 2, "and misses 20+");
+  assert.equal(recentHits("recyds", recent, 100), 1);
+  assert.equal(recentHits("recyds", [], 10), 0);
+  assert.deepEqual(recentValues("recyds", null), []);
+  assert.equal(recentHits("recyds", null, 10), 0);
+});
+
+test("recentRows: each player's last N lines, newest first, from the games on file; nobody without a game", async () => {
+  const { recentRows } = await import("./fetch-football.mjs");
+  const game = (id, date, home, away, rows) => ({ id, season: 2026, date, home: { team: home }, away: { team: away },
+    players: rows.map(([pid, team, rec, rush, pass]) => ({ id: pid, name: pid, team, ...(rec ? { rec } : {}), ...(rush ? { rush } : {}), ...(pass ? { pass } : {}) })) });
+  const games = [
+    game("g1", "2026-09-07T17:00Z", "KC", "LAC", [["a", "KC", { tgt: 8, rec: 6, yds: 80, td: 1 }], ["q", "LAC", null, null, { att: 30, yds: 250, td: 2 }]]),
+    game("g3", "2026-09-21T17:00Z", "DEN", "KC", [["a", "KC", { tgt: 4, rec: 3, yds: 30, td: 0 }, { att: 2, yds: 9, td: 0 }]]),
+    game("g2", "2026-09-14T17:00Z", "KC", "NYG", [["a", "KC", { tgt: 9, rec: 7, yds: 110, td: 2 }]]),
+  ];
+  const out = recentRows(games, 2, nfl);
+  // The date carries the year: the log spans two seasons, and 09/14 comes round again.
+  assert.deepEqual(out.get("a"), [["260921", "DEN", 30, 3, 9, 0, 0], ["260914", "NYG", 110, 7, 0, 0, 2]], "newest first, capped at N, the opponent named");
+  assert.deepEqual(out.get("q"), [["260907", "KC", 0, 0, 0, 250, 0]], "a passer's line; touchdowns are the ones he scores, not throws");
+  assert.equal(out.has("nobody"), false);
+  assert.equal(recentRows([], 5, nfl).size, 0);
+  // A line for a player on neither side of the game (a bad box score) is no row at all.
+  const stray = [game("g9", "2026-09-28T17:00Z", "KC", "LAC", [["z", "DEN", { tgt: 1, rec: 1, yds: 5, td: 0 }]])];
+  assert.equal(recentRows(stray, 5, nfl).has("z"), false);
+});
+
+test("boardPlayer: carries the player's recent rows when there are any, and no field when there are none", async () => {
+  const { boardPlayer } = await import("./fetch-football.mjs");
+  const rec = { id: "1", name: "A", team: "KC", games: 5, tds: 1, carries: 0, targets: 30, recYds: 300, rushYds: 0, recs: 20, passAtt: 0, passYds: 0 };
+  const rows = [["260921", "LAC", 38, 4, 0, 0, 1]];
+  const a = boardPlayer(rec, { roster: null, injuries: {}, backups: new Set(), opponentOf: {}, recent: new Map([["1", rows]]) });
+  assert.deepEqual(a.recent, rows);
+  const b = boardPlayer(rec, { roster: null, injuries: {}, backups: new Set(), opponentOf: {}, recent: new Map() });
+  assert.equal("recent" in b, false);
+});
+
+test("recentDate: a compact row's date reads back as a calendar date", () => {
+  assert.equal(nfl.recentDate("260921"), "2026-09-21");
+  assert.equal(nfl.recentDate("0921"), "09-21", "an older file's four-digit date still reads");
+  assert.equal(nfl.recentDate(null), "");
+});

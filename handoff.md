@@ -27,6 +27,46 @@ Zero dependencies, no build step, no server, no API key. `node --test` with
 **named files** — bare discovery pulls in the backtests, which fire live API
 calls. The list lives in seven places and `dom.test.mjs` checks all seven.
 
+## The interactive football board, phase 2 of 3, 2026-09-29
+
+The drawer. README, "The player drawer: a row is a link". `football-
+board.js`: `state.drawer = {id, kind, tab, rung, opener}`; `openDrawer(i,
+opener, quiet)` / `closeDrawer(quiet)` / `openById(id, quiet)` (lifts the
+twenty-row cut) / `renderDrawer()` (called at the end of every `render()`,
+so a filter that removes the row closes it); `pushUrl` writes
+`?player=<id>&prop=<view>` (or `?game=`) through `window.history` when it
+exists, `syncFromUrl` reads it on mount and on `popstate`; Escape and a
+Tab wrap sit on the document `keydown`; the scrim, `#dclose` and
+`[data-rung]` presses are delegated on the drawer. The price handlers
+listen on both `#app` and `#drawer`. The inline `.why` panel and its
+click toggle are gone; rows carry `aria-haspopup="dialog"`. `renderStat`
+exposes `app.__ladder(r)` for the ladder tab; the other views set it
+null so the tab does not show.
+
+**Data.** `fetch-football.mjs recentRows(games, n, model)` → Map id →
+rows dated `YYMMDD`; `boardPlayer` writes `recent` when there are any;
+`football-leagues.mjs recentGames` 10 / 5; the fetcher throws over
+1000 KB. `nfl.js recentLine / recentValues / recentHits / recentDate` (in
+`NEEDS`). Sizes after the rebuild are in the phase-2 commit message.
+
+**After review.** `setUrl(id, kind, replace)`: a gesture pushes, the
+board's tidying (row gone under a filter, link to nobody) replaces;
+`syncFromUrl` closes quietly before switching views, so a popstate never
+pushes; re-clicking the open row does not push; `openById` clears filters
+and pins the row (`state.pin`, honoured by `trim`) and restores the board
+when the player is on no view; focus returns to the live row
+(`liveOpener`); the "/" shortcut is off while the drawer is open; the
+mount guard also asks for the drawer markup (an old cached page reads
+"Reload this page").
+
+**Tests.** `dom.test.mjs`: the stub window now has `location`, `history`
+(records pushes), `addEventListener` (records `popstate`), elements
+record `focus()`, the document records listeners; `clickRow()` drives
+the delegated row click. Six drawer tests: open/URL/Escape/back/focus,
+deep link under the cut, recent-games bars and counts, ladder buttons and
+the pressed rung reaching the recent tab, page and stylesheet contracts,
+feature detection of `window.history`.
+
 ## The interactive football board, phase 1 of 3, 2026-09-29
 
 The user wants the football boards to feel like nhlpropking.com's

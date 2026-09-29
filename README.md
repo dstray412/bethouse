@@ -1737,6 +1737,45 @@ reaches a price or a parlay probability, and a player with no rate yet
 (no touchdowns) sorts last. On a phone the row has no room for the price
 cell, so the panel carries it there.
 
+### The player drawer: a row is a link
+
+**2026-09-29, phase 2.** A row no longer expands in place; it opens a
+drawer (a sheet on the right at desktop width, from the bottom on a
+phone) with the player's id in the URL -- `nfl.html?player=<id>&prop=recyds`
+-- so a row is a link you can send, the back button closes it, and so do
+Escape, the scrim and the close button. Focus moves to the close button
+on open and back to the row on close, and Tab stays inside it. A deep
+link to a player under the twenty-row cut lifts the cut, one to a player
+behind a filter clears the filter, one to a player under the eighty-row
+cap pins his row, and one to nobody on the view closes quietly. Only a
+gesture adds a history entry: the board's own tidying replaces the entry
+it is on, so Back and Forward keep meaning what they did.
+
+Three tabs. **Overview** is the row's reasoning, the same table as
+before, with the price box from phase 1. **Alternate lines** is the
+ladder as buttons: every rung the book might offer, priced off the same
+games as the row (`N.ladder`, nothing new), the rung nearest the row's
+line pressed first; pressing one moves the headline (chance, fair price)
+and the threshold on the next tab. **Recent games** is a bar a game,
+newest on the right, the dashed line the threshold, the bars that clear
+it in the accent, and the count: "reached 60+ in 4 of the last 10". For
+a touchdown the threshold is one and the count is games he scored in.
+
+The game log is not on the page by accident: the history files are not
+published (1.4 MB and 5.5 MB), so `fetch-football.mjs recentRows` writes
+each player's last few lines into the data file as compact rows
+`[YYMMDD, opp, recYds, recs, rushYds, passYds, tds]` (the year is in the
+date because the log spans two seasons and a September comes round
+again), touchdowns the ones he scored, the opponent by the model's own
+`opponentIn`, capped by `league.recentGames` -- ten for the NFL, five for
+college, which keeps the college file under the 1 MB pre-commit ceiling;
+the fetcher refuses to write a file over it, so it fails before the hook
+would. The page reads a row back
+through `nfl.js recentLine`, so every stat gets the number the full box
+line gives (`recentValues`), and a rung is cleared at N − 0.5
+(`recentHits`), the way the ladder settles it. Nothing here is a
+prediction: it is what he did, beside what the board says he will do.
+
 ### Alternate lines: the ladder, and the flaw it exposed
 
 2026-09-21. A book does not offer one line on a receiver; it offers 10+, 20+,

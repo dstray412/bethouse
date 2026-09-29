@@ -719,6 +719,31 @@
     return v;
   }
 
+  /**
+   * The compact recent-game rows the fetcher writes into the data file
+   * (fetch-football.mjs recentRows): [MMDD, opp, recYds, recs, rushYds,
+   * passYds, tds]. Rebuilt into the box shape gameValue reads, so every
+   * stat gives the number the full line would, and a rung is cleared at
+   * N - 0.5, the way the ladder settles it.
+   */
+  function recentLine(row) {
+    const r = Array.isArray(row) ? row : [];
+    return { rec: { yds: num(r[2]), rec: num(r[3]) }, rush: { yds: num(r[4]) }, pass: { yds: num(r[5]) }, tds: num(r[6]) };
+  }
+  function recentValues(stat, recent) {
+    return (Array.isArray(recent) ? recent : []).map((row) => gameValue(stat, recentLine(row)));
+  }
+  function recentHits(stat, recent, rung) {
+    return recentValues(stat, recent).filter((v) => v >= num(rung) - 0.5).length;
+  }
+  /** The row's date, YYMMDD, as a calendar date; an older file's MMDD reads as MM-DD. */
+  function recentDate(d) {
+    const s = String(d == null ? "" : d);
+    if (/^\d{6}$/.test(s)) return "20" + s.slice(0, 2) + "-" + s.slice(2, 4) + "-" + s.slice(4);
+    if (/^\d{4}$/.test(s)) return s.slice(0, 2) + "-" + s.slice(2);
+    return "";
+  }
+
   /** A stat's opportunity count on a season record or a game line. */
   function statOpportunity(stat, record, opts) {
     const st = STATS[stat];
@@ -1118,6 +1143,10 @@
       ladder: (stat, exp, pool, opts) => ladder(stat, exp, pool, merge(opts)),
       gameLine,
       gameValue,
+      recentLine,
+      recentValues,
+      recentHits,
+      recentDate,
       statOpportunity: (stat, rec, opts) => statOpportunity(stat, rec, merge(opts)),
       expectedStat: (stat, rec, opts) => expectedStat(stat, rec, merge(opts)),
       statEligible: (stat, rec, opts, ctx) => statEligible(stat, rec, merge(opts), ctx),
@@ -1162,6 +1191,10 @@
     ladder,
     gameLine,
     gameValue,
+    recentLine,
+    recentValues,
+    recentHits,
+    recentDate,
     statOpportunity,
     expectedStat,
     statEligible,
