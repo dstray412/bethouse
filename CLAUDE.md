@@ -199,3 +199,6 @@ Key routing rules:
 - Save progress → invoke /context-save
 - Resume context → invoke /context-restore
 - Author a backlog-ready spec/issue → invoke /spec
+
+## Design System
+Read `DESIGN.md` before any visual or UI decision: fonts, colours, spacing and the aesthetic direction live there. Do not deviate without explicit approval; in QA, flag code that does not match it.
