@@ -344,6 +344,14 @@ watched to fail the same way CI failed, then watched to pass, then watched to
 still catch a bare number. Reading the log and inferring the cause would have
 got the diagnosis right and the fix untested.
 
+**The same rule, broken a third time (2026-09-28).** `fetch-mlb.mjs` exited 1
+on "No games returned", which was the off day between the regular season and
+the postseason. Four refreshes died on it, and with them the golf board, the
+grading of the last regular-season day and the commit. It now writes the
+empty board and `track.mjs snapshot` records nothing for it. When a fetcher
+has an "empty" branch, ask what the calendar does to it: every sport has off
+days, and the first one after a fix is when the branch runs.
+
 ---
 
 ## A shape change is not done until the callers are re-tested

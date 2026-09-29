@@ -95,6 +95,13 @@ function snapshot() {
     process.exit(1);
   }
 
+  /* An off day: an empty board is written on purpose (fetch-mlb.mjs), and
+     there is nothing to record, so no day file is made for it. */
+  if (!Array.isArray(D.games) || !D.games.length) {
+    console.log(`snapshot ${D.date}: no games on the slate, nothing to record`);
+    return;
+  }
+
   const day = loadDay(D.date);
   const seen = new Set(day.predictions.map((p) => `${p.gamePk}|${p.playerId}|${p.prop}`));
   const L = D.league;

@@ -27,6 +27,18 @@ Zero dependencies, no build step, no server, no API key. `node --test` with
 **named files** — bare discovery pulls in the backtests, which fire live API
 calls. The list lives in seven places and `dom.test.mjs` checks all seven.
 
+## The baseball refresh on an off day, 2026-09-29
+
+`Refresh board` failed four times running from 2026-09-28: `fetch-mlb.mjs`
+exited 1 on an empty slate, the off day before the Wild Card round, and
+the job died before golf, grading and the commit. The fetcher now writes
+the empty board (the page reads `D.games || []` and the workflow's sanity
+check accepts zero games) and `track.mjs snapshot` records nothing for a
+day with no games rather than saving an empty day file. The postseason
+has more off days (2026-10-02, between rounds); each would have done the
+same. `history/2026-09-27.json` was left `graded: false` by the failures
+and the next successful run grades it.
+
 ## Availability off the roster, and one passer per team, 2026-09-24
 
 Two things the suggested parlay got wrong on the Thursday board, both

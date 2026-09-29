@@ -531,10 +531,14 @@ async function main() {
 
   const payload = { date: DATE, fetchedAt: new Date().toISOString(), season: SEASON, league, games };
 
-  if (!games.length) {
-    console.error("No games returned. Leaving any existing data file alone.");
-    process.exit(1);
-  }
+  /* An empty slate is legitimate -- the off day between the regular season
+     and the postseason (2026-09-28), the days between rounds -- and exiting
+     1 here took the whole refresh down with it: no golf board, no grading
+     of the last day played, no commit, four runs in a row. The same lesson
+     the odds refresher learned (tasks/lessons.md): only a malformed reply
+     should fail the run, and get() throws on one of those. Write the empty
+     board so the page says no games and the rest of the run goes on. */
+  if (!games.length) console.log(`No games scheduled for ${DATE}. Writing an empty board.`);
 
   fs.writeFileSync(
     OUT,
