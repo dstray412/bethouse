@@ -192,16 +192,20 @@ and why:
 - **Every figure is set in one monospace face** (Martian Mono, tabular
   figures): chance, projection, fair, the price you typed, the edge, the
   rungs, the log's win rates. Numbers are machine output and look it.
-- **Colour is spent only on edge.** Green, amber and red mean money (over
-  2% edge, at or above zero, below zero) and won or lost; gold is the
-  wordmark, a pressed star and a pressed rung; a pressed control inverts
-  to paper on black. Nothing else on the page is coloured, so four lit
-  edge cells jump out of eighty rows.
-- **Hairlines instead of cards.** The ledger's thick-thin rule (a 2px
-  rule with a hairline 3px under it) sits under the header and above
-  every table's caps column heads; rows are hairline-separated, the rank
-  dimmed in the margin; no radius anywhere is above 4px; the glow behind
-  the page is gone.
+- **Colour marks what matters.** Green, amber and red mean money (over
+  2% edge, at or above zero, below zero), won or lost, and the vs-rate
+  pill; gold is the wordmark, the headline figure in a row, the stat
+  tile, a pressed control, a pressed star or rung and a tracked bet.
+  Prose, labels and chrome stay paper and muted.
+- **Soft panels, later the same day.** The first cut was a hairline
+  ledger; the user asked for the reference's feel, so the table, the
+  slip, the tile and the record sit in 14px rounded panels, controls
+  and inputs are 10px, chips are round pills, rows are 60px with names
+  at 16px and the chance at 24px in gold, and a pressed control is gold.
+  Under each matchup a pill reports the projection against his own
+  per-game rate (the boost ratio the sort computes): green past +10%,
+  red past −10%, "steady" between, nothing without a rate. The glow
+  behind the page is still gone.
 - **A real stat tile in the header**, flush right on the header's
   baseline: players priced, the build time and the graded record on the
   football boards; games, lineups posted, candidates and the record on

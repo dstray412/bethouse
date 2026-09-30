@@ -1,7 +1,7 @@
 ---
 # gstack: design-md-format=spec
 name: BetHouse
-description: An industrial ledger on warm black, still and dense, coloured only where there is edge.
+description: A warm-black board with soft rounded panels, gold figures, and green or red pills where the model found something.
 colors:
   primary: "#EDEAE0"
   on-primary: "#0E0F0C"
@@ -35,10 +35,10 @@ typography:
     fontFamily: Martian Mono
     fontFeature: tnum
 rounded:
-  sm: 2px
-  md: 3px
-  lg: 4px
-  full: 4px
+  sm: 999px
+  md: 10px
+  lg: 14px
+  full: 999px
 spacing:
   xs: 4px
   sm: 8px
@@ -67,20 +67,20 @@ components:
 
 ## Overview
 
-**Creative North Star:** an industrial ledger, warm and dark, a working instrument rather than a product page, because the one thing to remember is that it tells you the truth about the price.
+**Creative North Star:** a warm, soft board that reads like the reference the user likes: rounded panels and pills, figures in gold, colour where the model found something, because the one thing to remember is that it tells you the truth about the price, and the truth should be easy to spot.
 **Product context:** a personal, zero-dependency sports-props board: five static pages (baseball, NFL, college football, golf, a bet log) where every number is a measured probability with a fair price beside it. Used daily, on a laptop and a phone, before kickoff, by the owner and the friends he sends links to. Peers: nhlpropking.com and the props sites it resembles.
 **Mode per surface:** the boards and the drawer Operate; the notes, footers and README prose Read; nothing Persuades and nothing is an Experience.
 **Reference sites:** nhlpropking.com/projections (the user's reference for density, the headed table, the stat tile and the drawer).
 **Key characteristics:**
 - Warm black, not navy: the page is a ledger under a lamp, not a dashboard under neon.
 - Every figure on the site is set in one monospace face, larger than the words around it: numbers are machine output.
-- Colour is a semantic spent only on edge: green, amber and red mean money; gold means BetHouse; nothing else is coloured.
-- Hairline rules instead of rounded cards; the largest radius anywhere is 4px.
+- Colour marks what matters: the chance or projection figure is gold, a pressed control is gold, and a green or red pill says an edge or a projection well above or below his own rate. Prose, labels and chrome stay paper and muted.
+- Soft shapes: panels at 14px, buttons and inputs at 10px, pills fully round; hairlines inside panels, no glow.
 - A real stat tile in the header: players priced, build time, predictions graded. Never a decorative number.
 
 ## Colors
 
-**Strategy:** Restrained. One accent (gold) for the brand, pressed states and stars; three semantic colours for edge; everything else is paper on warm black.
+**Strategy:** Restrained, with the accent doing more work than a ledger would let it. Gold for the brand, pressed controls, stars, a tracked bet, and the headline figure in a row (chance or projection) and the stat tile; green, amber and red for an edge and, as pills, for a projection more than ten percent above or below his own rate. Everything else is paper on warm black.
 **Light or dark:** dark, fixed by the use scene: evenings, a phone, a slate to check before kickoff. The light theme exists only in the preview toggle and is not shipped.
 The neutrals derive from the ground: surfaces lift by a few points of warmth (#15170F, #1B1E16) rather than by lightness alone, and hierarchy on dark surfaces comes from the two rule weights (a hairline at 9% white, a rule at 22%) and from type weight, never from glow or shadow. `accent` is the brand and the pressed state; it is not an edge colour, so the star and the wordmark are gold and a number never is. `success`, `warning`, `error` are the edge colours the baseball board already taught: over 2% good, at or above zero a warning, below zero bad. They appear on the edge cell, the slip's edge, the tray's edge line and the bet log's won/lost, and nowhere else.
 
@@ -103,12 +103,13 @@ Flat. The drawer is the one raised surface: it sits on the ground colour with a 
 
 ## Shapes
 
-Radius 3px on buttons, inputs, rungs and cards; 2px on tags; 4px on the drawer and the tray corners. Nothing rounder. A nested element takes the outer radius minus the gap, which at these sizes means 2px or square.
+Panels (the table, the slip, the tile, the record, a day in the log) at 14px; buttons, inputs, rungs and cards at 10px; tags, chips and pills fully round. The drawer's top corners on a phone at 14px. Bars in the recent-games chart round at the top by 3px.
 
 ## Components
 
 - **Row** (`.row`): grid, hairline top border, hover tints to `surface`, focus-visible a 2px `accent` outline, `aria-haspopup="dialog"`. The star beside it is its own button, gold when pressed, muted when not.
-- **Segmented control** (`.seg button`): muted text on `surface` with a hairline; pressed inverts to paper on black, weight 600; hover lifts the text to paper. No gold on controls.
+- **Segmented control** (`.seg button`): muted text on `surface` with a hairline, 10px radius; pressed is gold with ink text, weight 600; hover lifts the text to paper.
+- **Pill** (`.pill`): 10px caps in a fully round capsule; `up` green and `down` red for a projection ten percent above or below his rate, grey "steady" between; an edge in the price cell wears the same capsule in good, warn or bad.
 - **Price input** (`.pxin`): mono, 16px, on `surface` with a hairline; focus border `accent`.
 - **Edge** (`.edge`): mono, coloured good, warn or bad; the only coloured text in a row, the slip and the tray.
 - **Drawer** (`.drawer`): title in display 22px, dateline muted, a 2px rule under the head, tabs as a segmented control, body in body face; the ladder as square rungs with the pressed one outlined in `accent`; recent games as square bars, the ones that clear the threshold in `success`, the threshold a dashed `warning` line.
@@ -119,12 +120,12 @@ Radius 3px on buttons, inputs, rungs and cards; 2px on tags; 4px on the drawer a
 ## Do's and Don'ts
 
 - Do set every number in Martian Mono with tabular figures, including inside prose.
-- Do keep colour for edge, won/lost and the brand; a pressed control is inverted, not coloured.
-- Do use the thick-thin double rule under the header and above a table's column heads.
-- Do keep the table denser than the rest of the page; 36px rows on desktop, 44px on touch.
+- Do keep colour to gold on the headline figure, pressed controls and stars, and green or red on a pill that reports a measurement.
+- Do put tables, the slip and the record in rounded panels; hairlines only inside them.
+- Do keep rows at 60px on desktop and 56px on a phone with names at 16px and the headline figure at 24px.
 - Do show only measured numbers in the stat tile: players priced, build time, predictions graded.
-- Don't add a card inside a card, a glow, a gradient, or a radius above 4px.
-- Don't colour a number gold, or a control green.
+- Don't add a card inside a card, a glow, or a gradient.
+- Don't colour a number that is not the row's headline figure, and never a control green.
 - Don't put a kicker above a heading or an icon in a circle beside one.
 - Don't add a photo, a mascot or a drawn illustration; the site ships none.
 - Don't let a page carry its own `:root` or redefine the shared classes; everything lives in `board.css`.
@@ -139,5 +140,6 @@ Radius 3px on buttons, inputs, rungs and cards; 2px on tags; 4px on the drawer a
 ## Decisions Log
 | Date | Decision | Rationale |
 |------|----------|-----------|
+| 2026-09-29 | Softer: rounded panels and pills, gold figures, a vs-rate pill | The user saw the ledger and asked for the reference's feel: bubblier, softer, bigger text, colour that marks good picks. Shapes went to 14 / 10 / round; the chance and projection figures and pressed controls took gold; a pill under each matchup reports the projection against his own rate (the boost ratio the sort computes), green past +10%, red past −10%. Still nothing narrative. |
 | 2026-09-29 | Gold on a tracked bet (baseball `.trk[aria-pressed]`) | The tracked and add-to-slip buttons sit side by side on one row and must not look alike; gold already means "yours" on a starred player, so a tracked bet takes it too. Still never on a number. |
 | 2026-09-29 | Initial design system created | Created by /design-consultation from the product context and the user's reference (nhlpropking.com), with one outside voice (a Claude subagent; Codex unavailable). Adopted from it: mono figures everywhere, ledger rules, colour as a semantic. Departed: gold accent (the user's ask) over lime; no receipt metaphor in the drawer. Risk 3 (serif prose) declined. |

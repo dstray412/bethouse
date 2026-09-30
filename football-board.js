@@ -125,14 +125,24 @@
     /* The row cell: the price and its edge, or an invitation. Nothing at
        all when watchlist.js did not load: no cell that promises an input
        the panel cannot give. */
-    var pxInner=function(pe){ return pe?sgn(pe.price)+'<small class="'+edgeClass(pe.ev)+'">'+E.formatPct(pe.ev)+' edge</small>':'<span class="none">price?</span>'; };
+    var pxInner=function(pe){ return pe?sgn(pe.price)+'<br><small class="'+edgeClass(pe.ev)+'">'+E.formatPct(pe.ev)+' edge</small>':'<span class="none">price?</span>'; };
     var pxCell=function(i,pe){ return W?'<span class="px" id="px'+i+'">'+pxInner(pe)+'</span>':''; };
     var rowClass=W?'row priced':'row';
     /* The ledger's parts: the matchup cell, the caps column heads over
        the thick-thin rule, and the class that names the view's column
        set (board.css sets --cols per view; nopx when watchlist.js did
        not load and there is no price column). */
-    var mtch=function(p){ return '<span class="mtch">'+esc(p.team)+(p.opp?' vs '+esc(p.opp):'')+'</span>'; };
+    /* The matchup, and under it how the projection compares with his own
+       per-game rate: the boost ratio the sort uses, as a pill past ten
+       percent either way, grey between, and nothing without a rate. */
+    var ratePill=function(ratio){
+      if(ratio==null||!isFinite(ratio)) return '';
+      var d=Math.round((ratio-1)*100);
+      if(d>=10) return '<span class="pill up">+'+d+'% vs rate</span>';
+      if(d<=-10) return '<span class="pill down">'+d+'% vs rate</span>';
+      return '<span class="pill">steady</span>';
+    };
+    var mtch=function(p,ratio){ return '<span class="mtch">'+esc(p.team)+(p.opp?' vs '+esc(p.opp):'')+(ratio!==undefined?'<br>'+ratePill(ratio):'')+'</span>'; };
     var thead=function(cols){ return '<div class="thead">'+cols.map(function(c){ return '<span'+(c.r?' class="r'+(c.cls?' '+c.cls:'')+'"':c.cls?' class="'+c.cls+'"':'')+'>'+c.t+'</span>'; }).join('')+'</div>'; };
     var gameClass=function(view){ return 'game v-'+view+(W?'':' nopx')+(view==='game'?' nostar':''); };
     var posTag=function(p){ return p.pos?'<span class="pos">'+esc(p.pos)+'</span>':''; };
@@ -256,13 +266,13 @@
 
       var html=slipHtml()+'<div class="'+gameClass('td')+'"><div class="ghead"><h2 class="gtitle">Most likely to score</h2>'+
         '<div class="gmeta">'+rows.length+' players · '+seasons+' form · type the book\'s price in a row for your edge</div></div>'+
-        thead([{t:'Rk'},{t:'Player'},{t:'Matchup',cls:'mtch'},{t:'Chance',r:1},{t:'Fair',r:1,cls:'fair'}].concat(W?[{t:'Price / edge',r:1}]:[]).concat([{t:''}]));
+        thead([{t:'Rk'},{t:'Player'},{t:'Matchup · vs rate',cls:'mtch'},{t:'Chance',r:1},{t:'Fair',r:1,cls:'fair'}].concat(W?[{t:'Price / edge',r:1}]:[]).concat([{t:''}]));
       rows.forEach(function(r,i){
         r.i=i;
         html+='<div class="rowline"><button class="'+rowClass+'" aria-haspopup="dialog" data-i="'+i+'">'+
           '<span class="slot">'+(i+1)+'</span>'+
           '<span class="who">'+esc(r.p.name)+posTag(r.p)+qTag(r.p)+'</span>'+
-          mtch(r.p)+
+          mtch(r.p,r.s.observedRate>0?r.s.lambda/r.s.observedRate:null)+
           '<span class="prob">'+pct(r.s.prob,0)+'</span>'+
           '<span class="be fair">'+sgn(N.fairPrice(r.s.prob))+'</span>'+
           pxCell(i,r.pe)+
@@ -336,13 +346,13 @@
           ? 'ranked by projection · at his own line every player is near a coin flip, so pick Low or High to see the odds move'
           : 'ranked by projection · the chance of the over at the line shown · <b>fair</b> is the break-even price — bet only if the book beats it')+
         ' · type the book\'s price in a row for your edge</div></div>'+
-        thead([{t:'Rk'},{t:'Player'},{t:'Matchup',cls:'mtch'},{t:'Proj',r:1},{t:'Over',r:1},{t:'Fair',r:1,cls:'fair'}].concat(W?[{t:'Price / edge',r:1}]:[]).concat([{t:''}]));
+        thead([{t:'Rk'},{t:'Player'},{t:'Matchup · vs rate',cls:'mtch'},{t:'Proj',r:1},{t:'Over',r:1},{t:'Fair',r:1,cls:'fair'}].concat(W?[{t:'Price / edge',r:1}]:[]).concat([{t:''}]));
       rows.forEach(function(r,i){
         r.i=i;
         html+='<div class="rowline"><button class="'+rowClass+'" aria-haspopup="dialog" data-i="'+i+'">'+
           '<span class="slot">'+(i+1)+'</span>'+
           '<span class="who">'+esc(r.p.name)+posTag(r.p)+badge(r.p)+qTag(r.p)+'</span>'+
-          mtch(r.p)+
+          mtch(r.p,(function(){ var avg=N.statTotal(stat,r.p)/r.p.games; return avg>0?r.exp/avg:null; })())+
           '<span class="prob">'+Math.round(r.exp)+'<small>'+(stat==='recs'?'catches':'yards')+'</small></span>'+
           '<span class="be'+(atProj?' dim':'')+'">'+pct(r.over,0)+'<small>o'+r.line+'</small></span>'+
           '<span class="fair">'+sgn(N.fairPrice(r.over))+'</span>'+
@@ -774,7 +784,7 @@
         var v=vs[k], h=Math.max(1,Math.round(v/max*H)), bx=k*step+6;
         // The value above the bar, or inside its top when the bar reaches the top of the chart.
         var ly=H-h-3, inBar=ly<10; if(inBar) ly=H-h+13;
-        svg+='<rect class="bar'+(v>=thr-0.5?' hit':'')+'" x="'+bx+'" y="'+(H-h)+'" width="22" height="'+h+'"></rect>'+
+        svg+='<rect class="bar'+(v>=thr-0.5?' hit':'')+'" x="'+bx+'" y="'+(H-h)+'" width="22" height="'+h+'" rx="3"></rect>'+
           '<text class="bv'+(inBar?' in':'')+'" x="'+(bx+11)+'" y="'+ly+'" text-anchor="middle">'+v+'</text>'+
           '<text class="bl" x="'+(bx+11)+'" y="'+(H+13)+'" text-anchor="middle">'+esc(x[1])+'</text>';
       });

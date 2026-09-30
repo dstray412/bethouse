@@ -29,6 +29,18 @@ calls. The list lives in seven places and `dom.test.mjs` checks all seven.
 
 ## The restyle, 2026-09-29
 
+**Softened the same day.** The user saw the ledger cut and asked for
+the reference's feel; DESIGN.md was revised (decisions log) and
+`board.css` with it: `--r-btn 10px`, `--r-panel 14px`, `.pill` (up /
+down / good / warn / bad), gold on `.prob`, `.tile b`, `.tcard .tnum`
+and pressed `.seg button`; the header's thick-thin rule and the
+`.thead` double rule are gone (the table is a rounded panel with a
+tinted head row). `football-board.js ratePill(ratio)` renders the
+vs-rate pill under the matchup from the same ratio the boost sort uses;
+`pxInner` renders the edge as a `small.edge` pill (the `.px small` rule
+stays first in the file for `:433`). The head labels read
+"Matchup · vs rate"; dom.test.mjs pins the pill's thresholds.
+
 `DESIGN.md` is the source of truth for anything visual (CLAUDE.md points
 at it); README, "The look", says what changed. `board.css` was rewritten
 to it: one-line `:root` (dom.test.mjs pins exactly one), `--surface` /

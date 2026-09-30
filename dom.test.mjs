@@ -1391,10 +1391,10 @@ test("every football view renders one column-head row that names its columns, on
   const heads = (html) => (html.match(/<div class="thead">([\s\S]*?)<\/div>/) || [])[1] || "";
   const labels = (html) => [...heads(html).matchAll(/<span[^>]*>([^<]*)<\/span>/g)].map((m) => m[1]).filter(Boolean);
   assert.equal((app.innerHTML.match(/class="thead"/g) || []).length, 1, "the touchdown view has no head row, or two");
-  assert.deepEqual(labels(app.innerHTML), ["Rk", "Player", "Matchup", "Chance", "Fair", "Price / edge"]);
+  assert.deepEqual(labels(app.innerHTML), ["Rk", "Player", "Matchup · vs rate", "Chance", "Fair", "Price / edge"]);
   assert.match(app.innerHTML, /<div class="game v-td">/);
   press("view", "Receiving yards");
-  assert.deepEqual(labels(app.innerHTML), ["Rk", "Player", "Matchup", "Proj", "Over", "Fair", "Price / edge"]);
+  assert.deepEqual(labels(app.innerHTML), ["Rk", "Player", "Matchup · vs rate", "Proj", "Over", "Fair", "Price / edge"]);
   assert.match(app.innerHTML, /<div class="game v-stat">/);
   press("view", "Spread & total");
   assert.deepEqual(labels(app.innerHTML).slice(0, 2), ["Rk", "Matchup"]);
@@ -1415,4 +1415,16 @@ test("the stylesheet's column sets exist for every football view, and the tile s
   assert.match(css, /\.tile\{[^}]*margin-left:auto/);
   // The head's star track is the star's 40px minus the 10px grid gap, so its 1fr equals the row's.
   assert.match(css, /\.thead\{[^}]*grid-template-columns:var\(--cols\) 30px/);
+});
+
+test("the vs-rate pill says what the boost sort computes: up past +10%, down past -10%, steady between, nothing without a rate", async () => {
+  const { app } = await mountPlayers({ players: PLAYERS });
+  const rowHtml = (id) => { const i = app.__rows.findIndex((r) => r.p.id === id); const m = app.innerHTML.split('data-i="' + i + '"')[1] || ""; return m.split("</button>")[0]; };
+  for (const r of app.__rows) {
+    const html = rowHtml(r.p.id);
+    if (!(r.s.observedRate > 0)) { assert.doesNotMatch(html, /class="pill/, r.p.name + ": a pill with no rate behind it"); continue; }
+    const d = Math.round((r.s.lambda / r.s.observedRate - 1) * 100);
+    const want = d >= 10 ? "pill up" : d <= -10 ? "pill down" : 'pill">steady';
+    assert.ok(html.includes(want), r.p.name + ": " + d + "% should show " + want);
+  }
 });

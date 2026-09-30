@@ -10,7 +10,7 @@
 /* bets.html: the bet log's own rules. Everything else is board.css. */
 .note .hot{color:var(--warn)}
 /* The headline record */
-.record{border-top:2px solid var(--rule);border-bottom:1px solid var(--line);padding:14px 0 16px;margin-bottom:16px}
+.record{border:1px solid var(--line);border-radius:var(--r-panel);background:var(--surface);padding:16px 18px;margin-bottom:16px}
 .record h2{font-family:var(--label);font-size:11px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--good);margin:0 0 12px}
 .stats{display:flex;gap:26px;flex-wrap:wrap;align-items:baseline}
 .stats .big{font-family:var(--mono);font-size:26px;font-weight:600;font-variant-numeric:tabular-nums}
@@ -34,8 +34,8 @@ table.bdown .gap.up{color:var(--good)} table.bdown .gap.down{color:var(--bad)}
 .clvtag{font-family:var(--mono);font-size:11px;font-weight:600;font-variant-numeric:tabular-nums}
 .clvtag.up{color:var(--good)} .clvtag.down{color:var(--bad)}
 /* The history itself: a ruled group per day */
-.daygroup{margin-bottom:18px;border-bottom:1px solid var(--line)}
-.dayhead{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;padding:8px 0 7px;border-top:2px solid var(--rule);border-bottom:1px solid var(--line)}
+.daygroup{margin-bottom:16px;border:1px solid var(--line);border-radius:var(--r-panel);background:var(--surface);padding:0 18px 4px}
+.dayhead{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;padding:12px 0 9px;border-bottom:1px solid var(--line)}
 .daytitle{font-family:var(--display);font-size:15px;font-weight:700;margin:0}
 .daymeta{font-family:var(--mono);font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
 footer{max-width:56ch}
