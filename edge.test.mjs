@@ -347,7 +347,7 @@ test("formatting", () => {
  * Odds freshness
  *
  * A price from this morning next to tonight's lineup is worse than no
- * price, because it looks current. index.html withholds anything past
+ * price, because it looks current. baseball.html withholds anything past
  * the cutoff — and, since the refresher can fail silently for a day
  * without anyone noticing, has to be able to SAY that it is withholding.
  * ------------------------------------------------------------------ */

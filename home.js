@@ -182,12 +182,16 @@
     return best;
   }
 
-  /** The game pick with the most EV among the cards, or null; a pick that loses money at its price is not an edge. */
-  function topEdge(cards) {
+  /** The pick with the most model EV among games not yet started, or null. A pick that loses
+      money at its price is not one, and neither is anything under `floor` (default 1%): the
+      replay found the lines do not beat the close, so a rounding error must not headline. */
+  function topEdge(cards, floor) {
+    const min = isFinite(floor) ? floor : 0.01;
     let best = null;
     for (const c of cards || []) {
       const pick = c && c.card && c.card.pick;
-      if (!pick || !isFinite(pick.ev) || pick.ev <= 0) continue;
+      if (!c.game || c.game.state !== "pre") continue;
+      if (!pick || !isFinite(pick.ev) || pick.ev <= 0 || pick.ev < min) continue;
       if (!best || pick.ev > best.card.pick.ev) best = c;
     }
     return best;
@@ -227,5 +231,27 @@
     return ev.name + " starts " + label + tail;
   }
 
-  return { normalise, localDay, slate, dayLabel, sentence, clock, logoUrl, footballCard, topTD, topEdge, counts, golfLine };
+  /* Words for the card, so the page prints nothing the number does not say. */
+  /** "+3.1% EV", "−2.9% EV", or "" when it rounds to nothing either way. */
+  function evLabel(ev) {
+    if (!isFinite(ev)) return "";
+    const r = Math.round(1000 * ev) / 10;
+    if (r === 0) return "";
+    return (r > 0 ? "+" : "−") + Math.abs(r).toFixed(1) + "% EV";
+  }
+  /** "BUF 73%", or "pick 'em" when the margin does not clear a coin flip. */
+  function favLabel(fav) {
+    if (!fav || !isFinite(fav.prob)) return null;
+    if (fav.prob < 0.505) return "pick 'em";
+    return fav.team + " " + (100 * fav.prob).toFixed(0) + "%";
+  }
+  /** "Sale 2.16" from a probable pitcher: the surname, not a suffix, and the ERA when there is one. */
+  function pitcherLabel(f) {
+    if (!f || !f.name) return "TBD";
+    const parts = String(f.name).trim().split(/\s+/).filter((w) => !/^(jr\.?|sr\.?|ii|iii|iv)$/i.test(w));
+    const last = parts.length ? parts[parts.length - 1] : String(f.name);
+    return last + (f.era ? " " + f.era : "");
+  }
+
+  return { normalise, localDay, slate, dayLabel, sentence, clock, logoUrl, footballCard, topTD, topEdge, counts, golfLine, evLabel, favLabel, pitcherLabel };
 });

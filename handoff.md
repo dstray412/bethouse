@@ -17,7 +17,9 @@ commit you are reading and how old the data on disk is.
 
 | page | what |
 |---|---|
-| `index.html` | baseball. 1+ H/R/RBI, total bases, home runs, suggested parlay |
+| `index.html` | the home: tonight's slate across the boards, game cards with logos, tops |
+| `baseball.html` | baseball. 1+ H/R/RBI, total bases, home runs, suggested parlay |
+| `live.html` | the live tracker: the props you marked, counted off the feeds |
 | `nfl.html` | anytime TD; receiving, rushing, rush + rec and passing yards and receptions, each with a ladder of alternate lines; game matchups from play-by-play. Spreads and totals shown with the board saying they do not beat the close |
 | `cfb.html` | college football, the same props and ladders (no matchups). Added 2026-09-05 |
 | `golf.html` | PGA Tour make-the-cut |
@@ -48,6 +50,21 @@ files were regenerated locally, 16/16 and 59/59 games carry ids). The
 top card (`ctxFor`/`scoreSide` live inline in baseball.html, not in
 score.js); a small `slate-data.js` from the fetchers if the ~1.2 MB of
 football data drags on a phone (`TODO(simplify)` in index.html).
+
+Review fixes after the first push: the boards' verdict now travels with
+the numbers (a `#caveat` note above the slate says the replay found the
+favourite and the lines do not beat the market; `dom.test.mjs` pins
+it); "Top game edge" became "Top model EV on a line", only from 1% up
+and only for games not yet started (`topEdge` filters on state); a
+started or finished game's card keeps its projection and shows "Line ·
+closed" instead of a pick; a missing `cfb.js` no longer falls back to
+the NFL model (college cards show no numbers instead); a favourite
+under 50.5% prints "pick 'em"; an EV that rounds to 0.0 prints nothing;
+`pitcherLabel` skips Jr./Sr.; the slate meta names only the sports on
+it and carries the lines' fetch time; Open links have aria-labels; the
+render is wrapped so one bad file leaves an honest empty state. Left:
+moving the rest of the card's display helpers into home.js, a
+`<ul>` for the cards and a `<main>` landmark.
 
 ## Larger type (2026-09-29, later still)
 

@@ -145,6 +145,24 @@ test("topEdge: the game pick with the most positive EV on the slate, or nothing"
   const g = cards[0].game;
   const some = [{ game: g, card: { pick: { text: "a", ev: 0.012, prob: 0.55, price: -110 } } }, { game: g, card: { pick: { text: "b", ev: 0.031, prob: 0.56, price: -105 } } }, { game: g, card: null }];
   assert.equal(H.topEdge(some).card.pick.text, "b", "the most EV among the positive ones");
+  const tiny = [{ game: g, card: { pick: { text: "t", ev: 0.001, prob: 0.51, price: -102 } } }];
+  assert.equal(H.topEdge(tiny), null, "a tenth of a percent is a rounding error, not a headline");
+  assert.equal(H.topEdge(tiny, 0).card.pick.text, "t", "an explicit floor of zero allows any positive EV");
+  const over = [{ game: Object.assign({}, g, { state: "post" }), card: { pick: { text: "z", ev: 0.05, prob: 0.6, price: -110 } } }];
+  assert.equal(H.topEdge(over), null, "a game that has started or finished is not a bet");
+});
+
+test("evLabel, favLabel, pitcherLabel: the card's words say only what the number says", () => {
+  assert.equal(H.evLabel(0.031), "+3.1% EV"); assert.equal(H.evLabel(-0.029), "−2.9% EV");
+  assert.equal(H.evLabel(0), ""); assert.equal(H.evLabel(0.0004), "", "rounds to nothing: no sign, no claim");
+  assert.equal(H.evLabel(NaN), "");
+  assert.equal(H.favLabel({ team: "BUF", prob: 0.7295 }), "BUF 73%");
+  assert.equal(H.favLabel({ team: "SF", prob: 0.5006 }), "pick 'em", "a favourite at fifty percent is not a favourite");
+  assert.equal(H.favLabel(null), null);
+  assert.equal(H.pitcherLabel({ name: "Lance McCullers Jr.", era: "3.21" }), "McCullers 3.21");
+  assert.equal(H.pitcherLabel({ name: "Chris Sale", era: "2.16" }), "Sale 2.16");
+  assert.equal(H.pitcherLabel({ name: "Ken Griffey Jr" }), "Griffey");
+  assert.equal(H.pitcherLabel(null), "TBD");
 });
 
 test("counts: the tile's numbers, each only from data that loaded", () => {

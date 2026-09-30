@@ -921,7 +921,7 @@ test("an unrecognised view is not a licence to offer the parlay", () => {
 /* ---------------------------------------------------------------- *
  * The detail panel decomposes the number by re-running this model with
  * one context factor neutralised at a time. That rests on two things
- * being true, and neither is obvious from reading index.html:
+ * being true, and neither is obvious from reading baseball.html:
  *
  *   1. Every factor has a documented "no information" input that turns it
  *      off exactly, not approximately.
@@ -955,7 +955,7 @@ const liveCtx = () => ({
   leagueHomeAway: league.homeAway, isHome: false,
 });
 
-/* The same neutral inputs index.html uses to switch each factor off. */
+/* The same neutral inputs baseball.html uses to switch each factor off. */
 const NEUTRAL = {
   oppAvgAllowed: null, pitcherHr9: null,
   teamRunsPerGame: null,
@@ -971,7 +971,7 @@ test("scoreHRR applies exactly the context factors the detail panel knows about"
     PANEL_KNOWS.slice().sort(),
     "score.js applies a context factor the detail panel does not neutralise. Its " +
       "waterfall rows will no longer sum to the total printed under them — add the " +
-      "new factor to WHY_FACTORS in index.html.",
+      "new factor to WHY_FACTORS in baseball.html.",
   );
 });
 

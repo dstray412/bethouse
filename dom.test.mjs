@@ -293,11 +293,11 @@ test("every add-to-parlay button is built inside the eligibility guard", () => {
   const js = src("baseball.html");
   assert.ok(
     js.includes("S.parlayEligible("),
-    "index.html must ask score.js which views may build a parlay, not re-derive it",
+    "baseball.html must ask score.js which views may build a parlay, not re-derive it",
   );
 
   const guards = guardedRanges(js, "if(S.parlayEligible(state.view)){");
-  assert.ok(guards.length, "no `if(S.parlayEligible(state.view)){` block found in index.html");
+  assert.ok(guards.length, "no `if(S.parlayEligible(state.view)){` block found in baseball.html");
 
   /* There is one row renderer for today and one for a replayed day, and both
      build a + button. Counting call sites would have to be edited every time
@@ -305,7 +305,7 @@ test("every add-to-parlay button is built inside the eligibility guard", () => {
      outside a guard. */
   const sites = [];
   for (let i = js.indexOf("'addleg'"); i >= 0; i = js.indexOf("'addleg'", i + 1)) sites.push(i);
-  assert.ok(sites.length, "index.html no longer builds an addleg button");
+  assert.ok(sites.length, "baseball.html no longer builds an addleg button");
 
   for (const at of sites) {
     const inside = guards.some(([open, close]) => at > open && at < close);
@@ -458,13 +458,13 @@ test("the board asks edge.js how old the odds are, and asks once", () => {
   const js = src("baseball.html");
   assert.ok(
     js.includes("E.oddsFreshness("),
-    "index.html must get odds age from edge.js, not re-derive it",
+    "baseball.html must get odds age from edge.js, not re-derive it",
   );
   const inlined = js.match(/Date\.parse\([^)]*generated[^)]*\)/g) || [];
   assert.deepEqual(
     inlined,
     [],
-    "index.html re-derives the feed's age inline; that is the duplication oddsFreshness replaced",
+    "baseball.html re-derives the feed's age inline; that is the duplication oddsFreshness replaced",
   );
 });
 
@@ -530,7 +530,7 @@ test("the board and the odds fetcher normalise names identically", async () => {
 
   const js = src("baseball.html");
   const at = js.indexOf("function normName(s){");
-  assert.ok(at > 0, "index.html no longer defines normName");
+  assert.ok(at > 0, "baseball.html no longer defines normName");
   const end = js.indexOf("\n}", at) + 2;
   // eslint-disable-next-line no-new-func
   const boardVersion = new Function(js.slice(at, end) + "; return normName;")();
@@ -555,7 +555,7 @@ test("the board and the odds fetcher normalise names identically", async () => {
     assert.equal(
       boardVersion(n),
       normalizeName(n),
-      `"${n}" normalises differently in index.html than in fetch-odds-espn.mjs — ` +
+      `"${n}" normalises differently in baseball.html than in fetch-odds-espn.mjs — ` +
         `every market key for a name like this would fail to match, and CLV would ` +
         `quietly report nothing`,
     );
@@ -1495,6 +1495,9 @@ test("index.html is the home: the shared models and every board's data, the slat
     assert.match(im, /onerror="this\.hidden=true"/, "a logo that does not fail closed");
   }
   assert.match(html, /H\.logoUrl\(/, "the src comes from home.js");
+  // The boards' verdict travels with the numbers: the replay found the favourite and the lines do not beat the market.
+  assert.match(html, /id="caveat"[^>]*>[^<]*replay found neither beats the market/, "the home shows the football numbers without the boards' warning");
+  assert.match(html, /window\.BetHouseCFB\|\|null/, "a missing college model must not fall back to the NFL's");
 });
 
 test("the baseball board kept its page under its new name, and every board calls the home Home", () => {
