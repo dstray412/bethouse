@@ -29,6 +29,41 @@ Zero dependencies, no build step, no server, no API key. `node --test` with
 **named files** — bare discovery pulls in the backtests, which fire live API
 calls. The list lives in seven places and `dom.test.mjs` checks all seven.
 
+## The player card (2026-09-29, later)
+
+The user showed nhlpropking.com's player card and chose: keep the
+slide-in panel, football boards first. `renderDrawer` fills a hero
+(`#dkick` matchup label, `#dtitle` the name only, tests pin it; `#dsub`
+`pos · Model rank #n of N · prop`; `#dface` the large headshot at 150px
+as a cutout, the mark under it) and `#dbands` from `app.__bands(r)`,
+set per view beside `app.__detail`: the headline band (`band('head',…)`),
+`receiptBand(prop)` from `cfg.record.props[prop]` (n, bias; absent
+without a record) and `rateBand(ratio, own, delta, unit)` from the same
+ratio the pill and the boost sort use. The overviews are `cells([...])`:
+TD keeps every number of the old table (the word "carries" is pinned);
+the stat view's verdict became the headline band and its prose became
+cells. The game view sets `app.__bands=null`. The panel is 640px;
+`.dcells` three columns, two on a phone; the phone rules live in the
+drawer's own 760px block (the `[^@]*` test). Not done: a per-player
+receipt (recordedAt is in the `nfl-record/` day files the page does not
+load; a roll-up into nfl-record.js would allow "we said X% on <date>");
+the baseball and golf inline panels as the same card.
+
+Review fixes before the push: the Opportunities cell printed a season
+total labelled "a game" (now per game); "Model rank #n of N" used the
+rows on screen as N (now stamped on every row before the cut, so it is
+his place in the whole field and does not move with a filter); the rate
+band and the row's pill classified "above his rate" on different
+thresholds (one `rateClass`, on the rounded percent, for both); the
+receipt is claimed only when the build precedes the game's kickoff,
+quotes the record the way the footer does (predicted, actual, off by),
+drops the label's ", over" suffix, and labels the build time UTC only
+when the stamp ends in Z; the cells are a `<dl>` so a label reads with
+its value; `statusRow` (dead) is gone; the tests pin the numbers
+(chance, fair, the rate band's delta and direction against the row's
+pill, the rank against the field, the stat receipt's own prop, the
+venue subtitle, the 150px cutout).
+
 ## Tablet clipping on the stat view (2026-09-29, last)
 
 Pre-existing, noticed by the faces review: between 761 and about 812px

@@ -160,11 +160,14 @@
     /* The matchup, and under it how the projection compares with his own
        per-game rate: the boost ratio the sort uses, as a pill past ten
        percent either way, grey between, and nothing without a rate. */
+    /* One rule for "above his rate": ten percent either side, on the
+       rounded percent, so the row's pill and the card's band agree. */
+    var rateClass=function(ratio){ var d=Math.round((ratio-1)*100); return d>=10?'up':d<=-10?'down':'steady'; };
     var ratePill=function(ratio){
       if(ratio==null||!isFinite(ratio)) return '';
-      var d=Math.round((ratio-1)*100);
-      if(d>=10) return '<span class="pill up">+'+d+'% vs rate</span>';
-      if(d<=-10) return '<span class="pill down">'+d+'% vs rate</span>';
+      var d=Math.round((ratio-1)*100), cls=rateClass(ratio);
+      if(cls==='up') return '<span class="pill up">+'+d+'% vs rate</span>';
+      if(cls==='down') return '<span class="pill down">'+d+'% vs rate</span>';
       return '<span class="pill">steady</span>';
     };
     /* A player's photo and a team's mark, from faces.js; without it a
@@ -184,6 +187,59 @@
       return '<p class="pxrow"><label>Price you are offered <input class="pxin" data-pk="'+esc(r.pk)+'" data-i="'+r.i+'" inputmode="text" placeholder="-110" autocomplete="off"'+
         (r.pe?' value="'+sgn(r.pe.price)+'"':'')+'></label><span class="pxedge" id="pxe'+r.i+'">'+pxEdgeInner(r.pe)+'</span></p>';
     };
+
+    /* The card's parts. A cell is a caps label, a mono value and a short
+       note; a band is one line across the drawer with a label on the
+       left and a figure on the right. Both take text the caller has
+       already escaped where it came from data. */
+    var cells=function(list){
+      return '<dl class="dcells">'+list.filter(Boolean).map(function(c){
+        return '<div class="dcell"><dt>'+c.l+'</dt><dd><b>'+c.v+'</b>'+(c.n?'<span>'+c.n+'</span>':'')+'</dd></div>';
+      }).join('')+'</dl>';
+    };
+    var band=function(cls,label,fig,side,sub){
+      return '<div class="dband '+cls+'"><div class="bl"><small>'+label+'</small>'+(sub?'<span>'+sub+'</span>':'')+'</div>'+
+        '<div class="br">'+(fig!=null?'<b class="fig">'+fig+'</b>':'')+(side?'<span>'+side+'</span>':'')+'</div></div>';
+    };
+    /* The receipt: what the record has graded for this prop. Measured
+       words only; the per-player recordedAt lives in the day files the
+       page does not load, so this names the prop's count and bias. */
+    /* The build time, as the tile prints it: HH:MM UTC, only when the
+       stamp really is UTC. */
+    var builtUTC=function(){ var g=String(D.generated||''); return /Z$/.test(g)?esc(g.slice(11,16))+' UTC':''; };
+    var receiptBand=function(prop,r){
+      var R=cfg.record, pr=R&&R.props&&R.props[prop];
+      if(!pr||!isFinite(pr.n)||!pr.n) return '';
+      /* "Recorded before kickoff" is a claim about this build and this game. */
+      var g=r&&r.p&&gameOf[r.p.team];
+      if(!g||!(Date.parse(D.generated)<Date.parse(g.date))) return '';
+      var built=builtUTC();
+      var name=esc(String(pr.label||prop).toLowerCase().replace(/, over$/,''));
+      var off=(pr.bias>=0?'+':'−')+Math.abs(Number(pr.bias)).toFixed(1)+'pp';
+      return band('receipt','Recorded before kickoff', null,
+        Number(pr.n).toLocaleString('en-US')+' '+name+' calls graded · predicted '+Number(pr.predicted).toFixed(1)+'%, actual '+Number(pr.actual).toFixed(1)+'% · off by '+off,
+        (built?'built '+built+' · ':'')+'graded once the games are final');
+    };
+    /* His projection against his own rate: the ratio the row's pill and
+       the boost sort use, said in words with the difference beside it. */
+    var rateBand=function(ratio,own,delta,unit){
+      if(ratio==null||!isFinite(ratio)) return '';
+      var cls=rateClass(ratio), d=Math.round((ratio-1)*100);
+      var words=cls==='up'?'Above his rate':cls==='down'?'Below his rate':'Steady';
+      var dp=unit==='TD'?2:unit==='catches'?1:0;
+      return band('rate '+cls,'vs his own rate',words,(delta>=0?'+':'−')+Math.abs(delta).toFixed(dp)+' '+unit+' ('+(d>=0?'+':'−')+Math.abs(d)+'%)','own rate '+own);
+    };
+    var actRow=function(inner){ return inner?'<div class="dact">'+inner+'</div>':''; };
+    var statusCells=function(p){
+      var out=[];
+      if(p.movedFrom) out.push({l:'Team',v:esc(p.team),n:'every number here is from his '+esc(p.movedFrom)+' games; a new offence can change his role'});
+      if(p.status&&N.availability(p.status)!=='ok') out.push({l:'Status',v:esc(p.status),n:(p.injury?esc(p.injury)+' · ':'')+'listed Questionable, about 6 in 10 play; a bet on a player who does not is void, not lost'});
+      return out;
+    };
+    /* The model's rank: his place in the whole ranked field, stamped
+       before the board cuts the list to what it shows. */
+    var stampRanks=function(rows){ rows.forEach(function(r,k){ r.rank=k+1; r.field=rows.length; }); return rows; };
+    var rankOf=function(r){ return '#'+(r.rank||r.i+1)+' of '+(r.field||(app.__rows||[]).length||1); };
 
     /* Which rows show: ruled out never, then the search box, the team and
        the position. One gate for every player view. */
@@ -265,15 +321,6 @@
        with the tracker. */
     var available=function(p){ return N.availability(p.status)!=='out'; };
     var qTag=function(p){ return N.availability(p.status)==='questionable' ? '<span class="tag q" title="Listed Questionable">Q</span>' : ''; };
-    var statusRow=function(p){
-      var t='';
-      // He moved: the roster says where he is, the record says what he did.
-      if(p.movedFrom) t+='<tr><td>team</td><td>now <b>'+esc(p.team)+'</b> — every number here is from his '+esc(p.movedFrom)+' games; a new offence can change his role</td></tr>';
-      if(p.status&&N.availability(p.status)!=='ok')
-        t+='<tr><td>status</td><td><b>'+esc(p.status)+'</b>'+(p.injury?' ('+esc(p.injury)+')':'')+
-          ' — listed Questionable, about 6 in 10 play; a bet on a player who does not is void, not lost</td></tr>';
-      return t;
-    };
 
     /* One player's touchdown row, or null. The board's rows and the
        compare tray's cards come from the same function. */
@@ -293,6 +340,7 @@
         var r=tdRow(p); if(r) rows.push(r);
       });
       sortRows(rows,{proj:function(r){return r.s.prob;}, boost:function(r){return r.s.observedRate>0?r.s.lambda/r.s.observedRate:null;}});
+      stampRanks(rows);
       var t=trim(rows); rows=t.rows;
 
       var html=slipHtml()+'<div class="'+gameClass('td')+'"><div class="ghead"><h2 class="gtitle">Most likely to score</h2>'+
@@ -311,27 +359,26 @@
       });
       app.innerHTML=html+(rows.length?'':nothing())+moreBtn(t.hidden)+'</div>';
       app.__rows=rows; app.__ladder=null;
+      /* The card's bands: the chance with its fair price, the receipt, the
+         projection against his own scoring rate. */
+      app.__bands=function(r){
+        return band('head','Chance to score',pct(r.s.prob),'fair '+sgn(N.fairPrice(r.s.prob)),r.s.usageAveraged?'averaged over real week-to-week workload swings':'')+
+          receiptBand('td',r)+
+          rateBand(r.s.observedRate>0?r.s.lambda/r.s.observedRate:null, r.s.observedRate.toFixed(3)+' a game', r.s.lambda-r.s.observedRate, 'TD');
+      };
       app.__detail=function(r){
-        var t=pxInput(r)+trackBtn(r,'td')+'<table>';
-        t+='<tr><td>workload</td><td><b>'+r.s.perGameCarries.toFixed(1)+'</b> carries and <b>'+
-          r.s.perGameReceiving.toFixed(1)+'</b> '+oppWord+' a game over <b>'+r.p.games+'</b> games</td></tr>';
-        t+='<tr><td>from workload</td><td><b>'+r.s.usageRate.toFixed(3)+'</b> touchdowns a game '+
-          '('+N.DEFAULTS.tdPerCarry+' per carry, '+N.DEFAULTS.tdPerTarget+' per '+oppUnit+' — measured)</td></tr>';
-        t+='<tr><td>his own rate</td><td><b>'+r.s.observedRate.toFixed(3)+'</b> a game — '+
-          'kept <b>'+pct(r.s.shrink,0)+'</b> of it, the rest is workload</td></tr>';
-        t+='<tr><td>offence</td><td>×<b>'+r.s.teamFactor.toFixed(2)+'</b></td></tr>';
-        t+='<tr><td>opponent</td><td>'+(r.p.opp
-          ? '<b>'+esc(r.p.opp)+'</b> ×<b>'+r.s.oppFactor.toFixed(2)+'</b> — '+
-            (r.s.oppFactor>1.02?'gives up more touchdowns than average'
-             :r.s.oppFactor<0.98?'gives up fewer than average':'about average')
-          : 'no opponent scheduled')+'</td></tr>';
-        t+='<tr><td>expected TDs</td><td><b>'+r.s.lambda.toFixed(3)+'</b> '+
-          '(pulled '+Math.round((1-N.DEFAULTS.tdShrink)*100)+'% toward the league average, which is what stops the top of the board running hot)</td></tr>';
-        t+='<tr><td>chance to score</td><td><b>'+pct(r.s.prob)+'</b>'+
-          (r.s.usageAveraged?', averaged over real week-to-week workload swings':'')+'</td></tr>';
-        t+='<tr><td>fair price</td><td><b>'+sgn(N.fairPrice(r.s.prob))+'</b></td></tr>';
-        t+=statusRow(r.p);
-        return t+'</table>';
+        return actRow(pxInput(r)+trackBtn(r,'td'))+cells([
+          {l:'Matchup',v:esc(r.p.team)+(r.p.opp?' vs '+esc(r.p.opp):''),n:r.p.opp?'':'no opponent scheduled'},
+          {l:'Position',v:esc(r.p.pos||'—')},
+          {l:'Model rank',v:rankOf(r),n:'by chance to score'},
+          {l:'Workload',v:r.s.perGameCarries.toFixed(1)+' · '+r.s.perGameReceiving.toFixed(1),n:'carries and '+oppWord+' a game over '+r.p.games+' games'},
+          {l:'From workload',v:r.s.usageRate.toFixed(3),n:'touchdowns a game: '+N.DEFAULTS.tdPerCarry+' per carry, '+N.DEFAULTS.tdPerTarget+' per '+oppUnit+', measured'},
+          {l:'His own rate',v:r.s.observedRate.toFixed(3),n:'a game; kept '+pct(r.s.shrink,0)+' of it, the rest is workload'},
+          {l:'Offence',v:'×'+r.s.teamFactor.toFixed(2),n:'his team against the league'},
+          {l:'Opponent',v:r.p.opp?esc(r.p.opp)+' ×'+r.s.oppFactor.toFixed(2):'—',n:r.p.opp?(r.s.oppFactor>1.02?'gives up more touchdowns than average':r.s.oppFactor<0.98?'gives up fewer than average':'about average'):'no opponent scheduled'},
+          {l:'Expected TDs',v:r.s.lambda.toFixed(3),n:'pulled '+Math.round((1-N.DEFAULTS.tdShrink)*100)+'% toward the league average, which stops the top of the board running hot'},
+          {l:'Games',v:String(r.p.games),n:'in the window'}
+        ].concat(statusCells(r.p)));
       };
     }
 
@@ -354,6 +401,7 @@
         var r=statRow(stat,p,pool); if(r) rows.push(r);
       });
       sortRows(rows,{proj:function(r){return r.exp;}, boost:function(r){ var avg=N.statTotal(stat,r.p)/r.p.games; return avg>0?r.exp/avg:null; }});
+      stampRanks(rows);
       var t=trim(rows); rows=t.rows;
       var strength=N.DEFAULTS[ST.oppShrinkKey], word=ST.label.toLowerCase();
       /* Whose real games the pool is made of. The board gains a view the
@@ -404,43 +452,42 @@
          lines, then the arithmetic in words a bettor already uses. The
          constants behind each step are in nfl.js and the README; they do
          not belong here. */
+      /* The card's bands: the projection with the line, its chance and the
+         fair price; the receipt; the projection against his own average. */
+      app.__bands=function(r){
+        var avg=N.statTotal(stat,r.p)/r.p.games, fair=sgn(N.fairPrice(r.over));
+        return band('head','Projected '+word,Math.round(r.exp),'over '+r.line+' hits '+pct(r.over,0)+' · fair '+fair,'bet it only if the book is offering better than '+fair)+
+          receiptBand(stat,r)+
+          rateBand(avg>0?r.exp/avg:null, avg.toFixed(0)+unit+' a game', r.exp-avg, stat==='recs'?'catches':'yards');
+      };
       app.__detail=function(r){
-        var fair=sgn(N.fairPrice(r.over)), games=r.p.games, avg=N.statTotal(stat,r.p)/games;
+        var games=r.p.games, avg=N.statTotal(stat,r.p)/games;
         var oppWordFor = ST.opportunity==='receiving' ? oppWord : ST.opportunity==='carries' ? 'carries'
           : ST.opportunity==='touches' ? 'touches' : 'attempts';
-        var onOpp = (stat==='recs' && N.DEFAULTS.receivingStat==='recs') ? '' :
-          ' on '+N.statOpportunity(stat,r.p)+' '+oppWordFor;
-        var h='<p class="verdict">Over <b>'+r.line+'</b> hits <b>'+pct(r.over,0)+'</b> of the time. Fair price <b>'+fair+'</b>. '+
-          'Bet it only if the book is offering better than '+fair+'.</p>';
-        var w='<p><b>Why '+Math.round(r.exp)+'</b> — averages <b>'+avg.toFixed(0)+'</b>'+unit+' a game over '+games+' games'+onOpp+'. ';
-        if(Math.abs(r.base-avg)>=0.5)
-          w+='Regressed to <b>'+r.base.toFixed(0)+'</b>, part of the way toward an ordinary player\'s '+N.DEFAULTS[ST.priorKey]+
-            (games<10?' (few games, so a long way)':'')+'. ';
+        var opps = (stat==='recs' && N.DEFAULTS.receivingStat==='recs') ? null : N.statOpportunity(stat,r.p);
         var allow=allowFor(r.p.opp,stat);
-        if(!r.p.opp) w+='No opponent placed yet. ';
-        else if(strength&&allow){
-          var d=Math.round((allow-1)*100), delta=r.exp-r.base;
-          w+=esc(r.p.opp)+' gives up <b>'+Math.abs(d)+'% '+(d>=0?'more':'fewer')+'</b> '+word+' than average, which '+
-            (delta>=0?'adds':'takes off')+' <b>'+Math.abs(delta).toFixed(0)+'</b>. ';
-        } else if(allow) {
-          /* Why the opponent is out of THIS prop is a measured claim and a
-             different one per stat and per league, so it is the note above
-             the board (copy.noteStat) that says it, once. The panel used to
-             repeat "on the replay it made no difference", which was true of
-             receiving yards and receptions and never measured for a stat the
-             model gained later. */
-          w+='The opponent is not in this number. ';
-        }
+        /* Why the opponent is out of THIS prop is a measured claim and a
+           different one per stat and per league, so it is the note above
+           the board (copy.noteStat) that says it, once. */
+        var oppCell=!r.p.opp?{l:'Opponent',v:'—',n:'no opponent placed yet'}
+          :strength&&allow?(function(){ var d=Math.round((allow-1)*100), delta=r.exp-r.base;
+              return {l:'Opponent',v:esc(r.p.opp)+' '+(d>=0?'+':'')+d+'%',n:'gives up '+Math.abs(d)+'% '+(d>=0?'more':'fewer')+' '+word+' than average, which '+(delta>=0?'adds':'takes off')+' '+Math.abs(delta).toFixed(0)}; })()
+          :{l:'Opponent',v:esc(r.p.opp),n:'not in this number'};
         /* How many games this player's over was actually read off: the
            whole pool in an older data file, the stat's share of the games
-           nearest his projection in a levelled one. Asking the model which games
-           it used keeps the sentence true under either shape. */
+           nearest his projection in a levelled one. */
         var used=N.poolReads(pool,r.exp).length, held=N.poolSize(pool);
-        w+='Projects to <b>'+r.exp.toFixed(0)+'</b>. The chance of the over is read off '+used.toLocaleString('en-US')+' real games by '+
-          poolWord+(used<held?' whose own projection was nearest his':' against their own projections')+'.</p>';
-        var s=statusRow(r.p);
-        if(s) s='<p>'+s.replace(/<\/?t[rd]>/g,'').replace(/^status/,'')+'</p>';
-        return h+pxInput(r)+w+s;
+        return actRow(pxInput(r))+cells([
+          {l:'Projection',v:r.exp.toFixed(0),n:unit.trim()+' this game'},
+          {l:'Over the line',v:pct(r.over,0),n:'o'+r.line+' · fair '+sgn(N.fairPrice(r.over))},
+          {l:'Model rank',v:rankOf(r),n:'by projection'},
+          {l:'Season average',v:avg.toFixed(0),n:unit.trim()+' a game over '+games+' games'},
+          opps!=null?{l:'Opportunities',v:(opps/games).toFixed(1),n:oppWordFor+' a game over '+games+' games'}:null,
+          Math.abs(r.base-avg)>=0.5?{l:'Regressed to',v:r.base.toFixed(0),n:'part of the way toward an ordinary player\'s '+N.DEFAULTS[ST.priorKey]+(games<10?'; few games, so a long way':'')}:null,
+          oppCell,
+          {l:'Read off',v:used.toLocaleString('en-US'),n:'real games by '+poolWord+(used<held?' whose own projection was nearest his':' against their own projections')},
+          {l:'Games',v:String(games),n:'in the window'}
+        ].concat(statusCells(r.p)));
       };
     }
 
@@ -645,7 +692,7 @@
           '<span class="caret">›</span></button>';
       });
       app.innerHTML=html+'</div>';
-      app.__rows=rows; app.__ladder=null;
+      app.__rows=rows; app.__ladder=null; app.__bands=null;
       app.__detail=function(r){
         var t='<table>';
         t+='<tr><td>projection</td><td><b>'+esc(r.h)+' '+r.pr.homePts.toFixed(1)+
@@ -766,9 +813,14 @@
       var i=findRow(d.id); if(i<0){ closeDrawer('replace'); return; }
       var r=app.__rows[i]; r.i=i;
       document.getElementById('dtitle').textContent = r.p ? r.p.name : (r.a+' at '+r.h);
+      var dk=document.getElementById('dkick');
+      if(dk) dk.textContent = r.p ? (r.p.team+(r.p.opp?' vs '+r.p.opp:'')) : ('Week '+D.week);
       var df=document.getElementById('dface');
-      if(df) df.innerHTML = r.p ? (F?F.face(cfg.league,r.p.id,64,'large'):'')+mark(r.p.team,28) : mark(r.a,28)+mark(r.h,28);
-      document.getElementById('dsub').textContent = r.p ? (r.p.team+(r.p.opp?' vs '+r.p.opp:'')+' · '+propLabelOf(r)) : ('week '+D.week);
+      if(df) df.innerHTML = r.p ? (F?F.face(cfg.league,r.p.id,150,'large'):'')+mark(r.p.team,28) : mark(r.a,28)+mark(r.h,28);
+      document.getElementById('dsub').textContent = r.p ? ((r.p.pos?r.p.pos+' · ':'')+'Model rank '+rankOf(r)+' · '+propLabelOf(r))
+        : [r.g&&r.g.venue, r.g&&r.g.date&&isFinite(Date.parse(r.g.date))?new Date(r.g.date).toLocaleString(undefined,{weekday:'short',hour:'numeric',minute:'2-digit'}):''].filter(Boolean).join(' · ')||('week '+D.week);
+      var db=document.getElementById('dbands');
+      if(db) db.innerHTML = (r.p&&app.__bands) ? app.__bands(r) : '';
       var tabs=[{id:'over',label:'Overview'}];
       if(r.p&&app.__ladder) tabs.push({id:'ladder',label:'Alternate lines'});
       if(r.p) tabs.push({id:'recent',label:'Recent games'});

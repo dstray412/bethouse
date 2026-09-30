@@ -3,7 +3,7 @@
  * The leagues publish these themselves: ESPN's image service for NFL,
  * college and golf headshots and for every team's logo, MLB's photo
  * service for batters. A page asks here for a url by league and id and
- * gets one sized for the spot (a row's 44px disc, the drawer's 64px),
+ * gets one sized for the spot (a row's 44px disc, the drawer's cutout),
  * or null when the id is not an id. The img markup is built here too,
  * once, so every image on the site carries the same rules: no referrer,
  * lazy, a fixed box so nothing shifts, and hidden when it does not

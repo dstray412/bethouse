@@ -187,6 +187,26 @@ should be re-fitted when the run environment shifts.
 | `experiment-statcast.mjs` | Re-scores every published H/R/RBI prediction with the prior and applies the shrink's own validation bar. It passed. |
 | `experiment-lines.mjs` | Tests every reconfiguration of the game model a box score can support against the closing line, per season. Nothing helped. Kept so the negative result stays reproducible. |
 
+## The player card
+
+**2026-09-29.** Opening a player on the NFL or college board shows a
+card, after the user's reference. The head is a hero: the matchup as a
+small label, the name, `position · Model rank #n of N · prop`, and the
+large photo as a cutout on the right. Under it, three bands: the
+headline figure with its fair price (the chance to score, or the
+projection with the line and the chance of the over); a receipt saying
+the call was recorded before kickoff and how many calls of this prop
+the record has graded with their bias (from `nfl-record.js` /
+`cfb-record.js`, so it is absent on a board with no record); and the
+projection against his own rate, the same ratio the row's pill uses,
+with the difference. Then the price input, the Track button, the tabs,
+and the overview as a grid of labelled cells carrying the same numbers
+the old table did (workload, own rate, offence, opponent, expected
+touchdowns, and for a counting prop the season average, opportunities,
+regression, the opponent's allowance and how many real games the over
+was read off). Nothing about odds movement: there is no feed for a
+player's price and the page does not invent one.
+
 ## Faces
 
 **2026-09-29.** Every row on the four boards carries the player's photo

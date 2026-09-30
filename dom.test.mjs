@@ -865,7 +865,7 @@ const TENDENCIES = {
   },
 };
 const GAMES = [
-  { id: "g1", home: "LAC", away: "KC", date: "2030-01-01T00:00Z", completed: false },
+  { id: "g1", home: "LAC", away: "KC", date: "2030-01-01T00:00Z", completed: false, venue: "SoFi Stadium" },
   { id: "g2", home: "BBB", away: "AAA", date: "2030-01-02T00:00Z", completed: false },
 ];
 const RATINGS = { off: { KC: 2, LAC: 1, AAA: 0, BBB: 0 }, def: { KC: -1, LAC: 0, AAA: 0, BBB: 0 } };
@@ -1003,7 +1003,7 @@ const PLAYERS = [
 ];
 
 /** Mount the real board on the TD view with players, edge.js and watchlist.js present. */
-async function mountPlayers({ players, storage, storageThrows, noWatchlist, search, pools, games }) {
+async function mountPlayers({ players, storage, storageThrows, noWatchlist, search, pools, games, record }) {
   const nfl = (await import("./nfl.js")).default;
   const doc = stubDoc();
   const store = new Map(Object.entries(storage || {}));
@@ -1022,7 +1022,7 @@ async function mountPlayers({ players, storage, storageThrows, noWatchlist, sear
       season: 2026, week: 2, statsSeasons: [2025, 2026], generated: "2026-09-21T00:00", gamesCached: 2,
       games: games || GAMES, ratings: RATINGS, teamFactors: {}, players, pools: pools || {}, usagePool: [],
     },
-    record: null, league: "NFL", fetcher: "fetch-nfl.mjs",
+    record: record || null, league: "NFL", fetcher: "fetch-nfl.mjs",
     copy: {
       noteTD: "n", noteStat: Object.fromEntries(Object.keys(nfl.STATS).map((k) => [k, "n"])),
       noteGames: "n", gameBanner: "<p>n</p>", mlVerdict: "n", gameHonestly: "n", footer: "<p>n</p>",
@@ -1596,4 +1596,109 @@ test("the stylesheet gives every column set a face track after the rank", () => 
       assert.equal(tracks(tb[1]), tracks(desk[1]) - hidden.length, view + variant + ": the tablet set's track count does not match the cells the block leaves visible");
     }
   }
+});
+
+/* ------------------------------------------------------------------ *
+ * The player card: what the drawer says about a player, and where
+ *
+ * The drawer's head is a hero (matchup label, name, position and model
+ * rank, the large photo), then bands: the headline figure with its fair
+ * price, a receipt naming what the record has graded for this prop
+ * (only when a record is mounted), and the projection against his own
+ * rate. The overview is a grid of labelled cells with the same numbers
+ * the old table carried, "carries" included.
+ * ------------------------------------------------------------------ */
+
+test("the drawer's hero names the matchup, the position and the model rank in the whole field, and the bands say what the row says", async () => {
+  const nfl = (await import("./nfl.js")).default;
+  const record = { total: 900, days: [], props: { td: { label: "Anytime touchdown", n: 816, predicted: 21.9, actual: 20.7, bias: 1.2, brier: 0.15 } } };
+  const { app, doc } = await mountPlayers({ players: PLAYERS, pools: recPool(nfl), record });
+  const field = app.__rows.length;
+  const i = app.__rows.findIndex((r) => r.p.id === "a");
+  const r = app.__rows[i];
+  clickRow(app, i);
+  assert.equal(doc.getElementById("dtitle").textContent, "Alpha Wide", "the title is the name and nothing else");
+  assert.equal(doc.getElementById("dkick").textContent, "KC vs LAC");
+  assert.equal(doc.getElementById("dsub").textContent, "WR · Model rank #" + (i + 1) + " of " + field + " · Anytime TD");
+  const bands = doc.getElementById("dbands").innerHTML;
+  // The headline is the row's chance and the row's fair price, to the digit.
+  const fp = nfl.fairPrice(r.s.prob);
+  assert.match(bands, new RegExp('class="dband head"[\\s\\S]*Chance to score[\\s\\S]*<b class="fig">' + (100 * r.s.prob).toFixed(1) + '%</b>[\\s\\S]*fair ' + (fp > 0 ? "\\+" : "[\\u2212-]") + Math.abs(fp)), "the headline band is not the row's chance and fair price");
+  // The receipt is the record's own words for this prop: count, predicted, actual, off by.
+  assert.match(bands, /class="dband receipt"[\s\S]*Recorded before kickoff[\s\S]*816 anytime touchdown calls graded · predicted 21\.9%, actual 20\.7% · off by \+1\.2pp/, "no receipt band from the record");
+  assert.doesNotMatch(bands, /UTC/, "the fixture's build stamp carries no Z, so it must not be labelled UTC");
+  // The rate band: the same direction as the row's pill, and the delta to the hundredth with the rounded percent.
+  const ratio = r.s.lambda / r.s.observedRate, delta = r.s.lambda - r.s.observedRate, d = Math.round((ratio - 1) * 100);
+  const cls = d >= 10 ? "up" : d <= -10 ? "down" : "steady";
+  const rowHtml = app.innerHTML.match(new RegExp('data-i="' + i + '">[\\s\\S]*?</button>'))[0];
+  assert.equal(cls !== "steady" ? rowHtml.includes('class="pill ' + cls + '"') : rowHtml.includes(">steady<"), true, "the fixture's pill does not match the computed direction");
+  assert.match(bands, new RegExp('class="dband rate ' + cls + '"[\\s\\S]*vs his own rate[\\s\\S]*own rate ' + r.s.observedRate.toFixed(3) + ' a game[\\s\\S]*' + (delta >= 0 ? "\\+" : "\\u2212") + Math.abs(delta).toFixed(2) + ' TD \\(' + (d >= 0 ? "\\+" : "\\u2212") + Math.abs(d) + '%\\)'), "the rate band does not say the row's ratio");
+  const body = doc.getElementById("dbody").innerHTML;
+  assert.match(body, /class="dact"[\s\S]*Track anytime TD/, "the price and Track row is missing");
+  assert.ok((body.match(/class="dcell"/g) || []).length >= 8, "the overview is not a grid of cells");
+  assert.match(body, /<dl class="dcells">/, "the cells are not a definition list");
+  assert.ok(body.includes("carries"), "the workload cell lost the word carries");
+  assert.doesNotMatch(body, /<table>/, "the old definition table is still there");
+  for (const label of ["Matchup", "Position", "Model rank", "Workload", "His own rate", "Offence", "Opponent", "Expected TDs", "Games"]) {
+    assert.match(body, new RegExp('<dt>' + label + '</dt>'), "no cell labelled " + label);
+  }
+  assert.match(body, new RegExp('<dt>Model rank</dt><dd><b>#' + (i + 1) + ' of ' + field + '</b>'), "the rank cell disagrees with the hero");
+  assert.match(body, new RegExp('<dt>Workload</dt><dd><b>' + r.s.perGameCarries.toFixed(1) + ' · ' + r.s.perGameReceiving.toFixed(1) + '</b>'), "the workload cell is not the row's per-game workload");
+});
+
+test("the model rank is the rank in the whole field, not on the page: the cut and the filter do not move it", async () => {
+  const nfl = (await import("./nfl.js")).default;
+  const many = Array.from({ length: 30 }, (_, k) => Object.assign({}, PLAYERS[0], { id: "m" + k, name: "Player " + k, tds: 1 + (k % 7), games: 10 }));
+  const { app, doc, press } = await mountPlayers({ players: many, pools: recPool(nfl), search: "" });
+  const shown = app.__rows.length;
+  assert.ok(shown < 30, "the board did not cut the list");
+  clickRow(app, shown - 1);
+  const sub = doc.getElementById("dsub").textContent;
+  assert.match(sub, /Model rank #\d+ of 30 ·/, "the denominator is the rows on screen, not the field: " + sub);
+});
+
+test("without a record the receipt band is absent; a stat view's card leads with the projection; a game row has no photo and no bands", async () => {
+  const nfl = (await import("./nfl.js")).default;
+  const record = { total: 900, days: [], props: { td: { label: "Anytime touchdown", n: 816, predicted: 21.9, actual: 20.7, bias: 1.2 }, recyds: { label: "Receiving yards, over", n: 457, predicted: 41, actual: 42.9, bias: -1.9 } } };
+  const bare = await mountPlayers({ players: PLAYERS, pools: recPool(nfl) });
+  clickRow(bare.app, bare.app.__rows.findIndex((r) => r.p.id === "a"));
+  assert.doesNotMatch(bare.doc.getElementById("dbands").innerHTML, /receipt/, "a receipt band with no record behind it");
+  const { app, doc, press } = await mountPlayers({ players: PLAYERS, pools: recPool(nfl), record });
+  press("view", "Receiving yards");
+  const i = app.__rows.findIndex((r) => r.p.id === "a");
+  const r = app.__rows[i];
+  clickRow(app, i);
+  const bands = doc.getElementById("dbands").innerHTML;
+  assert.match(bands, new RegExp('class="dband head"[\\s\\S]*Projected receiving yards[\\s\\S]*<b class="fig">' + Math.round(r.exp) + '</b>[\\s\\S]*over ' + r.line + ' hits ' + Math.round(100 * r.over) + '%'), "the stat card's headline is not the projection with the line and its chance");
+  assert.match(bands, /457 receiving yards calls graded · predicted 41\.0%, actual 42\.9% · off by \u22121\.9pp/, "the stat receipt does not quote its own prop's record, without the label's suffix");
+  const avg = nfl.statTotal("recyds", r.p) / r.p.games, delta = r.exp - avg, d = Math.round((r.exp / avg - 1) * 100);
+  assert.match(bands, new RegExp('own rate ' + avg.toFixed(0) + ' yards a game[\\s\\S]*' + (delta >= 0 ? "\\+" : "\\u2212") + Math.abs(delta).toFixed(0) + ' yards \\(' + (d >= 0 ? "\\+" : "\\u2212") + Math.abs(d) + '%\\)'), "the stat rate band does not say the row's ratio");
+  const body = doc.getElementById("dbody").innerHTML;
+  for (const label of ["Projection", "Over the line", "Model rank", "Season average", "Opportunities", "Opponent", "Read off", "Games"]) assert.match(body, new RegExp('<dt>' + label + '</dt>'), "no cell labelled " + label);
+  assert.match(body, new RegExp('<dt>Opportunities</dt><dd><b>' + (nfl.statOpportunity("recyds", r.p) / r.p.games).toFixed(1) + '</b><span>targets a game over ' + r.p.games + ' games'), "opportunities are not per game");
+  assert.doesNotMatch(body, /<p class="verdict">/, "the stat prose verdict is still there");
+  press("view", "Spread & total");
+  clickRow(app, 0);
+  assert.doesNotMatch(doc.getElementById("dface").innerHTML, /class="face"/, "a game row shows a player photo");
+  assert.equal(doc.getElementById("dbands").innerHTML, "", "a game row shows player bands");
+  assert.match(doc.getElementById("dkick").textContent, /^Week \d+$/);
+  assert.match(doc.getElementById("dsub").textContent, /^SoFi Stadium · /, "a game row's subtitle does not name the venue");
+});
+
+test("the receipt is only claimed for a game that had not kicked off at the build", async () => {
+  const nfl = (await import("./nfl.js")).default;
+  const record = { total: 900, days: [], props: { td: { label: "Anytime touchdown", n: 816, predicted: 21.9, actual: 20.7, bias: 1.2 } } };
+  const games = GAMES.map((g) => Object.assign({}, g, { date: "2020-01-01T00:00Z" }));
+  const { app, doc } = await mountPlayers({ players: PLAYERS, pools: recPool(nfl), record, games });
+  clickRow(app, app.__rows.findIndex((r) => r.p.id === "a"));
+  assert.doesNotMatch(doc.getElementById("dbands").innerHTML, /receipt/, "a build after kickoff claims it was recorded before");
+});
+
+test("the stylesheet lays the card out: a wider panel, the photo as a 150px cutout before the phone block, cells in a grid with a phone rule", () => {
+  const css = src(SHEET);
+  assert.match(css, /\.drawer\{[^}]*width:min\(640px,100%\)/);
+  assert.match(css, /\.dface \.face\{[^}]*width:150px[^}]*border-radius:0/, "the drawer photo is not the 150px cutout");
+  assert.match(css, /\.dcells\{[^}]*grid-template-columns:repeat\(3,/, "the cells are not a three-column grid");
+  assert.match(css, /@media \(max-width:760px\)\{[^@]*\.dcells\{[^}]*repeat\(2,/, "no two-column phone rule for the cells");
+  for (const c of [".dkick{", ".dband{", ".dband.head", ".dband.receipt", ".dband.rate", ".dcell{", ".dcell dt{", ".dcell dd{"]) assert.ok(css.includes(c), "no rule for " + c);
 });
