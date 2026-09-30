@@ -75,6 +75,27 @@
     tdShrink: 0.75,
     leagueLambda: 0.251, // measured TDs per player-game, 2024-25
 
+    /*
+     * Three terms added 2026-09-30, each OFF until the replay clears it on
+     * a window it was not fitted on (fit 2023-24, validate 2025-26; ship
+     * only if Brier improves on both). The board and the replay read the
+     * same constants, so a term is either in both or in neither.
+     *
+     * tdRz: expected touchdowns from a five-term usage regression when the
+     *   player's red-zone rows are known (nflverse, via enrich-nfl.mjs):
+     *   carries, targets, carries inside the 20, targets inside the 20,
+     *   carries inside the 5. The two-term fit stays for a player with no
+     *   rows, so an unknown is never a zero. Coefficients from --measure.
+     * tdDecay: the weight of a game in the player's own line falls by this
+     *   factor per game of age; 1 is today's equal weights.
+     * tdScript: lambda scaled by (projected team points / league points)
+     *   to this power, the same projection the game view prints; 0 is off.
+     */
+    tdRz: 0,
+    tdPerCarryRz: 0, tdPerTargetRz: 0, tdPerRzCarry: 0, tdPerRzTarget: 0, tdPerGlCarry: 0,
+    tdDecay: 1,
+    tdScript: 0,
+
     /* Team scoring: home field is worth about two points now, not three. */
     homeField: 1.97,
     leaguePoints: 22.96, // per team per game
@@ -533,10 +554,40 @@
    * an average instead of averaging the function.
    * ------------------------------------------------------------------ */
 
-  /** Expected TDs from workload alone. */
-  function usageTDs(carries, targets, opts) {
+  /** Expected TDs from workload alone; with red-zone rows and tdRz on, the five-term fit. */
+  function usageTDs(carries, targets, opts, rz) {
     const o = Object.assign({}, DEFAULTS, opts || {});
+    if (o.tdRz && rz && rz.c != null) {
+      return o.tdPerCarryRz * num(carries) + o.tdPerTargetRz * num(targets) +
+        o.tdPerRzCarry * num(rz.c) + o.tdPerRzTarget * num(rz.t) + o.tdPerGlCarry * num(rz.g);
+    }
     return o.tdPerCarry * num(carries) + o.tdPerTarget * num(targets);
+  }
+
+  /* A player's red-zone usage per game over the games it was known for:
+     {c, t, g} carries inside the 20, targets inside the 20, carries inside
+     the 5. Null without rows, which usageTDs reads as "use the two-term fit". */
+  function rzPerGame(player) {
+    const rz = player && player.rz;
+    if (!rz || !(num(rz.n) > 0)) return null;
+    return { c: num(rz.c) / num(rz.n), t: num(rz.t) / num(rz.n), g: num(rz.g) / num(rz.n) };
+  }
+
+  /* The player's line with recent games weighted up: weight decay^age per
+     game, newest first. From `player.log`, one row per game:
+     [td, carries, targets, rzc|null, rzt|null, glc|null]. Returns the
+     weighted games, touchdowns and usage rate, or null without a log. */
+  function weightedLine(player, o) {
+    const log = player && player.log;
+    if (!Array.isArray(log) || !log.length) return null;
+    let games = 0, tds = 0, usage = 0;
+    for (let i = 0; i < log.length; i++) {
+      const row = log[i];
+      const w = Math.pow(o.tdDecay, log.length - 1 - i);
+      const rz = row[3] != null ? { c: row[3], t: row[4], g: row[5] } : null;
+      games += w; tds += w * num(row[0]); usage += w * usageTDs(row[1], row[2], o, rz);
+    }
+    return games > 0 ? { games, tds, usageRate: usage / games } : null;
   }
 
   /**
@@ -561,15 +612,23 @@
 
     const perGameCarries = num(player.carries) / games;
     const perGameReceiving = receivingOpportunity(player, o) / games;
-    const usageRate = usageTDs(perGameCarries, perGameReceiving, o);
-    const observed = num(player.tds);
+    const rz = rzPerGame(player);
+    let usageRate = usageTDs(perGameCarries, perGameReceiving, o, rz);
+    const seasonTds = num(player.tds);
+    let observed = seasonTds, evidence = games;
+
+    // Recent form, when asked for and when the per-game log is there.
+    const wl = o.tdDecay < 1 ? weightedLine(player, o) : null;
+    if (wl) { usageRate = wl.usageRate; observed = wl.tds; evidence = wl.games; }
 
     // Shrink the observed rate toward what the workload implies.
-    const base = (observed + o.tdK * usageRate) / (games + o.tdK);
+    const base = (observed + o.tdK * usageRate) / (evidence + o.tdK);
 
     const teamFactor = clamp(num((ctx && ctx.teamFactor) || 1) || 1, 0.6, 1.6);
     const oppFactor = clamp(num((ctx && ctx.oppFactor) || 1) || 1, 0.6, 1.6);
-    const raw = Math.max(0, base * teamFactor * oppFactor);
+    // Game script: the projected team points against the league's, to a fitted power.
+    const scriptFactor = ctx && isFinite(ctx.scriptFactor) && ctx.scriptFactor > 0 ? clamp(num(ctx.scriptFactor), 0.5, 1.6) : 1;
+    const raw = Math.max(0, base * teamFactor * oppFactor * Math.pow(scriptFactor, o.tdScript));
     // Toward the league average, by the fitted amount. See tdShrink.
     const bar = num(o.leagueLambda);
     const lambda = Math.max(0, bar + o.tdShrink * (raw - bar));
@@ -592,13 +651,16 @@
       lambda,
       rawLambda: raw,
       usageRate,
-      observedRate: observed / games,
+      observedRate: seasonTds / games, // his plain season rate, whatever the decay weighted
       shrink: games / (games + o.tdK),
       usageAveraged: !!pool,
       perGameCarries,
       perGameReceiving,
       teamFactor,
       oppFactor,
+      scriptFactor,
+      rz,
+      weighted: !!wl,
       games,
     };
   }
@@ -1130,7 +1192,7 @@
       totalProbability: (t, m, opts) => totalProbability(t, m, merge(opts)),
       winProbability: (m, opts) => winProbability(m, merge(opts)),
       pickGame: (proj, line, opts) => pickGame(proj, line, merge(opts)),
-      usageTDs: (c, t, opts) => usageTDs(c, t, merge(opts)),
+      usageTDs: (c, t, opts, rz) => usageTDs(c, t, merge(opts), rz),
       receivingOpportunity: (rec, opts) => receivingOpportunity(rec, merge(opts)),
       usagePoolFrom,
       scoreAnytimeTD: (p, ctx) =>
@@ -1180,6 +1242,8 @@
     winProbability,
     pickGame,
     usageTDs,
+    rzPerGame,
+    weightedLine,
     receivingOpportunity,
     usagePoolFrom,
     scoreAnytimeTD,

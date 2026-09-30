@@ -32,7 +32,8 @@
  *   node backtest-nfl.mjs --fit                 # sweep tdK and tdShrink
  */
 
-import { readFileSync, existsSync } from "node:fs";
+import { readEnrichment, attach as attachEnrichment } from "./enrich-nfl.mjs";
+import { readFileSync, existsSync, writeFileSync } from "node:fs";
 import { leagueFromArgs } from "./football-leagues.mjs";
 import { seasonLines } from "./fetch-football.mjs";
 import E from "./edge.js";
@@ -73,6 +74,21 @@ if (!existsSync(HISTORY)) {
   process.exit(1);
 }
 const history = JSON.parse(readFileSync(HISTORY, "utf8"));
+/* nflverse's usage rows on each player-game (snap, target and air-yards
+   shares, red-zone touches), when the cache has been built; the model's
+   terms that read them default to off, so a replay without the cache is
+   the same replay. */
+{
+  const en = readEnrichment();
+  if (en) {
+    const j = attachEnrichment(history.games, en.enrich);
+    const have = new Set((en.seasons || []).map(String)), need = [...new Set(history.games.map((g) => String(g.season)))];
+    const missing = need.filter((s) => !have.has(s));
+    console.log(`enrichment: ${j.hit} of ${j.total} player-games joined, seasons ${(en.seasons || []).join(",")} (${en.generated?.slice(0, 10) ?? "?"})`);
+    if (missing.length) console.log(`  WARNING: no rows for ${missing.join(", ")}; a term that reads them runs on a mixture (node enrich-nfl.mjs --seasons ${need.join(",")})`);
+  }
+  else console.log("enrichment: none (node enrich-nfl.mjs builds it)");
+}
 const ALL = (history.games || [])
   .slice()
   .sort((a, b) => a.season - b.season || a.week - b.week || String(a.date).localeCompare(String(b.date)));
@@ -161,6 +177,38 @@ if (args.includes("--measure")) {
   const det = Scc * Srr - Scr * Scr;
   const a = (Sct * Srr - Srt * Scr) / det;
   const b = (Srt * Scc - Sct * Scr) / det;
+  /* The five-term fit on the player-games nflverse has rows for (carries,
+     targets, carries inside the 20, targets inside the 20, carries inside
+     the 5), least squares through the origin; and the two-term fit on the
+     same rows, so the two can be compared on one population. */
+  {
+    const X = [], y = [];
+    for (const g of games) for (const p of g.players) {
+      const x = p.x; if (!x || x.rzc == null) continue;
+      const c = p.rush?.att || 0, r = receivingOpportunity(gameLine(p));
+      if (!(c || r)) continue;
+      X.push([c, r, x.rzc || 0, x.rzt || 0, x.glc || 0]); y.push((p.rush?.td || 0) + (p.rec?.td || 0));
+    }
+    const solve = (cols) => {
+      const k = cols.length, A = Array.from({ length: k }, () => new Array(k + 1).fill(0));
+      for (let i = 0; i < X.length; i++) for (let a = 0; a < k; a++) { for (let b = 0; b < k; b++) A[a][b] += X[i][cols[a]] * X[i][cols[b]]; A[a][k] += X[i][cols[a]] * y[i]; }
+      for (let c = 0; c < k; c++) { let piv = c; for (let r = c + 1; r < k; r++) if (Math.abs(A[r][c]) > Math.abs(A[piv][c])) piv = r; [A[c], A[piv]] = [A[piv], A[c]];
+        for (let r = 0; r < k; r++) { if (r === c || !A[c][c]) continue; const f = A[r][c] / A[c][c]; for (let j = c; j <= k; j++) A[r][j] -= f * A[c][j]; } }
+      return cols.map((_, i) => A[i][k] / A[i][i]);
+    };
+    if (X.length) {
+      const five = solve([0, 1, 2, 3, 4]), two = solve([0, 1]);
+      const sse = (coef, cols) => X.reduce((s, row, i) => { const yhat = cols.reduce((t, c, j) => t + coef[j] * row[c], 0); return s + (y[i] - yhat) ** 2; }, 0) / X.length;
+      console.log(`\nTOUCHDOWNS, FIVE TERMS — ${X.length} player-games with red-zone rows (nflverse)`);
+      console.log(`  tdPerCarryRz        ${five[0].toFixed(4)}      (two-term on the same rows: tdPerCarry ${two[0].toFixed(4)})`);
+      console.log(`  tdPerTargetRz       ${five[1].toFixed(4)}      (two-term on the same rows: tdPerTarget ${two[1].toFixed(4)})`);
+      console.log(`  tdPerRzCarry        ${five[2].toFixed(4)}`);
+      console.log(`  tdPerRzTarget       ${five[3].toFixed(4)}`);
+      console.log(`  tdPerGlCarry        ${five[4].toFixed(4)}`);
+      console.log(`  mean squared error  five ${sse(five, [0, 1, 2, 3, 4]).toFixed(5)}   two ${sse(two, [0, 1]).toFixed(5)}   (in-sample; the replay is the test)`);
+      console.log(`  --set tdRz=1 --set tdPerCarryRz=${five[0].toFixed(4)} --set tdPerTargetRz=${five[1].toFixed(4)} --set tdPerRzCarry=${five[2].toFixed(4)} --set tdPerRzTarget=${five[3].toFixed(4)} --set tdPerGlCarry=${five[4].toFixed(4)}`);
+    } else console.log(`\nTOUCHDOWNS, FIVE TERMS — no red-zone rows attached (node enrich-nfl.mjs builds them)`);
+  }
   const stat = M.DEFAULTS.receivingStat === "recs" ? "reception" : "target";
   console.log(`\nTOUCHDOWNS — ${n} player-games with a carry or a ${stat}`);
   console.log(`  tdPerCarry          ${a.toFixed(4)}`);
@@ -320,11 +368,16 @@ for (let i = START_INDEX; i < ALL.length; i++) {
     const opp = opponentIn(g, p);
     if (!opp) continue;
     const tf = st.teamFactor(p.team), of = st.oppFactor(opp);
-    const s = scoreAnytimeTD(rec, { teamFactor: tf, oppFactor: of, usagePool: uPool });
+    // Game script: this team's projected points against the league's, from the same projection graded above.
+    const pts = p.team === g.home.team ? proj.homePts : proj.awayPts;
+    const scriptFactor = isFinite(pts) && st.ratings && isFinite(st.ratings.league) && st.ratings.league > 0 ? pts / st.ratings.league : 1;
+    const s = scoreAnytimeTD(rec, { teamFactor: tf, oppFactor: of, usagePool: uPool, scriptFactor });
     if (!s) continue;
     const scored = (p.rush?.td || 0) + (p.rec?.td || 0) > 0 ? 1 : 0;
     tdRows.push({ prob: s.prob, actual: scored, name: p.name, games: rec.games,
-      id: p.id, team: p.team, gameId: g.id, season: g.season, week: g.week });
+      id: p.id, team: p.team, gameId: g.id, season: g.season, week: g.week,
+      // the model's own inputs at prediction time, for fitting a usage term on what it can see
+      inputs: [s.perGameCarries, s.perGameReceiving, s.rz ? s.rz.c : null, s.rz ? s.rz.t : null, s.rz ? s.rz.g : null, rec.games, s.observedRate] });
     tdRowsRaw.push({
       tds: rec.tds, games: rec.games, usageRate: s.usageRate,
       teamFactor: s.teamFactor, oppFactor: s.oppFactor, pool: uPool, actual: scored,
@@ -452,6 +505,18 @@ function rescoreTD(K, shrink) {
     } else p = 1 - Math.exp(-lam);
     return { prob: Math.min(0.95, p), actual: r.actual };
   });
+}
+
+/* --dump file: every touchdown row's probability and outcome, keyed so two
+   runs can be compared row for row (compare-td.mjs): paired differences,
+   not two means. */
+{
+  const dump = flag("--dump", null);
+  if (dump) {
+    const rows = tdRows.map((r) => [`${r.season}|${r.week}|${r.gameId}|${r.id}`, Number(r.prob.toFixed(5)), r.actual, ...(r.inputs || [])]);
+    writeFileSync(dump, JSON.stringify({ overrides, window: { from: flag("--from", null), to: flag("--to", null) }, n: rows.length, rows }));
+    console.log(`dumped ${rows.length} touchdown rows to ${dump}`);
+  }
 }
 
 function sweep(label, values, score) {

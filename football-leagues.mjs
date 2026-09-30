@@ -47,6 +47,10 @@ export const NFL = {
   recordDir: "nfl-record",
   recordFile: "nfl-record.js",
   recordGlobal: "BETHOUSE_NFL_RECORD",
+  /* nflverse carries what the box score cannot see (snap share, target
+     share, air yards, red-zone touches); enrich-nfl.mjs joins it to
+     ESPN's ids for the board and the replay. College has no such feed. */
+  enrich: true,
 };
 
 export const CFB = {

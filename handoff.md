@@ -29,6 +29,40 @@ Zero dependencies, no build step, no server, no API key. `node --test` with
 **named files** — bare discovery pulls in the backtests, which fire live API
 calls. The list lives in seven places and `dom.test.mjs` checks all seven.
 
+## A1: the usage feed (2026-09-30)
+
+Start of the program the user approved: a stronger NFL player-prop
+model and a board that says more, with the honesty rules kept and the
+taste rules loosened (the plan is in the session's plan file and in the
+README's model section as it ships). A1 is data only. `enrich-nfl.mjs`
+joins nflverse's weekly stats, snap counts and play-by-play to ESPN ids
+through nflverse's `players` crosswalk and writes `nfl-enrich.json`
+(gitignored; `node enrich-nfl.mjs --seasons 2023,2024,2025,2026` wrote
+22,383 player-games, 982 KB, join rates above 99.7% on every file per
+the report it carries). `fetch-football.mjs` builds it for the NFL
+(`league.enrich`), attaches the rows to the window's games and puts
+`usage` / `usage3` on each board player (`usageOf` in enrich-nfl.mjs:
+mean snap, target and air-yards shares with the count of games behind
+each, summed red-zone carries, targets and goal-line carries); a feed
+failure logs and the board builds without them. `backtest-nfl.mjs`
+attaches the cache when present so A2's terms can read `p.x` on every
+prior game. The NFL workflow restores the whole `nflverse/` cache
+before the fetch (it used to restore only the play-by-play, after).
+The three A2 terms are wired in nfl.js at their off values (tdRz 0,
+tdDecay 1, tdScript 0), tested to change nothing at those values, with
+the replay plumbing to measure them: `--dump` writes every touchdown
+row with the model's inputs, `compare-td.mjs` compares two dumps row
+for row (paired Δ/SE), `fit-usage.mjs` fits the usage regression on
+prediction-time inputs. Review fixes from the A1 pass: scrambles count
+as carries; two-point tries are skipped; a played game in a week the
+play-by-play covered has zero red-zone touches rather than unknown
+(`fillZeroTouches`, coverage-aware); the join count no longer goes
+negative on an unmatched goal-line carry; the cache merges seasons
+instead of shrinking to the board's two; the CLI default reads the
+history's seasons; the replay prints the cache's seasons and warns on
+a partial overlap. A2's results and the shipped constant are in the
+next section.
+
 ## The player card (2026-09-29, later)
 
 The user showed nhlpropking.com's player card and chose: keep the

@@ -53,21 +53,24 @@ jobs:
           restore-keys: |
             nfl-history-
 
-      - name: Fetch the NFL board
-        run: node fetch-nfl.mjs
-
-      # The play-by-play cache (nflverse/, gitignored, ~40 MB for the three
-      # seasons the board reads) is carried between runs the same way; a
-      # cold runner downloads it once. A failure here must not take the
-      # board down with it: the tendencies panel is descriptive and the
-      # page shows nothing for it when the file is stale or absent.
-      - name: Restore the play-by-play cache
+      # The nflverse cache (nflverse/, gitignored, ~90 MB for the three
+      # seasons the board reads: play-by-play, weekly stats, snap counts,
+      # the players crosswalk) is carried between runs the same way; a cold
+      # runner downloads it once. The fetch reads it for the usage rows
+      # (enrich-nfl.mjs) and the tendencies build reads the play-by-play;
+      # a failure in either leaves the board without that part, never
+      # without a board.
+      - name: Restore the nflverse cache
         uses: actions/cache@v4
         with:
           path: nflverse
-          key: nflverse-pbp-${{ github.run_id }}
+          key: nflverse-${{ github.run_id }}
           restore-keys: |
+            nflverse-
             nflverse-pbp-
+
+      - name: Fetch the NFL board
+        run: node fetch-nfl.mjs
 
       - name: Build the offence and defence tendencies
         run: node tendencies.mjs || echo "tendencies build failed; the board keeps the last file"
@@ -83,7 +86,7 @@ jobs:
             if (!d.ratings || !d.ratings.off) throw new Error("no team ratings");
             console.log("ok:", d.players.length, "players, week", d.week);
           '
-          node --test edge.test.mjs score.test.mjs golf.test.mjs nfl.test.mjs cfb.test.mjs parlay.test.mjs nflverse.test.mjs tendencies.test.mjs cfbfastr.test.mjs statcast.test.mjs bets.test.mjs track.test.mjs clv.test.mjs provenance.test.mjs watchlist.test.mjs live.test.mjs home.test.mjs faces.test.mjs dom.test.mjs
+          node --test edge.test.mjs score.test.mjs golf.test.mjs nfl.test.mjs cfb.test.mjs parlay.test.mjs nflverse.test.mjs tendencies.test.mjs cfbfastr.test.mjs statcast.test.mjs bets.test.mjs track.test.mjs clv.test.mjs provenance.test.mjs watchlist.test.mjs live.test.mjs home.test.mjs faces.test.mjs enrich-nfl.test.mjs dom.test.mjs
 
       # The forward record. Snapshot reads the local board and costs nothing,
       # so it runs every time; grade only fetches games that have finished

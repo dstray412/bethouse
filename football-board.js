@@ -67,6 +67,19 @@
     /* Which game each team plays this week, and whether it is still open. */
     var gameOf={}; (D.games||[]).forEach(function(g){ gameOf[g.home]=g; gameOf[g.away]=g; });
     var openGame=function(team){ var g=gameOf[team]; return g&&!g.completed&&Date.parse(g.date)>Date.now()?g:null; };
+    /* Game script for the touchdown model: this team's projected points
+       against the league's, from the same projection the game view prints.
+       Read only when the model's tdScript is on; 1 without a game. */
+    var scriptCache={};
+    var scriptOf=function(team){
+      if(scriptCache[team]!=null) return scriptCache[team];
+      var g=gameOf[team], v=1;
+      if(g&&D.ratings&&isFinite(D.ratings.league)&&D.ratings.league>0&&typeof N.projectGame==='function'){
+        var pr=N.projectGame(D.ratings,g.home,g.away,{neutral:!!g.neutral});
+        if(pr){ var pts=team===g.home?pr.homePts:pr.awayPts; if(isFinite(pts)&&pts>0) v=pts/D.ratings.league; }
+      }
+      scriptCache[team]=v; return v;
+    };
 
     /* What the browser remembers: the price typed against a row, keyed by
        watchlist.js so the same player at another line is another price.
@@ -328,7 +341,7 @@
       var tf=(D.teamFactors[p.team]||{}).off||1;
       // The opponent's defence, the same term the backtest used.
       var of=p.opp?oppFactorFor(p.opp):1;
-      var s=N.scoreAnytimeTD(p,{teamFactor:tf, oppFactor:of, usagePool:usagePool});
+      var s=N.scoreAnytimeTD(p,{teamFactor:tf, oppFactor:of, usagePool:usagePool, scriptFactor:scriptOf(p.team)});
       if(!s) return null;
       var pk=priceKeyOf(p,'td');
       return {p:p,s:s,chance:s.prob,pk:pk,pe:priceEdge(s.prob,pk)};
@@ -969,7 +982,7 @@
         if(!available(p)) return;
         var g=openGame(p.team); if(!g) return;
         if(on('td')){
-          var s=N.scoreAnytimeTD(p,{teamFactor:(D.teamFactors[p.team]||{}).off||1, oppFactor:p.opp?oppFactorFor(p.opp):1, usagePool:usagePool});
+          var s=N.scoreAnytimeTD(p,{teamFactor:(D.teamFactors[p.team]||{}).off||1, oppFactor:p.opp?oppFactorFor(p.opp):1, usagePool:usagePool, scriptFactor:scriptOf(p.team)});
           if(s&&isFinite(s.prob)) out.push({key:g.id+'|'+p.id+'|td', playerId:String(p.id), gameId:g.id, team:p.team, opp:p.opp, name:p.name, prob:s.prob, prop:'td', propLabel:LABEL.td});
         }
         STAT_IDS.forEach(function(stat){

@@ -74,6 +74,7 @@
  *   node fetch-cfb.mjs --lines          # add opening lines to cached games that lack one
  */
 
+import { buildEnrichment, attach as attachEnrichment, gamesByPlayer, usageOf } from "./enrich-nfl.mjs";
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 
 const REGULAR_SEASON = 2;
@@ -683,6 +684,18 @@ export function seasonLines(games, model) {
       r.recs += p.rec?.rec || 0;
       r.passAtt += p.pass?.att || 0;
       r.passYds += p.pass?.yds || 0;
+      /* The per-game log the recent-form term reads, and the red-zone
+         usage the five-term fit reads, from nflverse's rows when the game
+         has them (enrich-nfl.mjs attaches them as p.x). A game without
+         rows logs nulls for the red-zone fields: unknown, not zero. */
+      const x = p.x || null;
+      const rzc = x && x.rzc != null ? x.rzc : null;
+      if (!r.log) r.log = [];
+      r.log.push([td, p.rush?.att || 0, p.rec?.tgt || 0, rzc, rzc != null ? (x.rzt || 0) : null, rzc != null ? (x.glc || 0) : null]);
+      if (rzc != null) {
+        if (!r.rz) r.rz = { c: 0, t: 0, g: 0, n: 0 };
+        r.rz.c += rzc; r.rz.t += x.rzt || 0; r.rz.g += x.glc || 0; r.rz.n++;
+      }
       players.set(p.id, r);
       if (tdBy[p.team] != null) tdBy[p.team] += td;
       // One game's workload, in the model's own terms: targets in the
@@ -756,10 +769,15 @@ export function recentRows(games, n, model) {
   return by;
 }
 
-export function boardPlayer(p, { roster, injuries, backups, opponentOf, recent }) {
+export function boardPlayer(p, { roster, injuries, backups, opponentOf, recent, usage }) {
   const on = roster && typeof roster.get === "function" ? roster.get(String(p.id)) : null;
   const inj = injuries && injuries[p.id];
   const rows = recent && recent.get(p.id);
+  /* His usage over the window and over his last three games, only when
+     nflverse had a row for him; `n` alone is not usage. */
+  const ug = usage && usage.get(String(p.id));
+  const known = (u) => u && Object.keys(u).some((k) => k !== "n");
+  const use = ug ? usageOf(ug) : null, use3 = ug ? usageOf(ug, 3) : null;
   return {
     id: p.id, name: p.name, team: p.team, games: p.games, tds: p.tds,
     carries: p.carries, targets: p.targets, recYds: p.recYds, rushYds: p.rushYds, recs: p.recs,
@@ -770,6 +788,10 @@ export function boardPlayer(p, { roster, injuries, backups, opponentOf, recent }
     ...(inj ? { status: inj.status, ...(inj.detail ? { injury: inj.detail } : {}) } : {}),
     ...(backups && backups.has(p.id) ? { backupQB: true } : {}),
     ...(rows && rows.length ? { recent: rows } : {}),
+    ...(known(use) ? { usage: use } : {}),
+    ...(known(use3) ? { usage3: use3 } : {}),
+    ...(p.rz && p.rz.n ? { rz: p.rz } : {}),
+    ...(p.log && p.log.length ? { log: p.log } : {}),
   };
 }
 
@@ -796,6 +818,24 @@ export async function buildBoard(league, history) {
      one: every prior game on file. */
   const current = games.filter((g) => g.season >= season - 1);
   const statsSeasons = [...new Set(current.map((g) => g.season))].sort();
+
+  /* What the box score cannot see, from nflverse, joined by id: snap
+     share, target share, air-yards share, red-zone and goal-line touches,
+     attached to each player-game BEFORE the season lines are built, so
+     the lines carry the red-zone sums and the per-game log the model's
+     terms read. A feed failure leaves the board without them, never
+     without a board. */
+  let usage = null;
+  if (league.enrich) {
+    try {
+      const en = await buildEnrichment(statsSeasons, { log: (m) => console.log(m) });
+      const joined = attachEnrichment(current, en.enrich);
+      console.log(`  enrichment: ${joined.hit} of ${joined.total} player-games joined`);
+      usage = gamesByPlayer(current);
+    } catch (e) {
+      console.log(`  enrichment failed: ${e.message} (board built without it)`);
+    }
+  }
   const { players, usageByPlayer, teamFactors } = seasonLines(current, model);
 
   /* Where each player is today. seasonLines named the team he did his
@@ -919,6 +959,7 @@ export async function buildBoard(league, history) {
      under the 1 MB ceiling. */
   const recent = recentRows(current, league.recentGames || 10, model);
 
+
   const round = (a, n) => Array.from(a, (x) => Number(x.toFixed(n)));
   const payload = {
     generated: new Date().toISOString(),
@@ -939,7 +980,7 @@ export async function buildBoard(league, history) {
       /* Anyone with enough games and any real workload: a skill player's
          touches, or enough attempts to be gated as a passer. */
       .filter((p) => p.games >= 3 && ((p.carries + model.receivingOpportunity(p)) >= 10 || p.passAtt >= model.DEFAULTS.passMinOpportunity))
-      .map((p) => boardPlayer(p, { roster, injuries, backups, opponentOf, recent })),
+      .map((p) => boardPlayer(p, { roster, injuries, backups, opponentOf, recent, usage })),
     injuries: hurtByTeam,
     injuriesAt: league.injuriesUrl ? new Date().toISOString() : null,
     usagePool: round(usagePool.slice(0, 4000), 3),

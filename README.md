@@ -179,6 +179,7 @@ should be re-fitted when the run environment shifts.
 | `football-leagues.mjs` | The one table of what differs between the two leagues: endpoints, files, weeks, the model, what to call a team that is not in the league. |
 | `fetch-football.mjs` | Keyless ESPN requests → `<league>-history.json` and `<league>-data.js`. `fetch-nfl.mjs` and `fetch-cfb.mjs` pick the league. |
 | `backtest-nfl.mjs` | Replays either league (`--league cfb`), measures the constants (`--measure`), fits the two that are fitted (`--fit`). |
+| `enrich-nfl.mjs` | What the box score cannot see, per player per game, from nflverse: snap share, target share, air-yards share, red-zone and goal-line touches, joined to ESPN's ids through nflverse's players table (gsis, pfr and espn ids in one row) and cached as `nfl-enrich.json`. The fetcher puts each player's window and last-three usage on the board (`usage`, `usage3`); the replay attaches the rows to every player-game. 7 tests. |
 | `nflverse.mjs` | Reads nflverse-data (27 NFL seasons with lines and weather, injury reports and depth charts since 2009) into the model's game shape. No key; cached under `nflverse/`. 5 tests. |
 | `experiment-nflverse.mjs` | The model, the line's biases, the missing-quarterback question and the touchdown model over 27 seasons, by era. Found the wind bias; confirmed the touchdown constants. |
 | `cfbfastr.mjs` | Twenty seasons of college schedules and lines from cfbfastR-data (no key), into the model's game shape. FCS pooled from the schedule's own division field. 4 tests. |
@@ -1540,6 +1541,25 @@ The efficiency lines are now kept in the history cache (`home.stats`,
 attempt does not start with a ten-minute refetch.
 
 ### Twenty-seven seasons: what two could not settle
+
+**2026-09-30.** The box score is the record of what happened; nflverse
+also carries how much of the offence ran through a player while it
+happened, and that is what a projection wants. `enrich-nfl.mjs` reads
+three more files (weekly stats for `target_share`, `air_yards_share` and
+air yards; `snap_counts` for the offensive snap share; play-by-play for
+carries and targets inside the 20 and carries inside the 5) and joins
+all three id systems to ESPN's athlete id through nflverse's `players`
+table (gsis, pfr and espn ids in one row). Joined on the first build:
+weekly rows 13,133 of 13,134, snap rows 15,238 of 15,276, red-zone
+touches 10,385 of 10,385 across 2024 to 2026. The board carries each
+player's usage over the window and over his last three games
+(`usage`, `usage3`: `snap`, `tsh`, `ays`, `rzc`, `rzt`, `glc`, with the
+count of games each was known for); a player nflverse has no row for
+carries no field, and a consumer treats that as unknown, never as
+zero. The model's terms that read them (red-zone usage, recent-form
+decay, game script) are wired and sit at zero until the replay clears
+one on a window it was not fitted on; the section below carries each
+table as it is measured.
 
 **2026-09-08.** nflverse-data (github.com/nflverse/nflverse-data, CC-BY-4.0,
 plain CSV, no key) holds every NFL game since 1999 with its closing spread,

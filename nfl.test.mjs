@@ -1334,3 +1334,83 @@ test("recentDate: a compact row's date reads back as a calendar date", () => {
   assert.equal(nfl.recentDate("0921"), "09-21", "an older file's four-digit date still reads");
   assert.equal(nfl.recentDate(null), "");
 });
+
+test("boardPlayer: nflverse usage rides along only when a row was known; `n` alone is not usage", async () => {
+  const { boardPlayer } = await import("./fetch-football.mjs");
+  const p = { id: "4242335", name: "Jonathan Taylor", team: "IND", games: 4, tds: 5, carries: 80, targets: 12, recYds: 60, rushYds: 400, recs: 10, passAtt: 0, passYds: 0 };
+  const rows = [
+    { x: { snap: 0.8, tsh: 0.1, rzc: 4, rzt: 1, glc: 2 } },
+    { x: { snap: 0.9, tsh: 0.12, rzc: 2, rzt: 0, glc: 1 } },
+    { },
+    { x: { snap: 0.7 } },
+  ];
+  const usage = new Map([["4242335", rows]]);
+  const b = boardPlayer(p, { opponentOf: { IND: "WSH" }, usage });
+  assert.equal(b.usage.n, 4);
+  assert.equal(b.usage.snap, 0.8); assert.equal(b.usage.snapN, 3);
+  assert.equal(b.usage.rzc, 6); assert.equal(b.usage.glc, 3); assert.equal(b.usage.rzN, 2);
+  assert.equal(b.usage3.n, 3); assert.equal(b.usage3.rzc, 2, "the last three games only");
+  const none = boardPlayer(p, { opponentOf: {}, usage: new Map([["4242335", [{}, {}]]]) });
+  assert.equal("usage" in none, false, "games with no rows: no usage field, so the page treats it as unknown");
+  assert.equal("usage" in boardPlayer(p, { opponentOf: {} }), false, "no feed at all: no field");
+});
+
+/* ------------------------------------------------------------------ *
+ * The three touchdown terms added 2026-09-30, off by default
+ *
+ * Oracle: the model's own arithmetic, and the rule that a term at its
+ * default changes nothing; that an unknown red-zone row is never a zero;
+ * that the decay weights sum the way a geometric series does.
+ * ------------------------------------------------------------------ */
+
+test("usageTDs: the two-term fit unless tdRz is on AND the red-zone rows are known", () => {
+  const two = nfl.usageTDs(10, 5);
+  assert.equal(two, nfl.DEFAULTS.tdPerCarry * 10 + nfl.DEFAULTS.tdPerTarget * 5);
+  const o = { tdRz: 1, tdPerCarryRz: 0.02, tdPerTargetRz: 0.03, tdPerRzCarry: 0.1, tdPerRzTarget: 0.2, tdPerGlCarry: 0.3 };
+  assert.equal(nfl.usageTDs(10, 5, o), two, "tdRz on but no rows: the two-term fit, an unknown is not a zero");
+  assert.equal(nfl.usageTDs(10, 5, o, { c: 2, t: 1, g: 1 }), 0.02 * 10 + 0.03 * 5 + 0.1 * 2 + 0.2 * 1 + 0.3 * 1);
+  assert.equal(nfl.usageTDs(10, 5, { tdRz: 0 }, { c: 2, t: 1, g: 1 }), two, "tdRz off: rows ignored");
+});
+
+test("rzPerGame and weightedLine: per-game red-zone usage over the games it was known for; decay weights newest games up", () => {
+  assert.equal(nfl.rzPerGame({ rz: { c: 6, t: 3, g: 2, n: 3 } }).c, 2);
+  assert.equal(nfl.rzPerGame({ rz: { c: 0, t: 0, g: 0, n: 0 } }), null);
+  assert.equal(nfl.rzPerGame({}), null);
+  const player = { log: [[0, 10, 2, null, null, null], [1, 12, 3, null, null, null], [2, 20, 4, null, null, null]] };
+  const equal = nfl.weightedLine(player, Object.assign({}, nfl.DEFAULTS, { tdDecay: 1 }));
+  assert.equal(equal.games, 3); assert.equal(equal.tds, 3);
+  const half = nfl.weightedLine(player, Object.assign({}, nfl.DEFAULTS, { tdDecay: 0.5 }));
+  assert.equal(half.games, 0.25 + 0.5 + 1, "weights 0.25, 0.5, 1 oldest to newest");
+  assert.equal(half.tds, 0.25 * 0 + 0.5 * 1 + 1 * 2);
+  assert.equal(nfl.weightedLine({ log: [] }, nfl.DEFAULTS), null);
+});
+
+test("scoreAnytimeTD: at the defaults the three terms change nothing; on, each moves the number the way it says", () => {
+  const p = { games: 10, tds: 6, carries: 150, targets: 30, rz: { c: 20, t: 5, g: 8, n: 10 },
+    log: Array.from({ length: 10 }, (_, i) => [i < 6 ? 1 : 0, 15, 3, 2, 0.5, 0.8]) };
+  const base = nfl.scoreAnytimeTD(p, { teamFactor: 1, oppFactor: 1, scriptFactor: 1.3 });
+  const plain = nfl.scoreAnytimeTD({ games: 10, tds: 6, carries: 150, targets: 30 }, { teamFactor: 1, oppFactor: 1 });
+  assert.equal(base.prob, plain.prob, "rows and a script factor present, every term off: the same number");
+  assert.equal(base.scriptFactor, 1.3); assert.equal(base.weighted, false);
+  const script = nfl.scoreAnytimeTD(p, { teamFactor: 1, oppFactor: 1, scriptFactor: 1.3, opts: { tdScript: 1 } });
+  assert.ok(script.lambda > base.lambda, "a team projected above the league scores more");
+  const half = nfl.scoreAnytimeTD(p, { teamFactor: 1, oppFactor: 1, scriptFactor: 1.3, opts: { tdScript: 0.5 } });
+  assert.ok(half.lambda > base.lambda && half.lambda < script.lambda, "the power scales the effect");
+  const rz = nfl.scoreAnytimeTD(p, { teamFactor: 1, oppFactor: 1, opts: { tdRz: 1, tdPerCarryRz: 0.02, tdPerTargetRz: 0.03, tdPerRzCarry: 0.1, tdPerRzTarget: 0.1, tdPerGlCarry: 0.2 } });
+  assert.deepEqual(rz.rz, { c: 2, t: 0.5, g: 0.8 });
+  assert.equal(rz.usageRate, 0.02 * 15 + 0.03 * 3 + 0.1 * 2 + 0.1 * 0.5 + 0.2 * 0.8);
+  const decayed = nfl.scoreAnytimeTD(p, { teamFactor: 1, oppFactor: 1, opts: { tdDecay: 0.8 } });
+  assert.equal(decayed.weighted, true);
+  assert.ok(decayed.observedRate === base.observedRate, "the reported season rate is still the plain one");
+  assert.ok(decayed.lambda < base.lambda, "his scores were all early in the log, so weighting the recent games up lowers him");
+});
+
+test("seasonLines: every player gets a per-game log; red-zone sums only over games with rows, nulls elsewhere", async () => {
+  const { seasonLines } = await import("./fetch-football.mjs");
+  const g = (date, x) => ({ date, season: 2026, week: 1, home: { team: "A", score: 20, stats: {} }, away: { team: "B", score: 10, stats: {} },
+    players: [{ id: "p1", name: "P", team: "A", rush: { att: 10, yds: 40, td: 1 }, rec: { rec: 1, tgt: 2, yds: 5, td: 0 }, ...(x ? { x } : {}) }] });
+  const { players } = seasonLines([g("2026-09-07T00:00Z", { rzc: 3, rzt: 1, glc: 2, snap: 0.8 }), g("2026-09-14T00:00Z", null)], nfl);
+  const r = players.get("p1");
+  assert.deepEqual(r.log, [[1, 10, 2, 3, 1, 2], [1, 10, 2, null, null, null]]);
+  assert.deepEqual(r.rz, { c: 3, t: 1, g: 2, n: 1 }, "one game had rows");
+});

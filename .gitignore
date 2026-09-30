@@ -21,3 +21,5 @@ tendencies-nfl.json
 nflverse/
 cfbfastr/
 .playwright-mcp/
+# nflverse usage rows joined to ESPN ids, rebuilt from nflverse/ by enrich-nfl.mjs
+nfl-enrich.json
