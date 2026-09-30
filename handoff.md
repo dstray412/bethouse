@@ -27,6 +27,17 @@ Zero dependencies, no build step, no server, no API key. `node --test` with
 **named files** — bare discovery pulls in the backtests, which fire live API
 calls. The list lives in seven places and `dom.test.mjs` checks all seven.
 
+## Neon green (2026-09-29, later)
+
+The gold on black did not pop for the user. Three palettes were mocked
+on the real NFL board by injecting a `<style>` in the headless browser
+(amber, lime, cyan + gold); they chose the lime and asked for a truer
+green. `--accent` and `--good` are now one neon green (#3DFF5C),
+`--warn` #FFD23F, `--bad` #FF3366, text pure white, muted lighter,
+hairlines up to 16%; the vs-rate and edge pills are solid fills with
+ink (or white, on red) text instead of tints. DESIGN.md's front matter,
+colour strategy, pill component and decisions log follow.
+
 ## Pitch black, and the strips no longer clip (2026-09-29, evening)
 
 The user saw the warm black on the live site as faded and asked for

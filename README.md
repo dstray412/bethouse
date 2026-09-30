@@ -225,8 +225,9 @@ that would be a new model and would need a replay first.
 `/design-consultation` against the user's reference (nhlpropking.com)
 and one outside voice: an industrial ledger on warm black, softened the
 same day to rounded panels and pills, and later that evening moved to a
-pitch-black ground with a brighter gold once the warm black read as faded
-on the live site. What changed and why:
+pitch-black ground once the warm black read as faded on the live site,
+and then to neon green with solid pills when the gold did not pop. What
+changed and why:
 
 - **Every figure is set in one monospace face** (Martian Mono, tabular
   figures): chance, projection, fair, the price you typed, the edge, the

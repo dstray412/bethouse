@@ -6,9 +6,9 @@
  * overrides a shared rule only by repeating the selector there, where
  * the override is visible.
  *
- * The look is DESIGN.md's: a soft board on pitch black. Every figure is
+ * The look is DESIGN.md's: neon green on pitch black. Every figure is
  * set in one monospace face (--mono); the headline figure in a row, a
- * pressed control and a star are gold (--accent); green, amber and red
+ * pressed control and a star are neon green (--accent); green, amber and red
  * (--good --warn --bad) mark an edge, won/lost and a pill that reports a
  * measurement; hairlines (--line) and one heavier rule (--rule) divide
  * rounded panels (--r-panel, --r-btn); no glow. Tokens are in :root, once. Layout: header
@@ -17,7 +17,7 @@
  * the drawer. Mobile at 760px; touch targets under (pointer:coarse).
  */
 html{color-scheme:dark}
-:root{--bg:#000000; --surface:#111111; --surface2:#1A1A1A; --line:rgba(255,255,255,0.12); --rule:rgba(255,255,255,0.28); --text:#F4F4F2; --muted:#9C9C96; --muted-dim:#737370; --accent:#FFC53D; --ink:#000000; --warn:#E4B04A; --bad:#E2513F; --good:#6FD39A; --display:'Bricolage Grotesque',ui-sans-serif,system-ui,sans-serif; --label:'Archivo','Archivo Narrow',ui-sans-serif,system-ui,sans-serif; --mono:'Martian Mono',ui-monospace,'SF Mono',Menlo,monospace; --body:'Source Sans 3',ui-sans-serif,system-ui,-apple-system,sans-serif; --r-btn:10px; --r-panel:14px;}
+:root{--bg:#000000; --surface:#111111; --surface2:#1A1A1A; --line:rgba(255,255,255,0.16); --rule:rgba(255,255,255,0.32); --text:#FFFFFF; --muted:#B4B4B4; --muted-dim:#7C7C7C; --accent:#3DFF5C; --ink:#000000; --warn:#FFD23F; --bad:#FF3366; --good:#3DFF5C; --display:'Bricolage Grotesque',ui-sans-serif,system-ui,sans-serif; --label:'Archivo','Archivo Narrow',ui-sans-serif,system-ui,sans-serif; --mono:'Martian Mono',ui-monospace,'SF Mono',Menlo,monospace; --body:'Source Sans 3',ui-sans-serif,system-ui,-apple-system,sans-serif; --r-btn:10px; --r-panel:14px;}
 *{box-sizing:border-box}
 /* The `hidden` attribute must actually hide. A class that sets
    `display` (.ctl and .controls both set display:flex) beats the UA
@@ -114,9 +114,9 @@ header>.ctl{order:2;flex:1 1 100%}
 /* Pills: a measured state in a soft capsule. up and down are the vs-rate
    pill (past ten percent either way); good, warn and bad are an edge. */
 .pill{display:inline-block;font-family:var(--label);font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;padding:3px 9px;border-radius:999px;border:1px solid var(--line);color:var(--muted);white-space:nowrap;line-height:1.3;font-stretch:87.5%}
-.pill.up,.pill.good{color:var(--good);border-color:rgba(111,211,154,.45);background:rgba(111,211,154,.1)}
-.pill.down,.pill.bad{color:var(--bad);border-color:rgba(226,81,63,.4);background:rgba(226,81,63,.08)}
-.pill.warn{color:var(--warn);border-color:rgba(228,176,74,.4);background:rgba(228,176,74,.08)}
+.pill.up,.pill.good{color:var(--ink);border-color:var(--good);background:var(--good);font-weight:700}
+.pill.down,.pill.bad{color:#fff;border-color:var(--bad);background:var(--bad);font-weight:700}
+.pill.warn{color:var(--ink);border-color:var(--warn);background:var(--warn);font-weight:700}
 .caret{color:var(--muted);text-align:center;font-size:14px;transition:transform .16s}
 .row[aria-expanded=true] .caret{transform:rotate(90deg)}
 /* The reasoning body: the drawer's, and the one panel the baseball board
@@ -158,7 +158,7 @@ header>.ctl{order:2;flex:1 1 100%}
 .rung b{font-family:var(--mono);font-size:13px;font-weight:600}
 .rung .rp{font-family:var(--mono);font-size:13px;text-align:right;font-weight:600;color:var(--text)}
 .rung .rf{grid-column:1/-1;font-family:var(--mono);font-size:11px;color:var(--muted)}
-.rung.near{border-color:var(--accent);background:rgba(255,197,61,.12)}
+.rung.near{border-color:var(--accent);background:rgba(61,255,92,.12)}
 /* The matchup panel on a game: descriptive, so it reads quietly under
    the table. The family table's first column flexes and the two number
    columns are fixed, which is what keeps it inside a 390px phone. */
@@ -183,9 +183,9 @@ header>.ctl{order:2;flex:1 1 100%}
 .tag,.chip{display:inline-block;margin-left:7px;padding:2px 8px;border:1px solid var(--line);border-radius:999px;
   font-family:var(--label);font-size:9px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);vertical-align:1px}
 .tag.lean{color:var(--text);border-color:var(--rule)}
-.tag.soft,.chip.live{color:var(--good);border-color:rgba(111,211,154,.4)}
-.tag.tough{color:var(--bad);border-color:rgba(226,81,63,.4)}
-.tag.q,.chip.proj,.chip.delayed{color:var(--warn);border-color:rgba(228,176,74,.4)}
+.tag.soft,.chip.live{color:var(--good);border-color:rgba(61,255,92,.5)}
+.tag.tough{color:var(--bad);border-color:rgba(255,51,102,.5)}
+.tag.q,.chip.proj,.chip.delayed{color:var(--warn);border-color:rgba(255,210,63,.5)}
 .chip.mkt{font-family:var(--mono);letter-spacing:.02em;text-transform:none;font-size:11px;color:var(--text)}
 .chip.livegame{color:var(--text);border-color:var(--rule)}
 .chip.done{color:var(--muted-dim)}
@@ -210,7 +210,7 @@ header>.ctl{order:2;flex:1 1 100%}
 .priceinp{display:inline-flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--line);border-radius:var(--r-btn);padding:7px 12px}
 .priceinp input{font:inherit;font-family:var(--mono);font-size:14px;color:var(--text);background:transparent;border:0;width:70px;font-variant-numeric:tabular-nums}
 .priceinp input:focus{outline:none}
-.banner{border:1px solid rgba(228,176,74,.35);border-radius:var(--r-panel);background:rgba(228,176,74,.06);padding:14px 18px;margin-bottom:16px}
+.banner{border:1px solid rgba(255,210,63,.4);border-radius:var(--r-panel);background:rgba(255,210,63,.07);padding:14px 18px;margin-bottom:16px}
 .banner h3{font-family:var(--label);font-size:11px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--warn);margin:0 0 8px}
 .banner p{margin:0 0 7px;font-size:14px;line-height:1.65;color:var(--text)}
 .banner b{color:var(--text)}
@@ -252,9 +252,9 @@ footer td{padding:1px 14px 1px 0}
    bad). The cell stays on a phone; the matchup and fair columns go. */
 .px{font-family:var(--mono);text-align:right;font-variant-numeric:tabular-nums;font-size:14px;font-weight:600;line-height:1.2}
 .px small.edge{display:inline-block;font-family:var(--label);font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;padding:3px 9px;border-radius:999px;border:1px solid var(--line);margin-top:3px;line-height:1.3;font-stretch:87.5%}
-.px small.edge.good{border-color:rgba(111,211,154,.45);background:rgba(111,211,154,.1)}
-.px small.edge.bad{border-color:rgba(226,81,63,.4);background:rgba(226,81,63,.08)}
-.px small.edge.warn{border-color:rgba(228,176,74,.4);background:rgba(228,176,74,.08)}
+.px small.edge.good{color:var(--ink);border-color:var(--good);background:var(--good);font-weight:700}
+.px small.edge.bad{color:#fff;border-color:var(--bad);background:var(--bad);font-weight:700}
+.px small.edge.warn{color:var(--ink);border-color:var(--warn);background:var(--warn);font-weight:700}
 .px .none{font-family:var(--body);color:var(--muted-dim);font-weight:400;font-size:12px}
 /* One colour rule for an edge wherever it is shown: the slip, the row, the panel. */
 .edge.good{color:var(--good)} .edge.warn{color:var(--warn)} .edge.bad{color:var(--bad)}
@@ -331,8 +331,8 @@ button.rung:hover{border-color:var(--rule)}
    counts the cards by state. */
 .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
 .card{border:1px solid var(--line);border-radius:var(--r-panel);background:var(--surface);padding:14px 16px 12px;position:relative}
-.card.reached,.card.cashed{border-color:rgba(111,211,154,.5)}
-.card.oneaway{border-color:rgba(228,176,74,.5)}
+.card.reached,.card.cashed{border-color:rgba(61,255,92,.6)}
+.card.oneaway{border-color:rgba(255,210,63,.6)}
 .card .ctop{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
 .card .cname{font-family:var(--display);font-size:16px;font-weight:600;color:var(--text)}
 .card .cmeta{font-size:13px;color:var(--muted);margin-top:2px}

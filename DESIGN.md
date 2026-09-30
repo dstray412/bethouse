@@ -1,22 +1,22 @@
 ---
 # gstack: design-md-format=spec
 name: BetHouse
-description: A pitch-black board with soft rounded panels, bright gold figures, and green or red pills where the model found something.
+description: A pitch-black board with soft rounded panels, neon-green figures, and solid green or red pills where the model found something.
 colors:
-  primary: "#F4F4F2"
+  primary: "#FFFFFF"
   on-primary: "#000000"
   surface: "#111111"
   surface-2: "#1A1A1A"
   background: "#000000"
-  line: "rgba(255,255,255,0.12)"
-  rule: "rgba(255,255,255,0.28)"
-  text: "#F4F4F2"
-  text-muted: "#9C9C96"
-  accent: "#FFC53D"
+  line: "rgba(255,255,255,0.16)"
+  rule: "rgba(255,255,255,0.32)"
+  text: "#FFFFFF"
+  text-muted: "#B4B4B4"
+  accent: "#3DFF5C"
   on-accent: "#000000"
-  success: "#6FD39A"
-  warning: "#E4B04A"
-  error: "#E2513F"
+  success: "#3DFF5C"
+  warning: "#FFD23F"
+  error: "#FF3366"
 typography:
   display:
     fontFamily: Bricolage Grotesque
@@ -72,15 +72,15 @@ components:
 **Mode per surface:** the boards and the drawer Operate; the notes, footers and README prose Read; nothing Persuades and nothing is an Experience.
 **Reference sites:** nhlpropking.com/projections (the user's reference for density, the headed table, the stat tile and the drawer).
 **Key characteristics:**
-- Pitch black, not grey and not navy: the page is a board in a dark room, and the gold is the only light on it.
+- Pitch black, not grey and not navy: the page is a board in a dark room, and the neon green is the light on it.
 - Every figure on the site is set in one monospace face, larger than the words around it: numbers are machine output.
-- Colour marks what matters: the chance or projection figure is gold, a pressed control is gold, and a green or red pill says an edge or a projection well above or below his own rate. Prose, labels and chrome stay paper and muted.
+- Colour marks what matters: the chance or projection figure is neon green, a pressed control is neon green, and a solid green, amber or red pill with ink text says an edge or a projection well above or below his own rate. Prose, labels and chrome stay white and muted.
 - Soft shapes: panels at 14px, buttons and inputs at 10px, pills fully round; hairlines inside panels, no glow.
 - A real stat tile in the header: players priced, build time, predictions graded. Never a decorative number.
 
 ## Colors
 
-**Strategy:** Restrained, with the accent doing more work than a ledger would let it. Gold for the brand, pressed controls, stars, a tracked bet, and the headline figure in a row (chance or projection) and the stat tile; green, amber and red for an edge and, as pills, for a projection more than ten percent above or below his own rate. Everything else is paper on pitch black.
+**Strategy:** Loud where it counts. Neon green (`accent`, and it is also `success`) for the brand, pressed controls, stars, a tracked bet, the headline figure in a row (chance or projection), the stat tile, and a good edge; amber and hot red for a warning and a bad edge. Pills are solid fills with ink text, never tints. Everything else is white on pitch black.
 **Light or dark:** dark, fixed by the use scene: evenings, a phone, a slate to check before kickoff. The light theme exists only in the preview toggle and is not shipped.
 The ground is true black (#000000); surfaces lift by lightness alone (#111111, #1A1A1A), and hierarchy on them comes from the two rule weights (a hairline at 12% white, a rule at 28%) and from type weight, never from glow or shadow. `accent` is the brand and the pressed state; it is not an edge colour, so the star and the wordmark are gold and a number never is. `success`, `warning`, `error` are the edge colours the baseball board already taught: over 2% good, at or above zero a warning, below zero bad. They appear on the edge cell, the slip's edge, the tray's edge line and the bet log's won/lost, and nowhere else.
 
@@ -109,7 +109,7 @@ Panels (the table, the slip, the tile, the record, a day in the log) at 14px; bu
 
 - **Row** (`.row`): grid, hairline top border, hover tints to `surface`, focus-visible a 2px `accent` outline, `aria-haspopup="dialog"`. The star beside it is its own button, gold when pressed, muted when not.
 - **Segmented control** (`.seg button`): muted text on `surface` with a hairline, 10px radius; pressed is gold with ink text, weight 600; hover lifts the text to paper.
-- **Pill** (`.pill`): 10px caps in a fully round capsule; `up` green and `down` red for a projection ten percent above or below his rate, grey "steady" between; an edge in the price cell wears the same capsule in good, warn or bad.
+- **Pill** (`.pill`): 10px caps in a fully round capsule, solid: `up` a green fill with ink text and `down` a red fill with white text for a projection ten percent above or below his rate, an outlined grey "steady" between; an edge in the price cell wears the same solid capsule in good, warn or bad.
 - **Price input** (`.pxin`): mono, 16px, on `surface` with a hairline; focus border `accent`.
 - **Edge** (`.edge`): mono, coloured good, warn or bad; the only coloured text in a row, the slip and the tray.
 - **Drawer** (`.drawer`): title in display 22px, dateline muted, a 2px rule under the head, tabs as a segmented control, body in body face; the ladder as square rungs with the pressed one outlined in `accent`; recent games as square bars, the ones that clear the threshold in `success`, the threshold a dashed `warning` line.
@@ -120,7 +120,7 @@ Panels (the table, the slip, the tile, the record, a day in the log) at 14px; bu
 ## Do's and Don'ts
 
 - Do set every number in Martian Mono with tabular figures, including inside prose.
-- Do keep colour to gold on the headline figure, pressed controls and stars, and green or red on a pill that reports a measurement.
+- Do keep colour to neon green on the headline figure, pressed controls and stars, and a solid green, amber or red pill that reports a measurement.
 - Do put tables, the slip and the record in rounded panels; hairlines only inside them.
 - Do keep rows at 60px on desktop and 56px on a phone with names at 16px and the headline figure at 24px.
 - Do show only measured numbers in the stat tile: players priced, build time, predictions graded.
@@ -140,6 +140,7 @@ Panels (the table, the slip, the tile, the record, a day in the log) at 14px; bu
 ## Decisions Log
 | Date | Decision | Rationale |
 |------|----------|-----------|
+| 2026-09-29 | Neon green, solid pills, white text | The user saw the gold on black and asked for colour that pops; of three mocks on the real board (amber, lime, cyan + gold) they chose the lime and asked for a truer green. Accent and success are one neon green (#3DFF5C), warning #FFD23F, error #FF3366, text pure white, and the pills went from faint tints to solid fills with ink text. |
 | 2026-09-29 | Pitch black and a brighter gold | The user saw the warm black on the live site and read it as faded. The ground went to #000000, the surfaces to neutral greys, the hairlines up a few points so panels still read, and the accent from #D9A441 to #FFC53D. Ink on the accent stays black; every figure on black now clears 12:1. |
 | 2026-09-29 | Softer: rounded panels and pills, gold figures, a vs-rate pill | The user saw the ledger and asked for the reference's feel: bubblier, softer, bigger text, colour that marks good picks. Shapes went to 14 / 10 / round; the chance and projection figures and pressed controls took gold; a pill under each matchup reports the projection against his own rate (the boost ratio the sort computes), green past +10%, red past −10%. Still nothing narrative. |
 | 2026-09-29 | Gold on a tracked bet (baseball `.trk[aria-pressed]`) | The tracked and add-to-slip buttons sit side by side on one row and must not look alike; gold already means "yours" on a starred player, so a tracked bet takes it too. Still never on a number. |
