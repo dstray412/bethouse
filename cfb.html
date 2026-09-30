@@ -4,23 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>BetHouse — College football</title>
-<link rel="stylesheet" href="fonts/space-grotesk.css">
+<link rel="stylesheet" href="fonts/fonts.css">
 <link rel="stylesheet" href="board.css">
-<style>
-/* nfl.html / cfb.html: the football boards' own rules. Everything else is board.css. */
-@media (max-width:760px){
-  /* Bet types scroll sideways rather than stacking into three rows.
-     min-width:0 is what makes that true: a flex item's default minimum is
-     its content, so the .ctl grew to the full width of the buttons and the
-     overflow-x below never engaged -- the PAGE scrolled sideways instead
-     of the strip. Measured at 390px on nfl.html: 322px of body overflow
-     before a fifth counting prop was added, 458 after, 0 with this line. */
-  .ctl{min-width:0}
-  .ctl .seg{overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none;margin-right:-11px;padding-right:11px}
-  .ctl .seg::-webkit-scrollbar{display:none}
-  .seg button{white-space:nowrap;flex:0 0 auto}
-}
-</style>
 </head>
 <body>
 <div class="wrap">
@@ -35,6 +20,7 @@
   <a class="navlink" href="golf.html">PGA →</a>
   </nav>
   </div>
+  <div class="tile" id="tile"></div>
   <div class="ctl">
     <label id="lab-view">Bet type</label>
     <div class="seg" id="view" role="group" aria-labelledby="lab-view"></div>

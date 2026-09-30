@@ -1,0 +1,8 @@
+/* The four faces of DESIGN.md, self-hosted (latin subsets, variable,
+   OFL) so the boards work offline and make no third-party request.
+   Bricolage Grotesque: display and player names. Archivo: caps labels
+   and column heads. Martian Mono: every figure. Source Sans 3: body. */
+@font-face{font-family:'Bricolage Grotesque';font-style:normal;font-weight:500 800;font-display:swap;src:url(bricolage-grotesque-latin.woff2) format('woff2')}
+@font-face{font-family:'Archivo';font-style:normal;font-weight:500 700;font-stretch:75% 100%;font-display:swap;src:url(archivo-latin.woff2) format('woff2')}
+@font-face{font-family:'Martian Mono';font-style:normal;font-weight:400 700;font-display:swap;src:url(martian-mono-latin.woff2) format('woff2')}
+@font-face{font-family:'Source Sans 3';font-style:normal;font-weight:400 700;font-display:swap;src:url(source-sans-3-latin.woff2) format('woff2')}

@@ -182,6 +182,48 @@ should be re-fitted when the run environment shifts.
 | `experiment-statcast.mjs` | Re-scores every published H/R/RBI prediction with the prior and applies the shrink's own validation bar. It passed. |
 | `experiment-lines.mjs` | Tests every reconfiguration of the game model a box score can support against the closing line, per season. Nothing helped. Kept so the negative result stays reproducible. |
 
+## The look
+
+**2026-09-29.** The five boards were restyled to `DESIGN.md`, written with
+`/design-consultation` against the user's reference (nhlpropking.com)
+and one outside voice: an industrial ledger on warm black. What changed
+and why:
+
+- **Every figure is set in one monospace face** (Martian Mono, tabular
+  figures): chance, projection, fair, the price you typed, the edge, the
+  rungs, the log's win rates. Numbers are machine output and look it.
+- **Colour is spent only on edge.** Green, amber and red mean money (over
+  2% edge, at or above zero, below zero) and won or lost; gold is the
+  wordmark, a pressed star and a pressed rung; a pressed control inverts
+  to paper on black. Nothing else on the page is coloured, so four lit
+  edge cells jump out of eighty rows.
+- **Hairlines instead of cards.** The ledger's thick-thin rule (a 2px
+  rule with a hairline 3px under it) sits under the header and above
+  every table's caps column heads; rows are hairline-separated, the rank
+  dimmed in the margin; no radius anywhere is above 4px; the glow behind
+  the page is gone.
+- **A real stat tile in the header**, flush right on the header's
+  baseline: players priced, the build time and the graded record on the
+  football boards; games, lineups posted, candidates and the record on
+  baseball; the field, the cut and the build on golf; bets tracked,
+  graded and the hit rate on the log. A number a page does not have is a
+  cell it does not show.
+- **Four self-hosted faces** in `fonts/` (latin woff2, Open Font License,
+  64 KB together): Bricolage Grotesque for the wordmark, titles and
+  names; Archivo condensed caps for labels and column heads; Martian
+  Mono for figures; Source Sans 3 for prose. Space Grotesk retired.
+- **The pages stopped carrying copies of the shared rules.** The chip,
+  the bet row, the price box and the phone control strip live in
+  `board.css` once; `index.html`, `golf.html` and `bets.html` keep only
+  what is theirs, and `nfl.html` / `cfb.html` carry no `<style>` at all.
+  The bet log's day head is `.dayhead`, since `.dhead` is the drawer's.
+
+The football views gained column heads (RK, PLAYER, MATCHUP, CHANCE,
+FAIR, PRICE / EDGE; the counting props PROJ, OVER, FAIR), emitted by the
+board script per view so head and rows share one grid, named on the
+table as a column set (`--cols`); on a phone the matchup and fair
+columns drop and the price cell stays.
+
 ## Sharing it
 
 There is no secret in this project, so a public repo works: statsapi needs no

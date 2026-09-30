@@ -4,16 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>BetHouse — today's board</title>
-<link rel="stylesheet" href="fonts/space-grotesk.css">
+<link rel="stylesheet" href="fonts/fonts.css">
 <link rel="stylesheet" href="board.css">
 <style>
 /* index.html: the baseball board's own rules. Everything else is board.css. */
 .note .hot{color:var(--warn)}
-.priceinp{display:flex;align-items:center;gap:6px;background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:6px 10px}
-.priceinp input{font:inherit;font-size:14px;color:var(--text);background:transparent;border:0;width:64px;font-variant-numeric:tabular-nums}
-.priceinp input:focus{outline:none}
-.summary{display:flex;gap:22px;flex-wrap:wrap;margin:0 2px 14px;font-size:13px;color:var(--muted)}
-.summary b{color:var(--text);font-variant-numeric:tabular-nums}
 
 /* Countdown to first pitch. Brighter than the surrounding meta so the
    queue is scannable, amber inside 30 minutes so the top of the slate
@@ -22,19 +17,9 @@
 .soon.urgent{color:var(--warn)}
 .side{padding:4px 0 10px}
 .shead{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;padding:10px 15px 6px}
-.sname{font-family:var(--display);font-size:12.5px;font-weight:600;letter-spacing:.05em}
-.chip{display:inline-block;font-family:var(--display);font-size:9.5px;font-weight:700;letter-spacing:.09em;
-  padding:2px 7px;border-radius:999px;border:1px solid var(--line);color:var(--muted);margin-left:7px;vertical-align:1px}
-.chip.live{color:var(--good);border-color:rgba(95,206,143,.4)}
-.chip.proj{color:var(--warn);border-color:rgba(224,163,63,.4)}
+.sname{font-family:var(--display);font-size:14px;font-weight:600}
 /* Market price from odds-data.js. Its own class so it never gets confused
    with the THIN sample-size chip, which is what happened first time. */
-.chip.mkt{font-variant-numeric:tabular-nums;letter-spacing:.04em}
-.chip.livegame{color:#8fd9ff;border-color:rgba(56,225,255,.45)}
-.chip.delayed{color:var(--warn);border-color:rgba(224,163,63,.55)}
-.chip.done{color:var(--muted)}
-.settled{font-size:11px;font-family:var(--display);font-weight:700;letter-spacing:.06em}
-.settled.win{color:var(--good)} .settled.lost{color:var(--bad)}
 .vs{font-size:12.5px;color:var(--muted)}
 .vs b{color:var(--text);font-weight:600}
 
@@ -42,7 +27,7 @@
    default: it exists on one bet type, tracking exists on all three. */
 .row{display:grid;grid-template-columns:32px 1fr 78px 30px 20px;gap:10px;align-items:center;
   width:100%;text-align:left;font:inherit;color:inherit;background:none;border:0;
-  padding:8px 15px;cursor:pointer;border-top:1px solid rgba(255,255,255,.045)}
+  padding:8px 15px;cursor:pointer;border-top:1px solid var(--line)}
 .row.parlay{grid-template-columns:32px 1fr 78px 30px 30px 20px}
 /* Replay rows have no reasoning panel to open, so no caret column. */
 .row.hist{grid-template-columns:32px 1fr 78px 30px;cursor:default}
@@ -50,94 +35,61 @@
 .row.hist:hover{background:none}
 /* The outcome chip sits inline after the name, like .pos does. */
 .who .settled{margin-left:7px}
-.row:hover{background:rgba(255,255,255,.028)}
-.addleg{font:inherit;font-size:16px;line-height:1;color:var(--muted);background:var(--panel2);
-  border:1px solid var(--line);border-radius:8px;width:28px;height:28px;cursor:pointer;padding:0}
+.addleg{font:inherit;font-size:16px;line-height:1;color:var(--muted);background:var(--surface);
+  border:1px solid var(--line);border-radius:3px;width:28px;height:28px;cursor:pointer;padding:0}
 .addleg:hover{color:var(--text);border-color:var(--accent)}
-.addleg[aria-pressed=true]{color:#0a0d14;background:linear-gradient(180deg,#7fe9ff,var(--accent));border-color:transparent;font-weight:700}
-/* The track button. Deliberately NOT the parlay's cyan: one is "add to a
-   slip I am considering", the other is "I put money on this", and two
+.addleg[aria-pressed=true]{color:var(--ink);background:var(--text);border-color:transparent;font-weight:700}
+/* The track button. Deliberately NOT the slip's inversion: one is "add to
+   a slip I am considering", the other is "I put money on this", and two
    identical-looking buttons side by side on the same row would be a
-   coin-flip every time. Green is the board's --good. */
-.trk{font:inherit;font-size:13px;line-height:1;color:var(--muted);background:var(--panel2);
-  border:1px solid var(--line);border-radius:8px;width:28px;height:28px;cursor:pointer;padding:0}
-.trk:hover{color:var(--good);border-color:var(--good)}
-.trk[aria-pressed=true]{color:#0a0d14;background:var(--good);border-color:transparent;font-weight:700}
-.betlog{border:1px solid rgba(95,206,143,.32);background:rgba(95,206,143,.06);border-radius:14px;
-  padding:14px 16px;margin-bottom:16px}
-.betlog h3{font-family:var(--display);font-size:12px;font-weight:700;letter-spacing:.18em;
-  text-transform:uppercase;color:var(--good);margin:0 0 10px}
-.bet{display:flex;justify-content:space-between;gap:10px;align-items:baseline;
-  padding:6px 0;border-top:1px solid var(--line);font-size:14px}
+   coin-flip every time. Tracked is gold, the board's colour for what is
+   yours, like a starred player. */
+.trk{font:inherit;font-size:13px;line-height:1;color:var(--muted);background:var(--surface);
+  border:1px solid var(--line);border-radius:3px;width:28px;height:28px;cursor:pointer;padding:0}
+.trk:hover{color:var(--accent);border-color:var(--accent)}
+.trk[aria-pressed=true]{color:var(--ink);background:var(--accent);border-color:var(--accent);font-weight:700}
+.betlog{border-top:2px solid var(--rule);border-bottom:1px solid var(--line);padding:12px 0 14px;margin-bottom:18px}
+.betlog h3{font-family:var(--label);font-size:11px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--good);margin:0 0 10px}
 /* The right-hand cluster is percentage, outcome, remove. Without a gap they
    ran together as "74% OPEN\u2715". */
-.bet .right{display:flex;align-items:baseline;gap:9px;flex:0 0 auto}
-.bet:first-of-type{border-top:0}
-.bet .lp{color:var(--muted);font-size:12.5px;font-variant-numeric:tabular-nums}
-.bet>div:first-child{min-width:0}
-.bet .out{font-family:var(--display);font-size:11px;font-weight:700;letter-spacing:.06em}
-.bet .out.win{color:var(--good)} .bet .out.lost{color:var(--bad)} .bet .out.open{color:var(--muted)}
 /* A parlay's legs, indented under it, so a MISS says which leg killed it. */
-.leg-line{display:flex;gap:8px;align-items:baseline;padding:2px 0 2px 16px;font-size:12.5px}
-.leg-line .out{margin-left:auto;font-family:var(--display);font-size:10px;font-weight:700;letter-spacing:.06em}
-.leg-line .out.win{color:var(--good)} .leg-line .out.lost{color:var(--bad)} .leg-line .out.open{color:var(--muted)}
-.betbet{font:inherit;font-size:13px;color:var(--good);background:rgba(95,206,143,.1);
-  border:1px solid rgba(95,206,143,.45);border-radius:9px;padding:7px 13px;cursor:pointer;margin-right:10px}
-.betbet:hover{background:rgba(95,206,143,.18)}
+.betbet{font:inherit;font-size:13px;color:var(--text);background:none;
+  border:1px solid var(--rule);border-radius:3px;padding:7px 13px;cursor:pointer;margin-right:10px}
+.betbet:hover{background:var(--surface)}
 .betbet[disabled]{opacity:.45;cursor:default}
-select#day{font:inherit;font-size:13px;color:var(--text);background:var(--panel2);
-  border:1px solid var(--line);border-radius:9px;padding:7px 9px;cursor:pointer;min-height:34px}
+select#day{font:inherit;font-size:13px;color:var(--text);background:var(--surface);
+  border:1px solid var(--line);border-radius:3px;padding:7px 9px;cursor:pointer;min-height:34px}
 select#day:hover{border-color:var(--accent)}
-.retro{font-size:10px;font-family:var(--display);font-weight:700;letter-spacing:.06em;color:var(--warn)}
-.bet button{background:none;border:0;color:var(--muted);cursor:pointer;font:inherit;font-size:14px;padding:0 2px}
-.bet button:hover{color:var(--bad)}
 .betsum{display:flex;gap:22px;flex-wrap:wrap;align-items:baseline;
   margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
-.betsum .big{font-family:var(--display);font-size:21px;font-weight:700;font-variant-numeric:tabular-nums}
+.betsum .big{font-family:var(--mono);font-size:21px;font-weight:600;font-variant-numeric:tabular-nums}
 .betsum .lbl{display:block;color:var(--muted);font-size:11.5px;margin-top:2px}
 .betfoot{margin-top:11px;font-size:12.5px;color:var(--muted);line-height:1.6}
 .betfoot button{background:none;border:0;color:var(--muted);text-decoration:underline;
   cursor:pointer;font:inherit;font-size:12.5px;padding:0}
 .betfoot button:hover{color:var(--text)}
-.slip{border:1px solid rgba(56,225,255,.3);background:rgba(56,225,255,.06);border-radius:14px;
-  padding:14px 16px;margin-bottom:16px}
-.slip h3{font-family:var(--display);font-size:11.5px;font-weight:700;letter-spacing:.18em;
-  text-transform:uppercase;color:var(--accent);margin:0 0 10px}
-.leg{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:5px 0;
-  border-top:1px solid rgba(255,255,255,.06);font-size:14px}
-.leg:first-of-type{border-top:0}
-.leg .lp{font-variant-numeric:tabular-nums;color:var(--muted);font-size:13px}
 .leg button{font:inherit;color:var(--muted);background:none;border:0;cursor:pointer;font-size:15px;padding:0 2px}
 .leg button:hover{color:var(--bad)}
-.slipsum{display:flex;gap:20px;flex-wrap:wrap;align-items:baseline;margin-top:12px;padding-top:11px;
-  border-top:1px solid rgba(255,255,255,.12)}
-.slipsum .big{font-family:var(--display);font-size:26px;font-weight:700;font-variant-numeric:tabular-nums}
-.slipsum .lbl{font-size:12px;color:var(--muted);display:block}
-.slipwarn{margin-top:11px;font-size:13px;line-height:1.6}
-.slipwarn.severe{color:var(--bad)} .slipwarn.moderate{color:var(--warn)} .slipwarn.none{color:var(--muted)}
-.row[aria-expanded=true] .caret{transform:rotate(90deg)}
 /* The waterfall. One row per thing that moved the number, biggest first,
    with the arithmetic visibly adding up to the answer at the bottom. */
 .whylead{display:block;color:var(--text);font-size:14px;line-height:1.6;margin:4px 0 12px;max-width:56ch}
 table.waterfall{border-collapse:collapse;width:100%;max-width:460px;margin:0 0 4px;font-variant-numeric:tabular-nums}
-table.waterfall td{padding:6px 0;border-top:1px solid rgba(255,255,255,.055);vertical-align:baseline}
+table.waterfall td{padding:6px 0;border-top:1px solid var(--line);vertical-align:baseline}
 table.waterfall tr:first-child td{border-top:0}
 table.waterfall td.wl{font-size:13.5px;color:var(--text);line-height:1.4}
-table.waterfall td.wv{text-align:right;font-family:var(--display);font-weight:700;font-size:16px;white-space:nowrap;padding-left:16px}
+table.waterfall td.wv{text-align:right;font-family:var(--mono);font-weight:600;font-size:15px;white-space:nowrap;padding-left:16px}
 table.waterfall .wn{display:block;color:var(--muted);font-size:12px;font-weight:400;margin-top:2px;line-height:1.45}
 table.waterfall .wup{color:var(--good)} table.waterfall .wdn{color:var(--bad)}
 table.waterfall tr.wtot td{border-top:1px solid var(--line);font-size:15px}
-table.waterfall tr.wtot td.wl{color:var(--muted);font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-family:var(--display);font-weight:700}
-.whymkt{margin-top:11px;padding:10px 12px;background:rgba(255,255,255,.03);
-  border:1px solid var(--line);border-radius:10px;font-size:13px;line-height:1.6;max-width:56ch}
+table.waterfall tr.wtot td.wl{color:var(--muted);font-size:10px;letter-spacing:.14em;text-transform:uppercase;font-family:var(--label);font-weight:600}
+.whymkt{margin-top:11px;padding:10px 12px;background:var(--surface);
+  border:1px solid var(--line);border-radius:3px;font-size:13px;line-height:1.6;max-width:56ch}
 .whymkt .wup{color:var(--good)} .whymkt .wdn{color:var(--bad)}
 .flag{color:var(--warn)}
 /* Finished games stay on the board (seeing what happened is useful) but must
    not compete with what you can still bet. */
 .game.closed{opacity:.58}
 .game.closed:hover{opacity:.85}
-.empty{padding:44px 20px;text-align:center;color:var(--muted)}
-.empty .big{font-family:var(--display);font-size:18px;font-weight:600;color:var(--text);margin-bottom:7px}
 @media (max-width:760px){
   /* Four columns, not three. The row has four visible children on mobile
      (slot, name, probability, add-to-slip) because .caret is display:none.
@@ -170,13 +122,9 @@ table.waterfall tr.wtot td.wl{color:var(--muted);font-size:11px;letter-spacing:.
   /* One line for the name, one for everything about it. Free wrapping split
      "Gleyber Torres" and "Aug 19" mid-unit; nowrap alone just moved the
      break onto the name. */
-  .bet .lp{display:block;white-space:nowrap;margin-top:1px}
-  .bet .right{align-self:flex-start}
   /* History stores full team names ("Washington Nationals"), not the live
      board's abbreviations, so a leg line has far more to fit. Name and
      result on the first line, everything about it on the second. */
-  .leg-line{flex-wrap:wrap}
-  .leg-line .lp{flex:1 0 100%;order:3;padding-left:0}
 }
 @media (pointer:coarse){ .trk,.addleg{min-width:40px;min-height:40px} }
 </style>
@@ -195,6 +143,7 @@ table.waterfall tr.wtot td.wl{color:var(--muted);font-size:11px;letter-spacing:.
     <a class="navlink" href="golf.html">PGA →</a>
   </nav>
   </div>
+  <div class="tile" id="summary"></div>
   <div class="ctl">
     <label id="lab-view">Bet type</label>
     <div class="seg" id="view" role="group" aria-labelledby="lab-view"></div>
@@ -235,7 +184,6 @@ table.waterfall tr.wtot td.wl{color:var(--muted);font-size:11px;letter-spacing:.
 
 <div id="betlog"></div>
 <div id="slip"></div>
-<div class="summary" id="summary"></div>
 <main id="board"></main>
 
 <footer id="footer"></footer>
@@ -1227,7 +1175,7 @@ function renderReplay(day){
   }
 
   summary.innerHTML = '';
-  function stat(v,l){ var d=el('div'); d.appendChild(el('b',null,v)); d.appendChild(document.createTextNode(' '+l)); summary.appendChild(d); }
+  function stat(v,l){ var d=el('div'); d.appendChild(el('b',null,v)); d.appendChild(el('span',null,l)); summary.appendChild(d); }
   stat(String(order.length), order.length===1?'game':'games');
   stat(String(shown), 'shown');
   if(graded) stat(pct(hits/graded,1), 'of these actually hit');
@@ -1602,12 +1550,14 @@ function render(){
 
   /* summary */
   var sum=document.getElementById('summary'); sum.innerHTML='';
-  function stat(v,l){var d=el('div'); d.appendChild(el('b',null,String(v))); d.appendChild(document.createTextNode(' '+l)); sum.appendChild(d);}
+  function stat(v,l){var d=el('div'); d.appendChild(el('b',null,String(v))); d.appendChild(el('span',null,l)); sum.appendChild(d);}
   var posted=(D.games||[]).filter(function(g){return g.away.confirmed&&g.home.confirmed;}).length;
-  stat((D.games||[]).length,'games');
-  stat(posted,'with both lineups posted');
+  stat((D.games||[]).length,(D.games||[]).length===1?'game':'games');
+  stat(posted,'lineups posted');
   stat(shown,'candidates');
   if(best) stat(pct(best.prob),'best');
+  // The graded record, when there is one: a number the page has, never a placeholder.
+  var REC=window.BETHOUSE_RECORD; if(REC&&REC.total) stat(Number(REC.total).toLocaleString('en-US'),'graded');
 
   /* footer */
   var f=document.getElementById('footer'); f.innerHTML='';

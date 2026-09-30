@@ -4,23 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>BetHouse — the cut</title>
-<link rel="stylesheet" href="fonts/space-grotesk.css">
+<link rel="stylesheet" href="fonts/fonts.css">
 <link rel="stylesheet" href="board.css">
 <style>
 /* golf.html: the cut board's own rules. Everything else is board.css. */
-.chip{display:inline-block;font-family:var(--display);font-size:9.5px;font-weight:700;letter-spacing:.09em;
-  padding:2px 7px;border-radius:999px;border:1px solid var(--line);color:var(--muted);margin-left:7px;vertical-align:1px}
-.chip.live{color:var(--good);border-color:rgba(95,206,143,.4)}
-.chip.proj{color:var(--warn);border-color:rgba(224,163,63,.4)}
-.summary{display:flex;gap:22px;flex-wrap:wrap;margin:0 2px 14px;font-size:13px;color:var(--muted)}
-.summary b{color:var(--text);font-variant-numeric:tabular-nums}
-.priceinp{display:flex;align-items:center;gap:6px;background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:6px 10px;margin-top:8px;width:max-content}
-.priceinp input{font:inherit;font-size:14px;color:var(--text);background:transparent;border:0;width:70px;font-variant-numeric:tabular-nums}
-.priceinp input:focus{outline:none}
-.ev{font-family:var(--display);font-weight:700;font-size:13px;letter-spacing:.04em}
+.priceinp{margin-top:8px}
+.ev{font-family:var(--mono);font-weight:600;font-size:13px}
 .ev.pos{color:var(--good)} .ev.neg{color:var(--muted)}
 .banner ul{margin:8px 0 0;padding-left:18px;color:var(--muted);font-size:13px;line-height:1.8}
-@media (pointer:coarse){ .row{min-height:44px} }
 </style>
 </head>
 <body>
@@ -28,7 +19,7 @@
 <header>
   <div class="brand">
     <h1 class="logo">BETHOUSE</h1>
-    <div class="tagline">PGA Tour — who makes the cut</div>
+    <div class="tagline" id="tagline">PGA Tour — who makes the cut</div>
   <nav class="boards" aria-label="Other boards">
     <a class="navlink" href="bets.html">Bets →</a>
     <a class="navlink" href="nfl.html">NFL →</a>
@@ -36,6 +27,7 @@
     <a class="navlink" href="index.html">Baseball →</a>
   </nav>
   </div>
+  <div class="tile" id="tile"></div>
 </header>
 
 <div id="app"><div class="empty"><div class="big">Loading…</div>
@@ -86,6 +78,14 @@
   });
   var residuals = D.residuals ? Float64Array.from(D.residuals) : null;
   var noCut = ev.cut == null;
+
+  /* The header's stat tile: the field, the cut, when the board was built. */
+  (function(){
+    var t = document.getElementById("tile"); if (!t) return;
+    var cell = function(v, l){ return '<div><b>' + esc(String(v)) + '</b><span>' + l + '</span></div>'; };
+    var built = String(D.generated || "").slice(11, 16);
+    t.innerHTML = (field.length ? cell(field.length, "in the field") : "") + (ev && ev.cut ? cell(ev.cut, "make the cut") : "") + (built ? cell(built, "built, UTC") : "");
+  })();
 
   /* Defence in depth. fetch-pga.mjs will not write a board with an empty
      field any more, but a page that renders "all 0 players are guaranteed

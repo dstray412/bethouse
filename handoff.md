@@ -27,6 +27,35 @@ Zero dependencies, no build step, no server, no API key. `node --test` with
 **named files** — bare discovery pulls in the backtests, which fire live API
 calls. The list lives in seven places and `dom.test.mjs` checks all seven.
 
+## The restyle, 2026-09-29
+
+`DESIGN.md` is the source of truth for anything visual (CLAUDE.md points
+at it); README, "The look", says what changed. `board.css` was rewritten
+to it: one-line `:root` (dom.test.mjs pins exactly one), `--surface` /
+`--surface2` replace `--panel` / `--panel2`, new `--rule --muted-dim
+--ink --label --mono --body`, `--accent2` gone with the glow and the logo
+gradient. Fonts: `fonts/fonts.css` with four self-hosted faces from
+Google Fonts' latin woff2 (URLs in the plan file; re-fetch the same way
+if a face ever needs another subset); Space Grotesk's files deleted.
+
+The football board script emits a `.thead` per view and names the
+column set on the table (`.game.v-td / v-stat / v-game`, `nopx` when
+`watchlist.js` is absent, `nostar` on the game view); rows gained a
+`.mtch` cell and the counting props a `.fair` cell; `.pos` now holds the
+position. `renderTile()` fills `#tile`. Pages: `nfl.html` / `cfb.html`
+carry no `<style>`; `index.html` keeps its own `.row` grids (its rows
+have their own cells) and its page-only components; `golf.html` keeps
+`.ev` and its banner list; `bets.html` keeps the record, breakdown and
+CLV blocks and renamed its day head to `.dayhead`. dom.test.mjs:738 now
+reads the control-strip pair off `board.css` and forbids a `<style>` on
+the football pages; three tests pin the heads, the tile and the column
+sets.
+
+Watch: `:433` still reads the first `small{…display:block}` rule, so
+`.be small,.prob small,.px small` stays the first in the file; `:1138`
+needs the drawer's 760px block free of any `@`; `:153` needs `:root{` on
+one line.
+
 ## The interactive football board, phase 3 of 3, 2026-09-29
 
 Stars and the compare tray; the three-phase plan is complete. README,

@@ -139,4 +139,5 @@ Radius 3px on buttons, inputs, rungs and cards; 2px on tags; 4px on the drawer a
 ## Decisions Log
 | Date | Decision | Rationale |
 |------|----------|-----------|
+| 2026-09-29 | Gold on a tracked bet (baseball `.trk[aria-pressed]`) | The tracked and add-to-slip buttons sit side by side on one row and must not look alike; gold already means "yours" on a starred player, so a tracked bet takes it too. Still never on a number. |
 | 2026-09-29 | Initial design system created | Created by /design-consultation from the product context and the user's reference (nhlpropking.com), with one outside voice (a Claude subagent; Codex unavailable). Adopted from it: mono figures everywhere, ledger rules, colour as a semantic. Departed: gold accent (the user's ask) over lime; no receipt metaphor in the drawer. Risk 3 (serif prose) declined. |

@@ -736,14 +736,12 @@ test("every model function the board calls is named in its stale-model check", (
  * ------------------------------------------------------------------ */
 
 test("a scrolling control strip sits in a box that is allowed to shrink", () => {
-  for (const f of ["nfl.html", "cfb.html"]) {
-    const own = (src(f).match(/<style>[\s\S]*?<\/style>/g) || []).join("\n");
-    if (!/\.seg\{[^}]*overflow-x\s*:\s*auto/.test(own)) continue;
-    assert.match(
-      own, /\.ctl\{[^}]*min-width\s*:\s*0/,
-      `${f} scrolls its segment strip with overflow-x but never lets the flex item ` +
-        `around it shrink (min-width:0), so the page scrolls sideways instead of the strip`,
-    );
+  // The pair used to live in the football pages' own <style>; it is shared now.
+  const css = src(SHEET);
+  assert.match(css, /\.seg\{[^}]*overflow-x:\s*auto/, "board.css: .seg does not scroll inside itself");
+  assert.match(css, /\.ctl\{[^}]*min-width:\s*0/, "board.css: .ctl can widen the page (no min-width:0)");
+  for (const page of ["nfl.html", "cfb.html"]) {
+    assert.doesNotMatch(src(page), /<style>/, `${page} carries its own <style> again`);
   }
 });
 
@@ -1375,4 +1373,46 @@ test("the compare tray takes a player from the drawer, holds three at most, drop
   assert.equal(compare.disabled, false, "the button did not come back once a card was dropped");
   doc.getElementById("tclear").handlers.click[0]();
   assert.equal(tray.hidden, true);
+});
+
+/* ------------------------------------------------------------------ *
+ * The ledger (the restyle, 2026-09-29)
+ *
+ * Each football view is a headed table: caps column heads over the
+ * thick-thin rule, one head per column the rows carry, and the view's
+ * column set named on the .game so head and rows share a grid. The
+ * header carries a stat tile of numbers the page has, and none it
+ * does not.
+ * ------------------------------------------------------------------ */
+
+test("every football view renders one column-head row that names its columns, on a .game that names its column set", async () => {
+  const nfl = (await import("./nfl.js")).default;
+  const { app, press } = await mountPlayers({ players: PLAYERS, pools: recPool(nfl) });
+  const heads = (html) => (html.match(/<div class="thead">([\s\S]*?)<\/div>/) || [])[1] || "";
+  const labels = (html) => [...heads(html).matchAll(/<span[^>]*>([^<]*)<\/span>/g)].map((m) => m[1]).filter(Boolean);
+  assert.equal((app.innerHTML.match(/class="thead"/g) || []).length, 1, "the touchdown view has no head row, or two");
+  assert.deepEqual(labels(app.innerHTML), ["Rk", "Player", "Matchup", "Chance", "Fair", "Price / edge"]);
+  assert.match(app.innerHTML, /<div class="game v-td">/);
+  press("view", "Receiving yards");
+  assert.deepEqual(labels(app.innerHTML), ["Rk", "Player", "Matchup", "Proj", "Over", "Fair", "Price / edge"]);
+  assert.match(app.innerHTML, /<div class="game v-stat">/);
+  press("view", "Spread & total");
+  assert.deepEqual(labels(app.innerHTML).slice(0, 2), ["Rk", "Matchup"]);
+  assert.match(app.innerHTML, /<div class="game v-game nopx nostar">|<div class="game v-game nostar">/);
+});
+
+test("the stat tile carries the players priced and the build time, and a graded count only when there is a record", async () => {
+  const { doc } = await mountPlayers({ players: PLAYERS });
+  const tile = doc.getElementById("tile").innerHTML;
+  assert.match(tile, /<b>6<\/b><span>players priced<\/span>/);
+  assert.match(tile, /<b>00:00<\/b><span>built, UTC<\/span>/);
+  assert.doesNotMatch(tile, /graded/, "a graded cell with no record behind it");
+});
+
+test("the stylesheet's column sets exist for every football view, and the tile sits flush right", () => {
+  const css = src(SHEET);
+  for (const v of ["v-td", "v-stat", "v-game"]) assert.match(css, new RegExp(`\\.game\\.${v}\\{--cols:`), `no column set for ${v}`);
+  assert.match(css, /\.tile\{[^}]*margin-left:auto/);
+  // The head's star track is the star's 40px minus the 10px grid gap, so its 1fr equals the row's.
+  assert.match(css, /\.thead\{[^}]*grid-template-columns:var\(--cols\) 30px/);
 });

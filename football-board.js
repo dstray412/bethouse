@@ -125,9 +125,17 @@
     /* The row cell: the price and its edge, or an invitation. Nothing at
        all when watchlist.js did not load: no cell that promises an input
        the panel cannot give. */
-    var pxInner=function(pe){ return pe?sgn(pe.price)+'<small class="'+edgeClass(pe.ev)+'">'+E.formatPct(pe.ev)+' edge</small>':'<span class="none">price?</span><small>&nbsp;</small>'; };
+    var pxInner=function(pe){ return pe?sgn(pe.price)+'<small class="'+edgeClass(pe.ev)+'">'+E.formatPct(pe.ev)+' edge</small>':'<span class="none">price?</span>'; };
     var pxCell=function(i,pe){ return W?'<span class="px" id="px'+i+'">'+pxInner(pe)+'</span>':''; };
     var rowClass=W?'row priced':'row';
+    /* The ledger's parts: the matchup cell, the caps column heads over
+       the thick-thin rule, and the class that names the view's column
+       set (board.css sets --cols per view; nopx when watchlist.js did
+       not load and there is no price column). */
+    var mtch=function(p){ return '<span class="mtch">'+esc(p.team)+(p.opp?' vs '+esc(p.opp):'')+'</span>'; };
+    var thead=function(cols){ return '<div class="thead">'+cols.map(function(c){ return '<span'+(c.r?' class="r'+(c.cls?' '+c.cls:'')+'"':c.cls?' class="'+c.cls+'"':'')+'>'+c.t+'</span>'; }).join('')+'</div>'; };
+    var gameClass=function(view){ return 'game v-'+view+(W?'':' nopx')+(view==='game'?' nostar':''); };
+    var posTag=function(p){ return p.pos?'<span class="pos">'+esc(p.pos)+'</span>':''; };
     var pxEdgeInner=function(pe){ return pe?'<b class="'+edgeClass(pe.ev)+'">'+E.formatPct(pe.ev)+'</b> edge at '+sgn(pe.price):'the edge shows here'; };
     /* The panel's input: type the book's price, the row above follows. */
     var pxInput=function(r){
@@ -246,16 +254,17 @@
       sortRows(rows,{proj:function(r){return r.s.prob;}, boost:function(r){return r.s.observedRate>0?r.s.lambda/r.s.observedRate:null;}});
       var t=trim(rows); rows=t.rows;
 
-      var html=slipHtml()+'<div class="game"><div class="ghead"><h2 class="gtitle">Most likely to score</h2>'+
-        '<div class="gmeta">'+rows.length+' players · '+seasons+' form · type the book\'s price in a row for your edge</div></div>';
+      var html=slipHtml()+'<div class="'+gameClass('td')+'"><div class="ghead"><h2 class="gtitle">Most likely to score</h2>'+
+        '<div class="gmeta">'+rows.length+' players · '+seasons+' form · type the book\'s price in a row for your edge</div></div>'+
+        thead([{t:'Rk'},{t:'Player'},{t:'Matchup',cls:'mtch'},{t:'Chance',r:1},{t:'Fair',r:1,cls:'fair'}].concat(W?[{t:'Price / edge',r:1}]:[]).concat([{t:''}]));
       rows.forEach(function(r,i){
         r.i=i;
         html+='<div class="rowline"><button class="'+rowClass+'" aria-haspopup="dialog" data-i="'+i+'">'+
           '<span class="slot">'+(i+1)+'</span>'+
-          '<span class="who">'+esc(r.p.name)+'<span class="pos">'+esc(r.p.team)+
-            (r.p.opp?' vs '+esc(r.p.opp):'')+'</span>'+qTag(r.p)+'</span>'+
+          '<span class="who">'+esc(r.p.name)+posTag(r.p)+qTag(r.p)+'</span>'+
+          mtch(r.p)+
           '<span class="prob">'+pct(r.s.prob,0)+'</span>'+
-          '<span class="be">'+sgn(N.fairPrice(r.s.prob))+'<small>fair</small></span>'+
+          '<span class="be fair">'+sgn(N.fairPrice(r.s.prob))+'</span>'+
           pxCell(i,r.pe)+
           '<span class="caret">›</span></button>'+starBtn(r.p)+'</div>';
       });
@@ -322,18 +331,21 @@
          so that column is dimmed and the projection carries the row. Low and
          High are where the odds separate. */
       var atProj=state.lineMult===1;
-      var html=slipHtml()+'<div class="game"><div class="ghead"><h2 class="gtitle">'+esc(ST.label)+'</h2>'+
+      var html=slipHtml()+'<div class="'+gameClass('stat')+'"><div class="ghead"><h2 class="gtitle">'+esc(ST.label)+'</h2>'+
         '<div class="gmeta">'+rows.length+' players · '+(atProj
           ? 'ranked by projection · at his own line every player is near a coin flip, so pick Low or High to see the odds move'
           : 'ranked by projection · the chance of the over at the line shown · <b>fair</b> is the break-even price — bet only if the book beats it')+
-        ' · type the book\'s price in a row for your edge</div></div>';
+        ' · type the book\'s price in a row for your edge</div></div>'+
+        thead([{t:'Rk'},{t:'Player'},{t:'Matchup',cls:'mtch'},{t:'Proj',r:1},{t:'Over',r:1},{t:'Fair',r:1,cls:'fair'}].concat(W?[{t:'Price / edge',r:1}]:[]).concat([{t:''}]));
       rows.forEach(function(r,i){
         r.i=i;
         html+='<div class="rowline"><button class="'+rowClass+'" aria-haspopup="dialog" data-i="'+i+'">'+
           '<span class="slot">'+(i+1)+'</span>'+
-          '<span class="who">'+esc(r.p.name)+'<span class="pos">'+esc(r.p.team)+(r.p.opp?' vs '+esc(r.p.opp):'')+' · o'+r.line+'</span>'+badge(r.p)+qTag(r.p)+'</span>'+
+          '<span class="who">'+esc(r.p.name)+posTag(r.p)+badge(r.p)+qTag(r.p)+'</span>'+
+          mtch(r.p)+
           '<span class="prob">'+Math.round(r.exp)+'<small>'+(stat==='recs'?'catches':'yards')+'</small></span>'+
-          '<span class="be'+(atProj?' dim':'')+'">'+pct(r.over,0)+'<small>'+sgn(N.fairPrice(r.over))+' fair</small></span>'+
+          '<span class="be'+(atProj?' dim':'')+'">'+pct(r.over,0)+'<small>o'+r.line+'</small></span>'+
+          '<span class="fair">'+sgn(N.fairPrice(r.over))+'</span>'+
           pxCell(i,r.pe)+
           '<span class="caret">›</span></button>'+starBtn(r.p)+'</div>';
       });
@@ -567,9 +579,10 @@
         return String(x.g.date).localeCompare(String(y.g.date));
       });
       var lined=rows.filter(function(r){return r.best;}).length;
-      html+='<div class="game"><div class="ghead"><h2 class="gtitle">Week '+D.week+'</h2>'+
+      html+='<div class="'+gameClass('game')+'"><div class="ghead"><h2 class="gtitle">Week '+D.week+'</h2>'+
         '<div class="gmeta">'+rows.length+' games · '+(lined?lined+' with a line, best value first · the side, its chance to cover, EV at the price':'no lines yet')+
-        (D.linesFetched?' · lines as of '+esc(String(D.linesFetched).slice(0,16).replace('T',' '))+' UTC':'')+'</div></div>';
+        (D.linesFetched?' · lines as of '+esc(String(D.linesFetched).slice(0,16).replace('T',' '))+' UTC':'')+'</div></div>'+
+        thead([{t:'Rk'},{t:'Matchup'},{t:lined?'Pick':'Projection',r:1},{t:lined?'EV':'Total',r:1},{t:''}]);
       rows.forEach(function(r,i){
         var m=r.pr.margin;
         html+='<button class="row" aria-haspopup="dialog" data-i="'+i+'">'+
@@ -991,6 +1004,17 @@
       if(POSS.length) seg(document.getElementById('posseg'),[{id:'',label:'All'}].concat(POSS.map(function(x){return {id:x,label:x};})),state.pos,function(v){state.pos=v;render();});
     }
 
+    /* The header's stat tile: players priced, when the board was built,
+       and the graded record when there is one. A number the page does not
+       have is a cell it does not show. */
+    function renderTile(){
+      var t=document.getElementById('tile'); if(!t) return;
+      var cell=function(v,l){ return '<div><b>'+esc(String(v))+'</b><span>'+l+'</span></div>'; };
+      var built=String(D.generated||'').slice(11,16);
+      var h=cell((D.players||[]).length,'players priced')+(built?cell(built,'built, UTC'):'');
+      if(cfg.record&&cfg.record.total) h+=cell(Number(cfg.record.total).toLocaleString('en-US'),'predictions graded');
+      t.innerHTML=h;
+    }
     function render(){
       seg(document.getElementById('view'),VIEWS,state.view,function(v){state.view=v;closeDrawer();state.showAll=false;render();});
       seg(document.getElementById('lineseg'),LINES,state.lineMult,function(v){state.lineMult=v;render();});
@@ -1001,6 +1025,7 @@
       document.getElementById('find').hidden = state.view==='game';
       renderParlayControls();
       document.getElementById('tagline').textContent=cfg.league+' — '+D.season+' week '+D.week;
+      renderTile();
 
       /* One plain sentence up front; the replay numbers that back it sit
          behind a disclosure. Users scan, and the first row matters more
