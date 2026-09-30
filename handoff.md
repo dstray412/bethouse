@@ -13,7 +13,7 @@ commit you are reading and how old the data on disk is.
 
 ## Where things are
 
-**Five boards**, all live and deployed:
+**Seven pages**, all live and deployed:
 
 | page | what |
 |---|---|
@@ -26,6 +26,28 @@ commit you are reading and how old the data on disk is.
 Zero dependencies, no build step, no server, no API key. `node --test` with
 **named files** — bare discovery pulls in the backtests, which fire live API
 calls. The list lives in seven places and `dom.test.mjs` checks all seven.
+
+## The home (2026-09-29, night)
+
+The user liked nhlpropking.com's home: a hero for the day's slate, game
+cards with logos and the model's favourite, a row of tops. `index.html`
+is that now and the baseball board is `baseball.html` (every board
+gained a Home link; `dom.test.mjs` BOARDS has seven entries and the
+tests that read the baseball page read it by its new name).
+`home.js` (UMD `BetHouseHome`, `home.test.mjs`, in all seven gates)
+holds the arithmetic: `normalise` (one list from the three data files),
+`slate` (today, else the next day with games, in the reader's zone),
+`footballCard` (projection, favourite, better of spread/total by EV via
+nfl.js, so the card agrees with the board's game view), `topTD`,
+`topEdge`, `counts`, `golfLine`, `logoUrl`. Logos are ESPN's CDN, keyed
+by abbreviation (NFL, MLB) or numeric id (college): `fetch-football.mjs`
+now writes `homeId`, `awayId` and `venue` per game (a few KB; both
+files were regenerated locally, 16/16 and 59/59 games carry ids). The
+`<img>` is built in the page from the module's sanitised url,
+`referrerpolicy="no-referrer"`, hidden on error. Deferred: a baseball
+top card (`ctxFor`/`scoreSide` live inline in baseball.html, not in
+score.js); a small `slate-data.js` from the fetchers if the ~1.2 MB of
+football data drags on a phone (`TODO(simplify)` in index.html).
 
 ## Larger type (2026-09-29, later still)
 

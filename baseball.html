@@ -1,0 +1,1597 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>BetHouse — Baseball</title>
+<link rel="stylesheet" href="fonts/fonts.css">
+<link rel="stylesheet" href="board.css">
+<style>
+/* baseball.html: the baseball board's own rules. Everything else is board.css. */
+.note .hot{color:var(--warn)}
+
+/* Countdown to first pitch. Brighter than the surrounding meta so the
+   queue is scannable, amber inside 30 minutes so the top of the slate
+   reads as urgent without any extra chrome. */
+.soon{color:var(--text);font-weight:600}
+.soon.urgent{color:var(--warn)}
+.side{padding:4px 0 10px}
+.shead{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;padding:10px 15px 6px}
+.sname{font-family:var(--display);font-size:14px;font-weight:600}
+/* Market price from odds-data.js. Its own class so it never gets confused
+   with the THIN sample-size chip, which is what happened first time. */
+.vs{font-size:12.5px;color:var(--muted)}
+.vs b{color:var(--text);font-weight:600}
+
+/* slot | who | prob | track | caret. The parlay + is the variant, not the
+   default: it exists on one bet type, tracking exists on all three. */
+.row{display:grid;grid-template-columns:32px 1fr 78px 30px 20px;gap:10px;align-items:center;
+  width:100%;text-align:left;font:inherit;color:inherit;background:none;border:0;
+  padding:8px 15px;cursor:pointer;border-top:1px solid var(--line)}
+.row.parlay{grid-template-columns:32px 1fr 78px 30px 30px 20px}
+/* Replay rows have no reasoning panel to open, so no caret column. */
+.row.hist{grid-template-columns:32px 1fr 78px 30px;cursor:default}
+.row.hist.parlay{grid-template-columns:32px 1fr 78px 30px 30px}
+.row.hist:hover{background:none}
+/* The outcome chip sits inline after the name, like .pos does. */
+.who .settled{margin-left:7px}
+.addleg{font:inherit;font-size:16px;line-height:1;color:var(--muted);background:var(--surface2);
+  border:1px solid var(--line);border-radius:var(--r-btn);width:28px;height:28px;cursor:pointer;padding:0}
+.addleg:hover{color:var(--text);border-color:var(--accent)}
+.addleg[aria-pressed=true]{color:var(--ink);background:var(--text);border-color:var(--text);font-weight:700}
+/* The track button. Deliberately NOT the slip's inversion: one is "add to
+   a slip I am considering", the other is "I put money on this", and two
+   identical-looking buttons side by side on the same row would be a
+   coin-flip every time. Tracked is gold, the board's colour for what is
+   yours, like a starred player. */
+.trk{font:inherit;font-size:13px;line-height:1;color:var(--muted);background:var(--surface2);
+  border:1px solid var(--line);border-radius:var(--r-btn);width:28px;height:28px;cursor:pointer;padding:0}
+.trk:hover{color:var(--accent);border-color:var(--accent)}
+.trk[aria-pressed=true]{color:var(--ink);background:var(--accent);border-color:var(--accent);font-weight:700}
+.betlog{border:1px solid var(--line);border-radius:var(--r-panel);background:var(--surface);padding:14px 18px 16px;margin-bottom:18px}
+.betlog h3{font-family:var(--label);font-size:11px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--good);margin:0 0 10px}
+/* The right-hand cluster is percentage, outcome, remove. Without a gap they
+   ran together as "74% OPEN\u2715". */
+/* A parlay's legs, indented under it, so a MISS says which leg killed it. */
+.betbet{font:inherit;font-size:13px;color:var(--text);background:none;
+  border:1px solid var(--rule);border-radius:var(--r-btn);padding:7px 13px;cursor:pointer;margin-right:10px}
+.betbet:hover{background:var(--surface)}
+.betbet[disabled]{opacity:.45;cursor:default}
+select#day{font:inherit;font-size:13px;color:var(--text);background:var(--surface);
+  border:1px solid var(--line);border-radius:var(--r-btn);padding:7px 9px;cursor:pointer;min-height:34px}
+select#day:hover{border-color:var(--accent)}
+.betsum{display:flex;gap:22px;flex-wrap:wrap;align-items:baseline;
+  margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
+.betsum .big{font-family:var(--mono);font-size:21px;font-weight:600;font-variant-numeric:tabular-nums}
+.betsum .lbl{display:block;color:var(--muted);font-size:11.5px;margin-top:2px}
+.betfoot{margin-top:11px;font-size:12.5px;color:var(--muted);line-height:1.6}
+.betfoot button{background:none;border:0;color:var(--muted);text-decoration:underline;
+  cursor:pointer;font:inherit;font-size:12.5px;padding:0}
+.betfoot button:hover{color:var(--text)}
+.leg button{font:inherit;color:var(--muted);background:none;border:0;cursor:pointer;font-size:15px;padding:0 2px}
+.leg button:hover{color:var(--bad)}
+/* The waterfall. One row per thing that moved the number, biggest first,
+   with the arithmetic visibly adding up to the answer at the bottom. */
+.whylead{display:block;color:var(--text);font-size:14px;line-height:1.6;margin:4px 0 12px;max-width:56ch}
+table.waterfall{border-collapse:collapse;width:100%;max-width:460px;margin:0 0 4px;font-variant-numeric:tabular-nums}
+table.waterfall td{padding:6px 0;border-top:1px solid var(--line);vertical-align:baseline}
+table.waterfall tr:first-child td{border-top:0}
+table.waterfall td.wl{font-size:13.5px;color:var(--text);line-height:1.4}
+table.waterfall td.wv{text-align:right;font-family:var(--mono);font-weight:600;font-size:15px;white-space:nowrap;padding-left:16px}
+table.waterfall .wn{display:block;color:var(--muted);font-size:12px;font-weight:400;margin-top:2px;line-height:1.45}
+table.waterfall .wup{color:var(--good)} table.waterfall .wdn{color:var(--bad)}
+table.waterfall tr.wtot td{border-top:1px solid var(--line);font-size:15px}
+table.waterfall tr.wtot td.wl{color:var(--muted);font-size:10px;letter-spacing:.14em;text-transform:uppercase;font-family:var(--label);font-weight:600}
+.whymkt{margin-top:11px;padding:10px 12px;background:var(--surface);
+  border:1px solid var(--line);border-radius:var(--r-btn);font-size:13px;line-height:1.6;max-width:56ch}
+.whymkt .wup{color:var(--good)} .whymkt .wdn{color:var(--bad)}
+.flag{color:var(--warn)}
+/* Finished games stay on the board (seeing what happened is useful) but must
+   not compete with what you can still bet. */
+.game.closed{opacity:.58}
+.game.closed:hover{opacity:.85}
+@media (max-width:760px){
+  /* Four columns, not three. The row has four visible children on mobile
+     (slot, name, probability, add-to-slip) because .caret is display:none.
+     Declaring three columns pushed the + button onto its own grid row: every
+     row became 88px instead of ~50px, the button landed orphaned under the
+     slot number, and across 101 rows that added roughly 3,850px -- about four
+     and a half extra phone screens of scrolling to reach the same picks. */
+  /* Filters ran label-above-buttons in a wrapping flex row, so three groups
+     cost 226px -- the single biggest block above the first pick. Run each
+     group as one line (LABEL | buttons) instead. The defaults are almost
+     always what you want, so these should cost a glance, not a screen. */
+  .controls{gap:9px;padding:10px 12px}
+  /* One group per line. Without the 100% basis the three groups share rows,
+     which squeezed "2+" to 27x34 and wrapped "Top 2" onto two lines -- a
+     worse problem than the height it saved. */
+  .ctl{flex:0 0 100%;flex-direction:row;align-items:center;gap:9px}
+  .ctl>label{flex:0 0 58px;font-size:9.5px;letter-spacing:.10em}
+  .ctl .seg{flex:1 1 auto}
+  .ctl .seg button{flex:1 1 0;min-height:40px;padding:6px}
+  /* Five columns now, the last for the caret: hover cannot say "tap me"
+     on a phone, so the chevron stays. Every grid names every child. */
+  .row{grid-template-columns:26px 1fr 64px 44px 12px;gap:7px}
+  .row.parlay{grid-template-columns:26px 1fr 58px 44px 44px 12px}
+  .row.hist{grid-template-columns:26px 1fr 64px 44px 12px}
+  .row.hist.parlay{grid-template-columns:26px 1fr 58px 44px 44px}
+  /* 28px fails the 44px touch minimum, and this is the primary action on the
+     page: it is how a leg gets into the parlay slip. */
+  .addleg{width:44px;height:44px;font-size:20px}
+  .trk{width:44px;height:44px;font-size:17px}
+  /* One line for the name, one for everything about it. Free wrapping split
+     "Gleyber Torres" and "Aug 19" mid-unit; nowrap alone just moved the
+     break onto the name. */
+  /* History stores full team names ("Washington Nationals"), not the live
+     board's abbreviations, so a leg line has far more to fit. Name and
+     result on the first line, everything about it on the second. */
+}
+@media (pointer:coarse){ .trk,.addleg{min-width:40px;min-height:40px} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="brand">
+    <h1 class="logo">BETHOUSE</h1>
+    <div class="tagline" id="tagline">Today's board</div>
+  <nav class="boards" aria-label="Other boards">
+    <a class="navlink" href="index.html">Home →</a>
+    <a class="navlink" href="bets.html">Bets →</a>
+    <a class="navlink" href="nfl.html">NFL →</a>
+    <a class="navlink" href="cfb.html">CFB →</a>
+    <a class="navlink" href="golf.html">PGA →</a>
+    <a class="navlink" href="live.html">Live →</a>
+  </nav>
+  </div>
+  <div class="tile" id="summary"></div>
+  <div class="ctl">
+    <label id="lab-view">Bet type</label>
+    <div class="seg" id="view" role="group" aria-labelledby="lab-view"></div>
+  </div>
+</header>
+
+<div class="note" id="note"></div>
+
+<div class="controls">
+  <div class="ctl" id="tbwrap" hidden>
+    <label id="lab-tbn">Bases</label>
+    <div class="seg" id="tbn" role="group" aria-labelledby="lab-tbn"></div>
+  </div>
+  <div class="ctl">
+    <label id="lab-lu">Lineups</label>
+    <div class="seg" id="lu" role="group" aria-labelledby="lab-lu"></div>
+  </div>
+  <div class="ctl">
+    <label id="lab-top">Per team</label>
+    <div class="seg" id="top" role="group" aria-labelledby="lab-top"></div>
+  </div>
+  <!-- Today, or any day track.mjs has already recorded. Picking a past day
+       redraws the board from history/<date>.json so a bet you placed then can
+       still be written down. -->
+  <div class="ctl" id="daywrap">
+    <label for="day">Day</label>
+    <select id="day"></select>
+  </div>
+  <!-- 1+ H/R/RBI only. It is the one prop whose single legs have been through
+       the backtest, and the parlay report only validated cross-game slips of
+       that prop. Offering it on total bases or home runs would be extending a
+       measurement to somewhere it was never taken. -->
+  <div class="ctl" id="sugwrap">
+    <label id="lab-sug">Suggest a parlay</label>
+    <div class="seg" id="sug" role="group" aria-labelledby="lab-sug"></div>
+  </div>
+</div>
+
+<div id="betlog"></div>
+<div id="slip"></div>
+<main id="board"></main>
+
+<footer id="footer"></footer>
+</div>
+
+<script src="edge.js"></script>
+<script src="score.js"></script>
+<script src="bets.js"></script>
+<script src="mlb-data.js"></script>
+<script src="odds-data.js" onerror="void 0"></script>
+<!-- Written by track.mjs. Absent until a day has been graded. -->
+<script src="record.js"></script>
+<script>
+(function(){
+"use strict";
+var S = window.BetHouseScore;
+var E = window.BetHouseEdge;
+var T = window.BetHouseBets;
+var D = window.BETHOUSE_MLB;
+
+if (!D) {
+  document.getElementById('board').innerHTML =
+    '<div class="empty"><div class="big">No data loaded</div>' +
+    '<div>Run <code>node fetch-mlb.mjs</code> to build today\'s board.</div></div>';
+  return;
+}
+
+/* ---- calibration facts from backtest.mjs, shown so the numbers can be judged ---- */
+/* Measured on the board's OWN shipped predictions, not on a replay it chose
+   afterwards: 4,330 confirmed-lineup player-games from 2026-08-02 to 08-21,
+   graded by track.mjs at the time. `node calibrate.mjs` reproduces it. The
+   old figures here came from a July backtest of a model that has since been
+   recalibrated, so they described something that no longer exists. */
+var CAL = {
+  k: S.DEFAULT_K,
+  window: "Aug 2-21, forward",
+  n: 4330,
+  bias: 0.0,             // every prop, after the correction is centred properly
+  baseRate: 0.665,
+  ceiling: 0.755         // what the top tenth of the board actually cashed
+};
+
+var state = {
+  view: 'hrr',
+  minProb: 0,
+  lineups: 'all',
+  perTeam: 3,
+  day: null,   // null = today's live board; a date string = replay from history
+
+  tbThreshold: 2,
+  slip: [],
+  slipPrice: null,
+  sugLegs: null,
+  sugError: null,
+  // Every bettable 1+ H/R/RBI leg currently on the board, refilled on each
+  // render so a suggestion can never contain a row you cannot see or a game
+  // that started while the tab sat open.
+  candidates: [],
+  suggested: false
+};
+
+var VIEWS = [ {id:'hrr', label:'1+ H / R / RBI'}, {id:'tb', label:'Total bases'}, {id:'hr', label:'Home run'} ];
+var SUGGEST = [ {id:3, label:'3 legs'}, {id:4, label:'4 legs'}, {id:5, label:'5 legs'} ];
+var TBN  = [ {id:2, label:'2+'}, {id:3, label:'3+'}, {id:4, label:'4+'} ];
+var SHOW  = [ {id:0,label:'All'}, {id:0.70,label:'70%+'}, {id:0.73,label:'73%+'} ];
+var LU    = [ {id:'all',label:'All games'}, {id:'posted',label:'Lineup posted'} ];
+var TOP   = [ {id:2,label:'Top 2'}, {id:3,label:'Top 3'}, {id:5,label:'Top 5'}, {id:99,label:'All'} ];
+
+/* ---------------- helpers ---------------- */
+function el(t,c,x){var n=document.createElement(t); if(c)n.className=c; if(x!=null)n.textContent=x; return n;}
+// Names arrive from statsapi.mlb.com and go into innerHTML alongside markup we
+// want rendered, so textContent is not an option there. MLB is not a hostile
+// source, but this page is public and the cost of being right is one function.
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){
+  return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function pct(x,d){return isFinite(x)?(x*100).toFixed(d==null?1:d)+'%':'—';}
+function amer(a){ if(!isFinite(a))return '—'; a=Math.round(a); return a>0?'+'+a:''+a; }
+function timeStr(iso){
+  var d=new Date(iso); if(isNaN(d))return '';
+  return d.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'});
+}
+/*
+ * How long until first pitch, in words.
+ *
+ * The board was sorted correctly by start time but every upcoming game
+ * looked the same: "1:10 PM" and "9:40 PM" in identical muted 12.5px type,
+ * leaving the reader to do the arithmetic against a clock that is not on
+ * screen. A slate is not a flat list, it is a queue, and the queue was
+ * invisible.
+ *
+ * Absolute time is still shown for anything more than 90 minutes out --
+ * that far ahead the clock time is the more useful fact. Inside 90 minutes
+ * the countdown is what a bettor is actually reading for.
+ */
+function startsIn(iso){
+  var d=Date.parse(iso); if(!isFinite(d)) return null;
+  var mins=Math.round((d-Date.now())/60000);
+  if(mins<0 || mins>90) return null;
+  if(mins<1) return {text:'starting now', urgent:true};
+  if(mins<60) return {text:'in '+mins+' min', urgent:mins<=30};
+  return {text:'in 1h '+(mins-60)+'m', urgent:false};
+}
+function seg(host,items,cur,pick){
+  host.innerHTML='';
+  items.forEach(function(it){
+    var b=el('button',null,it.label); b.type='button';
+    b.setAttribute('aria-pressed', String(it.id===cur));
+    b.addEventListener('click',function(){pick(it.id);});
+    host.appendChild(b);
+  });
+}
+
+/* ---------------- scoring ---------------- */
+function propKey(){ return state.view==='tb' ? ('tb'+state.tbThreshold) : state.view; }
+function propLabel(){
+  return state.view==='hrr' ? '1+ H/R/RBI'
+       : state.view==='hr'  ? '1+ home run'
+       : (state.tbThreshold+'+ total bases');
+}
+
+/* ------------------------------------------------------------------ *
+ * Your bets, in brief
+ *
+ * The full history — every bet, won and lost, filters, the breakdown by
+ * kind — lives on bets.html. What belongs HERE is only what is useful
+ * while you are still betting: what is riding right now, and one line on
+ * how the record stands. Two full copies of the same list is two things
+ * to keep in step, and this project has paid for that four times.
+ * ------------------------------------------------------------------ */
+function renderBetLog(){
+  var host = document.getElementById('betlog');
+  host.innerHTML='';
+  if(!BETS.length) return;
+
+  var s = T.summarise(BETS);
+  var open = BETS.filter(function(b){ return b.actual==null; });
+
+  var box = el('div','betlog');
+  box.appendChild(el('h3',null, open.length ? 'Riding now' : 'Your bets'));
+
+  open.slice().sort(function(a,b){
+    return String(b.addedAt||'').localeCompare(String(a.addedAt||''));
+  }).forEach(function(b){
+    var multi = b.legs.length > 1;
+    var line = el('div','bet');
+
+    var left = el('div');
+    left.appendChild(document.createTextNode(multi ? b.legs.length+'-leg parlay' : b.legs[0].name));
+    left.appendChild(el('span','lp',' '+(multi ? legsIn(b)
+      : [b.legs[0].team, b.legs[0].propLabel].filter(Boolean).join(' · '))+
+      ' · '+fmtDay(b.date)));
+    line.appendChild(left);
+
+    var right = el('div','right');
+    if(isFinite(b.prob)) right.appendChild(el('span','lp', pct(b.prob,0)));
+    right.appendChild(el('span','out open','OPEN'));
+    var x = el('button',null,'✕');
+    x.type='button';
+    x.setAttribute('aria-label','Remove this bet from your log');
+    x.title='Remove';
+    x.addEventListener('click', function(){
+      BETS = T.remove(BETS, b.key); saveBets(); render();
+    });
+    right.appendChild(x);
+    line.appendChild(right);
+    box.appendChild(line);
+  });
+
+  if(!open.length){
+    box.appendChild(el('div','betfoot','Nothing riding right now.'));
+  }
+
+  /* One line, then a way to the whole thing. */
+  var foot = el('div','betfoot');
+  if(s.graded){
+    foot.appendChild(document.createTextNode(
+      'Record: '+s.hits+'–'+(s.graded-s.hits)+' settled, '+pct(s.hitRate,0)+
+      ' against '+pct(s.expectedRate,0)+' the model expected. '));
+  } else {
+    foot.appendChild(document.createTextNode(
+      'Nothing has settled yet. Grades arrive within about half an hour of a game ending. '));
+  }
+  var link = el('a',null,'Full history →');
+  link.href = 'bets.html';
+  link.style.color = 'var(--accent)';
+  foot.appendChild(link);
+  box.appendChild(foot);
+
+  if(!BETS_WRITABLE){
+    box.appendChild(el('div','betfoot',
+      'This browser is refusing to save — private mode, most likely. '+
+      'The log will not survive a reload.'));
+  }
+  host.appendChild(box);
+}
+
+/* "2 of 3 legs in" while a slip is still live. */
+function legsIn(b){
+  var done = b.legs.filter(function(l){ return l.actual!=null; }).length;
+  if(b.actual!=null) return b.legs.length+' legs';
+  return done+' of '+b.legs.length+' legs in';
+}
+
+/* The sentence the panel exists for. Everything above it is bookkeeping. */
+
+/* The slip holds gamePks, not games. */
+function gameOf(gamePk){
+  var gs = D.games || [];
+  for(var i=0;i<gs.length;i++) if(gs[i].gamePk===gamePk) return gs[i];
+  return null;
+}
+
+/* "Washington Nationals" -> "Washington". The full name is already in the
+   card header; repeating it inside a sentence just costs width. */
+function shortTeam(name){
+  var parts = String(name||'').split(' ');
+  return parts.length > 1 ? parts.slice(0, parts.length-1).join(' ') : name;
+}
+
+function ordinal(n){
+  if(n===1) return 'leadoff';
+  var s=['th','st','nd','rd'], v=n%100;
+  return n+(s[(v-20)%10]||s[v]||s[0]);
+}
+
+function fmtDay(iso){
+  if(!iso) return '';
+  var d = new Date(iso+'T12:00:00Z');
+  return isNaN(d) ? iso : d.toLocaleDateString(undefined,{month:'short',day:'numeric'});
+}
+
+function renderSlip(){
+  var host=document.getElementById('slip');
+  host.innerHTML='';
+
+  if(state.sugError){
+    var warn=el('div','slip'); warn.style.borderColor='rgba(224,163,63,.45)';
+    warn.style.background='rgba(224,163,63,.09)';
+    var wh=el('h3',null,'Cannot build that slip'); wh.style.color='var(--warn)';
+    warn.appendChild(wh);
+    warn.appendChild(el('div',null,state.sugError));
+    host.appendChild(warn);
+  }
+
+  if(!state.slip.length) return;
+  var box=el('div','slip');
+  box.appendChild(el('h3',null,(state.suggested?'Suggested parlay \u2014 ':'Parlay slip \u2014 ')+
+    state.slip.length+' leg'+(state.slip.length===1?'':'s')));
+
+  if(state.suggested){
+    /* What the suggestion is, and what it is not. It ranks by the model's
+       probability, which makes it the slip most likely to CASH -- not the
+       slip most likely to be worth betting. It cannot see a price. */
+    var how=el('div');
+    how.style.cssText='font-size:12.5px;color:var(--muted);line-height:1.6;margin:-4px 0 10px';
+    how.innerHTML='The best available hitter from '+state.slip.length+
+      ' different games \u2014 different games so the legs multiply honestly. '+
+      'Ranked by chance to cash, <b>not</b> by price: it cannot see what you are being offered.';
+    box.appendChild(how);
+  }
+
+  state.slip.forEach(function(l){
+    var row=el('div','leg');
+    var left=el('div');
+    left.appendChild(document.createTextNode(l.name));
+    left.appendChild(el('span','lp',' '+l.team+' \u00b7 '+l.propLabel));
+    row.appendChild(left);
+    var right=el('div');
+    right.appendChild(el('span','lp', pct(l.prob,0)+'  '));
+    var x=el('button',null,'\u2715'); x.type='button';
+    x.setAttribute('aria-label','Remove '+l.name);
+    x.addEventListener('click',function(){
+      state.slip = state.slip.filter(function(y){return y.key!==l.key;}); render();
+    });
+    right.appendChild(x); row.appendChild(right); box.appendChild(row);
+  });
+
+  var c = S.combineLegs(state.slip);
+  if(c){
+    var sum=el('div','slipsum');
+    var stat=function(node,label){ var d=el('div'); d.appendChild(node); d.appendChild(el('span','lbl',label)); sum.appendChild(d); };
+    stat(el('span','big', pct(c.prob, c.prob<0.1?2:1)), 'combined chance');
+    stat(el('span','big', E.formatAmerican(E.probToAmerican(c.prob))), 'fair price');
+
+    var inp=el('input'); inp.type='number'; inp.step='10'; inp.placeholder='offered';
+    inp.setAttribute('aria-label','Parlay price you are offered');
+    inp.style.cssText='font:inherit;font-size:20px;font-weight:700;width:112px;background:var(--panel2);'+
+      'border:1px solid var(--line);border-radius:9px;padding:3px 8px;color:var(--text);font-variant-numeric:tabular-nums';
+    if(state.slipPrice!=null) inp.value=state.slipPrice;
+    inp.addEventListener('input',function(e){
+      var v=parseFloat(e.target.value); state.slipPrice = isFinite(v)?v:null; renderSlip();
+    });
+    stat(inp,'price you are offered');
+
+    if(state.slipPrice!=null && isFinite(state.slipPrice) && state.slipPrice!==0){
+      var ev=E.evPct(c.prob, E.americanToDecimal(state.slipPrice));
+      var span=el('span','big', E.formatPct(ev));
+      span.style.color = ev>0.02 ? 'var(--good)' : ev>=0 ? 'var(--warn)' : 'var(--bad)';
+      stat(span,'edge at that price');
+    }
+    box.appendChild(sum);
+
+    var w=el('div','slipwarn '+c.correlation);
+    if(c.legs<2){
+      /* One leg is not a parlay. There is no product, so there is nothing to
+         say about whether multiplying is sound -- and "All 1 legs are from
+         different games" was saying it anyway. */
+      w=null;
+    } else if(c.correlation==='severe'){
+      w.innerHTML='<b>These legs are nearly the same bet.</b> You have the same player on more than one prop. '+
+        'If he has a quiet night they all die together, so multiplying them is not an approximation, it is wrong. '+
+        'Treat this number as meaningless.';
+    } else if(c.correlation==='moderate'){
+      w.innerHTML='<b>Some legs share a game.</b> Real games are correlated: a slugfest lifts everyone in it, '+
+        'a shutout buries them, so the true chance is somewhat higher than this. That is not free money \u2014 '+
+        'books price same-game parlays with an adjustment that usually takes back more than the correlation is '+
+        'worth. How much more has not been measured here.';
+    } else {
+      /* This used to say joint outcomes had never been validated. They have
+         now: `node backtest.mjs --parlay` replays real days and compares the
+         product against how often all the legs actually landed together.
+         Over 8,400 sampled cross-game slips per size, actual came in at
+         1.03-1.08x predicted -- multiplying is sound here, and if anything
+         slightly conservative, because a day's scoring environment lifts
+         every game at once. */
+      w.innerHTML='All '+c.legs+' legs are from different games, so multiplying them is sound. '+
+        'Measured on real days, cross-game slips cashed <b>1.03-1.08\u00d7</b> as often as the product predicts.';
+    }
+    if(w) box.appendChild(w);
+
+    if(state.suggested){
+      /* The one thing that makes a SUGGESTED slip different from one you
+         built yourself: it always picks the top of the board, and the top of
+         the board is the part that runs hot. Measured over 4,957 hitter-games:
+         the 75-80% bucket cashed 74.0%, the 80-85% bucket cashed 78.0%. Three
+         legs of that compounds into a combined number worth shading down.
+         No correction is applied, because fitting one to three weeks of data
+         is how k=0.55 happened. */
+      var hot=el('div','slipwarn moderate');
+      hot.innerHTML='<b>Shade this number down.</b> A suggested slip is built from the very top of the '+
+        'board, which is the part that runs hot: hitters priced 75-80% cashed 74.0%, and 80-85% cashed '+
+        '78.0%. About 3 points of optimism per leg, compounding. The combined chance above is the honest '+
+        'arithmetic on numbers that are themselves a little generous.';
+      box.appendChild(hot);
+    }
+
+    /* "I bet this parlay." The slip is a calculator until you say otherwise;
+       this is the moment it becomes a wager, so it is the one place a parlay
+       can enter the log.
+
+       Pregame only, checked at CLICK time and not at build time: a slip put
+       together at 3pm and bet at 4pm may have had a game start underneath it,
+       and recording it then would be recording a result. Same rule as the row
+       buttons and as track.mjs. */
+    var slipKey = T.keyOf({legs: state.slip});
+    var already = slipKey && T.has(BETS, slipKey);
+    var stale = state.slip.filter(function(l){
+      var g = gameOf(l.gamePk);
+      return !g || !S.gameIsOpen(g);
+    });
+
+    var betIt = el('button','betbet', already ? '\u2713 In your bet log' : 'I bet this parlay');
+    betIt.type='button';
+    if(already){
+      betIt.disabled = true;
+      betIt.title = 'Already recorded. Remove it from Your bets above.';
+    } else if(stale.length){
+      betIt.title = stale.length+' of these '+state.slip.length+
+        ' games have started, so this will be marked as entered after the result.';
+    }
+    betIt.addEventListener('click', function(){
+      if(already) return;
+      BETS = T.add(BETS, T.parlay(state.slip, c.prob, boardDate(), {retro: stale.length>0}));
+      saveBets();
+      render();
+    });
+    box.appendChild(betIt);
+
+    var clr=el('button',null,'Clear slip'); clr.type='button';
+    clr.style.cssText='font:inherit;font-size:12.5px;color:var(--muted);background:none;border:0;cursor:pointer;margin-top:10px;padding:0';
+    clr.addEventListener('click',function(){
+      state.slip=[]; state.slipPrice=null;
+      state.suggested=false; state.sugLegs=null; state.sugError=null;
+      render();
+    });
+    box.appendChild(clr);
+  }
+  host.appendChild(box);
+}
+
+/*
+ * Multipliers read as percentages, because that is what they are.
+ *
+ * The panel used to print "factor 0.958", which looks like 95.8% of
+ * something and is actually "knock the rate down 4.2%". Every one of these
+ * is a multiplier around 1, so show the change and keep the raw number in
+ * brackets for anyone reconciling the arithmetic.
+ */
+/* ---------------- market prices ----------------
+ * odds-data.js is written by fetch-odds-espn.mjs from ESPN's DraftKings
+ * feed, no API key. It may be absent or stale; everything below degrades to
+ * "no price" rather than to a wrong one.
+ *
+ * Names are matched the same way the fetcher normalises them: no accents,
+ * no punctuation, no Jr/II. ESPN athlete ids are not MLB ids, so the name
+ * is the only join available.
+ */
+/* Prices go stale. A number from this morning sitting next to tonight's
+   lineup is worse than no number, because it looks current. Six hours is
+   generous for a board refreshed hourly and still well inside a game day. */
+var ODDS_MAX_AGE_H = 6;
+var ODDS_FEED = window.BetHouseOdds || null;
+var ODDS_AGE = E.oddsFreshness(ODDS_FEED && ODDS_FEED.generated, Date.now(), ODDS_MAX_AGE_H);
+var ODDS = (ODDS_FEED && ODDS_FEED.markets && ODDS_AGE.fresh) ? ODDS_FEED.markets : null;
+
+/* Withheld is not the same as absent, and the board used to draw them the
+   same way: nothing. On 2026-08-20 the odds refresher failed 13 runs in a
+   row and the only symptom anywhere was chips quietly not appearing, so it
+   ran most of a day before anyone looked. A feed that HAS prices and is too
+   old to show them should say so. */
+function withheldMarkets(){
+  if(!ODDS_FEED || !ODDS_FEED.markets || ODDS_AGE.fresh) return 0;
+  var prop = state.view==='tb' ? 'tb' : state.view;
+  return Object.keys(ODDS_FEED.markets).filter(function(k){
+    return k.split('|')[1]===prop;
+  }).length;
+}
+
+/* ------------------------------------------------------------------ *
+ * The bet log
+ *
+ * Yours, not the model's. Lives in this browser; nothing is sent anywhere
+ * and there is no account. Export writes it out as JSON so a cleared cache
+ * is not the end of the record.
+ * ------------------------------------------------------------------ */
+var BETS = (function(){
+  /* Safari in private mode throws on the mere act of reading localStorage,
+     and a throw out here would take the board down with it. A missing log
+     costs the user their history; a dead page costs them the whole site. */
+  try {
+    var held = T.parse(localStorage.getItem(T.STORAGE_KEY));
+    if(held.length) return held;
+
+    /* v1 stored one pick per entry and lasted a day. Anyone who tracked a
+       bet in that window keeps it; the old key is then dropped, so a later
+       "Clear all" cannot resurrect it. */
+    var legacy = localStorage.getItem(T.LEGACY_KEY);
+    if(legacy){
+      var moved = T.migrate(JSON.parse(legacy));
+      localStorage.setItem(T.STORAGE_KEY, T.serialise(moved));
+      localStorage.removeItem(T.LEGACY_KEY);
+      return moved;
+    }
+    return held;
+  }
+  catch(e){ return []; }
+})();
+var BETS_WRITABLE = true;
+
+/* The raw write. Kept separate from saveBets because grading writes too, and
+   a write that re-triggers grading would recurse forever on any bet that
+   cannot settle yet -- an open game is graded, finds nothing, saves, grades
+   again. persist() is the leaf; nothing calls back out of it. */
+function persist(){
+  try { localStorage.setItem(T.STORAGE_KEY, T.serialise(BETS)); BETS_WRITABLE = true; }
+  catch(e){ BETS_WRITABLE = false; }
+}
+
+function saveBets(){
+  persist();
+  /* A bet recorded for a day that already finished can settle immediately,
+     usually from a file already in memory. Waiting for the next reload to
+     show HIT or MISS made the whole historical path feel broken. */
+  gradeBets();
+}
+
+/* Grades come from history/<date>.json, which track.mjs writes on every
+   board refresh and which already carries `actual` for every player it
+   snapshotted, on all five props. Nothing here decides an outcome.
+
+   A date is fetched only while it still holds something unsettled, so a
+   finished day is fetched once and then never again. Within a day, Pages
+   serves these with `cache-control: max-age=600` and an ETag, so repeat
+   loads cost a 304 rather than 450KB. */
+function gradeBets(){
+  var dates = T.ungradedDates(BETS);
+  if(!dates.length || typeof fetch !== 'function') return;
+  var left = dates.length, changed = false;
+  var before = T.summarise(BETS).graded;
+  dates.forEach(function(d){
+    /* Shares the replay cache, so a bet recorded while looking at a past
+       day settles from the file already in memory rather than fetching it
+       again. Without this a historical bet sat on OPEN until a reload. */
+    historyFor(d, function(day){
+      if(day && day !== 'error'){
+        BETS = T.applyResults(BETS, T.resultsFrom(day));
+        if(T.summarise(BETS).graded !== before) changed = true;
+      }
+      /* Only write and redraw when a grade actually landed. Doing it
+         unconditionally is what would make this recurse. */
+      if(--left === 0 && changed){ persist(); renderBetLog(); }
+    });
+  });
+}
+
+/* ------------------------------------------------------------------ *
+ * Replaying a past day
+ *
+ * history/<date>.json already holds every player the board showed that day,
+ * on all five props, with the model's number at the time and the outcome.
+ * That is enough to redraw the board for any day track.mjs has recorded --
+ * which is what makes writing down a bet you placed last Tuesday possible
+ * without typing anything.
+ * ------------------------------------------------------------------ */
+var HISTORY = {};          // date -> parsed file, or 'loading', or 'error'
+
+function boardDate(){ return state.day || D.date; }
+function isReplay(){ return !!state.day && state.day !== D.date; }
+
+/* The days worth offering: whatever track.mjs has actually recorded. That
+   list is already on the page in record.js, so there is nothing to fetch and
+   nothing new to generate. */
+function replayDays(){
+  var r = window.BETHOUSE_RECORD;
+  var days = (r && Array.isArray(r.days)) ? r.days.slice() : [];
+  return days.filter(function(d){ return d !== D.date; }).sort().reverse();
+}
+
+var HISTORY_WAITING = {};  // date -> callbacks queued behind an in-flight fetch
+
+function historyFor(date, then){
+  var held = HISTORY[date];
+  if(held !== undefined && held !== 'loading'){ then(held); return; }
+  /* Queue rather than drop. Two callers can want the same day at once --
+     the replay board and gradeBets, on the very first draw -- and the
+     second one used to get no answer at all. */
+  if(held === 'loading'){
+    (HISTORY_WAITING[date] = HISTORY_WAITING[date] || []).push(then);
+    return;
+  }
+  HISTORY[date] = 'loading';
+  fetch('history/'+date+'.json')
+    .then(function(res){ return res.ok ? res.json() : null; })
+    .catch(function(){ return null; })
+    .then(function(day){
+      HISTORY[date] = day || 'error';
+      then(HISTORY[date]);
+      var queued = HISTORY_WAITING[date] || [];
+      delete HISTORY_WAITING[date];
+      queued.forEach(function(cb){ cb(HISTORY[date]); });
+    });
+}
+
+function normName(s){
+  return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .toLowerCase().replace(/\b(jr|sr|ii|iii|iv)\b/g,'')
+    .replace(/[^a-z ]/g,'').replace(/\s+/g,' ').trim();
+}
+
+/* Which market answers the prop currently on screen. The home run board has
+   no matching market in the feed, so it gets nothing rather than a guess. */
+function marketKeyFor(name){
+  if(!ODDS) return null;
+  if(state.view==='hrr') return normName(name)+'|hrr|0.5';
+  if(state.view==='tb')  return normName(name)+'|tb|'+(state.tbThreshold-0.5);
+  return null;
+}
+function marketFor(name){
+  var k=marketKeyFor(name);
+  return k && ODDS[k] ? ODDS[k] : null;
+}
+
+/* Expected value per $1 staked, at the price actually on offer. */
+function evAt(prob, american){
+  var dec=E.americanToDecimal(american);
+  if(!isFinite(dec)) return NaN;
+  return prob*(dec-1)-(1-prob);
+}
+
+function ctxFor(game, side){
+  var s=game[side], faces=game[side+'Faces'], L=D.league;
+  return {
+    leagueRates: L.rates,
+    oppAvgAllowed: faces && faces.avgAllowed,
+    pitcherIP: faces && faces.ip,
+    pitcherPrior: faces && faces.prior,
+    leagueAvgAllowed: L.avgAllowed,
+    teamRunsPerGame: s.runsPerGame,
+    leagueRunsPerGame: L.runsPerGame,
+    pitcherHr9: faces && faces.hr9,
+    leagueHr9: L.hr9,
+    // handedness + venue
+    pitchHand: faces && faces.throws,
+    leaguePlatoon: L.platoon,
+    leagueHomeAway: L.homeAway,
+    leaguePlatoonHR: L.platoonHR,
+    leaguePlatoonTB: L.platoonTB,
+    leagueTB: L.tb,
+    threshold: state.tbThreshold,
+    leagueHomeAwayHR: L.homeAwayHR,
+    isHome: side === 'home'
+  };
+}
+
+function scoreSide(game, side){
+  var s=game[side], ctx=ctxFor(game,side);
+  var out=[];
+  s.lineup.forEach(function(p){
+    // Feed the player's own split samples through under the names score.js
+    // expects. The HR path wants the HR-specific ones.
+    var sp = p.splits || {};
+    var vs = ctx.pitchHand === 'L' ? sp.vl : ctx.pitchHand === 'R' ? sp.vr : null;
+    // The HR path divides by a HOME RUN rate, so it must be given home run
+    // counts. Passing hit counts here yields a ratio near 4.4 and a factor
+    // pinned to the ceiling, in the wrong direction.
+    p.vsHand     = vs ? { hits: vs.hits, pa: vs.pa } : null;
+    p.vsHandHR   = vs ? { hits: vs.hr,   pa: vs.pa } : null;
+    p.homeAway   = sp.venue ? { hits: sp.venue.hits, pa: sp.venue.pa } : null;
+    p.homeAwayHR = sp.venue ? { hits: sp.venue.hr,   pa: sp.venue.pa } : null;
+    p.sofar = p.sofar || null;
+    var r = state.view==='hr' ? S.scoreHR(p,ctx)
+          : state.view==='tb' ? S.scoreTB(p,ctx)
+          : S.scoreHRR(p,ctx);
+    if(!r) return;
+    r.player=p; r.confidence=S.sampleConfidence(p.pa);
+    out.push(r);
+  });
+  return S.rank(out);
+}
+
+/* ---------------- render ---------------- */
+/* ------------------------------------------------------------------ *
+ * Why this number
+ *
+ * The panel used to list the model's inputs: nine lines of equal weight,
+ * three notations for the same idea ("+2.8% (x1.028)"), the word
+ * "regression", and no way to tell which input actually did the work. On
+ * a typical hitter the lineup was worth +15% and the pitcher -12% and you
+ * could not see that they nearly cancelled.
+ *
+ * So: decompose the number instead of describing it. Start from the
+ * hitter alone, then add each piece of context and show what it MOVED THE
+ * ANSWER BY, in points of the final percentage, biggest first.
+ *
+ * The decomposition is exact rather than approximate, because it re-runs
+ * the real model with one factor neutralised at a time rather than
+ * reimplementing the arithmetic. Every factor has a documented neutral
+ * input (an absent opponent average, an absent team R/G, an unknown
+ * pitching hand, an absent league split), so "off" is a real state the
+ * model already handles and not a special case invented here.
+ *
+ * Ordering: each factor's effect is first measured on its own from the
+ * baseline, and the steps are then applied in descending order of that
+ * effect. Sequential deltas sum to the final exactly, and the row at the
+ * top is genuinely the one that mattered most rather than whichever
+ * happened to be applied first.
+ * ------------------------------------------------------------------ */
+
+function scorerFor(){
+  return state.view==='hr' ? S.scoreHR : state.view==='tb' ? S.scoreTB : S.scoreHRR;
+}
+
+/* Each key names the ctx fields that switch one factor off. These are the
+   model's own documented "no information" inputs, not sentinels. */
+var WHY_FACTORS = [
+  { key:'pitcher',  off:{oppAvgAllowed:null, pitcherHr9:null, pitcherIP:null, pitcherPrior:null} },
+  { key:'offense',  off:{teamRunsPerGame:null} },
+  { key:'platoon',  off:{pitchHand:null} },
+  { key:'homeaway', off:{leagueHomeAway:null, leagueHomeAwayHR:null} }
+];
+
+function ctxWith(ctx, offKeys){
+  var out={}, k;
+  for(k in ctx) out[k]=ctx[k];
+  offKeys.forEach(function(key){
+    var spec = WHY_FACTORS.filter(function(f){return f.key===key;})[0];
+    if(spec) for(var kk in spec.off) out[kk]=spec.off[kk];
+  });
+  return out;
+}
+
+function explain(player, ctx){
+  var score = scorerFor();
+  var allKeys = WHY_FACTORS.map(function(f){return f.key;});
+
+  var full = score(player, ctx);
+  var base = score(player, ctxWith(ctx, allKeys));
+  if(!full || !base) return null;
+
+  /* 1. what each factor is worth ON ITS OWN, so the ordering is honest */
+  var solo = {};
+  allKeys.forEach(function(k){
+    var others = allKeys.filter(function(x){return x!==k;});
+    var only = score(player, ctxWith(ctx, others));
+    solo[k] = only ? only.prob - base.prob : 0;
+  });
+
+  /* 2. apply in that order; sequential deltas add up to the answer exactly */
+  var order = allKeys.slice().sort(function(a,b){ return Math.abs(solo[b])-Math.abs(solo[a]); });
+  var applied = [], steps = [], prev = base.prob;
+  order.forEach(function(k){
+    applied.push(k);
+    var off = allKeys.filter(function(x){ return applied.indexOf(x)===-1; });
+    var here = score(player, ctxWith(ctx, off));
+    if(!here) return;
+    steps.push({ key:k, delta: here.prob - prev, after: here.prob });
+    prev = here.prob;
+  });
+
+  return { base: base.prob, final: full.prob, steps: steps };
+}
+
+function buildWhy(r, game, side){
+  var faces=game[side+'Faces'];
+  var w=el('div','why');
+  function line(html){var d=el('div'); d.innerHTML=html; w.appendChild(d);}
+
+  if(r.sofar && r.sofar.pa>0){
+    line('<b>Game underway.</b> He has taken <b>'+r.sofar.pa+'</b> plate appearance'+(r.sofar.pa===1?'':'s')+
+         ' so far: <b>'+r.sofar.hits+'</b> H, <b>'+r.sofar.runs+'</b> R, <b>'+r.sofar.rbi+'</b> RBI, <b>'+
+         r.sofar.tb+'</b> total bases.');
+  }
+  if(r.settled){
+    line(r.prob>=1
+      ? '<span style="color:var(--good)">This bet has already hit.</span>'
+      : '<span style="color:var(--bad)">No plate appearances left. This bet is done.</span>');
+    return w;
+  }
+  /* The answer first, in a sentence. */
+  var ex = explain(r.player, ctxFor(game, side));
+  var faces2 = faces;
+
+  function driverLabel(k){
+    if(k==='pitcher')  return faces2 ? 'Facing '+esc(faces2.name) : 'The pitcher he draws';
+    if(k==='offense')  return esc(shortTeam(game[side].team))+"'s lineup";
+    if(k==='platoon')  return r.batSide && r.pitchHand
+      ? (r.batSide==='L'?'Left':'Right')+'-handed against a '+(r.pitchHand==='L'?'lefty':'righty') : 'Handedness';
+    if(k==='homeaway') return r.isHome ? 'Playing at home' : 'Playing on the road';
+    return k;
+  }
+  function driverNote(k){
+    if(k==='pitcher' && faces2){
+      var era = faces2.era ? Number(faces2.era) : null;
+      var how = era==null ? '' : era >= 5 ? 'one of the easier arms he could draw'
+              : era <= 3.5 ? 'one of the tougher arms he could draw' : 'a middling starter';
+      return (faces2.era ? faces2.era+' ERA' : '') + (how ? ' \u2014 '+how : '');
+    }
+    if(k==='offense'){
+      var rpg = game[side].runsPerGame || 0, lg = D.league.runsPerGame || 4.3;
+      return rpg.toFixed(1)+' runs a game, '+(rpg>=lg?'above':'below')+' the '+lg.toFixed(1)+' average'+
+        (state.view==='hrr' ? ' \u2014 runs and RBI need team-mates on base' : '');
+    }
+    if(k==='platoon') return 'the '+((r.platoonFactor||1)>=1?'favourable':'unfavourable')+' side of the platoon';
+    if(k==='homeaway') return '';
+    return '';
+  }
+
+  if(ex){
+    /* Round FIRST, then difference the rounded running totals, so the
+       column adds up on screen. Differencing first and rounding after
+       gives rows that are individually right and visibly do not sum,
+       which is worse than either. */
+    var dp = 1;
+    var rnd = function(x){ return Number((100*x).toFixed(dp)); };
+    var running = rnd(ex.base), shown = [];
+    ex.steps.forEach(function(st){
+      var next = rnd(st.after);
+      shown.push({ key: st.key, delta: Number((next - running).toFixed(dp)) });
+      running = next;
+    });
+
+    var big = shown.slice().sort(function(a,b){ return Math.abs(b.delta)-Math.abs(a.delta); });
+    var lead = 'Most of this is his own bat.';
+    var notable = big.filter(function(x){ return Math.abs(x.delta) >= 1; });
+    if(notable.length){
+      var one = notable[0];
+      lead += ' ' + driverLabel(one.key) + (one.delta < 0 ? ' pulls it down ' : ' pushes it up ') +
+        'about ' + Math.abs(one.delta).toFixed(0) + ' point' + (Math.abs(one.delta) >= 1.5 ? 's' : '') + '.';
+      if(notable.length > 1){
+        var two = notable[1];
+        lead += ' ' + driverLabel(two.key) + (two.delta < 0 ? ' costs him ' : ' adds ') +
+          'about ' + Math.abs(two.delta).toFixed(0) + ' more.';
+      } else {
+        lead += ' Nothing else moves it much.';
+      }
+    } else {
+      lead += ' Nothing about tonight moves it much either way.';
+    }
+    line('<span class="whylead">'+lead+'</span>');
+
+    var tbl = el('table','waterfall');
+    function row(label, note, valueHtml, cls){
+      var tr=el('tr'); if(cls) tr.className=cls;
+      var td1=el('td','wl'); td1.innerHTML = '<b>'+label+'</b>'+(note?'<span class="wn">'+note+'</span>':'');
+      var td2=el('td','wv'); td2.innerHTML = valueHtml;
+      tr.appendChild(td1); tr.appendChild(td2); tbl.appendChild(tr);
+    }
+
+    var trips = 'about '+r.expectedPA.toFixed(1)+' trips, batting '+ordinal(r.slot);
+    var baseNote;
+    if(state.view==='tb'){
+      baseNote = 'about '+(r.expectedTB!=null?r.expectedTB.toFixed(1):'?')+
+        ' total bases expected over '+trips+' \u2014 he needs '+r.threshold;
+    } else if(state.view==='hr'){
+      /* r.hrRate IS the per-trip home run chance, so this one can be said
+         plainly. */
+      baseNote = 'a '+((r.hrRate||0)*100).toFixed(1)+'% chance of a homer each time up, over '+trips;
+    } else {
+      /* NOT r.hitRate here. That is hits per trip only, and quoting it as
+         the chance of a hit OR run OR RBI understates the bet by the two
+         paths it leaves out. His actual season line says it honestly. */
+      baseNote = (r.player.avg||'') && (r.player.obp||'')
+        ? 'a '+r.player.avg+' hitter getting on base at '+r.player.obp+', over '+trips
+        : 'his season line over '+trips;
+    }
+    row('His own bat', baseNote, rnd(ex.base).toFixed(dp)+'%');
+
+    shown.forEach(function(st){
+      if(st.delta === 0) return;                    // rounds to nothing; say so below
+      row(driverLabel(st.key), driverNote(st.key),
+        '<span class="'+(st.delta>0?'wup':'wdn')+'">'+
+        (st.delta>0?'+':'\u2212')+Math.abs(st.delta).toFixed(dp)+'</span>');
+    });
+
+    var nil = shown.filter(function(st){ return st.delta === 0; });
+    row('Model', nil.length
+      ? nil.map(function(st){ return driverLabel(st.key); }).join(' and ')+
+        (nil.length>1?' change':' changes')+' it by less than a tenth of a point'
+      : '', '<b>'+rnd(ex.final).toFixed(dp)+'%</b>', 'wtot');
+    w.appendChild(tbl);
+  } else {
+    /* No decomposition available (a settled or unscoreable row). Say the
+       number rather than silently showing nothing. */
+    line('Model: <b>'+pct(r.prob)+'</b>.');
+  }
+
+  if(state.view==='tb' && r.stillNeeds!=null && r.stillNeeds!==r.threshold){
+    line('He already has <b>'+(r.threshold-r.stillNeeds)+'</b> base'+((r.threshold-r.stillNeeds)===1?'':'s')+
+         ', so he needs <b>'+r.stillNeeds+'</b> more.');
+  }
+
+  var mk = marketFor(r.name);
+  if(mk){
+    var ev=evAt(r.prob, mk.over);
+    var edge=r.prob-mk.noVigOver;
+    var box = el('div','whymkt');
+    box.innerHTML = '<b>DraftKings has him at '+amer(mk.over)+'.</b> Strip the bookmaker\'s cut and that '+
+      'is a '+pct(mk.noVigOver,0)+' chance in their eyes, against this model\'s '+pct(r.prob,0)+'. '+
+      (ev>0
+        ? '<span class="wup">That is a bet worth '+(100*ev).toFixed(1)+' cents on the dollar</span>, if you trust the model over the book.'
+        : '<span class="wdn">The price is shorter than the model justifies</span> \u2014 not a bet.');
+    w.appendChild(box);
+  } else {
+    line('A fair price for '+pct(r.prob,0)+' is <b>'+amer(S.fairPrice(r.prob))+
+         '</b>. Anything longer than that is value, anything shorter is not.');
+  }
+
+  if(r.confidence < 0.65){
+    line('<span class="flag">Small sample.</span> Only <b>'+r.player.pa+'</b> PA, so this estimate is mostly '+
+      (r.player.prior&&r.player.prior.xba!=null?'his own expected rate from last season (xBA <b>'+r.player.prior.xba.toFixed(3)+'</b>)':'the league average')+', not this season.');
+  }
+  if(!game[side].confirmed){
+    line('<span class="flag">Lineup not posted.</span> Slot projected from '+(game[side].projectedFrom||'a recent game')+'. If he moves or sits, this is wrong.');
+  }
+  if(state.view==='hrr'){
+    line('<span style="color:var(--muted)">Reality check: across '+CAL.n.toLocaleString()+' of its own graded predictions the top tenth of this board cashed '+
+         pct(CAL.ceiling)+'. Nothing here is an 85% bet.</span>');
+  }
+  return w;
+}
+
+/* ------------------------------------------------------------------ *
+ * The board, as it stood on a past day
+ *
+ * Drawn from history/<date>.json, which carries the model's number from the
+ * time and the outcome. Deliberately plainer than the live board: history
+ * does not store the opposing pitcher, the venue or the handedness split, so
+ * there is no reasoning panel to open and no pretending otherwise.
+ * ------------------------------------------------------------------ */
+function renderReplay(day){
+  var board = document.getElementById('board');
+  var summary = document.getElementById('summary');
+  board.innerHTML = '';
+
+  if(day === 'loading'){ board.appendChild(el('div','empty','Loading that day…')); return; }
+  if(day === 'error' || !day || !Array.isArray(day.predictions)){
+    var e = el('div','empty');
+    e.appendChild(el('div','big','That day did not load.'));
+    e.appendChild(document.createTextNode(
+      'history/'+state.day+'.json is missing or unreadable. Pick another day, or go back to today.'));
+    board.appendChild(e);
+    summary.innerHTML = '';
+    return;
+  }
+
+  var prop = propKey();
+  var rows = day.predictions.filter(function(p){ return p.prop === prop; });
+
+  /* Group by game, then by team inside it, so it reads like the live board. */
+  var games = {};
+  rows.forEach(function(p){
+    var g = (games[p.gamePk] = games[p.gamePk] || {gamePk:p.gamePk, teams:{}});
+    (g.teams[p.team] = g.teams[p.team] || []).push(p);
+  });
+
+  var order = Object.keys(games).sort(function(a,b){ return Number(a)-Number(b); });
+  var shown = 0, hits = 0, graded = 0;
+
+  order.forEach(function(pk){
+    var g = games[pk];
+    var card = el('div','game closed');
+    var head = el('div','ghead');
+    head.appendChild(el('h2','gtitle', Object.keys(g.teams).join('  vs  ')));
+    card.appendChild(head);
+
+    Object.keys(g.teams).forEach(function(team){
+      var list = g.teams[team].slice().sort(function(a,b){ return b.prob-a.prob; })
+        .slice(0, state.perTeam);
+      if(!list.length) return;
+
+      var sh = el('div','shead');
+      var nm = el('div','sname'); nm.textContent = team;
+      sh.appendChild(nm);
+      card.appendChild(sh);
+
+      list.forEach(function(p){
+        shown++;
+        if(p.actual != null){ graded++; hits += p.actual ? 1 : 0; }
+
+        var row = el('div','row hist');
+        row.appendChild(el('div','slot', p.slot ? '#'+p.slot : ''));
+
+        var who = el('div','who');
+        who.appendChild(document.createTextNode(p.name));
+        if(p.actual != null){
+          who.appendChild(el('span','settled '+(p.actual?'win':'lost'), p.actual?'HIT':'NO'));
+        }
+        row.appendChild(who);
+        row.appendChild(el('div','prob', pct(p.prob,0)));
+
+        var leg = {
+          gamePk: p.gamePk, playerId: p.playerId, prop: prop,
+          propLabel: propLabel(), name: p.name, team: team, prob: p.prob
+        };
+        var key = T.legKey(leg);
+        var on = T.has(BETS, key);
+
+        var trk = el('button','trk', on?'\u2713':'\u25cb');
+        trk.type = 'button';
+        trk.setAttribute('aria-pressed', String(on));
+        trk.setAttribute('aria-label', (on?'Remove ':'Record ')+p.name+' '+propLabel()+
+          (on?' from':' in')+' your bet log');
+        trk.title = on ? 'Recorded. Tap to remove.'
+          : 'Record this \u2014 will be marked as entered after the result';
+        trk.addEventListener('click', function(){
+          /* Always retro: this day is over by definition. */
+          BETS = on ? T.remove(BETS, key) : T.add(BETS, T.single(leg, state.day, {retro:true}));
+          saveBets();
+          render();
+        });
+        row.appendChild(trk);
+
+        if(S.parlayEligible(state.view)){
+          row.classList.add('parlay');
+          var legKey2 = p.gamePk+'|'+p.playerId+'|'+prop;
+          var inSlip = state.slip.some(function(x){ return T.legKey(x)===legKey2; });
+          var add = el('button','addleg', inSlip?'\u2713':'+');
+          add.type='button';
+          add.setAttribute('aria-pressed', String(inSlip));
+          add.setAttribute('aria-label', (inSlip?'Remove ':'Add ')+p.name+' to parlay slip');
+          add.addEventListener('click', function(ev){
+            ev.stopPropagation();
+            if(inSlip) state.slip = state.slip.filter(function(x){ return T.legKey(x)!==legKey2; });
+            else state.slip.push(leg);
+            state.suggested = false;
+            render();
+          });
+          row.appendChild(add);
+        }
+        card.appendChild(row);
+      });
+    });
+
+    if(card.querySelector('.row')) board.appendChild(card);
+  });
+
+  if(!shown){
+    board.appendChild(el('div','empty','Nothing recorded for that day on this bet type.'));
+  }
+
+  summary.innerHTML = '';
+  function stat(v,l){ var d=el('div'); d.appendChild(el('b',null,v)); d.appendChild(el('span',null,l)); summary.appendChild(d); }
+  stat(String(order.length), order.length===1?'game':'games');
+  stat(String(shown), 'shown');
+  if(graded) stat(pct(hits/graded,1), 'of these actually hit');
+}
+
+function render(){
+  /* Refilled below, as the board draws. Anything stale here would let a
+     suggestion pick a game that has since started. */
+  state.candidates = [];
+
+  seg(document.getElementById('view'), VIEWS, state.view, function(v){
+    state.view=v; state.open=null;
+    // The suggester is 1+ H/R/RBI only, so leaving a slip built by it in
+    // place while the board switches props would mislabel it.
+    if(state.suggested){ state.slip=[]; state.suggested=false; state.sugLegs=null; }
+    state.sugError=null;
+    render();
+  });
+  seg(document.getElementById('lu'), LU, state.lineups, function(v){state.lineups=v; render();});
+  seg(document.getElementById('tbn'), TBN, state.tbThreshold, function(v){state.tbThreshold=v; state.open=null; render();});
+  document.getElementById('tbwrap').hidden = state.view!=='tb';
+  seg(document.getElementById('top'), TOP, state.perTeam, function(v){state.perTeam=v; render();});
+
+  /* Day picker. A native select rather than a row of buttons: there are
+     twenty-odd days and it has to work on a phone. */
+  var daySel = document.getElementById('day');
+  var days = replayDays();
+  var wantOpts = [D.date].concat(days).join('|');
+  if(daySel.dataset.built !== wantOpts){
+    daySel.innerHTML = '';
+    var todayOpt = el('option', null, 'Today');
+    todayOpt.value = '';
+    daySel.appendChild(todayOpt);
+    days.forEach(function(d){
+      var o = el('option', null, new Date(d+'T12:00:00Z')
+        .toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'}));
+      o.value = d;
+      daySel.appendChild(o);
+    });
+    daySel.dataset.built = wantOpts;
+    daySel.addEventListener('change', function(){
+      state.day = daySel.value || null;
+      state.open = null;
+      /* A slip built on one day cannot be carried to another: the legs are
+         other people's games. */
+      state.slip = []; state.suggested = false; state.sugLegs = null; state.sugError = null;
+      render();
+    });
+  }
+  daySel.value = state.day || '';
+  document.getElementById('daywrap').hidden = !days.length;
+
+  /* Suggest a slip. Runs against `state.candidates` from the PREVIOUS draw,
+     which is the board the user is looking at when they click. */
+  seg(document.getElementById('sug'), SUGGEST, state.sugLegs, function(n){
+    var out = S.suggestParlay(state.candidates, {legs:n});
+    if(!out){
+      var games = {};
+      state.candidates.forEach(function(c){ games[c.gamePk]=1; });
+      state.sugError = 'Only '+Object.keys(games).length+' game'+
+        (Object.keys(games).length===1?'':'s')+' still open \u2014 a '+n+
+        '-leg parlay needs '+n+', because every leg has to come from a different game.';
+      state.sugLegs=null; state.suggested=false;
+    } else {
+      state.slip = out.legs.slice();
+      state.slipPrice = null;
+      state.sugLegs = n; state.suggested = true; state.sugError = null;
+    }
+    render();
+  });
+  /* No suggesting on a past day: "the best bet still available" is not a
+     thing you can offer for a slate that finished. Building one by hand
+     still works, because that is what you did at the time. */
+  document.getElementById('sugwrap').hidden = !S.parlayEligible(state.view) || isReplay();
+
+  /* Name the board, then the date. golf.html and nfl.html both put the
+     section first ("PGA Tour — who makes the cut", "NFL — 2026 week 1");
+     this one showed only a date, so the baseball board was the one page
+     that never said which board it was. */
+  document.getElementById('tagline').textContent = 'Baseball — ' +
+    new Date(boardDate()+'T12:00:00Z').toLocaleDateString(undefined,{weekday:'long',month:'short',day:'numeric'}) +
+    (isReplay() ? ' · replay' : '');
+
+  /* honest header */
+  var note=document.getElementById('note');
+  if(state.view==='tb'){
+    note.innerHTML = 'Chance of <b>'+state.tbThreshold+'+ total bases</b> (single 1, double 2, triple 3, homer 4). '+
+      'Checked against <b>'+CAL.n.toLocaleString()+'</b> of its own graded predictions \u2014 '+
+      'the average is honest to a tenth of a point. Tap a player for detail.';
+  } else if(state.view==='hrr'){
+    note.innerHTML = 'Chance of <b>1+ hit, run or RBI</b>. Checked against <b>'+CAL.n.toLocaleString()+
+      '</b> of its own graded predictions \u2014 70% means about 70%. Tap a player for detail.';
+  } else {
+    // Was "Not yet checked" until 2026-08-03, when the HR prop finally went
+    // through the backtest on the same window as the others: 2,466 unseen
+    // hitter-games, bias +0.95pp, top quintile 15.4% against an 11.1% base.
+    note.innerHTML = 'Chance of <b>1+ home run</b>. Checked against <b>'+CAL.n.toLocaleString()+
+      '</b> of its own graded predictions; separates less sharply than the hits board '+
+      'because homers are rare. Tap a player for detail.';
+  }
+
+  if(isReplay()){
+    note.innerHTML = 'This day is over. The board is redrawn from what it '+
+      'predicted at the time, with the results attached, so you can write down '+
+      'a bet you placed then. <b class="hot">Anything recorded here is marked as '+
+      'entered after the result was known</b> and counted separately — not '+
+      'because you are suspected of anything, but because a record that mixes '+
+      'the two stops meaning anything.';
+  }
+
+  var liveN=(D.games||[]).filter(function(g){return g.live;}).length;
+  if(isReplay()) liveN = 0;
+  if(liveN){
+    note.innerHTML += ' <b>'+liveN+' game'+(liveN===1?' is':'s are')+' underway</b> \u2014 those numbers count only the plate appearances a hitter has left.';
+  }
+
+  /* Only when this prop actually has prices in the feed. The home run board
+     carries none even on a good day, so telling you they were hidden would
+     be inventing a loss. */
+  if(withheldMarkets()){
+    var ageH = ODDS_AGE.ageH;
+    var how = ageH===null ? 'of unknown age'
+            : Math.round(ageH)+' hour'+(Math.round(ageH)===1?'':'s')+' old';
+    note.innerHTML += ' <b class="hot">Prices are '+how+' and hidden</b> \u2014 '+
+      'a stale price sitting next to tonight\'s lineup looks current and is not. '+
+      'They return when the hourly refresh lands.';
+  }
+
+  renderSlip();
+  renderBetLog();
+
+  /* A past day is drawn from history and nothing below applies: no live
+     games, no lineup filter, no odds, no reasoning panels. */
+  if(isReplay()){
+    var cached = HISTORY[state.day];
+    if(cached === undefined){
+      historyFor(state.day, function(){ render(); });
+      renderReplay('loading');
+    } else {
+      renderReplay(cached);
+    }
+    document.getElementById('footer').innerHTML = '';
+    return;
+  }
+
+  var games=(D.games||[]).filter(function(g){
+    if(state.lineups==='posted') return g.away.confirmed||g.home.confirmed;
+    return true;
+  });
+  /* Games you can still bet come first. By late afternoon most of a day slate
+     is already final, and those cards were sitting at the top of the board
+     showing confident percentages you could no longer act on. Sort is stable,
+     so order within each group is unchanged. */
+  games = games.slice().sort(function(a,b){
+    var byOpen = (S.gameIsOpen(b)?1:0) - (S.gameIsOpen(a)?1:0);
+    if(byOpen) return byOpen;
+    /* Then soonest first. statsapi happens to return the slate in start
+       order today, so this changes nothing on screen -- but the board was
+       relying on that by accident, and a queue that reads correctly only
+       because of upstream ordering is one API change from reading wrong. */
+    return (Date.parse(a.startTime)||0) - (Date.parse(b.startTime)||0);
+  });
+
+  var board=document.getElementById('board');
+  board.innerHTML='';
+  var shown=0, best=null;
+
+  games.forEach(function(g){
+    var card=el('div','game'+(S.gameIsOpen(g)?'':' closed'));
+    var head=el('div','ghead');
+    var ttl=el('h2','gtitle', g.away.team+' @ '+g.home.team);
+    head.appendChild(ttl);
+    var meta=el('div','gmeta');
+    if(g.live){
+      var lab = /Delay/i.test(g.status) ? g.status : (g.inningState||'')+' '+(g.inning||'');
+      meta.appendChild(el('span','chip '+(/Delay/i.test(g.status)?'delayed':'livegame'), lab.trim().toUpperCase()));
+      meta.appendChild(document.createTextNode(' '+(g.venue||'')));
+    } else if(!S.gameIsOpen(g)){
+      // Not just Final/Game Over: "Completed Early", "Postponed" and
+      // "Suspended" all mean you cannot bet it, and all used to fall through
+      // to the else branch below and render as an upcoming start time.
+      meta.appendChild(el('span','chip done',/Postpone|Suspend|Cancel/i.test(g.status)?g.status.toUpperCase():'FINAL'));
+      meta.appendChild(document.createTextNode(' '+(g.venue||'')));
+    } else {
+      var soon = startsIn(g.startTime);
+      if(soon){
+        var when=el('span', soon.urgent?'soon urgent':'soon', soon.text);
+        meta.appendChild(when);
+        meta.appendChild(document.createTextNode(' · '+timeStr(g.startTime)+' · '+(g.venue||'')));
+      } else {
+        meta.textContent = timeStr(g.startTime)+' · '+(g.venue||'');
+      }
+    }
+    head.appendChild(meta);
+    card.appendChild(head);
+
+    var any=false;
+    ['away','home'].forEach(function(side){
+      var s=g[side], faces=g[side+'Faces'];
+      /* Settled bets are decided and not actionable, so they must not eat
+         the top-N budget. Rank live candidates first, then append anything
+         already resolved so you can still see how placed bets are doing. */
+      var all=scoreSide(g,side).filter(function(r){return r.prob>=state.minProb;});
+      var live=all.filter(function(r){return !r.settled;}).slice(0, state.perTeam);
+      var done=all.filter(function(r){return r.settled;});
+      var rows=live.concat(done);
+      if(!rows.length) return;
+      any=true;
+
+      var sh=el('div','shead');
+      var nm=el('div','sname'); nm.textContent=s.team;
+      var chip=el('span','chip '+(s.confirmed?'live':'proj'), s.confirmed?'LINEUP POSTED':'PROJECTED');
+      nm.appendChild(chip); sh.appendChild(nm);
+      if(faces){
+        var v=el('div','vs'); v.innerHTML='vs <b>'+esc(faces.name)+'</b>'+(faces.era?' · '+faces.era+' ERA':'')+
+          (faces.avgAllowed?' · '+faces.avgAllowed.toFixed(3)+' opp AVG':'');
+        sh.appendChild(v);
+      }
+      card.appendChild(sh);
+
+      rows.forEach(function(r){
+        shown++;
+        /* "Best" must mean the best bet still available, not the best number
+           on screen. Settled rows carry prob 1 (they already hit) and render
+           as HIT rather than a percentage, so they used to leak into this stat
+           and the summary announced "100.0% best" with no row anywhere showing
+           100%. A board built to stop overconfident numbers should not lead
+           with a phantom lock. */
+        if(S.gameIsOpen(g) && !r.settled && (!best||r.prob>best.prob)) best=r;
+        var key=g.gamePk+'|'+side+'|'+r.player.id;
+        var open=state.open===key;
+        var row=el('div','row');
+        row.setAttribute('role','button'); row.tabIndex=0;
+        row.setAttribute('aria-expanded',String(open));
+
+        row.appendChild(el('div','slot','#'+r.slot));
+        var who=el('div','who'); who.appendChild(document.createTextNode(r.name));
+        if(r.player.pos) who.appendChild(el('span','pos',r.player.pos));
+        if(r.confidence<0.65) who.appendChild(el('span','chip','THIN'));
+        row.appendChild(who);
+
+        if(r.settled){
+          row.appendChild(el('div','prob settled '+(r.prob>=1?'win':'lost'), r.prob>=1?'HIT':'NO'));
+        } else {
+          row.appendChild(el('div','prob', pct(r.prob, 0)));
+        }
+
+        var mkt = marketFor(r.name);
+        if(mkt && !r.settled){
+          var ev=evAt(r.prob, mkt.over);
+          var tag=el('span','chip mkt');
+          /* The feed already signs its prices, so prefixing another '+'
+             printed ++111. amer() rounds first, which takes the signed
+             string or a bare number and emits exactly one sign. */
+          tag.textContent=amer(mkt.over);
+          if(isFinite(ev)){
+            tag.style.color = ev>0.02 ? 'var(--good)' : ev<-0.05 ? 'var(--bad)' : 'var(--muted)';
+            tag.title='Market '+mkt.over+', model '+pct(r.prob,1)+', EV '+(100*ev).toFixed(1)+'%';
+          }
+          who.appendChild(tag);
+        }
+        /* "I bet this." Available on every bet type, unlike the parlay:
+           nothing about tracking a pick depends on the measurement that
+           scopes the slip.
+
+           Pregame only, and disabled the moment a game goes live -- the
+           same rule track.mjs enforces on itself. Marking a bet in the
+           seventh inning is not recording a bet, it is recording an
+           outcome, and a log that lets you do that is worth nothing. */
+        var betKey = g.gamePk+'|'+r.player.id+'|'+propKey();
+        var betOn = T.has(BETS, betKey);
+        var trk = el('button','trk', betOn?'\u2713':'\u25cb');
+        trk.type='button';
+        trk.setAttribute('aria-pressed', String(betOn));
+        trk.setAttribute('aria-label', (betOn?'Remove ':'Record ')+r.name+
+          ' '+propLabel()+(betOn?' from':' in')+' your bet log');
+        /* Never disabled. The first version blocked any game that had
+           started, borrowing track.mjs's pregame-only rule -- which exists to
+           stop the MODEL grading itself on lookahead and has no business
+           deciding what you are allowed to write in your own log. A bet
+           entered once the result was known is marked, not refused. */
+        var late = !S.gameIsOpen(g);
+        trk.title = betOn ? 'Recorded. Tap to remove.'
+          : late ? 'Record this \u2014 will be marked as entered after the result'
+          : 'Record that you bet this';
+        trk.addEventListener('click', function(ev){
+          ev.stopPropagation();
+          /* The market as the board could see it at this moment, so closing
+             line value can be worked out later without you typing a price.
+             It is NOT necessarily the price you got -- you may have bet
+             elsewhere, or minutes later -- and bets.html says so. It is the
+             only price anything here can honestly claim to know. */
+          var mkNow = marketFor(r.name);
+          var mkKey = marketKeyFor(r.name);
+          BETS = betOn ? T.remove(BETS, betKey) : T.add(BETS, T.single({
+            gamePk: g.gamePk, playerId: r.player.id, prop: propKey(),
+            propLabel: propLabel(), name: r.name,
+            team: g[side].abbrev || g[side].team,
+            prob: r.prob,
+            marketKey: mkNow && mkKey ? mkKey : null,
+            priceAtBet: mkNow ? mkNow.over : null,
+            noVigAtBet: mkNow && isFinite(mkNow.noVigOver) ? mkNow.noVigOver : null
+          }, D.date, {retro: late}));
+          saveBets();
+          render();
+        });
+        row.appendChild(trk);
+
+        /* The parlay belongs to one prop -- see the note by #sugwrap, and
+           S.parlayEligible for why. Hiding the SUGGEST control on the other
+           two views was only half of that rule: this + button stayed live, so
+           a total-bases slip was two clicks away, and it arrived quoting
+           "cross-game slips cashed 1.03-1.08x as often as the product
+           predicts" -- a measurement taken on 1+ H/R/RBI and nowhere else.
+           The affordance has to be absent, not merely unsuggested. */
+        if(S.parlayEligible(state.view)){
+          row.classList.add('parlay');
+          var legKey = g.gamePk+'|'+r.player.id+'|'+propKey();
+          var inSlip = state.slip.some(function(x){return x.key===legKey;});
+          var add=el('button','addleg', inSlip?'\u2713':'+');
+          add.type='button';
+          add.setAttribute('aria-pressed', String(inSlip));
+          add.setAttribute('aria-label', (inSlip?'Remove ':'Add ')+r.name+' to parlay slip');
+          // A finished game is not bettable, whatever the model still says about
+          // it. `settled` only covers live games whose outcome already landed, so
+          // without the gameIsOpen check a FINAL card kept a live + button.
+          var openGame = S.gameIsOpen(g);
+          if(r.settled || !openGame) {
+            add.disabled=true; add.style.opacity=.3;
+            add.title = r.settled ? 'Already decided' : 'Game is over';
+          }
+          var leg = {
+            key: legKey, gamePk: g.gamePk, playerId: r.player.id,
+            name: r.name, team: g[side].abbrev || g[side].team,
+            prop: propKey(), propLabel: propLabel(), prob: r.prob
+          };
+          // Eligible for a suggestion: bettable and undecided. Which prop is
+          // the guard above.
+          if(!r.settled && openGame) state.candidates.push(leg);
+          add.addEventListener('click', function(ev){
+            ev.stopPropagation();
+            if(r.settled || !openGame) return;
+            if(inSlip) state.slip = state.slip.filter(function(x){return x.key!==legKey;});
+            else state.slip.push(leg);
+            state.suggested = false;
+            render();
+          });
+          row.appendChild(add);
+        }
+
+        row.appendChild(el('div','caret','›'));
+
+        var toggle=function(){ state.open = open?null:key; render(); };
+        row.addEventListener('click', toggle);
+        row.addEventListener('keydown', function(ev){
+          if(ev.key==='Enter'||ev.key===' '){ ev.preventDefault(); toggle(); }
+        });
+        card.appendChild(row);
+        if(open) card.appendChild(buildWhy(r,g,side));
+      });
+    });
+
+    if(any) board.appendChild(card);
+  });
+
+  if(!shown){
+    var e=el('div','empty');
+    e.appendChild(el('div','big','Nothing clears that filter'));
+    e.appendChild(el('div',null,'Lower the threshold, or switch to All games if lineups have not posted yet.'));
+    board.appendChild(e);
+  }
+
+  /* summary */
+  var sum=document.getElementById('summary'); sum.innerHTML='';
+  function stat(v,l){var d=el('div'); d.appendChild(el('b',null,String(v))); d.appendChild(el('span',null,l)); sum.appendChild(d);}
+  var posted=(D.games||[]).filter(function(g){return g.away.confirmed&&g.home.confirmed;}).length;
+  stat((D.games||[]).length,(D.games||[]).length===1?'game':'games');
+  stat(posted,'lineups posted');
+  stat(shown,'candidates');
+  if(best) stat(pct(best.prob),'best');
+  // The graded record, when there is one: a number the page has, never a placeholder.
+  var REC=window.BETHOUSE_RECORD; if(REC&&REC.total) stat(Number(REC.total).toLocaleString('en-US'),'graded');
+
+  /* footer */
+  var f=document.getElementById('footer'); f.innerHTML='';
+  var when=D.fetchedAt?new Date(D.fetchedAt):null;
+  f.appendChild(el('div',null,'Data from statsapi.mlb.com (no API key). Fetched '+
+    (when&&!isNaN(when)?when.toLocaleString():'unknown')+'. Re-run node fetch-mlb.mjs to refresh.'));
+  f.appendChild(el('div',null,
+    'Model regresses every hitter by plate appearances toward last season\'s Statcast expected rate where he has one (three quarters of the way; league average otherwise), weights lineup slot for expected trips, '+
+    'and adjusts for the opposing starter. Correlation constant fitted on real outcomes, not guessed.'));
+  var REC = window.BETHOUSE_RECORD;
+  if(REC && REC.props){
+    var key = state.view==='hrr' ? 'hrr' : state.view==='hr' ? 'hr' : ('tb'+state.tbThreshold);
+    var r = REC.props[key];
+    if(r && r.n >= 25){
+      var d=el('div');
+      d.innerHTML = '<b>Live record, this view:</b> '+r.n+' graded predictions over '+REC.days.length+
+        ' day'+(REC.days.length===1?'':'s')+' \u2014 predicted '+r.predicted+'%, actual '+r.actual+
+        '%, off by '+(r.bias>=0?'+':'')+r.bias+' points.'+
+        (r.n < 500 ? ' <span style="color:var(--muted)">Too few to mean much yet.</span>' : '');
+      f.appendChild(d);
+    } else if(REC.total){
+      f.appendChild(el('div',null,
+        'Live record: '+REC.total+' predictions graded so far, not enough on this view to report.'));
+    }
+  }
+  f.appendChild(el('div',null,
+    'A calibrated probability is not a winning bet. At standard juice most of these are −EV. Bet only what you can afford to lose.'));
+}
+
+render();
+gradeBets();
+})();
+</script>
+</body>
+</html>

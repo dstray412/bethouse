@@ -333,6 +333,10 @@ export function parseScheduleEvent(e, season, week, opts) {
     away: away ? teamCode(away.team, o.members, o.outsiderCode) || null : null,
   };
   if (comp?.neutralSite) row.neutral = true;
+  // ESPN's team ids key its logo CDN (the college path takes no abbreviation); the home page reads them.
+  if (home?.team?.id != null) row.homeId = String(home.team.id);
+  if (away?.team?.id != null) row.awayId = String(away.team.id);
+  if (comp?.venue?.fullName) row.venue = String(comp.venue.fullName);
   return row;
 }
 
@@ -925,6 +929,8 @@ export async function buildBoard(league, history) {
       id: g.id, date: g.date, name: g.name, completed: g.completed,
       home: g.home, away: g.away,
       ...(g.neutral ? { neutral: true } : {}),
+      ...(g.homeId ? { homeId: g.homeId } : {}), ...(g.awayId ? { awayId: g.awayId } : {}),
+      ...(g.venue ? { venue: g.venue } : {}),
       ...(lines.has(g.id) ? { line: lines.get(g.id) } : {}),
     })),
     ratings,

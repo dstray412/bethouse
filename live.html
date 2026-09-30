@@ -19,10 +19,11 @@
     <h1 class="logo">BETHOUSE</h1>
     <div class="tagline" id="tagline">Live — tonight's tracked props</div>
   <nav class="boards" aria-label="Other boards">
+    <a class="navlink" href="index.html">Home →</a>
     <a class="navlink" href="bets.html">Bets →</a>
     <a class="navlink" href="nfl.html">NFL →</a>
     <a class="navlink" href="cfb.html">CFB →</a>
-    <a class="navlink" href="index.html">Baseball →</a>
+    <a class="navlink" href="baseball.html">Baseball →</a>
     <a class="navlink" href="golf.html">PGA →</a>
   </nav>
   </div>
@@ -158,7 +159,7 @@
     var cards=document.getElementById('cards'); var h='';
     var shown=state.items.filter(function(t){ return keep(t.progress); });
     if(!state.items.length){
-      h='<div class="empty" style="grid-column:1/-1"><div class="big">Nothing tracked tonight</div><div class="lhint" style="margin:0 auto">Open a player on the <a href="nfl.html">NFL</a> or <a href="cfb.html">college</a> board and press <b>Track</b> on a rung or on his touchdown; a bet you log on the <a href="index.html">baseball</a> board shows here too.</div></div>';
+      h='<div class="empty" style="grid-column:1/-1"><div class="big">Nothing tracked tonight</div><div class="lhint" style="margin:0 auto">Open a player on the <a href="nfl.html">NFL</a> or <a href="cfb.html">college</a> board and press <b>Track</b> on a rung or on his touchdown; a bet you log on the <a href="baseball.html">baseball</a> board shows here too.</div></div>';
     } else if(!shown.length){
       h='<div class="empty" style="grid-column:1/-1"><div class="big">None '+esc(FILTERS.filter(function(f){return f.id===state.filter;})[0].label.toLowerCase())+'</div></div>';
     }

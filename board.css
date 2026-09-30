@@ -356,4 +356,49 @@ button.rung:hover{border-color:var(--rule)}
 .track:hover{border-color:var(--accent)}
 .track[aria-pressed=true]{color:var(--ink);background:var(--accent);border-color:var(--accent)}
 /* Touch: fingers need 44px; the mouse does not. Pages add their own tap targets. */
+/* The home: a hero naming the slate, one card per game, a row of tops. */
+.hero{border:1px solid var(--line);border-radius:var(--r-panel);background:var(--surface);padding:22px 24px 20px;margin:0 0 26px}
+.hero .hdate{display:flex;align-items:center;gap:10px;font-family:var(--label);font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.hero .today{color:var(--ink);background:var(--accent);border-color:var(--accent);font-weight:700}
+.hero h2{font-family:var(--display);font-size:34px;font-weight:700;line-height:1.1;margin:12px 0 6px;font-variation-settings:'opsz' 96;letter-spacing:-.01em}
+.hero p{margin:0 0 6px;color:var(--muted);font-size:17px;line-height:1.5}
+.hero p.golf{font-size:15px}
+.hero .golf a{color:var(--accent);text-decoration:none;font-family:var(--label);font-size:12px;letter-spacing:.1em;text-transform:uppercase;font-weight:600}
+.hero .links{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.btn{font-family:var(--body);font-size:15px;color:var(--text);background:var(--surface2);border:1px solid var(--line);border-radius:var(--r-btn);padding:9px 16px;text-decoration:none;transition:background .15s,color .15s}
+.btn:hover{background:var(--bg)}
+.btn.primary{color:var(--ink);background:var(--accent);border-color:var(--accent);font-weight:600}
+.shead{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;padding:0 2px 10px}
+.gcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px;margin-bottom:30px}
+.gcard{border:1px solid var(--line);border-radius:var(--r-panel);background:var(--surface);padding:14px 16px 12px;display:flex;flex-direction:column;gap:12px}
+.gcard.post{opacity:.7}
+.gcard .gtop{display:flex;justify-content:space-between;align-items:center;font-family:var(--label);font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.gcard .gtop .gtime{font-family:var(--mono);letter-spacing:0;text-transform:none;font-size:13px;color:var(--text)}
+.gteams{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;padding:4px 0}
+.team{display:flex;align-items:center;gap:10px;min-width:0}
+.team.home{flex-direction:row-reverse}
+.tlogo{width:44px;height:44px;object-fit:contain;flex:none}
+.team b{font-family:var(--display);font-size:20px;font-weight:700;white-space:nowrap}
+.team .gpts{font-family:var(--mono);font-size:26px;font-weight:600;color:var(--accent);font-variant-numeric:tabular-nums;margin-left:2px}
+.team.home .gpts{margin:0 2px 0 0}
+.gteams .at{font-family:var(--label);font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted-dim);text-align:center;min-width:28px}
+.gfoot{display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:end;border-top:1px solid var(--line);padding-top:10px}
+.gfoot small{display:block;font-family:var(--label);font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:2px}
+.gfoot b{font-family:var(--mono);font-size:14px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--text)}
+.open{color:var(--accent);font-family:var(--label);font-size:12px;letter-spacing:.1em;text-transform:uppercase;text-decoration:none;font-weight:600;white-space:nowrap}
+.open:hover{text-decoration:underline}
+.tops{margin-bottom:26px}
+.tops .card{display:flex;flex-direction:column;gap:6px}
+.tops .cval{font-family:var(--display);font-size:20px;font-weight:600;line-height:1.2}
+.tops .cval .mono{font-family:var(--mono);color:var(--accent);font-variant-numeric:tabular-nums}
+.tops .open{margin-top:auto;padding-top:6px}
+@media (max-width:760px){
+  .hero{padding:18px 16px 16px}
+  .hero h2{font-size:28px}
+  .gcards{grid-template-columns:1fr}
+  .tlogo{width:36px;height:36px}
+  .team b{font-size:18px}
+  .gfoot{grid-template-columns:1fr 1fr;row-gap:8px}
+  .gfoot .open{grid-column:1/-1}
+}
 @media (pointer:coarse){ .seg button,.navlink,.row{min-height:44px} }

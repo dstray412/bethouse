@@ -77,7 +77,7 @@ function loadBoard() {
 }
 
 /**
- * Must stay in step with index.html's ctxFor. score.js falls back silently on
+ * Must stay in step with baseball.html's ctxFor. score.js falls back silently on
  * a missing table (`ctx.leaguePlatoonHR || ctx.leaguePlatoon`), so a dropped
  * key here would quietly mail out numbers the board never showed.
  */

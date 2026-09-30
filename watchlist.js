@@ -3,7 +3,7 @@
  * The price you typed against a row, so the board can show your edge at
  * it and still show it tomorrow, and the players you starred. Nothing here touches localStorage: the
  * page reads and writes the store (try/catch, a private window can
- * refuse) and hands the raw string in and out, the way index.html does
+ * refuse) and hands the raw string in and out, the way baseball.html does
  * for the bet log. Same shape as bets.js: a versioned key, a parse that
  * swallows bad JSON, a serialise that is plain JSON.
  *

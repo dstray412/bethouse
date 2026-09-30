@@ -426,6 +426,16 @@ test("parseScheduleEvent: takes team codes from the data, not from the name", ()
   assert.equal(g.week, 1);
 });
 
+test("parseScheduleEvent: carries ESPN's team ids and the venue when the feed has them, for the home page's logos", () => {
+  const e = event("SEA", "NE");
+  e.competitions[0].competitors[0].team.id = 26; e.competitions[0].competitors[1].team.id = 17;
+  e.competitions[0].venue = { fullName: "Lumen Field" };
+  const g = parseScheduleEvent(e, 2026, 1);
+  assert.equal(g.homeId, "26"); assert.equal(g.awayId, "17"); assert.equal(g.venue, "Lumen Field");
+  const bare = parseScheduleEvent(event("SEA", "NE"), 2026, 1);
+  assert.ok(!("homeId" in bare) && !("venue" in bare), "absent in the feed: absent in the row, not null");
+});
+
 test("parseScheduleEvent: the names that broke substring matching", () => {
   // "San Francisco 49ers" contains no "SF", so the old approach dropped it.
   const a = parseScheduleEvent(

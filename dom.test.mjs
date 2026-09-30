@@ -34,7 +34,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const DIR = dirname(fileURLToPath(import.meta.url));
-const BOARDS = ["index.html", "golf.html", "nfl.html", "cfb.html", "bets.html", "live.html"];
+const BOARDS = ["index.html", "baseball.html", "golf.html", "nfl.html", "cfb.html", "bets.html", "live.html"];
 const src = (f) => readFileSync(resolve(DIR, f), "utf8");
 
 /*
@@ -290,7 +290,7 @@ function guardedRanges(js, needle) {
 }
 
 test("every add-to-parlay button is built inside the eligibility guard", () => {
-  const js = src("index.html");
+  const js = src("baseball.html");
   assert.ok(
     js.includes("S.parlayEligible("),
     "index.html must ask score.js which views may build a parlay, not re-derive it",
@@ -455,7 +455,7 @@ test("a sublabel inside a fixed-width row cell is a block, not wrappable text", 
  * ------------------------------------------------------------------ */
 
 test("the board asks edge.js how old the odds are, and asks once", () => {
-  const js = src("index.html");
+  const js = src("baseball.html");
   assert.ok(
     js.includes("E.oddsFreshness("),
     "index.html must get odds age from edge.js, not re-derive it",
@@ -528,7 +528,7 @@ test("every test file runs in every gate that runs tests", () => {
 test("the board and the odds fetcher normalise names identically", async () => {
   const { normalizeName } = await import("./fetch-odds-espn.mjs");
 
-  const js = src("index.html");
+  const js = src("baseball.html");
   const at = js.indexOf("function normName(s){");
   assert.ok(at > 0, "index.html no longer defines normName");
   const end = js.indexOf("\n}", at) + 2;
@@ -1466,4 +1466,43 @@ test("live.html is a board: shared stylesheet, the scripts it needs, a card list
   for (const s of ["watchlist.js", "bets.js", "nfl.js", "live.js", "edge.js"]) assert.match(html, new RegExp(`src="${s}"`), `live.html does not load ${s}`);
   for (const id of ["cards", "lstrip", "tile", "updated"]) assert.match(html, new RegExp(`id="${id}"`), `live.html has no #${id}`);
   assert.doesNotMatch(html, /fonts\.googleapis|https?:\/\/[^"]*\.(js|css)"/, "an off-origin script or sheet");
+});
+
+/* ------------------------------------------------------------------ *
+ * index.html is the home: tonight's slate, built from the boards' data
+ *
+ * The root URL used to open the baseball board. It opens a home now:
+ * the slate across the boards, one card per game with the two teams'
+ * logos, and a row of top picks. The logos are the one image the site
+ * ships and they come from ESPN's logo CDN, so this test pins that
+ * every <img> points there and nothing else loads off-origin.
+ * ------------------------------------------------------------------ */
+
+test("index.html is the home: the shared models and every board's data, the slate's ids, logos only from ESPN's CDN", () => {
+  const html = src("index.html");
+  for (const s of ["edge.js", "nfl.js", "cfb.js", "watchlist.js", "home.js", "mlb-data.js", "pga-data.js", "nfl-data.js", "cfb-data.js"]) {
+    assert.match(html, new RegExp('<script src="' + s.replace(".", "\\.") + '"'), "index.html loads " + s);
+  }
+  for (const id of ["tile", "hero", "slate", "gcards", "tops"]) assert.match(html, new RegExp('id="' + id + '"'), "index.html has #" + id);
+  assert.doesNotMatch(html, /fonts\.googleapis|https?:\/\/[^"]*\.(js|css)"/, "an off-origin script or sheet");
+  // The img markup is built in the script; its src is whatever home.js's logoUrl returns (pinned to
+  // ESPN's CDN in home.test.mjs), escaped, with no referrer and hidden when it does not load.
+  const imgs = html.match(/<img[^>]*>/g) || [];
+  assert.ok(imgs.length, "the page builds a logo img");
+  for (const im of imgs) {
+    assert.match(im, /src="'\+esc\(u\)\+'"/, "a logo src that is not the module's sanitised url: " + im);
+    assert.match(im, /referrerpolicy="no-referrer"/, "a logo request that carries a referrer");
+    assert.match(im, /onerror="this\.hidden=true"/, "a logo that does not fail closed");
+  }
+  assert.match(html, /H\.logoUrl\(/, "the src comes from home.js");
+});
+
+test("the baseball board kept its page under its new name, and every board calls the home Home", () => {
+  const b = src("baseball.html");
+  assert.match(b, /<title>BetHouse — Baseball<\/title>/);
+  assert.match(b, /BETHOUSE_MLB|mlb-data\.js/);
+  for (const page of BOARDS) {
+    if (page === "index.html") continue;
+    assert.match(src(page), /class="navlink" href="index\.html">Home →</, page + " links Home");
+  }
 });

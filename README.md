@@ -6,8 +6,10 @@ chance of **making the cut**. And prices three football bets, in the NFL and in
 college: **anytime touchdown**, four counting props (**receiving yards**,
 **rushing yards**, **passing yards**, **receptions**), and **spreads and totals**.
 
-Open `index.html` for baseball, `golf.html` for golf, `nfl.html` for the NFL,
-`cfb.html` for college football. No build step, no server, no API key.
+Open `index.html` for the home (tonight's slate across the boards),
+`baseball.html` for baseball, `golf.html` for golf, `nfl.html` for the NFL,
+`cfb.html` for college football, `live.html` for the live tracker and
+`bets.html` for the bet log. No build step, no server, no API key.
 
 ---
 
@@ -144,7 +146,9 @@ should be re-fitted when the run environment shifts.
 
 | File | What it does |
 |---|---|
-| `index.html` | The board. Open it. |
+| `index.html` | The home: tonight's slate, one card per game with the two teams' logos, the football boards' projection and pick, a row of tops. |
+| `home.js` | The home's arithmetic: one slate out of the boards' data, which day it shows, the football card, the tops, the tile. Tested in `home.test.mjs`. |
+| `baseball.html` | The baseball board. |
 | `board.css` | The one stylesheet every board loads: tokens, header, controls, rows, panels, the phone and touch rules. A page's own components sit in a short `<style>` after the link. |
 | `score.js` | The model. Loads in both browser and Node so the app, tests and backtest run identical code. |
 | `score.test.mjs` | 43 tests on model shape, clamping, regression, handedness and the total-bases distribution. |
@@ -181,6 +185,45 @@ should be re-fitted when the run environment shifts.
 | `statcast.mjs` | Last season's Statcast expected batting average per hitter, as a per-PA prior for the regression centre. No key. Committed under `statcast/`. 3 tests. |
 | `experiment-statcast.mjs` | Re-scores every published H/R/RBI prediction with the prior and applies the shrink's own validation bar. It passed. |
 | `experiment-lines.mjs` | Tests every reconfiguration of the game model a box score can support against the closing line, per season. Nothing helped. Kept so the negative result stays reproducible. |
+
+## Home
+
+**2026-09-29.** `index.html` is a home now; the baseball board moved to
+`baseball.html`. The home reads the boards' own data files in the
+browser and shows the day's slate the way the user's reference
+(nhlpropking.com) does: a hero naming the day and counting the games,
+one card per game, and a row of tops.
+
+- **The slate** is today's games across NFL, college football and
+  baseball, ordered by start time, in the reader's own time zone. A day
+  with no games shows the next day that has some, with that day in the
+  heading, and never a past day. Games already started or finished stay
+  on the list with a chip.
+- **A football card** shows the projected score, the model's favourite
+  with its win chance, and the better of the spread and total picks by
+  EV at the line's price. These are the same calls the football boards'
+  game view makes (`projectGame`, `winProbability`, `pickGame`,
+  `evPct`), so the home says what the board says; the moneyline is not
+  a candidate, for the reason the board gives. A baseball card shows
+  the probable pitchers with ERA and whether lineups are posted: there
+  is no game model for baseball and the page does not invent one.
+- **Tops**: the best anytime-touchdown chance and the game pick with
+  the most EV on tonight's football slate (or, on a day without
+  football, the next day that has it, and the card says which), and how
+  many props the live tracker is following. A card whose number does
+  not exist is not shown.
+- **The tile** counts games on the slate, players priced across the
+  boards (football players plus batters in posted lineups) and
+  predictions graded (the sum of the four records).
+- **Logos** are the one image the site ships. They load from ESPN's logo
+  CDN (`a.espncdn.com/i/teamlogos/{nfl|ncaa|mlb}/500/`), keyed by the
+  NFL and MLB abbreviations and by ESPN's numeric id for college (the
+  fetcher now writes `homeId`/`awayId` and `venue` into each game),
+  sent without a referrer, and hidden when they do not load. The user
+  chose this over committing the files.
+- The two football data files are about 1.2 MB before gzip; the page
+  carries a `TODO(simplify)` to have the fetchers write a small slate
+  file if that ever drags.
 
 ## Live
 
@@ -258,7 +301,7 @@ changed and why:
   Mono for figures; Source Sans 3 for prose. Space Grotesk retired.
 - **The pages stopped carrying copies of the shared rules.** The chip,
   the bet row, the price box and the phone control strip live in
-  `board.css` once; `index.html`, `golf.html` and `bets.html` keep only
+  `board.css` once; `baseball.html`, `golf.html` and `bets.html` keep only
   what is theirs, and `nfl.html` / `cfb.html` carry no `<style>` at all.
   The bet log's day head is `.dayhead`, since `.dhead` is the drawer's.
 

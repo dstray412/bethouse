@@ -68,7 +68,7 @@ components:
 ## Overview
 
 **Creative North Star:** a warm, soft board that reads like the reference the user likes: rounded panels and pills, figures in gold, colour where the model found something, because the one thing to remember is that it tells you the truth about the price, and the truth should be easy to spot.
-**Product context:** a personal, zero-dependency sports-props board: five static pages (baseball, NFL, college football, golf, a bet log) where every number is a measured probability with a fair price beside it. Used daily, on a laptop and a phone, before kickoff, by the owner and the friends he sends links to. Peers: nhlpropking.com and the props sites it resembles.
+**Product context:** a personal, zero-dependency sports-props board: seven static pages (a home, baseball, NFL, college football, golf, a bet log, a live tracker) where every number is a measured probability with a fair price beside it. Used daily, on a laptop and a phone, before kickoff, by the owner and the friends he sends links to. Peers: nhlpropking.com and the props sites it resembles.
 **Mode per surface:** the boards and the drawer Operate; the notes, footers and README prose Read; nothing Persuades and nothing is an Experience.
 **Reference sites:** nhlpropking.com/projections (the user's reference for density, the headed table, the stat tile and the drawer).
 **Key characteristics:**
@@ -115,6 +115,9 @@ Panels (the table, the slip, the tile, the record, a day in the log) at 14px; bu
 - **Drawer** (`.drawer`): title in display 22px, dateline muted, a 2px rule under the head, tabs as a segmented control, body in body face; the ladder as square rungs with the pressed one outlined in `accent`; recent games as square bars, the ones that clear the threshold in `success`, the threshold a dashed `warning` line.
 - **Tray card** (`.tcard`): surface, hairline, name in display 600, the figure in mono 20px, the edge line coloured.
 - **Bet log row**: date in mono muted, the bet in body, said and price in mono, won and lost as 10px caps labels in `success` and `error`.
+- **Hero** (`.hero`): a surface panel with a fully round accent pill naming the day, a long date beside it in label caps, a display heading at 34px, one measured sentence in body, and a row of `.btn` links (the first in accent). One per page, the home only.
+- **Game card** (`.gcard`): surface panel at 14px; league and start time in label caps on the top line; the two teams as logo, abbreviation in display 20px and, for football, the projected points in mono accent; a hairline, then two labelled mono values (favourite and pick, or pitchers and lineups) and an `Open →` link in accent caps. Finished games at 70% opacity.
+- **Logo** (`.tlogo`): 44px (36px on a phone), `object-fit:contain`, from ESPN's CDN with no referrer, hidden if it does not load. The one image the site ships.
 - **States**: disabled at 50% opacity with the cursor default; empty states in body text on the ground, no illustration; loading is the same empty panel with the one sentence it has today.
 
 ## Do's and Don'ts
@@ -127,7 +130,7 @@ Panels (the table, the slip, the tile, the record, a day in the log) at 14px; bu
 - Don't add a card inside a card, a glow, or a gradient.
 - Don't colour a number that is not the row's headline figure, and never a control green.
 - Don't put a kicker above a heading or an icon in a circle beside one.
-- Don't add a photo, a mascot or a drawn illustration; the site ships none.
+- Don't add a photo, a mascot or a drawn illustration. The one image the site ships is a team logo on the home's game cards, from ESPN's CDN.
 - Don't let a page carry its own `:root` or redefine the shared classes; everything lives in `board.css`.
 
 ## Motion
@@ -140,6 +143,7 @@ Panels (the table, the slip, the tile, the record, a day in the log) at 14px; bu
 ## Decisions Log
 | Date | Decision | Rationale |
 |------|----------|-----------|
+| 2026-09-29 | A home with the slate, and team logos | The user showed nhlpropking.com's home and asked for it: a hero for the day, game cards with logos and the model's favourite, tops. Chosen with the user: the root becomes the home (baseball moves to baseball.html), logos load from ESPN's logo CDN rather than being committed or replaced by coloured chips, the slate covers every board with games today. The logo is the one exception to the no-images rule; it is sent without a referrer and hidden on error. No team colours and no gradients: the reference has them, this design does not. |
 | 2026-09-29 | Type one step larger, labels uncondensed, greys lighter | The user asked for text that is easier to read. Every size under 18px went up one step (10 to 12, 11 and 12 to 13, 13 to 14, 14 to 15, 15 to 16, 16 to 17), body to 16px, the labels dropped the 87.5% condensing and loosened from 0.14em to 0.1em, and muted text went to #C9C9C9 (14:1 on black). Rows still 60px; nothing scrolls sideways at 390px. |
 | 2026-09-29 | Neon green, solid pills, white text | The user saw the gold on black and asked for colour that pops; of three mocks on the real board (amber, lime, cyan + gold) they chose the lime and asked for a truer green. Accent and success are one neon green (#3DFF5C), warning #FFD23F, error #FF3366, text pure white, and the pills went from faint tints to solid fills with ink text. |
 | 2026-09-29 | Pitch black and a brighter gold | The user saw the warm black on the live site and read it as faded. The ground went to #000000, the surfaces to neutral greys, the hairlines up a few points so panels still read, and the accent from #D9A441 to #FFC53D. Ink on the accent stays black; every figure on black now clears 12:1. |

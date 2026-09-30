@@ -44,7 +44,7 @@ const PROPS = [
   { id: "hrr", label: "1+ H/R/RBI" },
   { id: "tb2", label: "2+ total bases" },
   { id: "tb3", label: "3+ total bases" },
-  // index.html ships a 4+ view; without this it was the one board surface
+  // baseball.html ships a 4+ view; without this it was the one board surface
   // nothing graded and nothing backtested.
   { id: "tb4", label: "4+ total bases" },
   { id: "hr", label: "1+ home run" },
