@@ -11,7 +11,7 @@ colors:
   line: "rgba(255,255,255,0.16)"
   rule: "rgba(255,255,255,0.32)"
   text: "#FFFFFF"
-  text-muted: "#B4B4B4"
+  text-muted: "#C9C9C9"
   accent: "#3DFF5C"
   on-accent: "#000000"
   success: "#3DFF5C"
@@ -25,12 +25,12 @@ typography:
     letterSpacing: 0.06em
   body:
     fontFamily: Source Sans 3
-    fontSize: 0.9375rem
+    fontSize: 1rem
     lineHeight: 1.5
   label:
     fontFamily: Archivo
-    fontSize: 0.625rem
-    letterSpacing: 0.14em
+    fontSize: 0.75rem
+    letterSpacing: 0.1em
   mono:
     fontFamily: Martian Mono
     fontFeature: tnum
@@ -88,10 +88,10 @@ The ground is true black (#000000); surfaces lift by lightness alone (#111111, #
 
 Four faces, all Open Font License, self-hosted as latin woff2 in `fonts/` (no build step, no third-party request at runtime).
 - **Bricolage Grotesque**, display: the wordmark (opsz 96, weight 800, tracked 0.06em, gold), panel titles and player names (opsz 14, weight 600). A grotesque with a burr on it, chosen so the site does not read as a startup.
-- **Archivo**, label: column heads, the dateline, control labels, the stat-tile captions. 10px, weight 600, condensed (wdth 85), caps, tracked 0.14em, muted.
+- **Archivo**, label: column heads, the dateline, control labels, the stat-tile captions. 12px, weight 600, normal width, caps, tracked 0.1em, muted.
 - **Martian Mono**, every figure: chance, projection, fair price, typed price, edge, rungs, win rates, dates in the log. Tabular numerals always. Chance in a row at 19px weight 600; fair and price at 13px; the stat tile at 30px.
-- **Source Sans 3**, body: verdicts, notes, control text, the drawer's prose. 15px, line height 1.5.
-Space Grotesk retires; its file leaves `fonts/`. Newsreader for the author's prose was offered as a risk and declined. Scale: labels 10px, body 15px, row figures 19px, panel titles 18 to 22px, the wordmark 26px, the tile 30px; levels differ by face and weight, not by a step of size.
+- **Source Sans 3**, body: verdicts, notes, control text, the drawer's prose. 16px, line height 1.5.
+Space Grotesk retires; its file leaves `fonts/`. Newsreader for the author's prose was offered as a risk and declined. Scale: labels 12px, small text 13 to 14px, body 16px, row figures 24px, panel titles 18 to 22px, the wordmark 26px, the tile 28px; levels differ by face and weight, not by a step of size. Nothing on the site is set under 12px.
 
 ## Layout
 
@@ -140,6 +140,7 @@ Panels (the table, the slip, the tile, the record, a day in the log) at 14px; bu
 ## Decisions Log
 | Date | Decision | Rationale |
 |------|----------|-----------|
+| 2026-09-29 | Type one step larger, labels uncondensed, greys lighter | The user asked for text that is easier to read. Every size under 18px went up one step (10 to 12, 11 and 12 to 13, 13 to 14, 14 to 15, 15 to 16, 16 to 17), body to 16px, the labels dropped the 87.5% condensing and loosened from 0.14em to 0.1em, and muted text went to #C9C9C9 (14:1 on black). Rows still 60px; nothing scrolls sideways at 390px. |
 | 2026-09-29 | Neon green, solid pills, white text | The user saw the gold on black and asked for colour that pops; of three mocks on the real board (amber, lime, cyan + gold) they chose the lime and asked for a truer green. Accent and success are one neon green (#3DFF5C), warning #FFD23F, error #FF3366, text pure white, and the pills went from faint tints to solid fills with ink text. |
 | 2026-09-29 | Pitch black and a brighter gold | The user saw the warm black on the live site and read it as faded. The ground went to #000000, the surfaces to neutral greys, the hairlines up a few points so panels still read, and the accent from #D9A441 to #FFC53D. Ink on the accent stays black; every figure on black now clears 12:1. |
 | 2026-09-29 | Softer: rounded panels and pills, gold figures, a vs-rate pill | The user saw the ledger and asked for the reference's feel: bubblier, softer, bigger text, colour that marks good picks. Shapes went to 14 / 10 / round; the chance and projection figures and pressed controls took gold; a pill under each matchup reports the projection against his own rate (the boost ratio the sort computes), green past +10%, red past −10%. Still nothing narrative. |

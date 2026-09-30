@@ -17,7 +17,7 @@
  * the drawer. Mobile at 760px; touch targets under (pointer:coarse).
  */
 html{color-scheme:dark}
-:root{--bg:#000000; --surface:#111111; --surface2:#1A1A1A; --line:rgba(255,255,255,0.16); --rule:rgba(255,255,255,0.32); --text:#FFFFFF; --muted:#B4B4B4; --muted-dim:#7C7C7C; --accent:#3DFF5C; --ink:#000000; --warn:#FFD23F; --bad:#FF3366; --good:#3DFF5C; --display:'Bricolage Grotesque',ui-sans-serif,system-ui,sans-serif; --label:'Archivo','Archivo Narrow',ui-sans-serif,system-ui,sans-serif; --mono:'Martian Mono',ui-monospace,'SF Mono',Menlo,monospace; --body:'Source Sans 3',ui-sans-serif,system-ui,-apple-system,sans-serif; --r-btn:10px; --r-panel:14px;}
+:root{--bg:#000000; --surface:#111111; --surface2:#1A1A1A; --line:rgba(255,255,255,0.16); --rule:rgba(255,255,255,0.32); --text:#FFFFFF; --muted:#C9C9C9; --muted-dim:#8E8E8E; --accent:#3DFF5C; --ink:#000000; --warn:#FFD23F; --bad:#FF3366; --good:#3DFF5C; --display:'Bricolage Grotesque',ui-sans-serif,system-ui,sans-serif; --label:'Archivo','Archivo Narrow',ui-sans-serif,system-ui,sans-serif; --mono:'Martian Mono',ui-monospace,'SF Mono',Menlo,monospace; --body:'Source Sans 3',ui-sans-serif,system-ui,-apple-system,sans-serif; --r-btn:10px; --r-panel:14px;}
 *{box-sizing:border-box}
 /* The `hidden` attribute must actually hide. A class that sets
    `display` (.ctl and .controls both set display:flex) beats the UA
@@ -26,7 +26,7 @@ html{color-scheme:dark}
    controls on screen. Standard reset idiom; !important is the point. */
 [hidden]{display:none!important}
 html,body{margin:0;padding:0}
-body{background:var(--bg);color:var(--text);font:15px/1.5 var(--body);-webkit-font-smoothing:antialiased;min-height:100vh}
+body{background:var(--bg);color:var(--text);font:16px/1.5 var(--body);-webkit-font-smoothing:antialiased;min-height:100vh}
 .wrap{position:relative;max-width:1180px;margin:0 auto;padding:22px 20px 60px}
 /* The header: brand and dateline left, the stat tile flush right on the
    same baseline, then the ledger's thick-thin rule (a 2px rule with a
@@ -36,40 +36,40 @@ header{display:flex;align-items:flex-end;gap:14px 16px;flex-wrap:wrap;margin-bot
 header>.ctl{order:2;flex:1 1 100%}
 .brand{flex:1 1 auto;min-width:200px}
 .logo{font-family:var(--display);font-size:26px;font-weight:800;letter-spacing:.06em;color:var(--accent);margin:0;font-variation-settings:'opsz' 96}
-.tagline{font-family:var(--label);font-size:11px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin-top:4px}
-.navlink{font-family:var(--label);font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;
+.tagline{font-family:var(--label);font-size:13px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin-top:4px}
+.navlink{font-family:var(--label);font-size:13px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;
   color:var(--muted);text-decoration:none;border-bottom:1px solid transparent;padding:2px 0;white-space:nowrap}
 .navlink:hover{color:var(--text);border-color:var(--rule)}
 /* The other boards are wayfinding, not bet types: they live under the
    brand, smaller and quieter than the segment they used to sit beside. */
 .boards{display:flex;gap:14px;flex-wrap:wrap;margin-top:8px}
-.boards .navlink{font-size:10px}
+.boards .navlink{font-size:12px}
 /* The stat tile: only numbers the page already has (players priced, the
    build time, predictions graded). A missing number is a missing cell,
    never a dash. */
 .tile{display:flex;gap:22px;margin-left:auto;text-align:center;border:1px solid var(--line);border-radius:var(--r-panel);background:var(--surface);padding:12px 18px}
 .tile b{display:block;font-family:var(--mono);font-size:28px;font-weight:600;line-height:1;color:var(--accent);font-variant-numeric:tabular-nums}
-.tile span{display:block;font-family:var(--label);font-size:10px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-top:5px}
+.tile span{display:block;font-family:var(--label);font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-top:5px}
 /* Every caps label is Archivo at its condensed width; the axis is in the file for this. */
-.tagline,.navlink,.ctl>label,.tile span,.thead span,.muhead,.slip h3,.banner h3,.mfam .fh,.tag,.chip,.settled,.bet .out,.leg-line .out,.retro,.more,.glog tr:first-child td{font-stretch:87.5%}
+.tagline,.navlink,.ctl>label,.tile span,.thead span,.muhead,.slip h3,.banner h3,.mfam .fh,.tag,.chip,.settled,.bet .out,.leg-line .out,.retro,.more,.glog tr:first-child td{font-stretch:100%}
 /* Measure, not just size: a line of prose across the full column ran
    166 characters; 56ch is about 72 real characters, which reads. */
-.note{color:var(--muted);font-size:15px;line-height:1.65;margin:0 2px 14px;max-width:56ch}
+.note{color:var(--muted);font-size:16px;line-height:1.65;margin:0 2px 14px;max-width:56ch}
 .note b{color:var(--text);font-weight:600}
 .note details{margin-top:4px}
-.note summary{cursor:pointer;color:var(--text);font-size:13px;list-style-position:inside;text-decoration:underline;text-decoration-color:var(--rule)}
+.note summary{cursor:pointer;color:var(--text);font-size:14px;list-style-position:inside;text-decoration:underline;text-decoration-color:var(--rule)}
 .note details p{margin:6px 0 0}
 /* Controls: labelled groups in wrapping rows, no panel behind them; a
    strip scrolls inside itself on a phone rather than widening the page. */
 .controls{display:flex;gap:14px 22px;flex-wrap:wrap;align-items:flex-end;padding:4px 0 14px;margin-bottom:14px;border-bottom:1px solid var(--line)}
 .ctl{display:flex;flex-direction:column;gap:6px;min-width:0;max-width:100%}
-.ctl>label{font-family:var(--label);font-size:10px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.ctl>label{font-family:var(--label);font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
 .seg{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;max-width:calc(100% + 6px);padding:3px;margin:-3px}
 .seg::-webkit-scrollbar{display:none}
-.seg button{font:inherit;font-family:var(--body);font-size:14px;color:var(--muted);background:var(--surface);border:1px solid var(--line);border-radius:var(--r-btn);padding:8px 14px;cursor:pointer;white-space:nowrap;flex:none;transition:background .15s,color .15s}
+.seg button{font:inherit;font-family:var(--body);font-size:15px;color:var(--muted);background:var(--surface);border:1px solid var(--line);border-radius:var(--r-btn);padding:8px 14px;cursor:pointer;white-space:nowrap;flex:none;transition:background .15s,color .15s}
 .seg button:hover{color:var(--text)}
 /* The search box and selects: one line, the same shape as a segment button. */
-.search{font:inherit;font-family:var(--body);font-size:14px;color:var(--text);background:var(--surface);border:1px solid var(--line);border-radius:var(--r-btn);padding:8px 13px;min-width:190px;max-width:100%}
+.search{font:inherit;font-family:var(--body);font-size:15px;color:var(--text);background:var(--surface);border:1px solid var(--line);border-radius:var(--r-btn);padding:8px 13px;min-width:190px;max-width:100%}
 .search::placeholder{color:var(--muted)}
 .search:focus{border-color:var(--accent);outline:none}
 /* Pressed is gold: the board's colour for what is yours. */
@@ -82,7 +82,7 @@ header>.ctl{order:2;flex:1 1 100%}
 .game{--cols:34px 1fr 84px 76px 18px;margin-bottom:22px;border:1px solid var(--line);border-radius:var(--r-panel);background:var(--surface);overflow:hidden}
 .ghead{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;padding:14px 18px 10px}
 .gtitle{font-family:var(--display);font-size:18px;font-weight:700;margin:0;font-variation-settings:'opsz' 40}
-.gmeta{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.gmeta{font-size:14px;color:var(--muted);font-variant-numeric:tabular-nums}
 .thead{display:grid;grid-template-columns:var(--cols) 30px;gap:10px;align-items:baseline;padding:10px 8px 9px 18px;
   background:rgba(255,255,255,.03);border-bottom:1px solid var(--line)}
 .game.nostar .thead{grid-template-columns:var(--cols)}
@@ -93,59 +93,59 @@ header>.ctl{order:2;flex:1 1 100%}
 .game.v-stat{--cols:34px 1fr 150px 90px 90px 76px 130px 18px}
 .game.v-stat.nopx{--cols:34px 1fr 150px 90px 90px 76px 18px}
 .game.v-game{--cols:34px 1fr 130px 90px 18px}
-.thead span{font-family:var(--label);font-size:10px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
+.thead span{font-family:var(--label);font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
 .thead .r{text-align:right}
 .row{display:grid;grid-template-columns:var(--cols);gap:10px;align-items:center;
   width:100%;min-height:60px;text-align:left;font:inherit;color:inherit;background:none;border:0;
   padding:6px 8px 6px 18px;cursor:pointer;border-top:1px solid var(--line);transition:background .15s}
 .thead+.rowline .row,.thead+.row{border-top:0}
 .row:hover{background:rgba(255,255,255,.04)}
-.slot{font-family:var(--mono);font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
-.who{font-family:var(--display);font-weight:600;font-size:16px;font-variation-settings:'opsz' 20;min-width:0}
-.pos{font-family:var(--body);color:var(--muted);font-weight:400;font-size:13px;margin-left:6px}
-.mtch{font-family:var(--body);font-size:14px;color:var(--muted);line-height:1.3}
+.slot{font-family:var(--mono);font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.who{font-family:var(--display);font-weight:600;font-size:17px;font-variation-settings:'opsz' 20;min-width:0}
+.pos{font-family:var(--body);color:var(--muted);font-weight:400;font-size:14px;margin-left:6px}
+.mtch{font-family:var(--body);font-size:15px;color:var(--muted);line-height:1.3}
 .mtch .pill{margin:4px 0 0}
 .prob{font-family:var(--mono);font-weight:600;font-size:24px;font-variant-numeric:tabular-nums;text-align:right;letter-spacing:-.02em;color:var(--accent)}
-.be,.fair{font-family:var(--mono);font-variant-numeric:tabular-nums;text-align:right;font-size:14px}
+.be,.fair{font-family:var(--mono);font-variant-numeric:tabular-nums;text-align:right;font-size:15px}
 .fair{color:var(--muted)}
 .be.dim{color:var(--muted-dim)}
-.prob.pick{font-size:15px;letter-spacing:0}
-.be small,.prob small,.px small{display:block;color:var(--muted);font-size:11px;font-weight:400;letter-spacing:.02em}
+.prob.pick{font-size:16px;letter-spacing:0}
+.be small,.prob small,.px small{display:block;color:var(--muted);font-size:13px;font-weight:400;letter-spacing:.02em}
 /* Pills: a measured state in a soft capsule. up and down are the vs-rate
    pill (past ten percent either way); good, warn and bad are an edge. */
-.pill{display:inline-block;font-family:var(--label);font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;padding:3px 9px;border-radius:999px;border:1px solid var(--line);color:var(--muted);white-space:nowrap;line-height:1.3;font-stretch:87.5%}
+.pill{display:inline-block;font-family:var(--label);font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;padding:3px 9px;border-radius:999px;border:1px solid var(--line);color:var(--muted);white-space:nowrap;line-height:1.3;font-stretch:100%}
 .pill.up,.pill.good{color:var(--ink);border-color:var(--good);background:var(--good);font-weight:700}
 .pill.down,.pill.bad{color:#fff;border-color:var(--bad);background:var(--bad);font-weight:700}
 .pill.warn{color:var(--ink);border-color:var(--warn);background:var(--warn);font-weight:700}
-.caret{color:var(--muted);text-align:center;font-size:14px;transition:transform .16s}
+.caret{color:var(--muted);text-align:center;font-size:15px;transition:transform .16s}
 .row[aria-expanded=true] .caret{transform:rotate(90deg)}
 /* The reasoning body: the drawer's, and the one panel the baseball board
    still opens inline. */
-.why{font-family:var(--body);font-size:14px;color:var(--muted);line-height:1.75}
-.why b{color:var(--text);font-family:var(--mono);font-size:13px;font-variant-numeric:tabular-nums}
+.why{font-family:var(--body);font-size:15px;color:var(--muted);line-height:1.75}
+.why b{color:var(--text);font-family:var(--mono);font-size:14px;font-variant-numeric:tabular-nums}
 .why table{border-collapse:collapse;margin:6px 0 4px;font-variant-numeric:tabular-nums}
 .why td{padding:2px 16px 2px 0;vertical-align:top}
 .why td:first-child{color:var(--muted)}
 .why p{margin:8px 0 0}
-.why .verdict{color:var(--text);font-size:15px}
+.why .verdict{color:var(--text);font-size:16px}
 /* The parlay slip: legs, the product, the measured adjustment, a price.
    A ruled block, not a tinted card. */
 .slip{border:1px solid var(--line);border-radius:var(--r-panel);background:var(--surface);padding:14px 18px 16px;margin-bottom:18px}
-.slip h3{font-family:var(--label);font-size:11px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--text);margin:0 0 8px}
-.slip .how{font-size:13px;color:var(--muted);line-height:1.6;margin:0 0 10px;max-width:60ch}
-.leg{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:5px 0;border-top:1px solid var(--line);font-size:14px}
+.slip h3{font-family:var(--label);font-size:13px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--text);margin:0 0 8px}
+.slip .how{font-size:14px;color:var(--muted);line-height:1.6;margin:0 0 10px;max-width:60ch}
+.leg{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:5px 0;border-top:1px solid var(--line);font-size:15px}
 .leg:first-of-type{border-top:0}
-.leg .lp{font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--muted);font-size:12px}
+.leg .lp{font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--muted);font-size:13px}
 .slipsum{display:flex;gap:24px;flex-wrap:wrap;align-items:baseline;margin-top:12px;padding-top:11px;border-top:1px solid var(--line)}
 .slipsum .big{font-family:var(--mono);font-size:24px;font-weight:600;font-variant-numeric:tabular-nums}
-.slipsum .lbl{font-size:12px;color:var(--muted);display:block;max-width:22ch}
+.slipsum .lbl{font-size:13px;color:var(--muted);display:block;max-width:22ch}
 .slipsum input{font:inherit;font-family:var(--mono);font-size:18px;font-weight:600;width:112px;background:var(--surface2);border:1px solid var(--line);border-radius:var(--r-btn);padding:5px 10px;color:var(--text);font-variant-numeric:tabular-nums}
-.slipwarn{margin-top:11px;font-size:13px;line-height:1.6;max-width:60ch}
+.slipwarn{margin-top:11px;font-size:14px;line-height:1.6;max-width:60ch}
 .slipwarn.severe{color:var(--bad)} .slipwarn.team,.slipwarn.moderate{color:var(--warn)} .slipwarn.game,.slipwarn.none{color:var(--muted)}
 .slip .actions{margin-top:10px}
-.slip .actions button{font:inherit;font-size:13px;color:var(--muted);background:none;border:1px solid var(--line);border-radius:var(--r-btn);padding:7px 13px;cursor:pointer}
+.slip .actions button{font:inherit;font-size:14px;color:var(--muted);background:none;border:1px solid var(--line);border-radius:var(--r-btn);padding:7px 13px;cursor:pointer}
 .slip .actions button:hover{color:var(--text);border-color:var(--rule)}
-.more{display:block;width:100%;padding:14px;background:rgba(255,255,255,.02);border:0;border-top:1px solid var(--line);color:var(--text);font:inherit;font-family:var(--label);font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;cursor:pointer}
+.more{display:block;width:100%;padding:14px;background:rgba(255,255,255,.02);border:0;border-top:1px solid var(--line);color:var(--text);font:inherit;font-family:var(--label);font-size:13px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;cursor:pointer}
 .more:hover{background:var(--surface)}
 /* The ladder: every alternate line the book might offer, priced off the
    same pool the row is. A strip that wraps into as many columns as fit,
@@ -155,70 +155,70 @@ header>.ctl{order:2;flex:1 1 100%}
 .rungs{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:4px}
 .rung{display:grid;grid-template-columns:auto 1fr;align-items:baseline;column-gap:6px;
   padding:8px 10px;border:1px solid var(--line);border-radius:var(--r-btn);background:var(--surface2);font-variant-numeric:tabular-nums}
-.rung b{font-family:var(--mono);font-size:13px;font-weight:600}
-.rung .rp{font-family:var(--mono);font-size:13px;text-align:right;font-weight:600;color:var(--text)}
-.rung .rf{grid-column:1/-1;font-family:var(--mono);font-size:11px;color:var(--muted)}
+.rung b{font-family:var(--mono);font-size:14px;font-weight:600}
+.rung .rp{font-family:var(--mono);font-size:14px;text-align:right;font-weight:600;color:var(--text)}
+.rung .rf{grid-column:1/-1;font-family:var(--mono);font-size:13px;color:var(--muted)}
 .rung.near{border-color:var(--accent);background:rgba(61,255,92,.12)}
 /* The matchup panel on a game: descriptive, so it reads quietly under
    the table. The family table's first column flexes and the two number
    columns are fixed, which is what keeps it inside a 390px phone. */
 .mu{margin:12px 0 2px}
-.muhead{font-family:var(--label);font-size:11px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin:0 0 9px}
+.muhead{font-family:var(--label);font-size:13px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin:0 0 9px}
 .muside{padding:10px 12px;border:1px solid var(--line);border-radius:var(--r-btn);background:var(--surface2);margin-bottom:9px}
-.mutitle{font-family:var(--display);font-weight:600;color:var(--text);font-size:14px;margin-bottom:4px}
-.mline{font-size:13px;line-height:1.75}
-.rk{color:var(--muted);font-size:11px;letter-spacing:.02em;margin-left:1px}
+.mutitle{font-family:var(--display);font-weight:600;color:var(--text);font-size:15px;margin-bottom:4px}
+.mline{font-size:14px;line-height:1.75}
+.rk{color:var(--muted);font-size:13px;letter-spacing:.02em;margin-left:1px}
 .mfam{display:grid;grid-template-columns:1fr 84px 84px;gap:0 10px;margin-top:9px;max-width:56ch;font-variant-numeric:tabular-nums}
-.mfam .fh{font-family:var(--label);font-size:10px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);padding-bottom:4px;border-bottom:1px solid var(--line)}
+.mfam .fh{font-family:var(--label);font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);padding-bottom:4px;border-bottom:1px solid var(--line)}
 .mfam .fn,.mfam .fv{padding:5px 0 4px;border-top:1px solid var(--line)}
 .mfam .fh.fv{border-top:0}
 .mfam .fn{color:var(--text)}
-.mfam .fn small{color:var(--muted);font-size:11px;margin-left:6px}
-.mfam .fv{font-family:var(--mono);font-size:13px;text-align:right}
-.mfam .fv small{display:block;font-family:var(--body);color:var(--muted);font-size:11px;font-weight:400;letter-spacing:.02em}
+.mfam .fn small{color:var(--muted);font-size:13px;margin-left:6px}
+.mfam .fv{font-family:var(--mono);font-size:14px;text-align:right}
+.mfam .fv small{display:block;font-family:var(--body);color:var(--muted);font-size:13px;font-weight:400;letter-spacing:.02em}
 .mfam .tag{margin-left:6px}
-.mufoot{margin:2px 0 0;font-size:12px;max-width:60ch}
+.mufoot{margin:2px 0 0;font-size:13px;max-width:60ch}
 /* Tags and chips: small caps labels in a hairline box; colour only where
    the label is a state the board measured (soft, tough, live). */
 .tag,.chip{display:inline-block;margin-left:7px;padding:2px 8px;border:1px solid var(--line);border-radius:999px;
-  font-family:var(--label);font-size:9px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);vertical-align:1px}
+  font-family:var(--label);font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);vertical-align:1px}
 .tag.lean{color:var(--text);border-color:var(--rule)}
 .tag.soft,.chip.live{color:var(--good);border-color:rgba(61,255,92,.5)}
 .tag.tough{color:var(--bad);border-color:rgba(255,51,102,.5)}
 .tag.q,.chip.proj,.chip.delayed{color:var(--warn);border-color:rgba(255,210,63,.5)}
-.chip.mkt{font-family:var(--mono);letter-spacing:.02em;text-transform:none;font-size:11px;color:var(--text)}
+.chip.mkt{font-family:var(--mono);letter-spacing:.02em;text-transform:none;font-size:13px;color:var(--text)}
 .chip.livegame{color:var(--text);border-color:var(--rule)}
 .chip.done{color:var(--muted-dim)}
 /* Settled outcomes and the bet log's verdicts: 10px caps in the edge colours. */
-.settled,.bet .out,.leg-line .out,.retro{font-family:var(--label);font-size:10px;font-weight:600;letter-spacing:.12em;text-transform:uppercase}
+.settled,.bet .out,.leg-line .out,.retro{font-family:var(--label);font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase}
 .settled.win,.bet .out.win,.leg-line .out.win{color:var(--good)}
 .settled.lost,.bet .out.lost,.leg-line .out.lost{color:var(--bad)}
 .bet .out.open,.leg-line .out.open{color:var(--muted)}
 .retro{color:var(--warn);margin-left:7px}
 /* A bet in the log and a parlay's legs under it. */
-.bet{display:flex;justify-content:space-between;gap:12px;align-items:baseline;padding:8px 0;border-top:1px solid var(--line);font-size:14px}
+.bet{display:flex;justify-content:space-between;gap:12px;align-items:baseline;padding:8px 0;border-top:1px solid var(--line);font-size:15px}
 .bet:first-of-type{border-top:0}
 .bet>div:first-child{min-width:0}
-.bet .lp{font-family:var(--mono);color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums}
+.bet .lp{font-family:var(--mono);color:var(--muted);font-size:13px;font-variant-numeric:tabular-nums}
 .bet .right{display:flex;align-items:baseline;gap:11px;flex:0 0 auto;font-family:var(--mono);font-variant-numeric:tabular-nums}
-.bet button{background:none;border:0;color:var(--muted);cursor:pointer;font:inherit;font-size:15px;padding:0 2px}
+.bet button{background:none;border:0;color:var(--muted);cursor:pointer;font:inherit;font-size:16px;padding:0 2px}
 .bet button:hover{color:var(--bad)}
-.leg-line{display:flex;gap:9px;align-items:baseline;padding:3px 0 3px 24px;font-size:12.5px;color:var(--muted)}
+.leg-line{display:flex;gap:9px;align-items:baseline;padding:3px 0 3px 24px;font-size:13.5px;color:var(--muted)}
 .leg-line .nm{color:var(--text)}
 .leg-line .out{margin-left:auto}
 /* The price box a panel offers: mono figure on a surface, hairline. */
 .priceinp{display:inline-flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--line);border-radius:var(--r-btn);padding:7px 12px}
-.priceinp input{font:inherit;font-family:var(--mono);font-size:14px;color:var(--text);background:transparent;border:0;width:70px;font-variant-numeric:tabular-nums}
+.priceinp input{font:inherit;font-family:var(--mono);font-size:15px;color:var(--text);background:transparent;border:0;width:70px;font-variant-numeric:tabular-nums}
 .priceinp input:focus{outline:none}
 .banner{border:1px solid rgba(255,210,63,.4);border-radius:var(--r-panel);background:rgba(255,210,63,.07);padding:14px 18px;margin-bottom:16px}
-.banner h3{font-family:var(--label);font-size:11px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--warn);margin:0 0 8px}
-.banner p{margin:0 0 7px;font-size:14px;line-height:1.65;color:var(--text)}
+.banner h3{font-family:var(--label);font-size:13px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--warn);margin:0 0 8px}
+.banner p{margin:0 0 7px;font-size:15px;line-height:1.65;color:var(--text)}
 .banner b{color:var(--text)}
 .empty{padding:44px 20px;text-align:center;color:var(--muted)}
 .empty .big{font-family:var(--display);font-size:18px;font-weight:600;color:var(--text);margin-bottom:7px}
-footer{margin-top:22px;color:var(--muted);font-size:12px;line-height:1.7}
-footer b{color:var(--text);font-family:var(--mono);font-size:11px;font-variant-numeric:tabular-nums}
-footer table{border-collapse:collapse;margin:8px 0;font-variant-numeric:tabular-nums;font-size:12px}
+footer{margin-top:22px;color:var(--muted);font-size:13px;line-height:1.7}
+footer b{color:var(--text);font-family:var(--mono);font-size:13px;font-variant-numeric:tabular-nums}
+footer table{border-collapse:collapse;margin:8px 0;font-variant-numeric:tabular-nums;font-size:13px}
 footer td{padding:1px 14px 1px 0}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:var(--r-btn)}
 @media (max-width:760px){
@@ -227,10 +227,10 @@ footer td{padding:1px 14px 1px 0}
   .tile{margin-left:0;gap:10px 14px;flex-basis:100%;flex-wrap:wrap;justify-content:space-between;padding:10px 12px}
   .tile>div{flex:1 1 auto;min-width:0}
   .tile b{font-size:20px}
-  .tile span{font-size:9px;letter-spacing:.1em}
+  .tile span{font-size:11px;letter-spacing:.1em}
   .row{gap:8px;padding:6px 4px 6px 10px;min-height:56px}
   .thead{gap:8px;padding:8px 4px 7px 10px}
-  .who{font-size:15px}
+  .who{font-size:16px}
   .thead .mtch,.row .mtch,.thead .fair,.row .fair{display:none}
   .game.v-td{--cols:24px 1fr 68px 96px 14px}
   .game.v-td.nopx{--cols:24px 1fr 68px 14px}
@@ -238,7 +238,7 @@ footer td{padding:1px 14px 1px 0}
   .game.v-stat.nopx{--cols:24px 1fr 54px 64px 14px}
   .game.v-game{--cols:24px 1fr 100px 72px 14px}
   .prob{font-size:20px}
-  .caret{font-size:13px}
+  .caret{font-size:14px}
   .bet{flex-wrap:wrap}
   .bet .lp{display:block;white-space:nowrap;margin-top:1px}
   .bet .right{align-self:flex-start}
@@ -250,21 +250,21 @@ footer td{padding:1px 14px 1px 0}
    the model's chance at that price, coloured the way the baseball board
    colours its market chip (over 2% good, at or above zero a warning, else
    bad). The cell stays on a phone; the matchup and fair columns go. */
-.px{font-family:var(--mono);text-align:right;font-variant-numeric:tabular-nums;font-size:14px;font-weight:600;line-height:1.2}
-.px small.edge{display:inline-block;font-family:var(--label);font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;padding:3px 9px;border-radius:999px;border:1px solid var(--line);margin-top:3px;line-height:1.3;font-stretch:87.5%}
+.px{font-family:var(--mono);text-align:right;font-variant-numeric:tabular-nums;font-size:15px;font-weight:600;line-height:1.2}
+.px small.edge{display:inline-block;font-family:var(--label);font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;padding:3px 9px;border-radius:999px;border:1px solid var(--line);margin-top:3px;line-height:1.3;font-stretch:100%}
 .px small.edge.good{color:var(--ink);border-color:var(--good);background:var(--good);font-weight:700}
 .px small.edge.bad{color:#fff;border-color:var(--bad);background:var(--bad);font-weight:700}
 .px small.edge.warn{color:var(--ink);border-color:var(--warn);background:var(--warn);font-weight:700}
-.px .none{font-family:var(--body);color:var(--muted-dim);font-weight:400;font-size:12px}
+.px .none{font-family:var(--body);color:var(--muted-dim);font-weight:400;font-size:13px}
 /* One colour rule for an edge wherever it is shown: the slip, the row, the panel. */
 .edge.good{color:var(--good)} .edge.warn{color:var(--warn)} .edge.bad{color:var(--bad)}
 .pxrow{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin:8px 0 2px}
 .pxrow label{display:flex;gap:8px;align-items:center;color:var(--text)}
-.pxin{font:inherit;font-family:var(--mono);font-size:15px;font-weight:600;width:100px;background:var(--surface2);border:1px solid var(--line);border-radius:var(--r-btn);padding:7px 11px;color:var(--text);font-variant-numeric:tabular-nums}
+.pxin{font:inherit;font-family:var(--mono);font-size:16px;font-weight:600;width:100px;background:var(--surface2);border:1px solid var(--line);border-radius:var(--r-btn);padding:7px 11px;color:var(--text);font-variant-numeric:tabular-nums}
 .pxin:focus{border-color:var(--accent);outline:none}
 .pxedge b{font-family:var(--mono);font-variant-numeric:tabular-nums}
 @media (max-width:760px){
-  .px{font-size:12px}
+  .px{font-size:13px}
 }
 /* The player drawer: a sheet on the right at desktop width, a sheet
    from the bottom on a phone; the scrim behind it closes it, so does
@@ -274,7 +274,7 @@ footer td{padding:1px 14px 1px 0}
   z-index:41;overflow-y:auto;padding:18px 20px 28px;box-shadow:-8px 0 24px rgba(0,0,0,.4);transition:transform .25s ease-out}
 .dhead{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding-bottom:12px;margin-bottom:12px;border-bottom:1px solid var(--line)}
 .dhead h2{font-family:var(--display);font-size:22px;font-weight:700;margin:0;font-variation-settings:'opsz' 40}
-.dsub{color:var(--muted);font-size:13px;margin-top:3px}
+.dsub{color:var(--muted);font-size:14px;margin-top:3px}
 .dclose{font:inherit;font-family:var(--label);font-size:18px;line-height:1;color:var(--muted);background:var(--surface);border:1px solid var(--line);border-radius:var(--r-btn);width:38px;height:38px;cursor:pointer;flex:none}
 .dclose:hover{color:var(--text);border-color:var(--rule)}
 .dtabs{margin-bottom:14px;flex-wrap:wrap;overflow:visible}
@@ -287,10 +287,10 @@ button.rung:hover{border-color:var(--rule)}
    threshold, the bars that clear it in green. */
 .bars{display:block;width:100%;max-width:520px;height:auto;margin:8px 0 4px}
 .bars .bar{fill:rgba(255,255,255,.14)} .bars .bar.hit{fill:var(--good)}
-.bars .bv{fill:var(--text);font-family:var(--mono);font-size:11px;font-variant-numeric:tabular-nums} .bars .bv.in{fill:var(--ink);font-weight:700} .bars .bl{fill:var(--muted);font-family:var(--label);font-size:10px}
+.bars .bv{fill:var(--text);font-family:var(--mono);font-size:13px;font-variant-numeric:tabular-nums} .bars .bv.in{fill:var(--ink);font-weight:700} .bars .bl{fill:var(--muted);font-family:var(--label);font-size:12px}
 .bars .thr{stroke:var(--warn);stroke-width:1;stroke-dasharray:4 3}
-.glog td{padding:1px 14px 1px 0;font-family:var(--mono);font-size:12px;font-variant-numeric:tabular-nums}
-.glog tr:first-child td{font-family:var(--label);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.glog td{padding:1px 14px 1px 0;font-family:var(--mono);font-size:13px;font-variant-numeric:tabular-nums}
+.glog tr:first-child td{font-family:var(--label);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
 @media (max-width:760px){
   .drawer{top:auto;left:0;right:0;width:100%;max-height:88vh;border-left:0;border-top:1px solid var(--line);border-radius:var(--r-panel) var(--r-panel) 0 0;padding:14px 14px 24px}
 }
@@ -305,20 +305,20 @@ button.rung:hover{border-color:var(--rule)}
 /* The compare tray: up to three players side by side at the foot of
    the page, each with the number the current view ranks by. */
 .dbtns{display:flex;gap:8px;align-items:center;flex:none}
-.dcompare{font:inherit;font-family:var(--body);font-size:13px;color:var(--muted);background:var(--surface);border:1px solid var(--line);border-radius:var(--r-btn);padding:0 13px;height:38px;cursor:pointer}
+.dcompare{font:inherit;font-family:var(--body);font-size:14px;color:var(--muted);background:var(--surface);border:1px solid var(--line);border-radius:var(--r-btn);padding:0 13px;height:38px;cursor:pointer}
 .dcompare:hover{color:var(--text);border-color:var(--rule)}
 .dcompare[disabled]{opacity:.5;cursor:default}
 .tray{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--bg);border-top:1px solid var(--rule);padding:10px 14px;
   display:flex;gap:10px;align-items:stretch;box-shadow:0 -6px 20px rgba(0,0,0,.4)}
 .tray:not([hidden])~footer{margin-bottom:150px}
 .tcards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;flex:1;min-width:0}
-.tcard{position:relative;border:1px solid var(--line);border-radius:var(--r-btn);padding:10px 34px 10px 14px;background:var(--surface);font-size:13px;color:var(--muted)}
-.tcard .tname{font-family:var(--display);font-weight:600;font-size:14px;color:var(--text)}
+.tcard{position:relative;border:1px solid var(--line);border-radius:var(--r-btn);padding:10px 34px 10px 14px;background:var(--surface);font-size:14px;color:var(--muted)}
+.tcard .tname{font-family:var(--display);font-weight:600;font-size:15px;color:var(--text)}
 .tcard .tnum{font-family:var(--mono);font-size:20px;font-weight:600;color:var(--accent);font-variant-numeric:tabular-nums;margin-top:2px}
-.tcard .tnum small{font-family:var(--body);font-size:12px;font-weight:400;color:var(--muted);margin-left:6px}
-.tcard button{position:absolute;top:6px;right:6px;font:inherit;font-size:16px;line-height:1;color:var(--muted);background:none;border:0;cursor:pointer;width:24px;height:24px}
+.tcard .tnum small{font-family:var(--body);font-size:13px;font-weight:400;color:var(--muted);margin-left:6px}
+.tcard button{position:absolute;top:6px;right:6px;font:inherit;font-size:17px;line-height:1;color:var(--muted);background:none;border:0;cursor:pointer;width:24px;height:24px}
 .tcard button:hover{color:var(--text)}
-.tclear{font:inherit;font-family:var(--body);font-size:13px;color:var(--muted);background:var(--surface);border:1px solid var(--line);border-radius:var(--r-btn);padding:8px 13px;cursor:pointer;align-self:center;flex:none}
+.tclear{font:inherit;font-family:var(--body);font-size:14px;color:var(--muted);background:var(--surface);border:1px solid var(--line);border-radius:var(--r-btn);padding:8px 13px;cursor:pointer;align-self:center;flex:none}
 .tclear:hover{color:var(--text);border-color:var(--rule)}
 @media (max-width:760px){
   .tray{flex-wrap:wrap;padding:8px 10px}
@@ -334,9 +334,9 @@ button.rung:hover{border-color:var(--rule)}
 .card.reached,.card.cashed{border-color:rgba(61,255,92,.6)}
 .card.oneaway{border-color:rgba(255,210,63,.6)}
 .card .ctop{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
-.card .cname{font-family:var(--display);font-size:16px;font-weight:600;color:var(--text)}
-.card .cmeta{font-size:13px;color:var(--muted);margin-top:2px}
-.card .cprop{font-family:var(--label);font-size:10px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-stretch:87.5%}
+.card .cname{font-family:var(--display);font-size:17px;font-weight:600;color:var(--text)}
+.card .cmeta{font-size:14px;color:var(--muted);margin-top:2px}
+.card .cprop{font-family:var(--label);font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-stretch:100%}
 .bar{height:8px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden;margin:12px 0 8px}
 .bar i{display:block;height:100%;background:var(--accent);border-radius:999px;transition:width .4s ease-out}
 .card.reached .bar i,.card.cashed .bar i{background:var(--good)}
@@ -344,15 +344,15 @@ button.rung:hover{border-color:var(--rule)}
 .card .cnum{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
 .card .cnum b{font-family:var(--mono);font-size:20px;font-weight:600;color:var(--accent);font-variant-numeric:tabular-nums}
 .card.reached .cnum b,.card.cashed .cnum b{color:var(--good)}
-.card .cnum small{font-family:var(--mono);font-size:12px;color:var(--muted)}
-.card .cx{font:inherit;font-size:16px;line-height:1;color:var(--muted);background:none;border:0;cursor:pointer;width:26px;height:26px;margin:-6px -8px -6px 0;border-radius:var(--r-btn)}
+.card .cnum small{font-family:var(--mono);font-size:13px;color:var(--muted)}
+.card .cx{font:inherit;font-size:17px;line-height:1;color:var(--muted);background:none;border:0;cursor:pointer;width:26px;height:26px;margin:-6px -8px -6px 0;border-radius:var(--r-btn)}
 .card .cx:hover{color:var(--text)}
-.card .cfoot{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:8px;font-size:12px;color:var(--muted)}
+.card .cfoot{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:8px;font-size:13px;color:var(--muted)}
 .lstrip .seg button small{font-family:var(--mono);margin-left:6px;color:inherit;opacity:.8}
-.updated{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.updated{font-family:var(--mono);font-size:13px;color:var(--muted)}
 /* Track buttons in the drawer: the pressed rung, or the touchdown. */
 .trackrow{margin:10px 0 2px}
-.track{font:inherit;font-family:var(--body);font-size:14px;font-weight:600;color:var(--text);background:var(--surface2);border:1px solid var(--line);border-radius:var(--r-btn);padding:8px 14px;cursor:pointer}
+.track{font:inherit;font-family:var(--body);font-size:15px;font-weight:600;color:var(--text);background:var(--surface2);border:1px solid var(--line);border-radius:var(--r-btn);padding:8px 14px;cursor:pointer}
 .track:hover{border-color:var(--accent)}
 .track[aria-pressed=true]{color:var(--ink);background:var(--accent);border-color:var(--accent)}
 /* Touch: fingers need 44px; the mouse does not. Pages add their own tap targets. */

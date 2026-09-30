@@ -27,6 +27,17 @@ Zero dependencies, no build step, no server, no API key. `node --test` with
 **named files** — bare discovery pulls in the backtests, which fire live API
 calls. The list lives in seven places and `dom.test.mjs` checks all seven.
 
+## Larger type (2026-09-29, later still)
+
+The user asked for text that is easier to read. Every `font-size`
+under 18px in `board.css` went up one step (10 to 12, 11 and 12 to 13,
+13 to 14, 14 to 15, 15 to 16, 16 to 17; 97 rules, one regex pass), the
+body to 16px, the caps labels lost their 87.5% condensing and loosened
+to 0.1em tracking, and the muted greys lightened. The figures, panel
+titles and wordmark did not move. Checked: rows still 60px, no column
+head wraps at 1440, and no sideways scroll at 390px on the NFL, live,
+baseball and bets boards. DESIGN.md's typography follows.
+
 ## Neon green (2026-09-29, later)
 
 The gold on black did not pop for the user. Three palettes were mocked
