@@ -1571,4 +1571,6 @@ test("the stylesheet gives every column set a face track after the rank", () => 
   // The phone block overrides the disc's size with equal specificity, so the base rule must come first in the sheet.
   assert.ok(css.indexOf(".face{") < css.indexOf("@media (max-width:760px){"), "the .face base rule sits after the phone block and defeats its override");
   assert.ok(css.indexOf(".dface .face{") < css.indexOf("@media (max-width:760px){"), "the drawer face's base rule sits after the phone block");
+  // 761 to 900px: the stat view's columns must fit without the fair price, or .game clips the price cell.
+  assert.match(css, /@media \(min-width:761px\) and \(max-width:900px\)\{[^}]*\.game\.v-stat \.row \.fair\{display:none\}/, "no tablet rule drops the stat view's fair column");
 });

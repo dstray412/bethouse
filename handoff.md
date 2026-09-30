@@ -29,6 +29,17 @@ Zero dependencies, no build step, no server, no API key. `node --test` with
 **named files** — bare discovery pulls in the backtests, which fire live API
 calls. The list lives in seven places and `dom.test.mjs` checks all seven.
 
+## Tablet clipping on the stat view (2026-09-29, last)
+
+Pre-existing, noticed by the faces review: between 761 and about 812px
+the stat view's eight desktop columns did not fit and `.game`'s
+`overflow:hidden` clipped the caret and part of the price cell, with no
+scrollbar (measured 44px at 768). A tablet block in board.css, 761 to
+900px, drops the fair column on the stat view (the phone drops it too)
+and narrows the matchup and price cells; measured 0 clip across the
+range, with the price cell inside the row. `dom.test.mjs` pins the
+block.
+
 ## Faces (2026-09-29, late)
 
 The user showed nhlpropking.com's board (a headshot between the star
