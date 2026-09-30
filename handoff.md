@@ -34,13 +34,21 @@ calls. The list lives in seven places and `dom.test.mjs` checks all seven.
 Pre-existing, noticed by the faces review: between 761 and about 812px
 the stat view's eight desktop columns did not fit and `.game`'s
 `overflow:hidden` clipped the caret and part of the price cell, with no
-scrollbar (measured 44px at 768). A tablet block in board.css, 761 to
-900px, drops the fair column on the stat view (the phone drops it too)
-and narrows the matchup, figure and price cells (108 / 74 / 74 / 100px);
-measured 0 clip across the range, nothing clipped inside a cell, and
-the name cell at 131px at 761 and 138px at 768 (it was 86px on the
-first cut, which the user asked to widen). `dom.test.mjs` pins the
-block.
+scrollbar (measured 44px at 768). A tablet block in board.css, up to
+959px, drops the fair column on the TD and stat views (the phone drops
+it too) and narrows the matchup, figure and price cells. The block sits
+before the phone block so the phone's sets win at 760 and below: the
+first cut used `min-width:761px`, and a fractional viewport (browser
+zoom, Windows scaling) between 760 and 761 matched neither block and
+clipped again; the review also measured the name cell collapsing on the
+desktop set up to ~956px, hence 959. `dom.test.mjs` pins the invariant
+rather than the text: for each view and variant, the tablet set has
+exactly as many fewer tracks as cells the block hides, and the block
+precedes the phone block. Measured with fresh loads at 760, 761, 768,
+800, 850, 900, 940, 959, 960 and 1000: zero clip, zero name overflow,
+heads aligned to rows; the name cell on the stat view is 127px at 761
+and 134px at 768 (TD view 191 and 198). Those assume overlay
+scrollbars (macOS); a classic 15px scrollbar takes 15px off each.
 
 ## Faces (2026-09-29, late)
 

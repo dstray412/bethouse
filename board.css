@@ -235,6 +235,19 @@ footer td{padding:1px 14px 1px 0}
 .dface .face{width:64px;height:64px}
 .dface .tmark{width:28px;height:28px;margin:0}
 
+/* Tablets, up to 959px: the desktop column sets do not fit (the stat
+   view's eight columns clip the price cell under ~812px; the name cell
+   collapses under ~956px). The fair price goes, as on a phone, and the
+   matchup, figures and price narrow. This block sits BEFORE the phone
+   block so the phone's own sets win at 760px and below, and no
+   fractional width falls between two ranges. */
+@media (max-width:959px){
+  .game.v-td .thead .fair,.game.v-td .row .fair,.game.v-stat .thead .fair,.game.v-stat .row .fair{display:none}
+  .game.v-td{--cols:34px 44px 1fr 112px 84px 110px 18px}
+  .game.v-td.nopx{--cols:34px 44px 1fr 112px 84px 18px}
+  .game.v-stat{--cols:34px 44px 1fr 112px 74px 74px 100px 18px}
+  .game.v-stat.nopx{--cols:34px 44px 1fr 112px 74px 74px 18px}
+}
 @media (max-width:760px){
   .wrap{padding:14px 12px 40px}
   header{gap:12px}
@@ -266,14 +279,6 @@ footer td{padding:1px 14px 1px 0}
   .bet .right{align-self:flex-start}
   .leg-line{flex-wrap:wrap}
   .leg-line .meta,.leg-line .lp{flex:1 0 100%;order:3;padding-left:0}
-}
-/* Tablets, 761 to 900px: the stat view's eight columns do not fit, and
-   .game clips the caret and the price cell. The fair price goes (the
-   phone drops it too) and the matchup narrows. */
-@media (min-width:761px) and (max-width:900px){
-  .game.v-stat .thead .fair,.game.v-stat .row .fair{display:none}
-  .game.v-stat{--cols:34px 44px 1fr 108px 74px 74px 100px 18px}
-  .game.v-stat.nopx{--cols:34px 44px 1fr 108px 74px 74px 18px}
 }
 /* The price you are offered, typed in the drawer and shown on the row
    beside the fair price with the edge at it: edge.js's expected value of

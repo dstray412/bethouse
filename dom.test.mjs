@@ -1571,6 +1571,29 @@ test("the stylesheet gives every column set a face track after the rank", () => 
   // The phone block overrides the disc's size with equal specificity, so the base rule must come first in the sheet.
   assert.ok(css.indexOf(".face{") < css.indexOf("@media (max-width:760px){"), "the .face base rule sits after the phone block and defeats its override");
   assert.ok(css.indexOf(".dface .face{") < css.indexOf("@media (max-width:760px){"), "the drawer face's base rule sits after the phone block");
-  // 761 to 900px: the stat view's columns must fit without the fair price, or .game clips the price cell.
-  assert.match(css, /@media \(min-width:761px\) and \(max-width:900px\)\{[^}]*\.game\.v-stat \.row \.fair\{display:none\}/, "no tablet rule drops the stat view's fair column");
+  /* Tablets: a block under 960px hides some cells on the football views and gives each view a
+     column set with exactly that many fewer tracks, so the grid still names every visible cell
+     (the emitter at football-board.js writes the same cells on every view). It must precede the
+     phone block so the phone's sets win below it and no fractional width falls in a gap. */
+  const tracks = (v) => v.trim().split(/\s+/).length;
+  const tab = css.match(/@media \(max-width:959px\)\{([\s\S]*?)\n\}/);
+  assert.ok(tab, "no tablet block");
+  assert.ok(css.indexOf("@media (max-width:959px){") < css.indexOf("@media (max-width:760px){"), "the tablet block must precede the phone block");
+  for (const view of ["v-td", "v-stat"]) {
+    // The cells the block hides on this view: every selector of every display:none rule in the block.
+    const hidden = [];
+    for (const rule of tab[1].matchAll(/([^{}]+)\{display:none\}/g)) {
+      for (const sel of rule[1].split(",")) {
+        const m = sel.trim().match(new RegExp("^\\.game\\." + view + " \\.row \\.([a-z]+)$"));
+        if (m) hidden.push(m[1]);
+      }
+    }
+    assert.ok(hidden.length, view + ": the tablet block hides nothing, so its column set must equal the desktop's");
+    for (const variant of ["", ".nopx"]) {
+      const re = new RegExp("\\.game\\." + view.replace(".", "\\.") + variant.replace(".", "\\.") + "\\{--cols:([^};]+)");
+      const desk = css.slice(0, css.indexOf("@media")).match(re), tb = tab[1].match(re);
+      assert.ok(desk && tb, view + variant + ": a desktop and a tablet column set");
+      assert.equal(tracks(tb[1]), tracks(desk[1]) - hidden.length, view + variant + ": the tablet set's track count does not match the cells the block leaves visible");
+    }
+  }
 });
