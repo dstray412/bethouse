@@ -117,7 +117,9 @@ Panels (the table, the slip, the tile, the record, a day in the log) at 14px; bu
 - **Bet log row**: date in mono muted, the bet in body, said and price in mono, won and lost as 10px caps labels in `success` and `error`.
 - **Hero** (`.hero`): a surface panel with a fully round accent pill naming the day, a long date beside it in label caps, a display heading at 34px and one measured sentence in body. Nothing else lives in it: the board links sit in their own labelled strip (`.bstrip`) beneath, as `.btn` links, so the panel is only about the day. One per page, the home only.
 - **Game card** (`.gcard`): surface panel at 14px; league and start time in label caps on the top line; the two teams as logo, abbreviation in display 20px and, for football, the projected points in mono accent; a hairline, then two labelled mono values (favourite and pick, or pitchers and lineups) and an `Open →` link in accent caps. Finished games at 70% opacity.
-- **Logo** (`.tlogo`): 44px (36px on a phone), `object-fit:contain`, from ESPN's CDN with no referrer, hidden if it does not load. The one image the site ships.
+- **Logo** (`.tlogo`): 44px (36px on a phone), `object-fit:contain`, from ESPN's CDN with no referrer, hidden if it does not load. The home's game cards.
+- **Headshot** (`.face`): a 44px disc on `surface-2` (28px on a phone, where the rank number is hidden to give the name its room) with the player's photo `object-fit:cover`, cropped to the top; 64px in the drawer head, 32px on a tray card, 40px on a live card, 24px on a slip or bet-log leg. Between the rank and the name in every row. ESPN's headshots for football and golf (sized by ESPN's combiner, ~8 KB), MLB's for batters; `alt=""` since the name is beside it; lazy, no referrer, hidden when it does not load so the empty disc stays and the row keeps its shape. Never a silhouette.
+- **Team mark** (`.tmark`): a 22px logo before the team's abbreviation in the matchup cell (both teams), 28px beside the drawer title, 20px in a baseball team header, 18px on a live card and a bet-log leg; two 20px marks in a game row's face cell. ESPN's, sized to 80px by the combiner (~3 KB); college keyed by ESPN's numeric team id from the game, so a team with no game on file has no mark and no gap.
 - **States**: disabled at 50% opacity with the cursor default; empty states in body text on the ground, no illustration; loading is the same empty panel with the one sentence it has today.
 
 ## Do's and Don'ts
@@ -130,7 +132,7 @@ Panels (the table, the slip, the tile, the record, a day in the log) at 14px; bu
 - Don't add a card inside a card, a glow, or a gradient.
 - Don't colour a number that is not the row's headline figure, and never a control green.
 - Don't put a kicker above a heading or an icon in a circle beside one.
-- Don't add a photo, a mascot or a drawn illustration. The one image the site ships is a team logo on the home's game cards, from ESPN's CDN.
+- Don't add a mascot, a drawn illustration or a placeholder silhouette. The images the site ships are player headshots and team logos from the leagues' own image services, at the sizes the Headshot and Team mark components fix, and nothing else.
 - Don't let a page carry its own `:root` or redefine the shared classes; everything lives in `board.css`.
 
 ## Motion
@@ -143,6 +145,7 @@ Panels (the table, the slip, the tile, the record, a day in the log) at 14px; bu
 ## Decisions Log
 | Date | Decision | Rationale |
 |------|----------|-----------|
+| 2026-09-29 | Player headshots and team marks throughout | The user showed nhlpropking.com's board: a headshot between the star and the name on every row. Every row on the four boards, the football drawer, the compare tray, the slip legs, the live cards, the bet-log legs and the baseball team headers now carry the player's photo and the team's mark from the leagues' own image services (ESPN's combiner for football, golf and logos; MLB's photo service for batters), through one module, faces.js, that fixes the markup: lazy, no referrer, a fixed box, hidden on error. The no-images rule becomes a no-illustration rule. |
 | 2026-09-29 | A home with the slate, and team logos | The user showed nhlpropking.com's home and asked for it: a hero for the day, game cards with logos and the model's favourite, tops. Chosen with the user: the root becomes the home (baseball moves to baseball.html), logos load from ESPN's logo CDN rather than being committed or replaced by coloured chips, the slate covers every board with games today. The logo is the one exception to the no-images rule; it is sent without a referrer and hidden on error. No team colours and no gradients: the reference has them, this design does not. |
 | 2026-09-29 | Type one step larger, labels uncondensed, greys lighter | The user asked for text that is easier to read. Every size under 18px went up one step (10 to 12, 11 and 12 to 13, 13 to 14, 14 to 15, 15 to 16, 16 to 17), body to 16px, the labels dropped the 87.5% condensing and loosened from 0.14em to 0.1em, and muted text went to #C9C9C9 (14:1 on black). Rows still 60px; nothing scrolls sideways at 390px. |
 | 2026-09-29 | Neon green, solid pills, white text | The user saw the gold on black and asked for colour that pops; of three mocks on the real board (amber, lime, cyan + gold) they chose the lime and asked for a truer green. Accent and success are one neon green (#3DFF5C), warning #FFD23F, error #FF3366, text pure white, and the pills went from faint tints to solid fills with ink text. |

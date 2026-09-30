@@ -148,6 +148,7 @@ should be re-fitted when the run environment shifts.
 |---|---|
 | `index.html` | The home: tonight's slate, one card per game with the two teams' logos, the football boards' projection and pick, a row of tops. |
 | `home.js` | The home's arithmetic: one slate out of the boards' data, which day it shows, the football card, the tops, the tile. Tested in `home.test.mjs`. |
+| `faces.js` | A player's photo and a team's mark for every page: the urls by league and size, and the one `<img>` markup (lazy, no referrer, fixed box, hidden on error). Tested in `faces.test.mjs`. |
 | `baseball.html` | The baseball board. |
 | `board.css` | The one stylesheet every board loads: tokens, header, controls, rows, panels, the phone and touch rules. A page's own components sit in a short `<style>` after the link. |
 | `score.js` | The model. Loads in both browser and Node so the app, tests and backtest run identical code. |
@@ -185,6 +186,25 @@ should be re-fitted when the run environment shifts.
 | `statcast.mjs` | Last season's Statcast expected batting average per hitter, as a per-PA prior for the regression centre. No key. Committed under `statcast/`. 3 tests. |
 | `experiment-statcast.mjs` | Re-scores every published H/R/RBI prediction with the prior and applies the shrink's own validation bar. It passed. |
 | `experiment-lines.mjs` | Tests every reconfiguration of the game model a box score can support against the closing line, per season. Nothing helped. Kept so the negative result stays reproducible. |
+
+## Faces
+
+**2026-09-29.** Every row on the four boards carries the player's photo
+between the rank and the name, and the matchup carries both teams'
+marks; so do the football drawer's head, the compare tray, the slip
+legs, the live tracker's cards, the bet log's legs and the baseball
+board's team headers. `faces.js` is the one place a page asks: ESPN's
+image service for football and golf headshots and for every team's
+logo (sized by ESPN's combiner, about 8 KB a photo and 3 KB a mark),
+MLB's photo service for batters, by the ids the data files already
+carry (ESPN athlete ids, MLB person ids, ESPN golfer ids; college
+teams by the numeric id the game carries). The markup is fixed: `alt=""`
+beside the name, `loading="lazy"`, a fixed box so a row never shifts,
+`referrerpolicy="no-referrer"`, and `onerror` hides the image so a
+missing photo leaves an empty disc rather than a silhouette. A board's
+default 20 rows cost about 160 KB of photos, lazily; "show more" adds
+the rest as they scroll into view. `dom.test.mjs` pins the attributes
+on every `<img>` any page writes and the two hosts.
 
 ## Home
 

@@ -25,13 +25,13 @@
 
 /* slot | who | prob | track | caret. The parlay + is the variant, not the
    default: it exists on one bet type, tracking exists on all three. */
-.row{display:grid;grid-template-columns:32px 1fr 78px 30px 20px;gap:10px;align-items:center;
+.row{display:grid;grid-template-columns:32px 44px 1fr 78px 30px 20px;gap:10px;align-items:center;
   width:100%;text-align:left;font:inherit;color:inherit;background:none;border:0;
   padding:8px 15px;cursor:pointer;border-top:1px solid var(--line)}
-.row.parlay{grid-template-columns:32px 1fr 78px 30px 30px 20px}
+.row.parlay{grid-template-columns:32px 44px 1fr 78px 30px 30px 20px}
 /* Replay rows have no reasoning panel to open, so no caret column. */
-.row.hist{grid-template-columns:32px 1fr 78px 30px;cursor:default}
-.row.hist.parlay{grid-template-columns:32px 1fr 78px 30px 30px}
+.row.hist{grid-template-columns:32px 44px 1fr 78px 30px;cursor:default}
+.row.hist.parlay{grid-template-columns:32px 44px 1fr 78px 30px 30px}
 .row.hist:hover{background:none}
 /* The outcome chip sits inline after the name, like .pos does. */
 .who .settled{margin-left:7px}
@@ -111,10 +111,10 @@ table.waterfall tr.wtot td.wl{color:var(--muted);font-size:10px;letter-spacing:.
   .ctl .seg button{flex:1 1 0;min-height:40px;padding:6px}
   /* Five columns now, the last for the caret: hover cannot say "tap me"
      on a phone, so the chevron stays. Every grid names every child. */
-  .row{grid-template-columns:26px 1fr 64px 44px 12px;gap:7px}
-  .row.parlay{grid-template-columns:26px 1fr 58px 44px 44px 12px}
-  .row.hist{grid-template-columns:26px 1fr 64px 44px 12px}
-  .row.hist.parlay{grid-template-columns:26px 1fr 58px 44px 44px}
+  .row{grid-template-columns:22px 28px 1fr 60px 44px 12px;gap:6px}
+  .row.parlay{grid-template-columns:22px 28px 1fr 52px 44px 44px 12px}
+  .row.hist{grid-template-columns:22px 28px 1fr 60px 44px}
+  .row.hist.parlay{grid-template-columns:22px 28px 1fr 52px 44px 44px}
   /* 28px fails the 44px touch minimum, and this is the primary action on the
      page: it is how a leg gets into the parlay slip. */
   .addleg{width:44px;height:44px;font-size:20px}
@@ -192,6 +192,7 @@ table.waterfall tr.wtot td.wl{color:var(--muted);font-size:10px;letter-spacing:.
 </div>
 
 <script src="edge.js"></script>
+<script src="faces.js"></script>
 <script src="score.js"></script>
 <script src="bets.js"></script>
 <script src="mlb-data.js"></script>
@@ -256,6 +257,10 @@ var TOP   = [ {id:2,label:'Top 2'}, {id:3,label:'Top 3'}, {id:5,label:'Top 5'}, 
 
 /* ---------------- helpers ---------------- */
 function el(t,c,x){var n=document.createElement(t); if(c)n.className=c; if(x!=null)n.textContent=x; return n;}
+/* A batter's photo (MLB's own, by person id) and a team's mark, from faces.js; an empty disc without. */
+var FACES=window.BetHouseFaces||null;
+function faceEl(id,px){ var f=el('div','face'); if(FACES) f.innerHTML=FACES.img(FACES.headshotUrl('MLB',id,'row'),'',px||44); return f; }
+function markHtml(abbrev,px){ return FACES?FACES.mark('MLB',abbrev,px||20):''; }
 // Names arrive from statsapi.mlb.com and go into innerHTML alongside markup we
 // want rendered, so textContent is not an option there. MLB is not a hostile
 // source, but this page is public and the cost of being right is one function.
@@ -450,6 +455,7 @@ function renderSlip(){
   state.slip.forEach(function(l){
     var row=el('div','leg');
     var left=el('div');
+    left.appendChild(faceEl(l.playerId,24));
     left.appendChild(document.createTextNode(l.name));
     left.appendChild(el('span','lp',' '+l.team+' \u00b7 '+l.propLabel));
     row.appendChild(left);
@@ -1117,6 +1123,7 @@ function renderReplay(day){
 
         var row = el('div','row hist');
         row.appendChild(el('div','slot', p.slot ? '#'+p.slot : ''));
+        row.appendChild(faceEl(p.playerId));
 
         var who = el('div','who');
         who.appendChild(document.createTextNode(p.name));
@@ -1388,7 +1395,7 @@ function render(){
       any=true;
 
       var sh=el('div','shead');
-      var nm=el('div','sname'); nm.textContent=s.team;
+      var nm=el('div','sname'); nm.innerHTML=markHtml(s.abbrev); nm.appendChild(document.createTextNode(s.team));
       var chip=el('span','chip '+(s.confirmed?'live':'proj'), s.confirmed?'LINEUP POSTED':'PROJECTED');
       nm.appendChild(chip); sh.appendChild(nm);
       if(faces){
@@ -1414,6 +1421,7 @@ function render(){
         row.setAttribute('aria-expanded',String(open));
 
         row.appendChild(el('div','slot','#'+r.slot));
+        row.appendChild(faceEl(r.player.id));
         var who=el('div','who'); who.appendChild(document.createTextNode(r.name));
         if(r.player.pos) who.appendChild(el('span','pos',r.player.pos));
         if(r.confidence<0.65) who.appendChild(el('span','chip','THIN'));

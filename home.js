@@ -9,18 +9,16 @@
  * is a card the page does not show.
  */
 (function (root, factory) {
-  const api = factory();
+  const faces = typeof module !== "undefined" && module.exports ? require("./faces.js") : root.BetHouseFaces;
+  const api = factory(faces);
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   root.BetHouseHome = api;
-})(typeof globalThis !== "undefined" ? globalThis : this, function () {
+})(typeof globalThis !== "undefined" ? globalThis : this, function (F) {
   "use strict";
 
-  const LOGO = { NFL: "nfl", MLB: "mlb", "College football": "ncaa" };
   const BOARD = { NFL: "nfl.html", MLB: "baseball.html", "College football": "cfb.html" };
-  const key = (v) => {
-    const k = String(v == null ? "" : v).toLowerCase();
-    return /^[a-z0-9]{1,8}$/.test(k) ? k : null;
-  };
+  /* One validator for a team key, faces.js's; without faces.js nothing is a key. */
+  const key = (v) => (F && F.keyOf ? F.keyOf(v) : null);
 
   function footballGames(D, league, now) {
     const out = [];
@@ -119,11 +117,9 @@
     return n + (n === 1 ? " game: " : " games: ") + parts.join(", ") + " · " + when;
   }
 
-  /** ESPN's team logo, by league; null without a usable key. */
+  /** ESPN's team logo, the full file, by league; null without a usable key. faces.js is the one source. */
   function logoUrl(league, k) {
-    const path = LOGO[league];
-    const kk = key(k);
-    return path && kk ? "https://a.espncdn.com/i/teamlogos/" + path + "/500/" + kk + ".png" : null;
+    return F ? F.logoUrl(league, k, "full") : null;
   }
 
   /* What the football board's game view says about a game: the

@@ -59,6 +59,7 @@
 <!-- Models first, then this page's module, then every board's data. A
      data file that is missing is a board the home does not show. -->
 <script src="edge.js"></script>
+<script src="faces.js"></script>
 <script src="nfl.js"></script>
 <script src="cfb.js"></script>
 <script src="watchlist.js"></script>
@@ -86,6 +87,7 @@
   function render(){
   /* The college model is its own; without it a college card shows no numbers rather than the NFL's. */
   var H=window.BetHouseHome, N=window.BetHouseNFL, C=window.BetHouseCFB||null, E=window.BetHouseEdge, W=window.BetHouseWatchlist;
+  var F=window.BetHouseFaces||null;
   var esc=function(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); };
   var el=function(id){ return document.getElementById(id); };
   var data={ nfl:window.BetHouseNFLData||null, cfb:window.BetHouseCFBData||null, mlb:window.BETHOUSE_MLB||null, pga:window.BetHousePGAData||null,
@@ -116,7 +118,7 @@
      without a referrer, and hidden if it does not load. */
   var logo=function(g,side){
     var u=H.logoUrl(g.league, side==='home'?g.homeKey:g.awayKey);
-    return u?'<img class="tlogo" src="'+esc(u)+'" alt="" width="44" height="44" loading="lazy" referrerpolicy="no-referrer" onerror="this.hidden=true">':'';
+    return u&&F?F.img(u,'tlogo',44):'';
   };
   var chipFor=function(g){
     if(g.state==='in') return '<span class="chip livegame">'+(g.sport==='baseball'?'Live':'Started')+'</span>';

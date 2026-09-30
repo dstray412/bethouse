@@ -1007,7 +1007,7 @@ async function mountPlayers({ players, storage, storageThrows, noWatchlist, sear
   const nfl = (await import("./nfl.js")).default;
   const doc = stubDoc();
   const store = new Map(Object.entries(storage || {}));
-  const win = { BetHouseEdge: (await import("./edge.js")).default, BetHouseParlay: (await import("./parlay.js")).default, pushed: [], listeners: {} };
+  const win = { BetHouseEdge: (await import("./edge.js")).default, BetHouseParlay: (await import("./parlay.js")).default, BetHouseFaces: (await import("./faces.js")).default, pushed: [], listeners: {} };
   win.location = { search: search || "", pathname: "/nfl.html" };
   win.history = { pushState(_s, _t, url) { win.pushed.push(url); }, replaceState(_s, _t, url) { win.pushed.push(url); } };
   win.addEventListener = (type, fn) => { (win.listeners[type] = win.listeners[type] || []).push(fn); };
@@ -1487,13 +1487,9 @@ test("index.html is the home: the shared models and every board's data, the slat
   assert.doesNotMatch(html, /fonts\.googleapis|https?:\/\/[^"]*\.(js|css)"/, "an off-origin script or sheet");
   // The img markup is built in the script; its src is whatever home.js's logoUrl returns (pinned to
   // ESPN's CDN in home.test.mjs), escaped, with no referrer and hidden when it does not load.
-  const imgs = html.match(/<img[^>]*>/g) || [];
-  assert.ok(imgs.length, "the page builds a logo img");
-  for (const im of imgs) {
-    assert.match(im, /src="'\+esc\(u\)\+'"/, "a logo src that is not the module's sanitised url: " + im);
-    assert.match(im, /referrerpolicy="no-referrer"/, "a logo request that carries a referrer");
-    assert.match(im, /onerror="this\.hidden=true"/, "a logo that does not fail closed");
-  }
+  // The logo img is faces.js's markup (pinned in faces.test.mjs) around home.js's url (pinned in home.test.mjs).
+  assert.doesNotMatch(html, /<img/, "the home hand-rolls an <img> instead of asking faces.js");
+  assert.match(html, /F\.img\(u,'tlogo',44\)/, "the logo is not built by faces.js");
   assert.match(html, /H\.logoUrl\(/, "the src comes from home.js");
   // The boards' verdict travels with the numbers: the replay found the favourite and the lines do not beat the market.
   assert.match(html, /id="caveat"[^>]*>[^<]*replay found neither beats the market/, "the home shows the football numbers without the boards' warning");
@@ -1508,4 +1504,71 @@ test("the baseball board kept its page under its new name, and every board calls
     if (page === "index.html") continue;
     assert.match(src(page), /class="navlink" href="index\.html">Home →</, page + " links Home");
   }
+});
+
+/* ------------------------------------------------------------------ *
+ * Every image on the site follows one rule, and every page can draw one
+ *
+ * Headshots and team marks come from the leagues' own image services
+ * through faces.js. Wherever a page writes an <img>, in markup or in a
+ * script string, it carries no referrer, loads lazily and hides itself
+ * when it does not load; and the only image hosts named anywhere are
+ * ESPN's and MLB's. Every board loads faces.js so it can ask.
+ * ------------------------------------------------------------------ */
+
+test("faces.js is the only file that writes an <img>, its markup carries the house attributes, and only the leagues' image hosts are named", () => {
+  const faces = src("faces.js");
+  const imgs = faces.match(/<img[^>]*>/g) || [];
+  assert.equal(imgs.length, 1, "faces.js builds the img once");
+  for (const attr of [/referrerpolicy="no-referrer"/, /onerror="this\.hidden=true"/, /loading="lazy"/, /decoding="async"/, /alt="/, /width="/, /height="/]) {
+    assert.match(imgs[0], attr, "the img markup lacks " + attr);
+  }
+  for (const page of BOARDS.concat(["football-board.js", "home.js", "live.js", "bets.js", "watchlist.js"])) {
+    assert.doesNotMatch(src(page), /<img/, page + " hand-rolls an <img> instead of asking faces.js");
+    // Any url in the page that names an image host must be one of the two leagues' services.
+    for (const url of src(page).match(/https?:\/\/[^"'\s)]+/g) || []) {
+      if (!/(headshot|teamlogos|\.(png|jpe?g|gif|webp|svg)(\b|$))/i.test(url)) continue;
+      assert.match(url, /^https:\/\/(a\.espncdn\.com|img\.mlbstatic\.com)\//, page + ": an image host that is not a league's: " + url);
+    }
+  }
+  for (const page of BOARDS) assert.match(src(page), /<script src="faces\.js"><\/script>/, page + " does not load faces.js");
+  const hosts = faces.match(/https:\/\/[a-z0-9.-]+/g) || [];
+  assert.deepEqual([...new Set(hosts)].sort(), ["https://a.espncdn.com", "https://img.mlbstatic.com"], "faces.js names a host that is not a league's");
+});
+
+test("every football row carries a face cell, the matchup its marks, and the drawer head the large photo for a player and marks for a game", async () => {
+  const nfl = (await import("./nfl.js")).default;
+  // The fixture's ids are letters (no photo, an empty disc); one player with a real-looking id gets the photo.
+  const players = PLAYERS.concat([Object.assign({}, PLAYERS[0], { id: "2577417", name: "Numeric Guy" })]);
+  const { app, doc, press } = await mountPlayers({ players, pools: recPool(nfl) });
+  const rows = app.innerHTML.match(/<button class="row[^"]*" aria-haspopup="dialog" data-i="\d+">[\s\S]*?<\/button>/g) || [];
+  assert.ok(rows.length, "no rows");
+  for (const r of rows) {
+    assert.match(r, /<span class="slot">\d+<\/span><span class="face">(<img [^>]*>)?<\/span><span class="who">/, "a row without its face cell between the rank and the name: " + r.slice(0, 160));
+    assert.match(r, /<span class="mtch"><img class="tmark" [^>]*teamlogos\/nfl\/500\/[a-z0-9]+\.png&amp;w=80&amp;h=80/, "a matchup without the team's mark");
+  }
+  const numeric = rows.find((r) => r.includes("Numeric Guy"));
+  assert.match(numeric, /<span class="face"><img [^>]*headshots\/nfl\/players\/full\/2577417\.png&amp;w=96&amp;h=70[^>]*><\/span>/, "a player with an id has no photo");
+  assert.match(rows.find((r) => r.includes("Alpha Wide")), /<span class="face"><\/span>/, "a player without an id should keep an empty disc");
+  clickRow(app, app.__rows.findIndex((r) => r.p.id === "2577417"));
+  const df = doc.getElementById("dface").innerHTML;
+  assert.match(df, /<span class="face"><img [^>]*&amp;w=200&amp;h=145/, "the drawer head has no large photo");
+  assert.match(df, /<img class="tmark"/, "the drawer head has no team mark");
+  press("view", "Spread & total");
+  const game = (app.innerHTML.match(/<button class="row" aria-haspopup="dialog" data-i="0">[\s\S]*?<\/button>/) || [])[0] || "";
+  assert.match(game, /<span class="face pair">(<img class="tmark" [^>]*>){2}<\/span>/, "a game row without both marks");
+});
+
+test("the stylesheet gives every column set a face track after the rank", () => {
+  const css = src(SHEET);
+  for (const m of css.matchAll(/\.game(?:\.v-[a-z]+(?:\.nopx)?)?\{--cols:([^;}]+)/g)) {
+    // Desktop: rank, face, name. Phone: the rank is hidden (span.slot), the face leads.
+    assert.match(m[1], /^(34px 44px 1fr|28px 1fr) /, "a column set without the face track: " + m[0]);
+  }
+  assert.match(css, /span\.slot,\.thead \.rk\{display:none\}/, "the phone rule that hides the rank with its head cell");
+  assert.match(css, /\.face\{[^}]*border-radius:50%/);
+  assert.match(css, /\.face img\{[^}]*object-fit:cover/);
+  // The phone block overrides the disc's size with equal specificity, so the base rule must come first in the sheet.
+  assert.ok(css.indexOf(".face{") < css.indexOf("@media (max-width:760px){"), "the .face base rule sits after the phone block and defeats its override");
+  assert.ok(css.indexOf(".dface .face{") < css.indexOf("@media (max-width:760px){"), "the drawer face's base rule sits after the phone block");
 });

@@ -89,6 +89,7 @@ footer button:hover{color:var(--text)}
 <footer id="footer"></footer>
 </div>
 
+<script src="faces.js"></script>
 <script src="bets.js"></script>
 <script>
 (function(){
@@ -127,6 +128,7 @@ var state = { out: 'all', kind: 'all' };
 var OUT  = [{id:'all',label:'All'},{id:'won',label:'Won'},{id:'lost',label:'Lost'},{id:'open',label:'Open'}];
 var KIND = [{id:'all',label:'All'},{id:'straight',label:'Straight'},{id:'parlay',label:'Parlay'}];
 
+var F = window.BetHouseFaces || null;
 function el(tag, cls, text){
   var e = document.createElement(tag);
   if(cls) e.className = cls;
@@ -484,8 +486,13 @@ function betLine(b){
   if(multi){
     b.legs.forEach(function(l){
       var sub = el('div','leg-line');
+      /* The log holds baseball legs (MLB person ids); the mark only when the team is an abbreviation, the replay's full names carry none. */
+      var fc = el('span','face'); if(F) fc.innerHTML = F.img(F.headshotUrl('MLB', l.playerId, 'row'), '', 24); sub.appendChild(fc);
       sub.appendChild(el('span','nm', l.name));
-      sub.appendChild(el('span','meta', [l.team, l.propLabel].filter(Boolean).join(' · ')));
+      var meta = el('span','meta');
+      if(F && /^[A-Z]{2,3}$/.test(String(l.team||''))) meta.innerHTML = F.mark('MLB', l.team, 18);
+      meta.appendChild(document.createTextNode([l.team, l.propLabel].filter(Boolean).join(' · ')));
+      sub.appendChild(meta);
       sub.appendChild(el('span','out ' + (l.actual == null ? 'open' : l.actual ? 'win' : 'lost'),
         l.actual == null ? '–' : l.actual ? 'WON' : 'LOST'));
       wrap.appendChild(sub);

@@ -104,7 +104,7 @@
     var readTracks=function(){ if(!W||!store||!W.parseTracks) return []; try{ return W.parseTracks(store.getItem(W.TRACK_KEY)); }catch(e){ return []; } };
     var trackFor=function(r,prop,rung){
       var g=gameOf[r.p.team]; if(!g) return null;
-      return {league:cfg.league, sport:'football', gameId:String(g.id), playerId:String(r.p.id), name:r.p.name, team:r.p.team, opp:r.p.opp||'', prop:prop, rung:prop==='td'?undefined:rung};
+      return {league:cfg.league, sport:'football', gameId:String(g.id), playerId:String(r.p.id), name:r.p.name, team:r.p.team, opp:r.p.opp||'', teamKey:teamKeyOf(r.p.team)||undefined, prop:prop, rung:prop==='td'?undefined:rung};
     };
     var trackBtn=function(r,prop,rung){
       if(!W||!W.trackKey) return '';
@@ -167,7 +167,13 @@
       if(d<=-10) return '<span class="pill down">'+d+'% vs rate</span>';
       return '<span class="pill">steady</span>';
     };
-    var mtch=function(p,ratio){ return '<span class="mtch">'+esc(p.team)+(p.opp?' vs '+esc(p.opp):'')+(ratio!==undefined?'<br>'+ratePill(ratio):'')+'</span>'; };
+    /* A player's photo and a team's mark, from faces.js; without it a
+       row keeps its empty disc so the grid does not move. */
+    var F=window.BetHouseFaces||null;
+    var teamKeyOf=function(team){ return F?F.teamKey(cfg.league,team,gameOf[team]):null; };
+    var mark=function(team,px){ return F?F.mark(cfg.league,teamKeyOf(team),px):''; };
+    var face=function(p,px){ return F?F.face(cfg.league,p&&p.id,px):'<span class="face"></span>'; };
+    var mtch=function(p,ratio){ return '<span class="mtch">'+mark(p.team)+esc(p.team)+(p.opp?' vs '+mark(p.opp)+esc(p.opp):'')+(ratio!==undefined?'<br>'+ratePill(ratio):'')+'</span>'; };
     var thead=function(cols){ return '<div class="thead">'+cols.map(function(c){ return '<span'+(c.r?' class="r'+(c.cls?' '+c.cls:'')+'"':c.cls?' class="'+c.cls+'"':'')+'>'+c.t+'</span>'; }).join('')+'</div>'; };
     var gameClass=function(view){ return 'game v-'+view+(W?'':' nopx')+(view==='game'?' nostar':''); };
     var posTag=function(p){ return p.pos?'<span class="pos">'+esc(p.pos)+'</span>':''; };
@@ -291,11 +297,11 @@
 
       var html=slipHtml()+'<div class="'+gameClass('td')+'"><div class="ghead"><h2 class="gtitle">Most likely to score</h2>'+
         '<div class="gmeta">'+rows.length+' players · '+seasons+' form · type the book\'s price in a row for your edge</div></div>'+
-        thead([{t:'Rk'},{t:'Player'},{t:'Matchup · vs rate',cls:'mtch'},{t:'Chance',r:1},{t:'Fair',r:1,cls:'fair'}].concat(W?[{t:'Price / edge',r:1}]:[]).concat([{t:''}]));
+        thead([{t:'Rk',cls:'rk'},{t:''},{t:'Player'},{t:'Matchup · vs rate',cls:'mtch'},{t:'Chance',r:1},{t:'Fair',r:1,cls:'fair'}].concat(W?[{t:'Price / edge',r:1}]:[]).concat([{t:''}]));
       rows.forEach(function(r,i){
         r.i=i;
         html+='<div class="rowline"><button class="'+rowClass+'" aria-haspopup="dialog" data-i="'+i+'">'+
-          '<span class="slot">'+(i+1)+'</span>'+
+          '<span class="slot">'+(i+1)+'</span>'+face(r.p)+
           '<span class="who">'+esc(r.p.name)+posTag(r.p)+qTag(r.p)+'</span>'+
           mtch(r.p,r.s.observedRate>0?r.s.lambda/r.s.observedRate:null)+
           '<span class="prob">'+pct(r.s.prob,0)+'</span>'+
@@ -371,11 +377,11 @@
           ? 'ranked by projection · at his own line every player is near a coin flip, so pick Low or High to see the odds move'
           : 'ranked by projection · the chance of the over at the line shown · <b>fair</b> is the break-even price — bet only if the book beats it')+
         ' · type the book\'s price in a row for your edge</div></div>'+
-        thead([{t:'Rk'},{t:'Player'},{t:'Matchup · vs rate',cls:'mtch'},{t:'Proj',r:1},{t:'Over',r:1},{t:'Fair',r:1,cls:'fair'}].concat(W?[{t:'Price / edge',r:1}]:[]).concat([{t:''}]));
+        thead([{t:'Rk',cls:'rk'},{t:''},{t:'Player'},{t:'Matchup · vs rate',cls:'mtch'},{t:'Proj',r:1},{t:'Over',r:1},{t:'Fair',r:1,cls:'fair'}].concat(W?[{t:'Price / edge',r:1}]:[]).concat([{t:''}]));
       rows.forEach(function(r,i){
         r.i=i;
         html+='<div class="rowline"><button class="'+rowClass+'" aria-haspopup="dialog" data-i="'+i+'">'+
-          '<span class="slot">'+(i+1)+'</span>'+
+          '<span class="slot">'+(i+1)+'</span>'+face(r.p)+
           '<span class="who">'+esc(r.p.name)+posTag(r.p)+badge(r.p)+qTag(r.p)+'</span>'+
           mtch(r.p,(function(){ var avg=N.statTotal(stat,r.p)/r.p.games; return avg>0?r.exp/avg:null; })())+
           '<span class="prob">'+Math.round(r.exp)+'<small>'+(stat==='recs'?'catches':'yards')+'</small></span>'+
@@ -617,11 +623,12 @@
       html+='<div class="'+gameClass('game')+'"><div class="ghead"><h2 class="gtitle">Week '+D.week+'</h2>'+
         '<div class="gmeta">'+rows.length+' games · '+(lined?lined+' with a line, best value first · the side, its chance to cover, EV at the price':'no lines yet')+
         (D.linesFetched?' · lines as of '+esc(String(D.linesFetched).slice(0,16).replace('T',' '))+' UTC':'')+'</div></div>'+
-        thead([{t:'Rk'},{t:'Matchup'},{t:lined?'Pick':'Projection',r:1},{t:lined?'EV':'Total',r:1},{t:''}]);
+        thead([{t:'Rk',cls:'rk'},{t:''},{t:'Matchup'},{t:lined?'Pick':'Projection',r:1},{t:lined?'EV':'Total',r:1},{t:''}]);
       rows.forEach(function(r,i){
         var m=r.pr.margin;
         html+='<button class="row" aria-haspopup="dialog" data-i="'+i+'">'+
           '<span class="slot">'+(i+1)+'</span>'+
+          '<span class="face pair">'+mark(r.a,20)+mark(r.h,20)+'</span>'+
           '<span class="who">'+esc(r.a)+(r.g.neutral?' vs ':' at ')+esc(r.h)+
             '<span class="pos">'+(r.g.line
               ? esc(r.h)+' '+moveStr(r.g.line.open&&r.g.line.open.spread,r.g.line.spread)+' · o/u '+moveStr(r.g.line.open&&r.g.line.open.total,r.g.line.total,true)+
@@ -759,6 +766,8 @@
       var i=findRow(d.id); if(i<0){ closeDrawer('replace'); return; }
       var r=app.__rows[i]; r.i=i;
       document.getElementById('dtitle').textContent = r.p ? r.p.name : (r.a+' at '+r.h);
+      var df=document.getElementById('dface');
+      if(df) df.innerHTML = r.p ? (F?F.face(cfg.league,r.p.id,64,'large'):'')+mark(r.p.team,28) : mark(r.a,28)+mark(r.h,28);
       document.getElementById('dsub').textContent = r.p ? (r.p.team+(r.p.opp?' vs '+r.p.opp:'')+' · '+propLabelOf(r)) : ('week '+D.week);
       var tabs=[{id:'over',label:'Overview'}];
       if(r.p&&app.__ladder) tabs.push({id:'ladder',label:'Alternate lines'});
@@ -843,7 +852,7 @@
       var h='';
       ids.forEach(function(id){
         var p=playerById(id), r=rowFor(p);
-        h+='<div class="tcard"><div class="tname">'+esc(p.name)+'<span class="pos">'+esc(p.team)+(p.opp?' vs '+esc(p.opp):'')+'</span></div>';
+        h+='<div class="tcard"><div class="tname">'+face(p,32)+esc(p.name)+'<span class="pos">'+esc(p.team)+(p.opp?' vs '+esc(p.opp):'')+'</span></div>';
         if(!r) h+='<div class="tnum">—<small>not on this view</small></div>';
         else if(state.view==='td') h+='<div class="tnum">'+pct(r.s.prob,0)+'<small>to score · '+sgn(N.fairPrice(r.s.prob))+' fair</small></div>';
         else h+='<div class="tnum">'+Math.round(r.exp)+'<small>'+(state.view==='recs'?'catches':'yards')+' · o'+r.line+' hits '+pct(r.over,0)+' · '+sgn(N.fairPrice(r.over))+' fair</small></div>';
@@ -964,7 +973,7 @@
       h+='<div class="how">The '+(g?'best legs in this game, one per player':(state.slipScope==='stars'?'best leg from your stars, one per game, across ':'best leg from each of ')+s.legs.length+' different games')+
         ', drawn from '+esc(kinds)+'. Ranked by chance to cash, <b>not</b> by price: it cannot see what you are being offered.</div>';
       s.legs.forEach(function(l){
-        h+='<div class="leg"><div>'+esc(l.name)+' <span class="lp">'+(l.playerId==='game'?'':esc(l.team)+(l.opp?' vs '+esc(l.opp):'')+' · ')+esc(l.propLabel)+'</span></div><div><span class="lp">'+pct(l.prob,0)+'</span></div></div>';
+        h+='<div class="leg"><div>'+(l.playerId==='game'?'':face({id:l.playerId},24))+esc(l.name)+' <span class="lp">'+(l.playerId==='game'?'':esc(l.team)+(l.opp?' vs '+esc(l.opp):'')+' · ')+esc(l.propLabel)+'</span></div><div><span class="lp">'+pct(l.prob,0)+'</span></div></div>';
       });
       var shown=c.adjusted!=null?c.adjusted:c.prob;
       h+='<div class="slipsum">';

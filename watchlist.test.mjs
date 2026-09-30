@@ -89,3 +89,13 @@ test("trackKey / parseTracks / toggleTrack: a tracked prop is one player, one pr
   assert.deepEqual(W.parseTracks(JSON.stringify([{ key: "x" }, null, { ...list[0], key: "wrong" }, list[0], list[0]])), [list[0]], "only self-consistent entries, once");
   assert.match(W.TRACK_KEY, /^bethouse\.track\.v\d+$/);
 });
+
+test("a track keeps the team's logo key so the live page can mark a college team", async () => {
+  const W = (await import("./watchlist.js")).default;
+  const raw = { league: "College football", sport: "football", gameId: "1", playerId: "2", name: "A", team: "UTAH", opp: "BYU", teamKey: "254", prop: "td" };
+  const t = W.toggleTrack([], raw)[0];
+  assert.equal(t.teamKey, "254");
+  const back = W.parseTracks(W.serialise([t]));
+  assert.equal(back[0].teamKey, "254", "round-trips through storage");
+  assert.equal(W.trackKey(t), W.trackKey(Object.assign({}, t, { teamKey: undefined })), "the key does not depend on it");
+});

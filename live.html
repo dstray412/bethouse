@@ -46,6 +46,7 @@
 </div>
 
 <script src="edge.js"></script>
+<script src="faces.js"></script>
 <script src="nfl.js"></script>
 <script src="bets.js"></script>
 <script src="watchlist.js"></script>
@@ -54,6 +55,7 @@
 (function(){
   'use strict';
   var N=window.BetHouseNFL, T=window.BetHouseBets, W=window.BetHouseWatchlist, L=window.BetHouseLive;
+  var F=window.BetHouseFaces||null;
   var esc=function(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); };
   var store=null; try{ store=window.localStorage; }catch(e){ store=null; }
   var read=function(k){ if(!store) return null; try{ return store.getItem(k); }catch(e){ return null; } };
@@ -167,7 +169,7 @@
       var p=t.progress, cur=p.current==null?'—':p.current, width=p.target>0&&p.current!=null?Math.min(100,Math.round(p.current/p.target*100)):0;
       var cls=p.status.replace(' ','');
       h+='<div class="card '+cls+'">'+
-        '<div class="ctop"><div><div class="cname">'+esc(t.name)+'</div><div class="cmeta">'+esc(t.team)+(t.opp?' vs '+esc(t.opp):'')+(t.from==='bet'?' · from your bet log':'')+'</div></div>'+
+        '<div class="ctop">'+(F?F.face(t.league,t.playerId,40):'')+'<div><div class="cname">'+esc(t.name)+'</div><div class="cmeta">'+(F?F.mark(t.league,t.teamKey||t.team,18):'')+esc(t.team)+(t.opp?' vs '+esc(t.opp):'')+(t.from==='bet'?' · from your bet log':'')+'</div></div>'+
         '<div class="cprop">'+esc(propLabel(t))+'</div></div>'+
         '<div class="bar"><i style="width:'+width+'%"></i></div>'+
         '<div class="cnum"><b>'+esc(cur)+' <small>/ '+p.target+'</small></b><span class="pill '+pillClass[p.status]+'">'+esc(p.status)+'</span></div>'+

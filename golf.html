@@ -39,6 +39,7 @@
 </div>
 
 <script src="edge.js"></script>
+<script src="faces.js"></script>
 <script src="golf.js"></script>
 <script src="pga-data.js"></script>
 <!-- Written by track-pga.mjs. Empty until an event has been graded. -->
@@ -58,6 +59,7 @@
   var ev = D.event;
   var pct = function (x) { return (100 * x).toFixed(1) + "%"; };
   var sgn = function (n) { return n > 0 ? "+" + n : String(n); };
+  var F = window.BetHouseFaces || null; // a golfer's photo, ESPN's, by the id the field carries
   var esc = function (s) {
     return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
       return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
@@ -156,6 +158,7 @@
     return (
       '<button class="row" aria-expanded="false" data-i="' + i + '">' +
       '<span class="slot">' + (i + 1) + "</span>" +
+      (F ? F.face("PGA", p.id, 44) : '<span class="face"></span>') +
       '<span class="who">' + esc(p.name) + (p.amateur ? '<span class="pos">(a)</span>' : "") +
         (rated ? "" : '<span class="pos">unrated</span>') + "</span>" +
       '<span class="prob">' + main + "</span>" +

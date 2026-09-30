@@ -32,7 +32,7 @@
     const base = [t.league, t.gameId, t.playerId, t.prop].map(String).join("|");
     return t.prop === "td" || t.rung == null ? base : base + "|" + String(t.rung);
   }
-  const TRACK_FIELDS = ["league", "sport", "gameId", "playerId", "name", "team", "opp", "prop", "rung", "addedAt"];
+  const TRACK_FIELDS = ["league", "sport", "gameId", "playerId", "name", "team", "opp", "teamKey", "prop", "rung", "addedAt"];
   function normTrack(t) {
     const out = {};
     for (const f of TRACK_FIELDS) if (t[f] != null) out[f] = t[f];

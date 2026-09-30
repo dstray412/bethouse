@@ -29,6 +29,44 @@ Zero dependencies, no build step, no server, no API key. `node --test` with
 **named files** — bare discovery pulls in the backtests, which fire live API
 calls. The list lives in seven places and `dom.test.mjs` checks all seven.
 
+## Faces (2026-09-29, late)
+
+The user showed nhlpropking.com's board (a headshot between the star
+and the name) and asked for photos and logos throughout. `faces.js`
+(UMD `BetHouseFaces`, `faces.test.mjs`, in all seven gates) builds the
+urls (`headshotUrl`, `logoUrl`, `teamKey`) and the one `img` markup;
+`home.js` now delegates its `logoUrl` to it. Every `--cols` in
+board.css gained a 44px face track after the rank (28px on a phone, where the rank is hidden, and
+the golf default got a phone rule it never had); baseball.html's eight
+per-page grids likewise. Rows: football (TD, stat, and both marks in a
+game row's face cell), baseball (DOM-built, MLB ids, marks in the team
+header from `abbrev`), golf (ESPN golfer id). Elsewhere: the drawer head
+(`#dface`, a new sibling of `#dtitle`, whose textContent tests pin),
+tray cards, slip legs, live cards (tracks now carry `teamKey` so a
+college team has a mark), bet-log legs (MLB ids; a mark only when the
+team is an abbreviation). `dom.test.mjs` pins the attributes on every
+`<img>` any page writes, the two hosts, the face track in every column
+set, and a face per football row. Checked in the browser: every image
+on nfl, baseball, golf and live loaded (golf lazily below the fold),
+no sideways scroll at 390, rows still 60px. The phone column sets
+changed to make room: the rank number is hidden under 760px
+(`span.slot` and the head's `.rk`; the order shows it), the face is
+28px, and the stat view drops the figures' sublabels (the heads say
+Proj and Over). Measured on nfl.html at 390: the name cell went from
+66px to 106px on the TD view and from 20px (clipped, pre-existing) to
+76px on the stat view.
+
+Review fixes before the push: the face rules had been appended after
+the phone media block, so the 28px phone size never applied (equal
+specificity, later source wins) and the 44px photo sat 10px over the
+name on every board at 390; the block moved above the first `@media`
+and `dom.test.mjs` pins that order. The home's logo img goes through
+`faces.js` too (it had already drifted: no `decoding="async"`), so the
+test now asserts faces.js is the only file that writes an `<img>`, with
+every attribute, and that no page names an image host but the two
+leagues'. `home.js` uses faces.js's key validator instead of its own
+copy; the baseball replay row's phone grid dropped a dead track.
+
 ## The home (2026-09-29, night)
 
 The user liked nhlpropking.com's home: a hero for the day's slate, game
