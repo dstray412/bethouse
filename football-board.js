@@ -98,6 +98,31 @@
     state.watch=readWatch().filter(function(k){ return k.indexOf(cfg.league+'|')===0; }); state.starOnly=false; state.compare=[];
     var watchKeyOf=function(p){ return W?W.watchKey({league:cfg.league,playerId:p.id}):null; };
     var isStarred=function(p){ return !!W&&W.has(state.watch,watchKeyOf(p)); };
+    /* Tracked props for the live page: a rung on a player in a game,
+       or his anytime touchdown. Read fresh and written whole on each
+       press, so two boards in two tabs cannot drop each other's. */
+    var readTracks=function(){ if(!W||!store||!W.parseTracks) return []; try{ return W.parseTracks(store.getItem(W.TRACK_KEY)); }catch(e){ return []; } };
+    var trackFor=function(r,prop,rung){
+      var g=gameOf[r.p.team]; if(!g) return null;
+      return {league:cfg.league, sport:'football', gameId:String(g.id), playerId:String(r.p.id), name:r.p.name, team:r.p.team, opp:r.p.opp||'', prop:prop, rung:prop==='td'?undefined:rung};
+    };
+    var trackBtn=function(r,prop,rung){
+      if(!W||!W.trackKey) return '';
+      var t=trackFor(r,prop,rung); if(!t) return '';
+      var on=W.hasTrack(readTracks(),W.trackKey(t));
+      var what=prop==='td'?'anytime TD':rung+'+';
+      return '<p class="trackrow"><button type="button" class="track" data-track="'+esc(prop==='td'?'td':prop+'|'+rung)+'" aria-pressed="'+on+'">'+(on?'Tracking '+what+' ✓':'Track '+what)+'</button>'+
+        (on?' <span class="pos">on the <a href="live.html">live page</a></span>':'')+'</p>';
+    };
+    var toggleTrack=function(spec){
+      var d=state.drawer; if(!d||!W||!W.toggleTrack) return;
+      var i=findRow(d.id); if(i<0) return;
+      var r=app.__rows[i], parts=String(spec).split('|'), prop=parts[0], rung=parts[1]!=null?Number(parts[1]):undefined;
+      var t=trackFor(r,prop,rung); if(!t) return;
+      var list=W.toggleTrack(readTracks(),t);
+      if(store){ try{ store.setItem(W.TRACK_KEY,W.serialise(list)); }catch(e){} }
+      renderDrawer();
+    };
     var toggleStar=function(key,btn){
       if(!W) return;
       state.watch=W.toggle(state.watch,key); saveWatch();
@@ -281,7 +306,7 @@
       app.innerHTML=html+(rows.length?'':nothing())+moreBtn(t.hidden)+'</div>';
       app.__rows=rows; app.__ladder=null;
       app.__detail=function(r){
-        var t=pxInput(r)+'<table>';
+        var t=pxInput(r)+trackBtn(r,'td')+'<table>';
         t+='<tr><td>workload</td><td><b>'+r.s.perGameCarries.toFixed(1)+'</b> carries and <b>'+
           r.s.perGameReceiving.toFixed(1)+'</b> '+oppWord+' a game over <b>'+r.p.games+'</b> games</td></tr>';
         t+='<tr><td>from workload</td><td><b>'+r.s.usageRate.toFixed(3)+'</b> touchdowns a game '+
@@ -762,7 +787,7 @@
         h+='<button class="rung'+(on?' near':'')+'" type="button" data-rung="'+g.at+'" aria-pressed="'+on+'">'+
           '<b>'+g.at+'+</b><span class="rp">'+pct(g.prob,0)+'</span><span class="rf">'+sgn(N.fairPrice(g.prob))+' fair</span></button>';
       });
-      return h+'</div>';
+      return h+'</div>'+trackBtn(r,state.view,d.rung);
     }
     /* The recent games the data file carries: a bar a game, newest on the
        right, the threshold the pressed rung (or the row's line; for a
@@ -797,6 +822,8 @@
       return head+svg+t+'</table><p>Newest on the right; the dashed line is the threshold; a bar in the accent cleared it.</p>';
     }
     if(drawerEl&&drawerEl.addEventListener) drawerEl.addEventListener('click',function(e){
+      var tb=e.target&&e.target.closest?e.target.closest('[data-track]'):null;
+      if(tb){ toggleTrack(tb.getAttribute('data-track')); return; }
       var b=e.target&&e.target.closest?e.target.closest('[data-rung]'):null;
       if(b&&state.drawer){ state.drawer.rung=+b.getAttribute('data-rung'); renderDrawer(); }
     });

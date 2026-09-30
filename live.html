@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BetHouse — Live</title>
+<link rel="stylesheet" href="fonts/fonts.css">
+<link rel="stylesheet" href="board.css">
+<style>
+/* live.html: the tracker's own rules. Everything else is board.css. */
+.lhint{color:var(--muted);font-size:14px;line-height:1.6;max-width:56ch;margin:0 0 14px}
+.lhint a{color:var(--text)}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="brand">
+    <h1 class="logo">BETHOUSE</h1>
+    <div class="tagline" id="tagline">Live — tonight's tracked props</div>
+  <nav class="boards" aria-label="Other boards">
+    <a class="navlink" href="bets.html">Bets →</a>
+    <a class="navlink" href="nfl.html">NFL →</a>
+    <a class="navlink" href="cfb.html">CFB →</a>
+    <a class="navlink" href="index.html">Baseball →</a>
+    <a class="navlink" href="golf.html">PGA →</a>
+  </nav>
+  </div>
+  <div class="tile" id="tile"></div>
+</header>
+
+<div class="note" id="note">The props you are tracking, counted live off the public feeds while their games are on: ESPN's box score for football, MLB's game feed for baseball. A count is the feed's, not a settlement; a game that is not final settles nothing.</div>
+<div class="controls" id="controls">
+  <div class="ctl lstrip">
+    <label id="lab-lstrip">Show</label>
+    <div class="seg" id="lstrip" role="group" aria-labelledby="lab-lstrip"></div>
+  </div>
+  <div class="ctl">
+    <label>Feed</label>
+    <div class="updated" id="updated">not yet asked</div>
+  </div>
+</div>
+<div id="app"><div class="cards" id="cards"></div></div>
+<footer id="foot"></footer>
+</div>
+
+<script src="edge.js"></script>
+<script src="nfl.js"></script>
+<script src="bets.js"></script>
+<script src="watchlist.js"></script>
+<script src="live.js"></script>
+<script>
+(function(){
+  'use strict';
+  var N=window.BetHouseNFL, T=window.BetHouseBets, W=window.BetHouseWatchlist, L=window.BetHouseLive;
+  var esc=function(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); };
+  var store=null; try{ store=window.localStorage; }catch(e){ store=null; }
+  var read=function(k){ if(!store) return null; try{ return store.getItem(k); }catch(e){ return null; } };
+  var state={ filter:'all', items:[], feeds:{}, stale:{}, fails:0, gen:0, timer:null, lastAt:null, error:null };
+
+  /* What to track: the props set from the drawers, and the open bets in
+     the log from today or yesterday (older ones are graded by the
+     tracker, not watched here). */
+  function items(){
+    var out=[];
+    (W&&W.parseTracks?W.parseTracks(read(W.TRACK_KEY)):[]).forEach(function(t){ out.push(Object.assign({from:'track'},t)); });
+    if(T){
+      var since=new Date(Date.now()-36*3600*1000).toISOString().slice(0,10);
+      T.parse(read(T.STORAGE_KEY)).forEach(function(b){
+        if(b.actual!=null||!b.date||b.date<since) return;
+        (b.legs||[]).forEach(function(l){
+          if(l.gamePk==null||l.playerId==null||!l.prop) return;
+          out.push({from:'bet', key:'bet|'+b.key+'|'+T.legKey(l), sport:'baseball', league:'MLB', gameId:l.gamePk, playerId:l.playerId, name:l.name||String(l.playerId), team:l.team||'', opp:'', prop:l.prop, label:l.propLabel||l.prop});
+        });
+      });
+    }
+    return out;
+  }
+  var propLabel=function(t){
+    if(t.label) return t.label;
+    if(t.prop==='td') return 'Anytime TD';
+    var st=N&&N.STATS&&N.STATS[t.prop];
+    return (st?st.label:t.prop)+(t.rung!=null?' '+t.rung+'+':'');
+  };
+
+  /* One fetch per game, then every item read off its game's feed. A
+     feed that fails keeps its last good answer and is marked stale; a
+     request is given ten seconds; and the next poll is armed whatever
+     happened, so one bad answer never stops the page asking. Only the
+     newest poll may write: an older one still in flight is dropped. */
+  function poll(){
+    if(state.timer){ clearTimeout(state.timer); state.timer=null; }
+    var gen=++state.gen;
+    var list=items(); state.items=list;
+    var urls={}; list.forEach(function(t){ var u=L.feedUrl(t); if(u) urls[u]=t.sport; });
+    var keys=Object.keys(urls);
+    if(!keys.length){ state.feeds={}; state.stale={}; render(); return; }
+    Promise.all(keys.map(function(u){
+      var opts={cache:'no-store'};
+      if(typeof AbortSignal!=='undefined'&&AbortSignal.timeout) opts.signal=AbortSignal.timeout(10000);
+      return fetch(u,opts).then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+        .then(function(j){ return [u,j,null]; }, function(e){ return [u,null,e]; });
+    })).then(function(res){
+      if(gen!==state.gen) return;
+      var feeds={}, stale={}, error=null;
+      res.forEach(function(x){
+        if(x[2]){ feeds[x[0]]=state.feeds[x[0]]||null; stale[x[0]]=true; error=x[2].message||'feed unreachable'; }
+        else feeds[x[0]]=x[1];
+      });
+      state.feeds=feeds; state.stale=stale; state.error=error; state.fails=error?state.fails+1:0;
+      state.lastAt=new Date();
+      render();
+    }).then(function(){ if(gen===state.gen) schedule(); }, function(){ if(gen===state.gen) schedule(); });
+  }
+  function schedule(){
+    if(state.timer){ clearTimeout(state.timer); state.timer=null; }
+    if(document.hidden) return;
+    var states=state.items.map(function(t){ return (t.progress&&t.progress.state)||'pre'; });
+    var ms=L.pollInterval(states);
+    /* A feed that did not answer is asked again soon, backing off to five minutes. */
+    if(state.error){ var retry=Math.min(300000,20000*Math.pow(2,Math.max(0,state.fails-1))); ms=ms?Math.min(ms,retry):retry; }
+    if(ms) state.timer=setTimeout(poll,ms);
+  }
+
+  function measure(t){
+    var feed=state.feeds[L.feedUrl(t)];
+    var st=t.sport==='baseball'?L.mlbState(feed):L.footballState(feed);
+    var line=t.sport==='baseball'?L.mlbLine(feed,t.playerId):L.footballLine(feed,t.playerId);
+    var p=L.progress(t,L.current(t,line,N),feed?st.state:'pre');
+    p.state=feed?st.state:'pre'; p.detail=st.detail; p.fetched=!!feed; p.stale=!!state.stale[L.feedUrl(t)];
+    return p;
+  }
+
+  var FILTERS=[{id:'all',label:'All'},{id:'inPlay',label:'In play'},{id:'oneAway',label:'One away'},{id:'reached',label:'Reached'}];
+  var keep=function(p){
+    if(state.filter==='inPlay') return p.status==='in play'||p.status==='one away';
+    if(state.filter==='oneAway') return p.status==='one away';
+    if(state.filter==='reached') return p.status==='reached'||p.status==='cashed';
+    return true;
+  };
+  var pillClass={'scheduled':'', 'in play':'', 'one away':'warn', 'reached':'good', 'cashed':'good', 'missed':'bad', 'void':''};
+
+  function render(){
+    state.items.forEach(function(t){ t.progress=measure(t); });
+    var sum=L.summarise(state.items.map(function(t){ return t.progress; }));
+    var counts={all:sum.all,inPlay:sum.inPlay,oneAway:sum.oneAway,reached:sum.reached};
+    var strip=document.getElementById('lstrip'); strip.innerHTML='';
+    FILTERS.forEach(function(f){
+      var b=document.createElement('button'); b.type='button'; b.innerHTML=esc(f.label)+'<small>'+counts[f.id]+'</small>';
+      b.setAttribute('aria-pressed',String(state.filter===f.id));
+      b.addEventListener('click',function(){ state.filter=f.id; render(); });
+      strip.appendChild(b);
+    });
+    var tile=document.getElementById('tile');
+    tile.innerHTML='<div><b>'+sum.all+'</b><span>tracked</span></div><div><b>'+sum.inPlay+'</b><span>in play</span></div><div><b>'+sum.reached+'</b><span>reached</span></div>';
+    var up=document.getElementById('updated');
+    up.textContent=state.lastAt?('asked '+state.lastAt.toLocaleTimeString()+(state.error?' · '+state.error+', retrying':'')):(state.items.length?'asking…':'nothing to ask');
+    var cards=document.getElementById('cards'); var h='';
+    var shown=state.items.filter(function(t){ return keep(t.progress); });
+    if(!state.items.length){
+      h='<div class="empty" style="grid-column:1/-1"><div class="big">Nothing tracked tonight</div><div class="lhint" style="margin:0 auto">Open a player on the <a href="nfl.html">NFL</a> or <a href="cfb.html">college</a> board and press <b>Track</b> on a rung or on his touchdown; a bet you log on the <a href="index.html">baseball</a> board shows here too.</div></div>';
+    } else if(!shown.length){
+      h='<div class="empty" style="grid-column:1/-1"><div class="big">None '+esc(FILTERS.filter(function(f){return f.id===state.filter;})[0].label.toLowerCase())+'</div></div>';
+    }
+    shown.forEach(function(t){
+      var p=t.progress, cur=p.current==null?'—':p.current, width=p.target>0&&p.current!=null?Math.min(100,Math.round(p.current/p.target*100)):0;
+      var cls=p.status.replace(' ','');
+      h+='<div class="card '+cls+'">'+
+        '<div class="ctop"><div><div class="cname">'+esc(t.name)+'</div><div class="cmeta">'+esc(t.team)+(t.opp?' vs '+esc(t.opp):'')+(t.from==='bet'?' · from your bet log':'')+'</div></div>'+
+        '<div class="cprop">'+esc(propLabel(t))+'</div></div>'+
+        '<div class="bar"><i style="width:'+width+'%"></i></div>'+
+        '<div class="cnum"><b>'+esc(cur)+' <small>/ '+p.target+'</small></b><span class="pill '+pillClass[p.status]+'">'+esc(p.status)+'</span></div>'+
+        '<div class="cfoot"><span>'+esc(p.fetched?(p.detail||(p.state==='pre'?'scheduled':'')):'feed not read yet')+(p.stale?' · feed not answering, showing its last answer':'')+'</span>'+
+        (t.from==='track'?'<button type="button" class="cx" data-untrack="'+esc(t.key)+'" aria-label="Stop tracking '+esc(t.name)+'">×</button>':'')+'</div></div>';
+    });
+    cards.innerHTML=h;
+    document.getElementById('foot').innerHTML='<p>Counts are the feed\'s as it stands and can be corrected; nothing here settles until the game is final. The page asks every twenty seconds while a game is on, every five minutes before, and stops when all are final.</p>';
+  }
+
+  document.getElementById('cards').addEventListener('click',function(e){
+    var b=e.target.closest('[data-untrack]'); if(!b||!W) return;
+    var list=W.parseTracks(read(W.TRACK_KEY)).filter(function(t){ return t.key!==b.getAttribute('data-untrack'); });
+    if(store){ try{ store.setItem(W.TRACK_KEY,W.serialise(list)); }catch(e2){} }
+    poll();
+  });
+  document.addEventListener('visibilitychange',function(){ if(document.hidden){ if(state.timer){ clearTimeout(state.timer); state.timer=null; } } else poll(); });
+  render();
+  poll();
+})();
+</script>
+</body>
+</html>

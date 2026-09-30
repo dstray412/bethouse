@@ -34,7 +34,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const DIR = dirname(fileURLToPath(import.meta.url));
-const BOARDS = ["index.html", "golf.html", "nfl.html", "cfb.html", "bets.html"];
+const BOARDS = ["index.html", "golf.html", "nfl.html", "cfb.html", "bets.html", "live.html"];
 const src = (f) => readFileSync(resolve(DIR, f), "utf8");
 
 /*
@@ -1427,4 +1427,43 @@ test("the vs-rate pill says what the boost sort computes: up past +10%, down pas
     const want = d >= 10 ? "pill up" : d <= -10 ? "pill down" : 'pill">steady';
     assert.ok(html.includes(want), r.p.name + ": " + d + "% should show " + want);
   }
+});
+
+/* ------------------------------------------------------------------ *
+ * The live page (phase 5, 2026-09-29)
+ *
+ * A tracked prop is set from the drawer: a rung's "Track" button, or
+ * "Track anytime TD" on the touchdown view. The page live.html reads
+ * them back and polls the public feeds in the browser; live.js holds
+ * the arithmetic and is tested on its own.
+ * ------------------------------------------------------------------ */
+
+test("the drawer offers a Track button on the pressed rung and on the touchdown view, keyed the way live.html reads", async () => {
+  const nfl = (await import("./nfl.js")).default;
+  const { app, doc, press, win } = await mountPlayers({ players: PLAYERS, pools: recPool(nfl) });
+  const W = win.BetHouseWatchlist;
+  clickRow(app, app.__rows.findIndex((r) => r.p.id === "a"));
+  let body = doc.getElementById("dbody").innerHTML;
+  assert.match(body, /data-track="[^"]*"[^>]*>Track anytime TD</, "no Track button on the touchdown overview");
+  press("view", "Receiving yards");
+  const i = app.__rows.findIndex((r) => r.p.id === "a");
+  clickRow(app, i);
+  press("dtabs", "Alternate lines");
+  body = doc.getElementById("dbody").innerHTML;
+  const m = body.match(/data-track="([^"]+)"[^>]*>Track (\d+)\+</);
+  assert.ok(m, "no Track button for the pressed rung");
+  // Pressing it stores a tracked prop for this player, this prop, that rung, in this game.
+  const drawer = doc.getElementById("drawer");
+  drawer.handlers.click[0]({ target: { closest: (sel) => (sel === "[data-track]" ? { getAttribute: (k) => (k === "data-track" ? m[1] : null) } : null) } });
+  const tracks = W.parseTracks(win.localStorage.getItem(W.TRACK_KEY));
+  assert.equal(tracks.length, 1);
+  assert.equal(tracks[0].playerId, "a"); assert.equal(tracks[0].prop, "recyds"); assert.equal(tracks[0].rung, Number(m[2])); assert.equal(tracks[0].gameId, "g1"); assert.equal(tracks[0].sport, "football");
+  assert.match(doc.getElementById("dbody").innerHTML, /Tracking \d+\+ ✓/, "the button does not say it is tracking");
+});
+
+test("live.html is a board: shared stylesheet, the scripts it needs, a card list and a status strip", () => {
+  const html = src("live.html");
+  for (const s of ["watchlist.js", "bets.js", "nfl.js", "live.js", "edge.js"]) assert.match(html, new RegExp(`src="${s}"`), `live.html does not load ${s}`);
+  for (const id of ["cards", "lstrip", "tile", "updated"]) assert.match(html, new RegExp(`id="${id}"`), `live.html has no #${id}`);
+  assert.doesNotMatch(html, /fonts\.googleapis|https?:\/\/[^"]*\.(js|css)"/, "an off-origin script or sheet");
 });

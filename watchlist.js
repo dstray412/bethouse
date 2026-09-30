@@ -23,6 +23,47 @@
 
   const PRICE_KEY = "bethouse.prices.v1";
   const WATCH_KEY = "bethouse.watch.v1";
+  const TRACK_KEY = "bethouse.track.v1";
+
+  /* A tracked prop for the live page: one player, one prop, one target,
+     in one game. The key is the identity; the rest is what the page
+     shows without a data file. */
+  function trackKey(t) {
+    const base = [t.league, t.gameId, t.playerId, t.prop].map(String).join("|");
+    return t.prop === "td" || t.rung == null ? base : base + "|" + String(t.rung);
+  }
+  const TRACK_FIELDS = ["league", "sport", "gameId", "playerId", "name", "team", "opp", "prop", "rung", "addedAt"];
+  function normTrack(t) {
+    const out = {};
+    for (const f of TRACK_FIELDS) if (t[f] != null) out[f] = t[f];
+    out.key = trackKey(out);
+    return out;
+  }
+  function parseTracks(raw) {
+    let data;
+    try {
+      data = JSON.parse(raw);
+    } catch (e) {
+      return [];
+    }
+    if (!Array.isArray(data)) return [];
+    const out = [], seen = new Set();
+    for (const t of data) {
+      if (!t || typeof t !== "object" || !t.playerId || !t.prop || !t.gameId) continue;
+      if (t.key !== trackKey(t) || seen.has(t.key)) continue;
+      seen.add(t.key); out.push(normTrack(t));
+    }
+    return out;
+  }
+  function hasTrack(list, key) {
+    return Array.isArray(list) && list.some((t) => t && t.key === key);
+  }
+  function toggleTrack(list, t) {
+    const cur = Array.isArray(list) ? list : [];
+    const key = trackKey(t);
+    if (hasTrack(cur, key)) return cur.filter((x) => x.key !== key);
+    return cur.concat([normTrack(Object.assign({ addedAt: new Date().toISOString() }, t))]);
+  }
 
   /* A star is on the player, per league: you watch a man, then look at his props. */
   function watchKey(e) {
@@ -92,5 +133,5 @@
     return JSON.stringify(map);
   }
 
-  return { PRICE_KEY, priceKey, forSlate, validPrice, parsePrices, serialise, WATCH_KEY, watchKey, parseWatch, toggle, has };
+  return { PRICE_KEY, priceKey, forSlate, validPrice, parsePrices, serialise, WATCH_KEY, watchKey, parseWatch, toggle, has, TRACK_KEY, trackKey, parseTracks, toggleTrack, hasTrack };
 });

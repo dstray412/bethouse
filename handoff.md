@@ -27,6 +27,60 @@ Zero dependencies, no build step, no server, no API key. `node --test` with
 **named files** — bare discovery pulls in the backtests, which fire live API
 calls. The list lives in seven places and `dom.test.mjs` checks all seven.
 
+## Pitch black, and the strips no longer clip (2026-09-29, evening)
+
+The user saw the warm black on the live site as faded and asked for
+pitch black and a brighter yellow. `:root` in `board.css` now has
+`--bg:#000000`, neutral surfaces (`#111111`, `#1A1A1A`), hairlines at
+12% and the rule at 28% so panels still read on true black, and
+`--accent:#FFC53D`; DESIGN.md's front matter, prose and decisions log
+follow. Same screenshot showed the last button of every segmented
+strip losing its right edge: `.seg` has `padding:3px;margin:-3px` for
+the focus ring, but `max-width:100%` capped it at the column's width,
+so the 3px of padding came out of the last button. It is
+`max-width:calc(100% + 6px)` now; measured on nfl.html, no strip
+overflows its box and the body has no sideways scroll at 390px.
+
+## Live, phase 5, 2026-09-29
+
+`live.html` + `live.js` (UMD; `feedUrl footballLine footballState
+mlbLine mlbState target current progress summarise pollInterval`,
+`live.test.mjs`, in all seven gates) + `watchlist.js` tracked props
+(`TRACK_KEY`, `trackKey`, `parseTracks`, `toggleTrack`, `hasTrack`).
+The board's drawer renders `trackBtn(r, prop, rung)` on the touchdown
+overview and under the pressed rung; the delegated drawer click handles
+`[data-track]` (`"td"` or `"stat|rung"`) before `[data-rung]`, and
+`toggleTrack` reads the store fresh, toggles, writes the whole list.
+The page reads tracks plus open bets from the log (last 36 hours),
+groups them by feed URL, fetches each game once, measures every item,
+renders cards and the strip, and schedules the next poll by
+`pollInterval`. dom.test.mjs lists `live.html` in `BOARDS`, so every
+board links to it and it links to every board; the drawer test presses
+a Track button through the stub. Football reads `cdn.espn.com/core/<league>/boxscore?xhr=1&gameId=`
+(CORS `*`, same box-score shape under `gamepackageJSON`); the site API
+host the fetchers use returns 403 to browser user agents, which cost an
+hour to find. Verified in the browser against the finished game
+401872945: rush + rec 132 of 100 cashed, rushing 92 of 100 missed, a
+receiver's anytime TD 0 of 1 missed; a college game's feed parses the
+same way (401856704).
+
+Not done: a play-by-play panel (the user chose cards first); college
+tracks work the same way through `college-football`; baseball tracks
+come only from the bet log, since the baseball drawer has no Track
+button yet.
+
+Review fixes before the push: ESPN says `post` for a postponed or
+cancelled game too, so only `type.completed` settles (MLB likewise says
+Final for a postponed game; `detailedState` is checked); a rung of 0 or
+a prop the model does not know counts nothing rather than reading
+0 >= 0 as cashed; a request is given ten seconds and the next poll is
+armed whatever happened; a feed that fails keeps its last good answer,
+says so on the card, and is retried on a short backoff instead of
+blanking the game and dropping to the five-minute cadence; polling
+stops while the tab is hidden. Left for later, from the same review:
+`aria-live` and a progressbar role on the cards, focus kept through a
+refresh, real recorded feed payloads as fixtures.
+
 ## The restyle, 2026-09-29
 
 **Softened the same day.** The user saw the ledger cut and asked for

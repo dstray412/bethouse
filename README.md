@@ -182,12 +182,51 @@ should be re-fitted when the run environment shifts.
 | `experiment-statcast.mjs` | Re-scores every published H/R/RBI prediction with the prior and applies the shrink's own validation bar. It passed. |
 | `experiment-lines.mjs` | Tests every reconfiguration of the game model a box score can support against the closing line, per season. Nothing helped. Kept so the negative result stays reproducible. |
 
+## Live
+
+**2026-09-29.** `live.html` watches the props you are tracking while
+their games are on. A tracked prop is one player, one prop, one target
+in one game, set from the drawer on the football boards: **Track 60+**
+under the pressed rung on the alternate-lines tab, or **Track anytime
+TD** on the touchdown overview. It is kept in your browser
+(`bethouse.track.v1`, `watchlist.js`). A bet you log on the baseball
+board shows on the same page while its game is on, from the log it is
+already in.
+
+There is no server. The page polls two public feeds straight from the
+browser (both allow it): ESPN's box-score feed on its cdn host for
+football (`cdn.espn.com/core/<league>/boxscore?xhr=1`), whose game
+package carries each player's live passing, rushing and receiving line
+in the same shape as the summary the fetchers use, and MLB's live game
+feed, whose box score carries each batter's hits, runs, RBI, total
+bases and home runs. Not the ESPN host the fetchers use: `site.api.espn.com`
+answers 403 to any real browser user agent (probed with Chrome, Safari
+and Firefox strings on 2026-09-29) while answering a script, so a page
+cannot read it. One request a game, every twenty seconds while a game is on,
+every five minutes before any has started, and none once all are final
+or the tab is hidden. `live.js` holds the arithmetic and is tested on
+its own: a player's line out of each feed in the model's own box shape
+(so `gameValue` counts a rush + rec prop the same way it does in the
+backtest), the target a prop counts toward, and the status.
+
+Each card shows the count against the target as a bar, the status and
+the game's clock: **scheduled**, **in play**, **one away** (one more
+catch, touchdown, base or hit; within ten yards on a yards prop),
+**reached**, and once the game is final **cashed**, **missed**, or
+**void** when he never got a line. A strip above counts the cards by
+state. Two rules hold it honest: the count is the feed's as it stands
+and ESPN's box scores correct themselves, so nothing settles until the
+game is final; and there is no "chance to still get there", because
+that would be a new model and would need a replay first.
+
 ## The look
 
 **2026-09-29.** The five boards were restyled to `DESIGN.md`, written with
 `/design-consultation` against the user's reference (nhlpropking.com)
-and one outside voice: an industrial ledger on warm black. What changed
-and why:
+and one outside voice: an industrial ledger on warm black, softened the
+same day to rounded panels and pills, and later that evening moved to a
+pitch-black ground with a brighter gold once the warm black read as faded
+on the live site. What changed and why:
 
 - **Every figure is set in one monospace face** (Martian Mono, tabular
   figures): chance, projection, fair, the price you typed, the edge, the

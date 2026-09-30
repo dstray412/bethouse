@@ -6,18 +6,18 @@
  * overrides a shared rule only by repeating the selector there, where
  * the override is visible.
  *
- * The look is DESIGN.md's: an industrial ledger on warm black. Every
- * figure is set in one monospace face (--mono); colour is spent only on
- * edge and on won/lost (--good --warn --bad); gold (--accent) is the
- * brand, a pressed star and a pressed rung, and nothing else; hairlines
- * (--line) and one heavier rule (--rule) do the work cards used to; no
- * radius above 4px; no glow. Tokens are in :root, once. Layout: header
+ * The look is DESIGN.md's: a soft board on pitch black. Every figure is
+ * set in one monospace face (--mono); the headline figure in a row, a
+ * pressed control and a star are gold (--accent); green, amber and red
+ * (--good --warn --bad) mark an edge, won/lost and a pill that reports a
+ * measurement; hairlines (--line) and one heavier rule (--rule) divide
+ * rounded panels (--r-panel, --r-btn); no glow. Tokens are in :root, once. Layout: header
  * (brand, a real stat tile flush right, a rule, then the controls), a
  * .note, optional .controls, then .game tables of .row buttons that open
  * the drawer. Mobile at 760px; touch targets under (pointer:coarse).
  */
 html{color-scheme:dark}
-:root{--bg:#0E0F0C; --surface:#15170F; --surface2:#1B1E16; --line:rgba(255,255,255,0.09); --rule:rgba(255,255,255,0.22); --text:#EDEAE0; --muted:#8F9284; --muted-dim:#6E7165; --accent:#D9A441; --ink:#0E0F0C; --warn:#E4B04A; --bad:#E2513F; --good:#6FD39A; --display:'Bricolage Grotesque',ui-sans-serif,system-ui,sans-serif; --label:'Archivo','Archivo Narrow',ui-sans-serif,system-ui,sans-serif; --mono:'Martian Mono',ui-monospace,'SF Mono',Menlo,monospace; --body:'Source Sans 3',ui-sans-serif,system-ui,-apple-system,sans-serif; --r-btn:10px; --r-panel:14px;}
+:root{--bg:#000000; --surface:#111111; --surface2:#1A1A1A; --line:rgba(255,255,255,0.12); --rule:rgba(255,255,255,0.28); --text:#F4F4F2; --muted:#9C9C96; --muted-dim:#737370; --accent:#FFC53D; --ink:#000000; --warn:#E4B04A; --bad:#E2513F; --good:#6FD39A; --display:'Bricolage Grotesque',ui-sans-serif,system-ui,sans-serif; --label:'Archivo','Archivo Narrow',ui-sans-serif,system-ui,sans-serif; --mono:'Martian Mono',ui-monospace,'SF Mono',Menlo,monospace; --body:'Source Sans 3',ui-sans-serif,system-ui,-apple-system,sans-serif; --r-btn:10px; --r-panel:14px;}
 *{box-sizing:border-box}
 /* The `hidden` attribute must actually hide. A class that sets
    `display` (.ctl and .controls both set display:flex) beats the UA
@@ -64,7 +64,7 @@ header>.ctl{order:2;flex:1 1 100%}
 .controls{display:flex;gap:14px 22px;flex-wrap:wrap;align-items:flex-end;padding:4px 0 14px;margin-bottom:14px;border-bottom:1px solid var(--line)}
 .ctl{display:flex;flex-direction:column;gap:6px;min-width:0;max-width:100%}
 .ctl>label{font-family:var(--label);font-size:10px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
-.seg{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;max-width:100%;padding:3px;margin:-3px}
+.seg{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;max-width:calc(100% + 6px);padding:3px;margin:-3px}
 .seg::-webkit-scrollbar{display:none}
 .seg button{font:inherit;font-family:var(--body);font-size:14px;color:var(--muted);background:var(--surface);border:1px solid var(--line);border-radius:var(--r-btn);padding:8px 14px;cursor:pointer;white-space:nowrap;flex:none;transition:background .15s,color .15s}
 .seg button:hover{color:var(--text)}
@@ -158,7 +158,7 @@ header>.ctl{order:2;flex:1 1 100%}
 .rung b{font-family:var(--mono);font-size:13px;font-weight:600}
 .rung .rp{font-family:var(--mono);font-size:13px;text-align:right;font-weight:600;color:var(--text)}
 .rung .rf{grid-column:1/-1;font-family:var(--mono);font-size:11px;color:var(--muted)}
-.rung.near{border-color:var(--accent);background:rgba(217,164,65,.1)}
+.rung.near{border-color:var(--accent);background:rgba(255,197,61,.12)}
 /* The matchup panel on a game: descriptive, so it reads quietly under
    the table. The family table's first column flexes and the two number
    columns are fixed, which is what keeps it inside a 390px phone. */
@@ -326,5 +326,34 @@ button.rung:hover{border-color:var(--rule)}
   .tcard{flex:0 0 200px}
   .tclear{margin-left:auto}
 }
+/* The live page: a card per tracked prop with a bar of the count against
+   the target, a status pill, and the game's clock; the strip above it
+   counts the cards by state. */
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+.card{border:1px solid var(--line);border-radius:var(--r-panel);background:var(--surface);padding:14px 16px 12px;position:relative}
+.card.reached,.card.cashed{border-color:rgba(111,211,154,.5)}
+.card.oneaway{border-color:rgba(228,176,74,.5)}
+.card .ctop{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.card .cname{font-family:var(--display);font-size:16px;font-weight:600;color:var(--text)}
+.card .cmeta{font-size:13px;color:var(--muted);margin-top:2px}
+.card .cprop{font-family:var(--label);font-size:10px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-stretch:87.5%}
+.bar{height:8px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden;margin:12px 0 8px}
+.bar i{display:block;height:100%;background:var(--accent);border-radius:999px;transition:width .4s ease-out}
+.card.reached .bar i,.card.cashed .bar i{background:var(--good)}
+.card.missed .bar i,.card.void .bar i{background:var(--muted-dim)}
+.card .cnum{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.card .cnum b{font-family:var(--mono);font-size:20px;font-weight:600;color:var(--accent);font-variant-numeric:tabular-nums}
+.card.reached .cnum b,.card.cashed .cnum b{color:var(--good)}
+.card .cnum small{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.card .cx{font:inherit;font-size:16px;line-height:1;color:var(--muted);background:none;border:0;cursor:pointer;width:26px;height:26px;margin:-6px -8px -6px 0;border-radius:var(--r-btn)}
+.card .cx:hover{color:var(--text)}
+.card .cfoot{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:8px;font-size:12px;color:var(--muted)}
+.lstrip .seg button small{font-family:var(--mono);margin-left:6px;color:inherit;opacity:.8}
+.updated{font-family:var(--mono);font-size:12px;color:var(--muted)}
+/* Track buttons in the drawer: the pressed rung, or the touchdown. */
+.trackrow{margin:10px 0 2px}
+.track{font:inherit;font-family:var(--body);font-size:14px;font-weight:600;color:var(--text);background:var(--surface2);border:1px solid var(--line);border-radius:var(--r-btn);padding:8px 14px;cursor:pointer}
+.track:hover{border-color:var(--accent)}
+.track[aria-pressed=true]{color:var(--ink);background:var(--accent);border-color:var(--accent)}
 /* Touch: fingers need 44px; the mouse does not. Pages add their own tap targets. */
 @media (pointer:coarse){ .seg button,.navlink,.row{min-height:44px} }

@@ -73,3 +73,19 @@ test("toggle / has: a star goes on, then off, and a list is never mutated in pla
   assert.deepEqual(W.parseWatch(W.serialise(b)), b);
   assert.match(W.WATCH_KEY, /^bethouse\.watch\.v\d+$/);
 });
+
+/* Tracked props: a player, a prop and a target, for the live page. */
+test("trackKey / parseTracks / toggleTrack: a tracked prop is one player, one prop, one target in one game", () => {
+  const t = { league: "NFL", sport: "football", gameId: "401872945", playerId: "4242335", name: "Jonathan Taylor", team: "IND", opp: "KC", prop: "rushyds", rung: 100 };
+  assert.equal(W.trackKey(t), "NFL|401872945|4242335|rushyds|100");
+  assert.equal(W.trackKey({ ...t, prop: "td", rung: undefined }), "NFL|401872945|4242335|td");
+  const list = W.toggleTrack([], t);
+  assert.equal(list.length, 1); assert.equal(list[0].key, W.trackKey(t)); assert.equal(list[0].name, "Jonathan Taylor");
+  assert.ok(W.hasTrack(list, W.trackKey(t)));
+  assert.deepEqual(W.toggleTrack(list, t), [], "the same prop again untracks it");
+  assert.equal(W.toggleTrack(list, { ...t, rung: 125 }).length, 2, "another target is another tracked prop");
+  assert.deepEqual(W.parseTracks("nope"), []);
+  assert.deepEqual(W.parseTracks(W.serialise(list)), list, "round trip");
+  assert.deepEqual(W.parseTracks(JSON.stringify([{ key: "x" }, null, { ...list[0], key: "wrong" }, list[0], list[0]])), [list[0]], "only self-consistent entries, once");
+  assert.match(W.TRACK_KEY, /^bethouse\.track\.v\d+$/);
+});
