@@ -30,15 +30,17 @@
   <h2 id="htitle">Tonight's slate</h2>
   <p id="hsent">Reading the boards…</p>
   <p class="golf" id="hgolf" hidden></p>
-  <div class="links">
-    <a class="btn primary" href="nfl.html">NFL board</a>
-    <a class="btn" href="cfb.html">College</a>
-    <a class="btn" href="baseball.html">Baseball</a>
-    <a class="btn" href="golf.html">PGA</a>
-    <a class="btn" href="live.html">Live tracker</a>
-    <a class="btn" href="bets.html">Bet log</a>
-  </div>
 </section>
+
+<nav class="bstrip" aria-label="Boards">
+  <span class="blab">Boards</span>
+  <a class="btn" href="nfl.html">NFL</a>
+  <a class="btn" href="cfb.html">College football</a>
+  <a class="btn" href="baseball.html">Baseball</a>
+  <a class="btn" href="golf.html">PGA</a>
+  <a class="btn" href="live.html">Live tracker</a>
+  <a class="btn" href="bets.html">Bet log</a>
+</nav>
 
 <section id="slate">
   <div class="shead"><h2 class="gtitle" id="stitle">Tonight's games</h2><div class="gmeta" id="smeta"></div></div>
@@ -158,6 +160,7 @@
   el('gcards').innerHTML=h;
   el('stitle').textContent=s.when==='today'?'Tonight\'s games':s.when==='next'?(s.label||'Next up')+'\'s games':'Games';
   var hasFb=s.games.some(function(g){ return g.sport==='football'; }), hasBb=s.games.some(function(g){ return g.sport==='baseball'; });
+  el('caveat').hidden=!hasFb; // the warning is about football numbers; a baseball day has none to warn about
   var linesAt=[data.nfl&&data.nfl.linesFetched, data.cfb&&data.cfb.linesFetched].filter(Boolean).sort().pop();
   el('smeta').textContent=s.games.length?s.games.length+(s.games.length===1?' game':' games')+' · times where you are'+
     (hasFb?' · projected score, the favourite and the better of spread and total by EV'+(linesAt?' · lines as of '+String(linesAt).slice(11,16)+' UTC':''):'')+

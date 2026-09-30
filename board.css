@@ -357,14 +357,15 @@ button.rung:hover{border-color:var(--rule)}
 .track[aria-pressed=true]{color:var(--ink);background:var(--accent);border-color:var(--accent)}
 /* Touch: fingers need 44px; the mouse does not. Pages add their own tap targets. */
 /* The home: a hero naming the slate, one card per game, a row of tops. */
-.hero{border:1px solid var(--line);border-radius:var(--r-panel);background:var(--surface);padding:22px 24px 20px;margin:0 0 26px}
+.hero{border:1px solid var(--line);border-radius:var(--r-panel);background:var(--surface);padding:22px 24px 22px;margin:0 0 16px}
 .hero .hdate{display:flex;align-items:center;gap:10px;font-family:var(--label);font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
 .hero .today{color:var(--ink);background:var(--accent);border-color:var(--accent);font-weight:700}
 .hero h2{font-family:var(--display);font-size:34px;font-weight:700;line-height:1.1;margin:12px 0 6px;font-variation-settings:'opsz' 96;letter-spacing:-.01em}
 .hero p{margin:0 0 6px;color:var(--muted);font-size:17px;line-height:1.5}
 .hero p.golf{font-size:15px}
 .hero .golf a{color:var(--accent);text-decoration:none;font-family:var(--label);font-size:12px;letter-spacing:.1em;text-transform:uppercase;font-weight:600}
-.hero .links{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.bstrip{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:-10px 2px 26px}
+.bstrip .blab{font-family:var(--label);font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-right:6px}
 .btn{font-family:var(--body);font-size:15px;color:var(--text);background:var(--surface2);border:1px solid var(--line);border-radius:var(--r-btn);padding:9px 16px;text-decoration:none;transition:background .15s,color .15s}
 .btn:hover{background:var(--bg)}
 .btn.primary{color:var(--ink);background:var(--accent);border-color:var(--accent);font-weight:600}
