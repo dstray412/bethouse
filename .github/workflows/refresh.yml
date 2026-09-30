@@ -112,5 +112,8 @@ jobs:
             echo "No change."
           else
             git commit -m "board: $(date -u +%Y-%m-%dT%H:%MZ)"
+            # A push from a laptop while this ran rejected the push at 03:38Z on
+            # 2026-09-30 and lost the slate; the other three refreshes already rebase first.
+            git pull --rebase --autostash origin main
             git push
           fi
