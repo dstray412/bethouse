@@ -272,8 +272,8 @@ footer td{padding:1px 14px 1px 0}
    phone drops it too) and the matchup narrows. */
 @media (min-width:761px) and (max-width:900px){
   .game.v-stat .thead .fair,.game.v-stat .row .fair{display:none}
-  .game.v-stat{--cols:34px 44px 1fr 120px 84px 84px 120px 18px}
-  .game.v-stat.nopx{--cols:34px 44px 1fr 120px 84px 84px 18px}
+  .game.v-stat{--cols:34px 44px 1fr 108px 74px 74px 100px 18px}
+  .game.v-stat.nopx{--cols:34px 44px 1fr 108px 74px 74px 18px}
 }
 /* The price you are offered, typed in the drawer and shown on the row
    beside the fair price with the edge at it: edge.js's expected value of

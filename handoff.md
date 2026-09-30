@@ -36,8 +36,10 @@ the stat view's eight desktop columns did not fit and `.game`'s
 `overflow:hidden` clipped the caret and part of the price cell, with no
 scrollbar (measured 44px at 768). A tablet block in board.css, 761 to
 900px, drops the fair column on the stat view (the phone drops it too)
-and narrows the matchup and price cells; measured 0 clip across the
-range, with the price cell inside the row. `dom.test.mjs` pins the
+and narrows the matchup, figure and price cells (108 / 74 / 74 / 100px);
+measured 0 clip across the range, nothing clipped inside a cell, and
+the name cell at 131px at 761 and 138px at 768 (it was 86px on the
+first cut, which the user asked to widen). `dom.test.mjs` pins the
 block.
 
 ## Faces (2026-09-29, late)
