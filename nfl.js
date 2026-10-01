@@ -187,6 +187,20 @@
     marginSD: 14.29,
     totalSD: 13.44,
     /*
+     * Wind (A4): points per mph of wind over windFloor taken off the
+     * projected total of an outdoor game, half from each side. 0 is no
+     * term. experiment-nflverse.mjs (2026-09-08) found the closing total
+     * does not price wind over 27 seasons (the under at 15+ mph hit 56%);
+     * experiment-wind.mjs asks the model's question under the README's
+     * rule, fit 1999–2021 and validated 2022–2025. The table is in the
+     * README under A4. The live board reads the forecast at build time
+     * (fetch-weather.mjs via stadiums.json) and the replay reads
+     * nflverse's reading; a game with no reading, or under a roof, gets
+     * no adjustment.
+     */
+    windK: 0,
+    windFloor: 15,
+    /*
      * HOW MUCH OF THE MODEL'S OPINION ABOUT A LINE TO BELIEVE.
      *
      * Against 480 closing spreads, regressing the outcome on the model's
@@ -486,12 +500,18 @@
     const oa = num(ratings.off[awayTeam]), da = num(ratings.def[awayTeam]);
     const lg = isFinite(ratings.league) ? ratings.league : o.leaguePoints;
     const hf = o.neutral ? 0 : isFinite(ratings.homeField) ? ratings.homeField : o.homeField;
-    const homePts = lg + oh + da + hf;
-    const awayPts = lg + oa + dh;
+    let homePts = lg + oh + da + hf;
+    let awayPts = lg + oa + dh;
+    /* Wind, when the caller has a reading for an outdoor game: windK points
+       per mph over the floor, off the total, half from each side. */
+    const wind = o.wind != null && isFinite(o.wind) && !o.indoor ? Math.max(0, num(o.wind) - num(o.windFloor)) : 0;
+    const windPts = num(o.windK) > 0 && wind > 0 ? num(o.windK) * wind : 0;
+    homePts -= windPts / 2; awayPts -= windPts / 2;
     return {
       homePts, awayPts,
       margin: homePts - awayPts, // positive = home favoured
       total: homePts + awayPts,
+      windPts, // what the wind took off: 0 while windK is 0; here so a term that ships has somewhere to report from
     };
   }
 

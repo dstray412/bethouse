@@ -84,7 +84,7 @@
       if(scriptCache[team]!=null) return scriptCache[team];
       var g=gameOf[team], v=1;
       if(g&&D.ratings&&isFinite(D.ratings.league)&&D.ratings.league>0&&typeof N.projectGame==='function'){
-        var pr=N.projectGame(D.ratings,g.home,g.away,{neutral:!!g.neutral});
+        var pr=N.projectGame(D.ratings,g.home,g.away,{neutral:!!g.neutral,wind:g.wind,indoor:!!g.indoor});
         if(pr){ var pts=team===g.home?pr.homePts:pr.awayPts; if(isFinite(pts)&&pts>0) v=pts/D.ratings.league; }
       }
       scriptCache[team]=v; return v;
@@ -200,6 +200,21 @@
        hero's tint and the tray card's left edge. '' without the module. */
     var TC=window.BetHouseTeams||null;
     var tintOf=function(team){ return TC?TC.tint(cfg.league,teamKeyOf(team)):''; };
+    /* The forecast at kickoff, as the fetcher wrote it on the game (A4):
+       a fact for the panel, and it says it is a forecast, since the build
+       is up to a day old. A venue with a roof (ESPN's flag; fixed or
+       retractable, the feed does not say which) gets no forecast and the
+       word "roof", not a claim about whether it was open. The model's
+       wind term is at 0 (nfl.js windK, the table in the README), so the
+       number moves nothing. */
+    var weatherOf=function(g){
+      if(!g) return '';
+      if(g.indoor) return 'roof';
+      var parts=[];
+      if(g.wind!=null&&isFinite(g.wind)) parts.push('wind '+Math.round(g.wind)+' mph');
+      if(g.temp!=null&&isFinite(g.temp)) parts.push(Math.round(g.temp)+'°F');
+      return parts.length?'forecast '+parts.join(' · '):'';
+    };
     var edgeOf=function(team){ return (TC&&TC.paint(cfg.league,teamKeyOf(team)))||''; };
     var mark=function(team,px){ return F?F.mark(cfg.league,teamKeyOf(team),px):''; };
     var face=function(p,px){ return F?F.face(cfg.league,p&&p.id,px):'<span class="face"></span>'; };
@@ -762,7 +777,7 @@
       var rows=[];
       (D.games||[]).forEach(function(g){
         if(!g.home||!g.away) return;
-        var pr=N.projectGame(D.ratings,g.home,g.away,{neutral:!!g.neutral});
+        var pr=N.projectGame(D.ratings,g.home,g.away,{neutral:!!g.neutral,wind:g.wind,indoor:!!g.indoor});
         if(!pr) return;
         var pick=g.line?N.pickGame(pr,g.line):null;
         /* The row shows the better of the spread and total picks. The
@@ -947,7 +962,7 @@
       /* A DOM attribute, not markup, so no esc(): the value is a bare colour teams.js validated at the source. */
       if(dh) dh.setAttribute('style', tint?'background:'+tint:'');
       document.getElementById('dsub').textContent = r.p ? ((r.p.pos?r.p.pos+' · ':'')+'Model rank '+rankOf(r)+' · '+propLabelOf(r))
-        : [r.g&&r.g.venue, r.g&&r.g.date&&isFinite(Date.parse(r.g.date))?new Date(r.g.date).toLocaleString(undefined,{weekday:'short',hour:'numeric',minute:'2-digit'}):''].filter(Boolean).join(' · ')||('week '+D.week);
+        : [r.g&&r.g.venue, r.g&&r.g.date&&isFinite(Date.parse(r.g.date))?new Date(r.g.date).toLocaleString(undefined,{weekday:'short',hour:'numeric',minute:'2-digit'}):'', weatherOf(r.g)].filter(Boolean).join(' · ')||('week '+D.week);
       var db=document.getElementById('dbands');
       if(db) db.innerHTML = (r.p&&app.__bands) ? app.__bands(r) : '';
       /* A player's tabs: the overview (price, Track, how he gets there),
@@ -1134,7 +1149,7 @@
       });
       (D.games||[]).forEach(function(g){
         if(!g.line||g.completed||Date.parse(g.date)<=Date.now()) return;
-        var pr=N.projectGame(D.ratings,g.home,g.away,{neutral:!!g.neutral}), pick=N.pickGame(pr,g.line); if(!pick) return;
+        var pr=N.projectGame(D.ratings,g.home,g.away,{neutral:!!g.neutral,wind:g.wind,indoor:!!g.indoor}), pick=N.pickGame(pr,g.line); if(!pick) return;
         ['spread','total'].forEach(function(prop){
           var k=pick[prop]; if(!on(prop)||!k||!isFinite(k.prob)) return;
           out.push({key:g.id+'|game|'+prop, playerId:'game', gameId:g.id, team:prop==='spread'?(k.side==='home'?g.home:g.away):null, opp:null,

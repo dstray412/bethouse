@@ -151,6 +151,9 @@ should be re-fitted when the run environment shifts.
 | `teams.html` / `teams-page.js` | The teams page: one row per NFL team from the tendencies profiles, sortable, with the family chips; tested in `teams-page.test.mjs`. |
 | `tendencies-core.js` | The ranks, the two legibility thresholds, the play families, a matchup and its sentence: the arithmetic the board's matchup panel, the teams page and `tendencies.mjs` share, one copy. |
 | `teams.js` / `teams-data.js` / `fetch-teams.mjs` | A team's two colours, for the stripe on the home's game cards, the tint behind the drawer's hero and the tray card's edge, and nowhere on text. The table is ESPN's team lists (NFL and MLB by abbreviation, college by ESPN id), fetched by hand and committed. Tested in `teams.test.mjs`. |
+| `fetch-stadiums.mjs` / `stadiums.json` | Where each NFL game is played, as a point: ESPN's venues, Open-Meteo's geocoder, and whether there is a roof. Run by hand when a venue changes; committed. |
+| `fetch-weather.mjs` | The forecast at kickoff for every open outdoor game, from Open-Meteo, written on the game as `wind`, `temp`, `indoor`; descriptive on the drawer, read by `projectGame` where `windK` (0) decides. Tested in `fetch-weather.test.mjs`. |
+| `experiment-wind.mjs` | The wind term's measurement over 27 seasons, fit 1999–2021 and validated 2022–2025; the table is under A4. |
 | `chips.js` | The chips a football row and its card wear: each a measured number past a threshold that lives here and nowhere else (volume, red zone, snaps, deep, soft or tough defence). Plain data; the board escapes. Tested in `chips.test.mjs`. |
 | `record.html` / `record-page.js` | The record page: the replay tables (static) and the live records and parlay records for both football boards, from the files the trackers write. Tested in `record-page.test.mjs`. |
 | `faces.js` | A player's photo and a team's mark for every page: the urls by league and size, and the one `<img>` markup (lazy, no referrer, fixed box, hidden on error). Tested in `faces.test.mjs`. |
@@ -1839,6 +1842,56 @@ time (n=278) and its opponent 53.3% (n=345); the margin against the line runs
 standard errors from nothing and short of break-even. Since 2011 the opponent
 has covered 53–56% in each era. Worth watching, not betting.
 
+**2026-10-01, A4: wind, measured and not shipped.** The 27-season
+finding above (the under at 15+ mph hits 56%) is a fact about the line.
+The model's question is different: walked forward the way the board
+builds it, does taking `windK` points per mph over `windFloor` off the
+projected total of an outdoor game make the total pick better on a
+window it was not fitted on? `experiment-wind.mjs` asks it under the
+rule, fit 1999–2021 and validated 2022–2025, on the 4,924 outdoor games
+with a wind reading (4,846 once the 78 pushes against the total are
+dropped, since a push grades neither side), paired on the game against
+`windK` 0. The raw
+effect is real: against the model's projection, points run −2.9 ± 0.7
+at 15–20 mph and −0.9 ± 0.4 at 10–15, +0.5 ± 0.5 in calm air. The term
+built on it is not.
+
+| windK | floor | fit 99–21 Δ/SE (n=4,257) | val 22–25 Δ/SE (n=589) |
+|---|---|---|---|
+| 0.2 | 15 mph | −3.36 | +0.74 |
+| 0.5 | 15 mph | −3.37 | +0.67 |
+| 1.0 | 15 mph | −3.22 | +0.49 |
+| 0.2 | 10 mph | −3.91 | −0.58 |
+| 0.5 | 10 mph | −3.82 | −0.69 |
+| 1.0 | 10 mph | −3.58 | −0.93 |
+
+Every value clears the fit window by three standard errors and none
+comes near the validation bar of −2: the 15 mph floor is worse on
+2022–25 at every strength, the 10 mph floor is noise. The Brier deltas
+are in the fifth decimal, on a total pick that `totalShrink` already
+holds at a point or two from 50%. `windK` stays at 0 in `nfl.js`, with
+the hook left in `projectGame` so the next measurement needs no code.
+
+What did ship is the reading. `fetch-stadiums.mjs` writes
+`stadiums.json`: every venue ESPN names for the league (30 home
+grounds, two of them shared, and the season's 8 neutral sites), its
+city geocoded once through Open-Meteo's keyless geocoder, matched on
+the venue's country (the first run put Stade de France on Réunion;
+the test now holds every point inside its country's box), and ESPN's
+roof flag. At build time `fetch-weather.mjs` asks Open-Meteo's forecast for
+the wind and temperature at the kickoff hour of every open outdoor
+game and writes `wind`, `temp` and `indoor` on the game; the drawer's
+subtitle prints them beside the venue and the kickoff, labelled a
+forecast, since the build is up to a day old. A venue with a roof is
+marked "roof" and not asked for; the flag does not say whether a
+retractable one was open, so the panel does not either. A venue not on
+file, a forecast that fails or stalls, or one that does not reach the
+hour leaves the game without a reading, never with a wrong one. The projection reads `wind` through the hook, and at 0 it
+moves nothing. College has no stadium table and gets no forecast.
+
+The other A4 term, the vacated share when a teammate at the same
+position is out, was not measured in this pass; it is in Known gaps.
+
 ### Suggested parlays, and what the replay said about one game
 
 The football boards build a slip on request: 3, 4 or 5 legs from the whole
@@ -2487,8 +2540,14 @@ reason, and the number to watch is touchdowns.
 - **College has no bettable line bias either.** Twenty seasons: the
   high-total under is 52.1%, the spread model has no information beyond
   the line. The board's college copy says so.
-- **The wind bias is found, not yet bettable.** Unders at 15+ mph have hit 56%
-  in every era since 1999, and the board has no wind forecast. Next build.
+- **The wind bias is found, and the model cannot use it.** Unders at 15+ mph
+  have hit 56% in every era since 1999, and the board now carries the
+  forecast on every open outdoor game; but a wind term on the projected
+  total fails validation at every strength and floor tried (the A4 table),
+  so `windK` is 0 and the reading is a fact on the panel, not a price.
+- **A teammate's absence is not redistributed.** When a starter at the same
+  position is out, his target or carry share stays with him; the vacated-share
+  term in the plan was not measured.
 - **College has no injury feed**, so a college player ruled out stays on the
   board until his box score is empty. The NFL board hides him.
 - **Line movement is not a signal.** Following the move at the current line

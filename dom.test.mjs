@@ -875,8 +875,8 @@ const TENDENCIES = {
   },
 };
 const GAMES = [
-  { id: "g1", home: "LAC", away: "KC", date: "2030-01-01T00:00Z", completed: false, venue: "SoFi Stadium" },
-  { id: "g2", home: "BBB", away: "AAA", date: "2030-01-02T00:00Z", completed: false },
+  { id: "g1", home: "LAC", away: "KC", date: "2030-01-01T00:00Z", completed: false, venue: "SoFi Stadium", wind: 18.4, temp: 61 },
+  { id: "g2", home: "BBB", away: "AAA", date: "2030-01-02T00:00Z", completed: false, indoor: true },
 ];
 const RATINGS = { off: { KC: 2, LAC: 1, AAA: 0, BBB: 0 }, def: { KC: -1, LAC: 0, AAA: 0, BBB: 0 } };
 
@@ -1726,6 +1726,21 @@ test("without a record the receipt band is absent; a stat view's card leads with
   assert.equal(doc.getElementById("dbands").innerHTML, "", "a game row shows player bands");
   assert.match(doc.getElementById("dkick").textContent, /^Week \d+$/);
   assert.match(doc.getElementById("dsub").textContent, /^SoFi Stadium · /, "a game row's subtitle does not name the venue");
+  /* A4: the forecast the fetcher wrote on the game is a fact on the panel, rounded; a roof says so and carries no reading. */
+  assert.match(doc.getElementById("dsub").textContent, / · forecast wind 18 mph · 61°F$/, "the game's forecast is not on its panel, or is not called one");
+  clickRow(app, app.__rows.findIndex((r) => r.g && r.g.id === "g2"));
+  assert.match(doc.getElementById("dsub").textContent, /roof$/, "a game under a roof does not say so");
+  assert.doesNotMatch(doc.getElementById("dsub").textContent, /indoors|dome/, "the feed's roof flag does not say the roof was closed");
+  assert.doesNotMatch(doc.getElementById("dsub").textContent, /wind|°F/);
+});
+
+test("the game projection sees the forecast, and at windK 0 it moves nothing", async () => {
+  const nfl = (await import("./nfl.js")).default;
+  const { app } = await mountBoard({ tendencies: TENDENCIES, games: GAMES, ratings: RATINGS });
+  const r = app.__rows.find((x) => x.g && x.g.id === "g1");
+  const bare = nfl.projectGame(RATINGS, "LAC", "KC", {});
+  assert.equal(r.pr.total, bare.total, "the shipped windK is 0, so the forecast must not move the total");
+  assert.equal(r.pr.windPts, 0);
 });
 
 test("the receipt is only claimed for a game that had not kicked off at the build", async () => {

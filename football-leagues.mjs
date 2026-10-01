@@ -21,6 +21,9 @@ const CORE = "https://sports.core.api.espn.com/v2/sports/football/leagues";
 export const NFL = {
   id: "nfl",
   label: "NFL",
+  /* The forecast at kickoff (fetch-weather.mjs) needs a point per venue;
+     stadiums.json has the NFL's 38. College has no table yet. */
+  weather: true,
   site: `${SITE}/nfl`,
   core: `${CORE}/nfl`,
   weeks: 18,

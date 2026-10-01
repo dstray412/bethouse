@@ -76,6 +76,7 @@
 
 import { buildEnrichment, attach as attachEnrichment, gamesByPlayer, usageOf } from "./enrich-nfl.mjs";
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
+import { weatherFor, loadStadiums, fetchJson } from "./fetch-weather.mjs";
 
 const REGULAR_SEASON = 2;
 
@@ -892,6 +893,13 @@ export async function buildBoard(league, history) {
   }
   console.log(`  lines found for ${lines.size} of ${open.length} games not yet played`);
 
+  /* The forecast at kickoff for the open outdoor games, where the league
+     has a stadium table: wind and temperature on the game's panel, and
+     wind into projectGame, where windK (0, see nfl.js) decides whether
+     it moves anything. A game with no reading is left without one. */
+  const weather = league.weather ? await weatherFor(up.games, loadStadiums(), fetchJson, { log: console.log }) : {};
+  if (league.weather) console.log(`  forecasts for ${Object.values(weather).filter((w) => w.wind != null || w.temp != null).length} of ${open.length} open games (${Object.values(weather).filter((w) => w.indoor).length} under a roof)`);
+
   const usagePool = model.usagePoolFrom([...usageByPlayer.values()], 6);
   /*
    * The pools: for each counting prop, actual/expected for every game by
@@ -993,6 +1001,7 @@ export async function buildBoard(league, history) {
       ...(g.neutral ? { neutral: true } : {}),
       ...(g.homeId ? { homeId: g.homeId } : {}), ...(g.awayId ? { awayId: g.awayId } : {}),
       ...(g.venue ? { venue: g.venue } : {}),
+      ...(weather[g.id] || {}),
       ...(lines.has(g.id) ? { line: lines.get(g.id) } : {}),
     })),
     ratings,

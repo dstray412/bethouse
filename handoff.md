@@ -30,6 +30,47 @@ Zero dependencies, no build step, no server, no API key. `node --test` with
 **named files** — bare discovery pulls in the backtests, which fire live API
 calls. The list lives in seven places and `dom.test.mjs` checks all seven.
 
+## A4: wind measured and dead; the forecast on the panel (2026-10-01, latest)
+
+**What.** `experiment-wind.mjs` walks the game model forward over 27
+nflverse seasons and grades a wind term on the total (`windK` points
+per mph over `windFloor` off an outdoor game's projection), fit
+1999–2021 and validated 2022–2025, paired against `windK` 0. The raw
+effect is real (points −2.9 ± 0.7 against the projection at 15–20 mph)
+but the term never clears validation: floor 15 is worse on 2022–25 at
+every strength (Δ/SE +0.5 to +0.7), floor 10 is noise (−0.6 to −0.9),
+while every fit window clears by three SE. Table in the README under
+"A4". `nfl.js` keeps `windK: 0, windFloor: 15` with the hook live in
+`projectGame` (opts `wind`, `indoor`; returns `windPts`), so a future
+measurement is a constant change.
+
+**What shipped.** `fetch-stadiums.mjs` → `stadiums.json` (38 venues:
+ESPN's franchise venues plus the season's scoreboard venues, city
+geocoded through Open-Meteo's keyless geocoder, ESPN's `indoor` flag;
+10 under a roof). `fetch-weather.mjs` at build time (NFL only, the
+league's `weather: true` in `football-leagues.mjs`) asks Open-Meteo's
+forecast for the kickoff hour of every open outdoor game and writes
+`wind`, `temp`, `indoor` on the game row in `nfl-data.js`; the drawer's
+game subtitle prints `forecast wind 18 mph · 61°F` or `roof`. Code
+review's findings folded in: country-matched geocoding with a
+geography oracle in the test, `--regeocode` for a sticky bad point, a
+10 s fetch timeout, a loud parse failure, the experiment calling
+`projectGame` instead of re-typing the term, and its docblock saying
+which of the rule's conditions it runs. Every failure
+leaves the game without a reading. The three `projectGame` calls on the
+board pass `wind` and `indoor`; `dom.test.mjs` pins that at `windK` 0
+the total is byte-identical to the bare projection.
+
+**Lessons.** `var` at the bottom of a module is hoisted as undefined;
+the first stadium run geocoded 7 of 38 because the state table was
+declared after its use. Open-Meteo's geocoder knows cities, not
+stadium names.
+
+**Not done.** The vacated-share term (a teammate at the same position
+out, his share redistributed) was not measured; it stays in Known gaps.
+`wind` is not yet a candidate input for passing yards. Next: B6
+(colour beyond the figure, richer copy), then A5 (publish).
+
 ## B5: the teams page (2026-10-01, night)
 
 `tendencies-core.js` (UMD `BetHouseTendencyCore`): `rank`, `LEAN_SHARE`,

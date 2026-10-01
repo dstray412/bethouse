@@ -1523,3 +1523,27 @@ test("end to end: seasonLines writes the log the decay reads, so a rising receiv
   assert.ok(nfl.weightedStatTotal("recyds", r, { yardDecay: 0.8 }) > 120, "the rising line did not rise");
   close(nfl.weightedStatTotal("recyds", r, { yardDecay: 0.8 }), (0.64 * 20 + 0.8 * 40 + 60) * 3 / 2.44, 1e-9);
 });
+
+/* ------------------------------------------------------------------ *
+ * A4: wind in the total. Oracle: experiment-wind.mjs's definition, windK
+ * points per mph over windFloor off the total of an outdoor game, half
+ * from each side; the margin untouched.
+ * ------------------------------------------------------------------ */
+test("wind: at windK 0 nothing moves; with a term, an outdoor game over the floor loses windK a mph from its total, half a side, the margin unchanged; a dome or no reading moves nothing", () => {
+  const ratings = { off: { KC: 2, LAC: -1 }, def: { KC: -1, LAC: 1 }, league: 23, homeField: 2 };
+  const base = nfl.projectGame(ratings, "KC", "LAC");
+  assert.equal(nfl.DEFAULTS.windK, 0, "windK ships at 0 until a value clears the rule");
+  assert.equal(nfl.DEFAULTS.windFloor, 15);
+  const same = nfl.projectGame(ratings, "KC", "LAC", { wind: 25 });
+  close(same.total, base.total, 1e-9, "a reading with windK 0 moved the total");
+  assert.equal(same.windPts, 0);
+  const w = nfl.projectGame(ratings, "KC", "LAC", { wind: 25, windK: 0.5 });
+  close(w.total, base.total - 5, 1e-9, "25 mph at K 0.5 over a 15 floor is 5 points");
+  close(w.margin, base.margin, 1e-9, "the margin is not the wind's");
+  close(w.homePts, base.homePts - 2.5, 1e-9); close(w.awayPts, base.awayPts - 2.5, 1e-9);
+  assert.equal(w.windPts, 5);
+  close(nfl.projectGame(ratings, "KC", "LAC", { wind: 10, windK: 0.5 }).total, base.total, 1e-9, "under the floor is calm");
+  close(nfl.projectGame(ratings, "KC", "LAC", { wind: 25, windK: 0.5, indoor: true }).total, base.total, 1e-9, "a dome has no wind");
+  close(nfl.projectGame(ratings, "KC", "LAC", { wind: null, windK: 0.5 }).total, base.total, 1e-9, "no reading, no term");
+  close(nfl.projectGame(ratings, "KC", "LAC", { wind: 25, windK: 0.5, windFloor: 20 }).total, base.total - 2.5, 1e-9, "the floor is a constant");
+});
