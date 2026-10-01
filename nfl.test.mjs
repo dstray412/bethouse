@@ -1330,6 +1330,17 @@ test("boardPlayer: carries the player's recent rows when there are any, and no f
   assert.equal("recent" in b, false);
 });
 
+test("boardPlayer: the per-game log rides along only for a model whose touchdown decay reads it; college at equal weights writes none", async () => {
+  const { boardPlayer } = await import("./fetch-football.mjs");
+  const cfb = (await import("./cfb.js")).default;
+  const rec = { id: "1", name: "A", team: "KC", games: 2, tds: 1, carries: 0, targets: 10, recYds: 100, rushYds: 0, recs: 8, passAtt: 0, passYds: 0, log: [[0, 0, 5, null, null, null], [1, 0, 5, null, null, null]] };
+  const ctx = { roster: null, injuries: {}, backups: new Set(), opponentOf: {}, recent: new Map() };
+  assert.ok(nfl.DEFAULTS.tdDecay < 1 && cfb.DEFAULTS.tdDecay === 1, "the fixture assumes the NFL decays and college does not");
+  assert.deepEqual(boardPlayer(rec, { ...ctx, model: nfl }).log, rec.log, "the NFL board lost the log its decay reads");
+  assert.equal("log" in boardPlayer(rec, { ...ctx, model: cfb }), false, "college carries a log nothing reads (1,362 players of it put the file over 1 MB)");
+  assert.equal("log" in boardPlayer(rec, ctx), false, "no model, no decay to read it");
+});
+
 test("recentDate: a compact row's date reads back as a calendar date", () => {
   assert.equal(nfl.recentDate("260921"), "2026-09-21");
   assert.equal(nfl.recentDate("0921"), "09-21", "an older file's four-digit date still reads");

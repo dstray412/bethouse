@@ -801,7 +801,10 @@ export function boardPlayer(p, { roster, injuries, backups, opponentOf, recent, 
     ...(known(use) ? { usage: use } : {}),
     ...(known(use3) ? { usage3: use3 } : {}),
     ...(p.rz && p.rz.n ? { rz: p.rz } : {}),
-    ...(p.log && p.log.length ? { log: p.log } : {}),
+    /* The per-game log only where a decay reads it: a league at equal
+       weights would carry six numbers a game for nothing, and college's
+       1,362 players put the file over its ceiling (2026-10-01). */
+    ...(p.log && p.log.length && model && model.DEFAULTS.tdDecay < 1 ? { log: p.log } : {}),
     ...(w ? { w } : {}),
   };
 }

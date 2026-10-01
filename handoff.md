@@ -30,6 +30,20 @@ Zero dependencies, no build step, no server, no API key. `node --test` with
 **named files** — bare discovery pulls in the backtests, which fire live API
 calls. The list lives in seven places and `dom.test.mjs` checks all seven.
 
+## The college refresh failed (2026-10-01, 18:26 UTC)
+
+`cfb-data.js would be 1093 KB, over the 1 MB ceiling`: A1's per-game
+`log` (six numbers a game) reached the college build for the first
+time on the day's refresh, and 1,362 players of it crossed the ceiling
+the fetcher enforces. Two things were wrong: the log serves only the
+touchdown decay, and college had never pinned `tdDecay` back to 1, so
+it was about to run an NFL-measured term unmeasured (it had run at
+equal weights only because its file carried no log). Fixed by pinning
+`tdDecay: 1` in cfb.js and writing `log` only when the model's decay
+reads it (`boardPlayer`, like `w`). The NFL file is unchanged. One
+missed daily refresh; the board was a day stale, before week 5 kicked
+off.
+
 ## A3: the counting props (2026-10-01, latest)
 
 Shipped (nfl.js DEFAULTS, the fixed-line table beside them):

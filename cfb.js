@@ -142,10 +142,15 @@
     yardMinGames: 3,
     yardMinOpportunity: 7, // receptions: the NFL catches 67.9% of targets, so its 10 targets is 6.8 of these
     yardFloor: 20,
-    /* The NFL's A3 terms (2026-10-01: recent-form decay on the counting
-       props) are measured on NFL seasons only. College keeps equal
-       weights until its own replay (node backtest-nfl.mjs --league cfb
-       --fixed-lines) clears them. */
+    /* The NFL's recent-form terms (A2's touchdown decay, A3's counting-prop
+       decays) are measured on NFL seasons only. College keeps equal weights
+       until its own replay (node backtest-nfl.mjs --league cfb
+       --fixed-lines) clears them. tdDecay was not pinned at first and the
+       college board inherited 0.97 unmeasured; it ran at equal weights only
+       because its data file carried no per-game log. Pinned 2026-10-01,
+       the day the log would have arrived (and pushed cfb-data.js over its
+       1 MB ceiling: 1,362 players of it). */
+    tdDecay: 1,
     yardDecay: 1,
     rushDecay: 1,
     rushrecDecay: 1,

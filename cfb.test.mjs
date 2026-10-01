@@ -268,6 +268,8 @@ test("parseOdds: keeps the opening line beside the current or closing one", asyn
 test("a college receiver with a per-game log keeps his usage under the recent-form decay: the log carries receptions, not the targets college never records", () => {
   const p = { games: 10, tds: 3, carries: 0, recs: 60, targets: 0, log: Array.from({ length: 10 }, (_, i) => [i < 3 ? 1 : 0, 0, 6, null, null, null]) };
   const withLog = cfb.scoreAnytimeTD(p, { teamFactor: 1, oppFactor: 1 });
+  assert.equal(cfb.DEFAULTS.tdDecay, 1, "college runs the touchdown decay the NFL measured; it has not been replayed on college seasons");
+  for (const k of ["yardDecay", "rushDecay", "rushrecDecay"]) assert.equal(cfb.DEFAULTS[k], 1, k + " is not pinned for college");
   const plain = cfb.scoreAnytimeTD({ games: 10, tds: 3, carries: 0, recs: 60, targets: 0 }, { teamFactor: 1, oppFactor: 1, opts: { tdDecay: 1 } });
   assert.ok(withLog.usageRate > 0.3 && Math.abs(withLog.usageRate - plain.usageRate) < 1e-9, "six receptions a game every game: the weighted usage is the plain usage, not zero");
 });
