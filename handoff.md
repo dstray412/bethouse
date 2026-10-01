@@ -30,6 +30,29 @@ Zero dependencies, no build step, no server, no API key. `node --test` with
 **named files** — bare discovery pulls in the backtests, which fire live API
 calls. The list lives in seven places and `dom.test.mjs` checks all seven.
 
+## B5: the teams page (2026-10-01, night)
+
+`tendencies-core.js` (UMD `BetHouseTendencyCore`): `rank`, `LEAN_SHARE`,
+`SOFT_EPA`, `FAMILIES`, `matchup`, `describe`, carved out of
+`tendencies.mjs`, which imports and re-exports them (`export const
+{…} = core`), so `tendencies.test.mjs` is unchanged. `football-board.js`
+reads the core (`TCORE`; `TC` was already the team-colour module, and a
+clash cost one test run) for the matchup panel's ranks and family rows;
+the re-typed constants and the `TODO(simplify)` are gone; nfl.html
+loads `tendencies-core.js` after `tendencies-data.js`; without the
+core the panel does not render, like without the data. The dom "drift"
+test became a "no copy" test.
+
+`teams.html` + `teams-page.js` (UMD `BetHouseTeamsPage`,
+`teams-page.test.mjs`, in the seven gates): `rows(data, core)` one
+per team with ranks and the offence's leans / the defence's soft spots
+(the core's `matchup` against the league profile), `sorted(rows, key)`
+(best first by the column's direction, nulls last), `tableHtml`,
+`footHtml`, `render(doc, {data, core, faces, teams, league})` with a
+click-to-sort on the heads. CSS `.teams` in a `.game.tscroll` panel
+(min-width 1040px, the panel scrolls on a phone). Every board links
+Teams; the home's strip has a Teams button; BOARDS is nine.
+
 ## B4: the featured strip (2026-10-01, evening)
 
 `track-core.report` writes `bands` on each prop of the record

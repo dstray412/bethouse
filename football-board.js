@@ -668,42 +668,23 @@
      * belongs in a projection is not run, so no number here reaches one
      * and the panel's last line says so.
      *
-     * tendencies.mjs is an ES module and this page is plain scripts, so
-     * the two thresholds and the family table are re-typed rather than
-     * imported -- the duplication tasks/lessons.md warns about, so
-     * dom.test.mjs asserts they still agree with the module.
+     * The ranks, the two thresholds and the family table come from
+     * tendencies-core.js, the same copy the builder and the teams page
+     * use; nothing is re-typed here. Without that script the panel does
+     * not render, like without the data file.
      */
+    var TCORE=window.BetHouseTendencyCore||null;
     var TEND=(function(t){
-      return t&&t.current&&t.current.off&&t.current.def&&t.current.league?t:null;
+      return TCORE&&t&&t.current&&t.current.off&&t.current.def&&t.current.league?t:null;
     })(window.BetHouseTendencies);
-    /* tendencies.mjs LEAN_SHARE: a share this far from the league's is a
-       lean. SOFT_EPA: EPA per play this far from the league's is soft or
-       stout. Both chosen there for legibility, not fitted. */
-    // TODO(simplify): tendencies.mjs is ESM-only; give it a UMD wrapper like nfl.js and
-    // call its rank / matchup / thresholds here instead of re-typing them. Trigger: the
-    // third constant or family that has to be copied.
-    var LEAN_SHARE=0.03, SOFT_EPA=0.05;
-    var FAMILIES=[
-      {family:'deep pass',   share:'deepRate',        epa:'deepEpa',       unit:'of throws'},
-      {family:'short pass',  share:'shortRate',       epa:'shortEpa',      unit:'of throws'},
-      {family:'inside run',  share:'insideRunShare',  epa:'insideRunEpa',  unit:'of runs'},
-      {family:'outside run', share:'outsideRunShare', epa:'outsideRunEpa', unit:'of runs'},
-      {family:'play action', share:'playActionRate',  epa:'paEpa',         unit:'of dropbacks'},
-      {family:'vs blitz',    share:'blitzRate',       epa:'blitzEpa',      unit:'of dropbacks, the defence\'s call', who:'def'}
-    ];
     /* Where a team stands among the league on one metric, ties sharing a
-       place (tendencies.mjs rank). Solved once per metric, not once per
+       place (tendencies-core rank). Solved once per metric, not once per
        game, because every game asks for the same dozen. */
     var rankCache={};
     var rankIn=function(side,key,hi){
       var ck=side+'|'+key+'|'+(hi?1:0);
-      if(rankCache[ck]) return rankCache[ck];
-      var tbl=TEND.current[side], rows=[];
-      Object.keys(tbl).forEach(function(t){ if(tbl[t]&&tbl[t][key]!=null) rows.push([t,tbl[t][key]]); });
-      rows.sort(function(a,b){ return hi?b[1]-a[1]:a[1]-b[1]; });
-      var out={}, prev=null, place=0;
-      rows.forEach(function(row,i){ if(prev===null||row[1]!==prev){ place=i+1; prev=row[1]; } out[row[0]]=place; });
-      rankCache[ck]=out; return out;
+      if(!rankCache[ck]) rankCache[ck]=TCORE.rank(TEND.current[side],key,{higherIsBetter:!!hi});
+      return rankCache[ck];
     };
     var ord=function(n){ var s=['th','st','nd','rd'], v=n%100; return n+(s[(v-20)%10]||s[v]||s[0]); };
     var rk=function(side,key,team,hi){ var r=rankIn(side,key,hi)[team]; return r?'<span class="rk">'+ord(r)+'</span>':''; };
@@ -734,36 +715,32 @@
         ' · sees <b>'+shareOf(def.passRate)+'</b> pass '+rk('def','passRate',defTeam,true)+'</div>';
       /* What works against this defence: the families it gives up most,
          relative to the league, with this offence's own appetite beside
-         each. Positive EPA allowed is the offence's gain, so softest is
-         first and every number in the row reads from the offence's side. */
-      var fams=[];
-      FAMILIES.forEach(function(f){
-        /* The blitz is the defence's call: its share is how often the
-           DEFENCE blitzes (tendencies.mjs FAMILIES), and the offence gets
-           no leans-in/avoids tag for a choice it did not make. */
-        var defsCall=f.who==='def';
-        var os=defsCall?def[f.share]:off[f.share], da=def[f.epa], ls=lg[f.share], le=lg[f.epa];
-        if(os==null&&da==null) return;
-        fams.push({f:f, os:os, da:da, ls:ls, le:le,
-          lean:(defsCall||os==null||ls==null)?null:os-ls, edge:(da==null||le==null)?null:da-le});
-      });
+         each (tendencies-core matchup: lean is the offence's share over
+         the league's, edge the EPA the defence allows over the league's,
+         the note names the tags). Positive EPA allowed is the offence's
+         gain, so softest is first and every number in the row reads from
+         the offence's side. The blitz is the defence's call and gets no
+         leans-in/avoids tag. */
+      var fams=TCORE.matchup(off,def,lg).filter(function(e){ return e.offShare!=null||e.defAllowed!=null; });
       if(!fams.length) return h+'</div>';
       fams.sort(function(a,b){ return (b.edge==null?-Infinity:b.edge)-(a.edge==null?-Infinity:a.edge); });
       h+='<div class="mfam"><span class="fh">what works</span><span class="fh fv">'+esc(defTeam)+' allows</span>'+
         '<span class="fh fv">'+esc(offTeam)+' uses</span>';
-      fams.forEach(function(x){
+      fams.forEach(function(e){
+        /* The tags from the numbers against the core's thresholds, not from its note string. */
         var tags='';
-        if(x.edge!=null&&x.edge>=SOFT_EPA) tags+='<span class="tag soft">soft</span>';
-        else if(x.edge!=null&&x.edge<=-SOFT_EPA) tags+='<span class="tag tough">stout</span>';
-        if(x.lean!=null&&x.lean>=LEAN_SHARE) tags+='<span class="tag lean">leans in</span>';
-        else if(x.lean!=null&&x.lean<=-LEAN_SHARE) tags+='<span class="tag lean">avoids</span>';
+        if(e.edge!=null&&e.edge>=TCORE.SOFT_EPA) tags+='<span class="tag soft">soft</span>';
+        else if(e.edge!=null&&e.edge<=-TCORE.SOFT_EPA) tags+='<span class="tag tough">stout</span>';
+        if(e.lean!=null&&e.lean>=TCORE.LEAN_SHARE) tags+='<span class="tag lean">leans in</span>';
+        else if(e.lean!=null&&e.lean<=-TCORE.LEAN_SHARE) tags+='<span class="tag lean">avoids</span>';
         /* The unit ("of throws") belongs to the family, not to the number,
            and it is the one string long enough to wrap an 84px column and
            set the row height off the length of a word. It goes in the
            flexible first column, where wrapping costs nothing. */
-        h+='<span class="fn">'+x.f.family+tags+'<small>'+x.f.unit+'</small></span>'+
-          '<span class="fv">'+epaOf(x.da)+'<small>lg '+epaOf(x.le)+'</small></span>'+
-          '<span class="fv">'+shareOf(x.os)+'<small>'+(x.f.who==='def'?esc(defTeam)+' blitzes · ':'')+'lg '+shareOf(x.ls)+'</small></span>';
+        var unit=e.unit+(e.defsCall?', the defence\'s call':'');
+        h+='<span class="fn">'+esc(e.family)+tags+'<small>'+esc(unit)+'</small></span>'+
+          '<span class="fv">'+epaOf(e.defAllowed)+'<small>lg '+epaOf(e.defAllowedLeague)+'</small></span>'+
+          '<span class="fv">'+shareOf(e.offShare)+'<small>'+(e.defsCall?esc(defTeam)+' blitzes · ':'')+'lg '+shareOf(e.offShareLeague)+'</small></span>';
       });
       return h+'</div></div>';
     }
@@ -777,7 +754,7 @@
       var behind=TEND.through&&D.week!=null&&(Number(TEND.through.season)!==Number(D.season)||Number(TEND.through.week)<Number(D.week)-1);
       return '<div class="mu"><h4 class="muhead">Matchup</h4>'+body+
         '<p class="mufoot">Play-by-play'+(w?' through week '+Number(w)+(behind?' — <b>behind this board</b>, the last build failed or has not run':''):'')+' (nflverse); each rate regressed toward last season by '+
-        Number(TEND.K||0)+' games. Descriptive: nothing here is in a price yet.</p></div>';
+        Number(TEND.K||0)+' games. Descriptive: nothing here is in a price yet. <a href="teams.html">Every team →</a></p></div>';
     }
 
     function renderGames(){

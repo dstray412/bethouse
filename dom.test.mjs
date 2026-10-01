@@ -34,7 +34,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const DIR = dirname(fileURLToPath(import.meta.url));
-const BOARDS = ["index.html", "baseball.html", "golf.html", "nfl.html", "cfb.html", "bets.html", "live.html", "record.html"];
+const BOARDS = ["index.html", "baseball.html", "golf.html", "nfl.html", "cfb.html", "bets.html", "live.html", "record.html", "teams.html"];
 const src = (f) => readFileSync(resolve(DIR, f), "utf8");
 
 /*
@@ -823,7 +823,7 @@ function stubDoc() {
 async function mountBoard({ tendencies, games, ratings }) {
   const nfl = (await import("./nfl.js")).default;
   const doc = stubDoc();
-  const win = {};
+  const win = { BetHouseTendencyCore: (await import("./tendencies-core.js")).default };
   if (tendencies !== undefined) win.BetHouseTendencies = tendencies;
   // eslint-disable-next-line no-new-func
   new Function("window", "document", src("football-board.js"))(win, doc);
@@ -919,34 +919,24 @@ test("a board with no tendencies file loaded renders every game without one", as
   }
 });
 
-test("the page and tendencies.mjs agree on the thresholds and the families", async () => {
-  /* tendencies.mjs is an ES module and the board is a plain script, so the
-     two tag thresholds and the family table are re-typed there rather than
-     imported. That is the duplication tasks/lessons.md warns about, so it
-     gets checked instead of trusted. */
+test("the board re-types none of tendencies.mjs: the thresholds, the families and the ranks come from tendencies-core.js, which the page loads", async () => {
+  /* The two tag thresholds and the family table used to be copied into
+     the board because tendencies.mjs is an ES module, with a test for
+     drift. The copy is gone: tendencies-core.js is the one copy, loaded by
+     nfl.html, imported by tendencies.mjs, and read by the board. */
   const t = await import("./tendencies.mjs");
+  const core = (await import("./tendencies-core.js")).default;
+  assert.equal(t.LEAN_SHARE, core.LEAN_SHARE); assert.equal(t.SOFT_EPA, core.SOFT_EPA);
+  assert.equal(t.matchup, core.matchup, "tendencies.mjs does not re-export the core's matchup");
+  assert.equal(t.rank, core.rank);
   const js = src("football-board.js");
-
-  const lean = js.match(/LEAN_SHARE\s*=\s*([\d.]+)/);
-  const soft = js.match(/SOFT_EPA\s*=\s*([\d.]+)/);
-  assert.ok(lean && soft, "football-board.js no longer names the two thresholds");
-  assert.equal(Number(lean[1]), t.LEAN_SHARE, "the board's lean threshold has drifted from tendencies.mjs");
-  assert.equal(Number(soft[1]), t.SOFT_EPA, "the board's soft/stout threshold has drifted from tendencies.mjs");
-
-  /* The family table: same families, same metric keys, same order of
-     definition. Read off the module's source because FAMILIES is private. */
-  const modFams = [...src("tendencies.mjs").matchAll(/\{\s*family:\s*"([^"]+)",\s*share:\s*"(\w+)",\s*epa:\s*"(\w+)"/g)];
-  assert.ok(modFams.length >= 6, "tendencies.mjs no longer declares a FAMILIES table in the expected shape");
-  const boardFams = [...js.matchAll(/\{family:'([^']+)',\s*share:'(\w+)',\s*epa:'(\w+)'/g)];
-  assert.deepEqual(
-    boardFams.map((m) => [m[1], m[2], m[3]]),
-    modFams.map((m) => [m[1], m[2], m[3]]),
-    "football-board.js and tendencies.mjs disagree about the play families or their metric keys",
-  );
-  for (const [, , share, epa] of boardFams) {
-    assert.ok(t.METRICS.includes(share), `${share} is not a metric tendencies.mjs computes`);
-    assert.ok(t.METRICS.includes(epa), `${epa} is not a metric tendencies.mjs computes`);
-  }
+  assert.doesNotMatch(js, /LEAN_SHARE\s*=\s*[\d.]|SOFT_EPA\s*=\s*[\d.]|\{family:'/, "football-board.js re-types a threshold or the family table");
+  assert.doesNotMatch(js, /TODO\(simplify\): tendencies/, "the TODO this retires is still there");
+  assert.match(js, /BetHouseTendencyCore/, "the board does not read the core");
+  assert.match(js, /TCORE\.matchup\(off,def,lg\)/, "the matchup rows are not the core's");
+  assert.match(js, /TCORE\.rank\(/, "the ranks are not the core's");
+  assert.match(src("nfl.html"), /<script src="tendencies-data\.js"><\/script>\s*<script src="tendencies-core\.js"><\/script>/, "nfl.html does not load the core after the data");
+  for (const f of core.FAMILIES) { assert.ok(t.METRICS.includes(f.share), f.share + " is not a metric"); assert.ok(t.METRICS.includes(f.epa), f.epa + " is not a metric"); }
 });
 
 test("the matchup table fits a 390px phone without widening the page", () => {
@@ -2151,4 +2141,22 @@ test("a featured card for a player under the twenty-row cut lifts the cut and ke
   const css = src(SHEET);
   for (const c of [".featured{", ".fcards{", ".fcard{", ".fnum{", ".frec{"]) assert.ok(css.includes(c), "no rule for " + c);
   assert.match(css, /@media \(max-width:760px\)\{[^@]*\.fcards\{[^}]*overflow-x:auto/, "the strip does not scroll inside itself on a phone");
+});
+
+test("the teams page's panel scrolls sideways inside itself, the team cell sticks, and the board's matchup tags come from the core's thresholds", async () => {
+  const css = src(SHEET);
+  assert.match(css, /\.tscroll\{[^}]*overflow-x:auto/, "the teams panel does not scroll inside itself");
+  assert.match(css, /\.teams td\.tm,\.teams th:first-child\{[^}]*position:sticky[^}]*left:0/, "the team cell does not stick while the panel scrolls");
+  assert.doesNotMatch(css, /\.teams th\{[^}]*position:sticky/, "a sticky column head in a panel that never scrolls vertically");
+  for (const f of ["faces.js", "teams-data.js", "teams.js", "tendencies-data.js", "tendencies-core.js", "teams-page.js"]) assert.match(src("teams.html"), new RegExp('<script src="' + f.replace(".", "\\.") + '"></script>'), "teams.html does not load " + f);
+  assert.match(markup("teams.html"), /id="teams"[\s\S]*id="tfoot"/);
+  // A synthetic defence a hair over the soft threshold earns the tag; one a hair under does not: the board reads the numbers against the core's thresholds, not a note string.
+  const core = (await import("./tendencies-core.js")).default;
+  const lg = TENDENCIES.current.league;
+  const soft = Object.assign({}, TENDENCIES, { current: { off: TENDENCIES.current.off, def: { KC: TENDENCIES.current.def.KC, LAC: Object.assign({}, TENDENCIES.current.def.LAC, { deepEpa: lg.deepEpa + core.SOFT_EPA + 0.001, insideRunEpa: lg.insideRunEpa + core.SOFT_EPA - 0.001 }) }, league: lg } });
+  const { app, panelFor } = await mountBoard({ tendencies: soft, games: GAMES, ratings: RATINGS });
+  const html = panelFor(app.__rows.findIndex((r) => r.g.id === "g1"));
+  const kcOff = html.slice(html.indexOf("KC offence vs LAC defence"), html.indexOf("LAC offence vs KC defence"));
+  assert.match(kcOff, /deep pass<span class="tag soft">soft<\/span>/, "a defence exactly SOFT_EPA over the league is not tagged soft");
+  assert.doesNotMatch(kcOff, /inside run<span class="tag (soft|tough)"/, "a defence at the league's inside-run EPA is tagged");
 });

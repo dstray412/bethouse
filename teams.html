@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>BetHouse — Teams</title>
+<link rel="stylesheet" href="fonts/fonts.css">
+<link rel="stylesheet" href="board.css">
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="brand">
+    <h1 class="logo">BETHOUSE</h1>
+    <div class="tagline">NFL teams</div>
+  <nav class="boards" aria-label="Other boards">
+  <a class="navlink" href="index.html">Home →</a>
+  <a class="navlink" href="bets.html">Bets →</a>
+  <a class="navlink" href="nfl.html">NFL →</a>
+  <a class="navlink" href="cfb.html">CFB →</a>
+  <a class="navlink" href="baseball.html">Baseball →</a>
+  <a class="navlink" href="golf.html">PGA →</a>
+  <a class="navlink" href="live.html">Live →</a>
+  <a class="navlink" href="record.html">Record →</a>
+  </nav>
+  </div>
+</header>
+
+<div class="note">Every NFL offence and defence from play-by-play: how fast it plays, how often it throws and whether that is more
+than the situation calls for, what it earns a play, and which play families it leans into or gives up. Press a column
+head to sort. The same numbers the matchup panel shows for one game, for all 32.</div>
+
+<div class="game tscroll" id="teams"><div class="empty"><div class="big">Loading…</div></div></div>
+<footer id="tfoot"></footer>
+</div>
+
+<script src="faces.js"></script>
+<script src="teams-data.js"></script>
+<script src="teams.js"></script>
+<!-- Written by tendencies.mjs from nflverse play-by-play; tendencies-core.js is the arithmetic the board shares. -->
+<script src="tendencies-data.js"></script>
+<script src="tendencies-core.js"></script>
+<script src="teams-page.js"></script>
+<script>
+BetHouseTeamsPage.render(document, {
+  data: window.BetHouseTendencies || null,
+  core: window.BetHouseTendencyCore || null,
+  faces: window.BetHouseFaces || null,
+  teams: window.BetHouseTeams || null,
+  league: 'NFL'
+});
+</script>
+</body>
+</html>

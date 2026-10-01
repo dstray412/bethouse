@@ -148,6 +148,8 @@ should be re-fitted when the run environment shifts.
 |---|---|
 | `index.html` | The home: tonight's slate, one card per game with the two teams' logos, the football boards' projection and pick, a row of tops. |
 | `home.js` | The home's arithmetic: one slate out of the boards' data, which day it shows, the football card, the tops, the tile. Tested in `home.test.mjs`. |
+| `teams.html` / `teams-page.js` | The teams page: one row per NFL team from the tendencies profiles, sortable, with the family chips; tested in `teams-page.test.mjs`. |
+| `tendencies-core.js` | The ranks, the two legibility thresholds, the play families, a matchup and its sentence: the arithmetic the board's matchup panel, the teams page and `tendencies.mjs` share, one copy. |
 | `teams.js` / `teams-data.js` / `fetch-teams.mjs` | A team's two colours, for the stripe on the home's game cards, the tint behind the drawer's hero and the tray card's edge, and nowhere on text. The table is ESPN's team lists (NFL and MLB by abbreviation, college by ESPN id), fetched by hand and committed. Tested in `teams.test.mjs`. |
 | `chips.js` | The chips a football row and its card wear: each a measured number past a threshold that lives here and nowhere else (volume, red zone, snaps, deep, soft or tough defence). Plain data; the board escapes. Tested in `chips.test.mjs`. |
 | `record.html` / `record-page.js` | The record page: the replay tables (static) and the live records and parlay records for both football boards, from the files the trackers write. Tested in `record-page.test.mjs`. |
@@ -245,6 +247,18 @@ answers one question first and keeps the rest a tab away. So:
   controls row, on every view; the row stays on the game view for it.
 
 Nothing measured was removed. It moved one click from the headline.
+
+**B5, the teams page (2026-10-01).** `teams.html`: every NFL offence and
+defence from the play-by-play profiles on one sortable table, with the
+team's mark and colour edge: plays a game, pass rate, pass rate over
+expectation, EPA per play, pass and rush, the offence's family leans,
+the defence's EPA allowed and blitz rate, its soft and stout families,
+each figure with its league rank. The matchup panel's numbers for all
+32, and its caveat: descriptive, nothing here is in a price. The
+ranks, thresholds and families the board used to re-type from
+`tendencies.mjs` live in `tendencies-core.js` now, one copy loaded by
+the board and the page and imported by the builder, which retires the
+`TODO(simplify)` that marked the duplication.
 
 **B4, the featured strip (2026-10-01).** Above the table on both
 football boards' touchdown view: the five highest chances as cards, each with

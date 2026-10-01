@@ -251,6 +251,28 @@ header>.ctl{order:2;flex:1 1 100%}
 .rec table{border-collapse:collapse;margin:8px 0;font-variant-numeric:tabular-nums;font-size:13px}
 .rec td{padding:1px 14px 1px 0;vertical-align:top}
 .rec p{margin:8px 0 0;max-width:72ch}
+/* The teams page: one real table in a panel, every column a sort button,
+   figures in mono with the rank under them, the family chips, a colour
+   edge per row; the panel scrolls sideways on a phone rather than the page. */
+.tscroll{overflow-x:auto;scrollbar-width:thin}
+.teams{border-collapse:collapse;width:100%;min-width:1040px;font-variant-numeric:tabular-nums;table-layout:auto}
+.teams th{background:var(--surface);text-align:left;padding:10px 10px 9px;border-bottom:1px solid var(--line);white-space:nowrap}
+.teams th span{font-family:var(--label);font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.teams th.r{text-align:right}
+.teams th button{font:inherit;font-family:var(--label);font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);background:none;border:0;padding:0;cursor:pointer}
+.teams th button:hover{color:var(--text)}
+.teams th button[aria-pressed=true]{color:var(--accent)}
+.teams td{padding:8px 8px;border-top:1px solid var(--line);vertical-align:middle}
+/* The team cell carries the colour edge and stays put while the panel scrolls sideways on a phone. */
+.teams td.tm,.teams th:first-child{position:sticky;left:0;z-index:1;background:var(--surface)}
+.teams td.tm{font-family:var(--display);font-weight:600;font-size:16px;white-space:nowrap;padding-left:12px;border-left:4px solid transparent}
+.teams td.r{text-align:right;font-family:var(--mono);font-size:15px;white-space:nowrap}
+.teams td.r b{font-weight:600;color:var(--text)}
+.teams td.r small{display:block;font-family:var(--label);font-size:11px;letter-spacing:.08em;color:var(--muted);text-transform:uppercase}
+/* The two chip columns are the only ones that wrap; held to a width so the thirteen columns fit the 1180px page. */
+.teams td.chips{width:176px;max-width:176px;padding:6px 6px}
+.teams td.chips .tag{margin:2px 3px 2px 0;font-size:10px;padding:1px 6px;letter-spacing:.06em}
+.teams td.chips .none{color:var(--muted-dim)}
 footer{margin-top:22px;color:var(--muted);font-size:13px;line-height:1.7}
 footer a{color:var(--text)}
 footer b{color:var(--text);font-family:var(--mono);font-size:13px;font-variant-numeric:tabular-nums}
