@@ -2081,3 +2081,74 @@ test("a data file whose weighted totals were built under other decays than the m
   const none = await mountPlayers(stamp(undefined));
   assert.ok(none.app.__rows.every((r) => r.p.w), "a data file with no stamp (before the era stamp) is left alone");
 });
+
+/* ------------------------------------------------------------------ *
+ * B4 — the featured strip
+ *
+ * The view's five highest chances, each with what the record hit at that
+ * chance: the tracker's 10-point band (15+ graded calls) for the prop.
+ * Nothing without a record, nothing for a chance in no band, nothing on
+ * the game view; a card opens the player.
+ * ------------------------------------------------------------------ */
+
+test("the featured strip is the view's five highest chances, each with the record's own figure for its band or the word that there is none yet, in descending order; a card opens the player", async () => {
+  const nfl = (await import("./nfl.js")).default;
+  // The real record's shape: bands only where 15 calls have been graded (today 0 to 50), not every decile; the fixture stops at 30 so its top rows sit above the record's reach, as the board's do.
+  const bands = Array.from({ length: 4 }, (_, k) => ({ lo: 10 * k, n: 100 + k, predicted: 10 * k + 5, actual: 10 * k + 3 }));
+  const record = { total: 1000, days: ["a"], props: { td: { label: "Anytime touchdown", n: 816, predicted: 21.9, actual: 20.7, bias: 1.2, brier: 0.15, bands } } };
+  const { app, doc } = await mountPlayers({ players: PLAYERS, pools: recPool(nfl), record });
+  const strip = (app.innerHTML.match(/<div class="featured">[\s\S]*?<\/div><\/div>/) || [""])[0];
+  assert.ok(strip, "no featured strip with a record that has bands");
+  assert.ok(app.innerHTML.indexOf('class="featured"') < app.innerHTML.indexOf('class="game v-td"'), "the strip is not above the table");
+  assert.doesNotMatch(strip, /five highest/, "the header counts cards it may not show (a tablet shows three)");
+  const cards = [...strip.matchAll(/<button type="button" class="fcard" data-fid="([^"]+)" aria-haspopup="dialog">[\s\S]*?<span class="fnum">(\d+)%[\s\S]*?<span class="frec">([^<]*(?:<b>[^<]*<\/b>[^<]*)?)<\/span>/g)];
+  const byChance = app.__rows.slice().sort((a, b) => b.s.prob - a.s.prob);
+  assert.equal(cards.length, Math.min(5, app.__rows.length), "not five cards (or all the rows when fewer)");
+  assert.ok(byChance.some((r) => r.s.prob >= 0.4) && byChance.some((r) => r.s.prob < 0.4), "the fixture should have rows above and below the record's top band");
+  cards.forEach((m, k) => {
+    const r = byChance[k];
+    assert.equal(m[1], String(r.p.id), "card " + k + " is not the " + (k + 1) + "th highest chance");
+    assert.equal(Number(m[2]), Math.round(100 * r.s.prob));
+    // The band is the one the PRINTED chance falls in, so the card never says "60%" beside "at 50–60%".
+    const lo = Math.floor(Math.round(100 * r.s.prob) / 10) * 10, b = bands.find((x) => x.lo === lo);
+    if (b) assert.equal(m[3], "at " + lo + "–" + (lo + 10) + "% the record hit <b>" + Math.round(b.actual) + "%</b> of " + b.n);
+    else assert.equal(m[3], "the record has under 15 graded calls at " + lo + "–" + (lo + 10) + "% yet", "a row above the record's top band is not told so");
+  });
+  // A card opens the drawer on that player; the handler must take the card before any row under it.
+  const fid = cards[1][1];
+  app.handlers.click[0]({ target: { closest: (sel) => (sel === "[data-fid]" ? { getAttribute: () => fid } : sel === ".row" ? { getAttribute: () => "0" } : null) } });
+  assert.equal(doc.getElementById("drawer").hidden, false);
+  assert.equal(doc.getElementById("dtitle").textContent, PLAYERS.find((p) => p.id === fid).name);
+});
+
+test("a featured card for a player under the twenty-row cut lifts the cut and keeps the filters; the strip is touchdowns only; no record, no strip", async () => {
+  const nfl = (await import("./nfl.js")).default;
+  const bands = Array.from({ length: 10 }, (_, k) => ({ lo: 10 * k, n: 50, predicted: 10 * k + 5, actual: 10 * k + 4 }));
+  const record = { total: 1000, days: ["a"], props: { td: { label: "Anytime touchdown", n: 816, predicted: 21.9, actual: 20.7, bias: 1.2, brier: 0.15, bands }, recyds: { label: "Receiving yards, over", n: 457, predicted: 41, actual: 42.9, bias: -1.9, brier: 0.24, bands } } };
+  // Thirty backs on one team, so the cut bites and a team filter is in force.
+  const many = Array.from({ length: 30 }, (_, k) => Object.assign({}, PLAYERS[1], { id: "m" + k, name: "Back " + k, team: "LAC", opp: "KC", tds: 1 + (k % 7), games: 10 }));
+  const { app, doc, press } = await mountPlayers({ players: many, pools: recPool(nfl), record });
+  press("posseg", "RB");
+  press("sortseg", "Boost");
+  const strip = (app.innerHTML.match(/<div class="featured">[\s\S]*?<\/div><\/div>/) || [""])[0];
+  const fid = strip.match(/data-fid="([^"]+)"/)[1];
+  const shown = app.__rows.map((r) => r.p.id);
+  assert.ok(shown.length < 30, "the board did not cut the list");
+  const target = shown.includes(fid) ? null : fid;
+  if (target) {
+    app.handlers.click[0]({ target: { closest: (sel) => (sel === "[data-fid]" ? { getAttribute: () => target } : null) } });
+    assert.equal(doc.getElementById("drawer").hidden, false, "the card did not open the player under the cut");
+    assert.equal(doc.getElementById("dtitle").textContent, many.find((p) => p.id === target).name);
+    const posPressed = doc.getElementById("posseg").children.find((b) => b.attrs["aria-pressed"] === "true");
+    assert.equal(posPressed && posPressed.textContent, "RB", "opening a card under the cut cleared the position filter");
+  }
+  press("view", "Receiving yards");
+  assert.doesNotMatch(app.innerHTML, /class="featured"/, "a strip on a counting prop: the over at the projection line is a coin flip for everyone, and the record has no band at any other line");
+  press("view", "Spread & total");
+  assert.doesNotMatch(app.innerHTML, /class="featured"/, "a strip on the game view");
+  const none = await mountPlayers({ players: PLAYERS, pools: recPool(nfl) });
+  assert.doesNotMatch(none.app.innerHTML, /class="featured"/, "a strip without a record");
+  const css = src(SHEET);
+  for (const c of [".featured{", ".fcards{", ".fcard{", ".fnum{", ".frec{"]) assert.ok(css.includes(c), "no rule for " + c);
+  assert.match(css, /@media \(max-width:760px\)\{[^@]*\.fcards\{[^}]*overflow-x:auto/, "the strip does not scroll inside itself on a phone");
+});

@@ -95,8 +95,13 @@ export function evaluate(rows) {
   const meanA = rows.reduce((s, r) => s + r.actual, 0) / n;
   const brier = rows.reduce((s, r) => s + (r.prob - r.actual) ** 2, 0) / n;
   const buckets = [];
-  for (let lo = 0; lo < 1; lo += 0.1) {
-    const inB = rows.filter((r) => r.prob >= lo && r.prob < lo + 0.1);
+  /* Ten bands by integer, not by adding 0.1 ten times: the float sum put
+     a call at exactly 0.3 in the band labelled 0.2 and ran an eleventh
+     time at 0.9999…; the board's bandFor reads the labels literally. A
+     call at exactly 1 belongs to the top band. */
+  for (let d = 0; d < 10; d++) {
+    const lo = d / 10, hi = d === 9 ? 1.0000001 : (d + 1) / 10;
+    const inB = rows.filter((r) => r.prob >= lo && r.prob < hi);
     if (inB.length < 15) continue;
     buckets.push({
       lo,
@@ -148,6 +153,10 @@ export function report(dir, props, opts = {}) {
       actual: Math.round(e.meanA * 1000) / 10,
       bias: Math.round(e.bias * 1000) / 10,
       brier: Math.round(e.brier * 10000) / 10000,
+      /* The calibration table the console prints, for the board: one row
+         per 10-point band with at least 15 graded calls, so a row can say
+         what the record hit at its own chance (the featured strip). */
+      ...(e.buckets.length ? { bands: e.buckets.map((b) => ({ lo: Math.round(b.lo * 100), n: b.n, predicted: Math.round(b.pred * 1000) / 10, actual: Math.round(b.act * 1000) / 10 })) } : {}),
     };
     console.log(`${prop.label}`);
     console.log(

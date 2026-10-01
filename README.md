@@ -246,6 +246,23 @@ answers one question first and keeps the rest a tab away. So:
 
 Nothing measured was removed. It moved one click from the headline.
 
+**B4, the featured strip (2026-10-01).** Above the table on both
+football boards' touchdown view: the five highest chances as cards, each with
+one measured sentence from the record, `at 60–70% the record hit 64%
+of 120`. The sentence is the tracker's own calibration band for that
+prop (10-point bands with at least 15 graded calls), which the record
+files now carry (`bands` on each prop); a card whose chance the record
+has not reached 15 calls at says so, and without a record there is no
+strip. The band is chosen on the rounded chance the card prints.
+Touchdowns only: on a counting prop the over at the projection line is
+a coin flip for everyone (the five "highest" are ties) and the record
+grades no other line, so a strip there would answer a question the
+screen is not asking. Today the NFL record's top band is 50–60%, so
+the top three cards say the record has under 15 calls there yet; that
+sentence retires on its own as the record grows. It is
+not a pick: it is the model's top five and the record's word on them,
+where Prop King shows "King's Men". A card opens the player's card.
+
 **Later the same day (B1/B2).** The taste rules loosened as the plan
 said: a team's colours now appear as a stripe along the top of the
 home's game cards (away then home), a faint tint behind the drawer's

@@ -197,6 +197,30 @@ test("report: ungraded rows are counted by nobody", () => {
   assert.equal(out.props.td.actual, 50);
 });
 
+test("report: each prop carries its calibration bands, one per 10-point band with 15 or more graded calls, for the board's featured strip", () => {
+  const dir = tmp();
+  // 20 calls at 0.62 of which 13 hit (65%), and 5 at 0.3: the first is a band, the second is too few.
+  const preds = Array.from({ length: 20 }, (_, i) => ({ prop: "td", prob: 0.62, actual: i < 13 ? 1 : 0 }))
+    .concat(Array.from({ length: 5 }, () => ({ prop: "td", prob: 0.3, actual: 0 })));
+  core.saveDay(dir, { date: "2026-09-10", predictions: preds, graded: true });
+  const real = console.log; console.log = () => {};
+  let out;
+  try { out = core.report(dir, [{ id: "td", label: "Anytime touchdown" }]); } finally { console.log = real; }
+  assert.deepEqual(out.props.td.bands, [{ lo: 60, n: 20, predicted: 62, actual: 65 }], "the 60-70 band is not the record's own figures");
+  // A call at exactly a decile (0.3) belongs to the band it names, and a call at exactly 1 to the top band: no float drift, no eleventh band.
+  const edge = tmp();
+  core.saveDay(edge, { date: "2026-09-10", predictions: Array.from({ length: 15 }, () => ({ prop: "td", prob: 0.3, actual: 0 })).concat(Array.from({ length: 15 }, () => ({ prop: "td", prob: 1, actual: 1 }))), graded: true });
+  console.log = () => {};
+  try { out = core.report(edge, [{ id: "td", label: "Anytime touchdown" }]); } finally { console.log = real; }
+  assert.deepEqual(out.props.td.bands.map((b) => b.lo), [30, 90], "a decile edge drifted into the band below, or a call at 1 made an eleventh band");
+  // Below 15 calls in every band there is no table, and no key.
+  const dir2 = tmp();
+  core.saveDay(dir2, { date: "2026-09-10", predictions: preds.slice(0, 10), graded: true });
+  console.log = () => {};
+  try { out = core.report(dir2, [{ id: "td", label: "Anytime touchdown" }]); } finally { console.log = real; }
+  assert.equal("bands" in out.props.td, false);
+});
+
 /* ------------------------------------------------------------------ *
  * Grading a side against the score and the closing line
  *

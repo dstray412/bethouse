@@ -305,6 +305,38 @@
       return band('rate '+cls,'vs his own rate',words,(delta>=0?'+':'−')+Math.abs(delta).toFixed(dp)+' '+unit+' ('+(d>=0?'+':'−')+Math.abs(d)+'%)','own rate '+own);
     };
     var actRow=function(inner){ return inner?'<div class="dact">'+inner+'</div>':''; };
+    /* The featured strip (B4): the five highest chances on the view, each
+       with what the record hit at that chance. The record's bands are the
+       tracker's calibration table (10-point bands with 15+ graded calls of
+       this prop), so every sentence is measured: "at 60–70% the record hit
+       64% of 120". A chance the record has not reached 15 calls at says
+       so, rather than dropping the row and showing the sixth-highest as
+       the top; without a record there is no strip. Not the model's picks:
+       its top five and the record's word on them. */
+    var bandFor=function(prop,p){
+      var R=cfg.record, pr=R&&R.props&&R.props[prop], bands=pr&&pr.bands;
+      if(!bands||!bands.length) return null;
+      var x=Math.min(100*p,99.999); // a chance of exactly 100% belongs to the top band
+      for(var i=0;i<bands.length;i++){ var b=bands[i]; if(x>=Number(b.lo)&&x<Number(b.lo)+10) return b; }
+      return null;
+    };
+    var featuredHtml=function(rows,prop,chanceOf,word){
+      if(!cfg.record) return '';
+      var pr=cfg.record.props&&cfg.record.props[prop];
+      if(!pr||!isFinite(pr.n)||!pr.n) return '';
+      var top=rows.slice().sort(function(a,b){ return chanceOf(b)-chanceOf(a); }).slice(0,5);
+      if(!top.length) return '';
+      var cards=top.map(function(r){
+        /* The band is chosen on the rounded chance the card prints, so "60%" never sits beside "at 50–60%". */
+        var p=Math.round(100*chanceOf(r))/100, b=bandFor(prop,p), lo=Math.min(90,Math.floor(100*p/10)*10);
+        return '<button type="button" class="fcard" data-fid="'+esc(r.p.id)+'" aria-haspopup="dialog">'+face(r.p,32)+
+          '<span class="fwho">'+esc(r.p.name)+'<small>'+esc(r.p.team)+(r.p.opp?' vs '+esc(r.p.opp):'')+'</small></span>'+
+          '<span class="fnum">'+pct(p,0)+'<small>'+esc(word)+'</small></span>'+
+          '<span class="frec">'+(b?'at '+Number(b.lo)+'–'+(Number(b.lo)+10)+'% the record hit <b>'+Number(b.actual).toFixed(0)+'%</b> of '+Number(b.n).toLocaleString('en-US')
+            :'the record has under 15 graded calls at '+lo+'–'+(lo+10)+'% yet')+'</span></button>';
+      }).join('');
+      return '<div class="featured"><div class="fhead"><h3>Highest chances</h3><span>the highest on this view, each with what the record hit at that chance</span></div><div class="fcards">'+cards+'</div></div>';
+    };
     var statusCells=function(p){
       var out=[];
       if(p.movedFrom) out.push({l:'Team',v:esc(p.team),n:'every number here is from his '+esc(p.movedFrom)+' games; a new offence can change his role'});
@@ -416,9 +448,10 @@
       });
       sortRows(rows,{proj:function(r){return r.s.prob;}, boost:function(r){return r.s.observedRate>0?r.s.lambda/r.s.observedRate:null;}});
       stampRanks(rows);
+      var featured=featuredHtml(rows,'td',function(r){ return r.s.prob; },'to score');
       var t=trim(rows); rows=t.rows;
 
-      var html=slipHtml()+'<div class="'+gameClass('td')+'"><div class="ghead"><h2 class="gtitle">Most likely to score</h2>'+
+      var html=slipHtml()+featured+'<div class="'+gameClass('td')+'"><div class="ghead"><h2 class="gtitle">Most likely to score</h2>'+
         '<div class="gmeta">'+rows.length+' players · '+seasons+' form · type the book\'s price in a row for your edge</div></div>'+
         thead([{t:'Rk',cls:'rk'},{t:''},{t:'Player'},{t:'Matchup · vs rate',cls:'mtch'},{t:'Chance',r:1},{t:'Fair',r:1,cls:'fair'}].concat(W?[{t:'Price / edge',r:1}]:[]).concat([{t:''}]));
       rows.forEach(function(r,i){
@@ -499,6 +532,11 @@
       });
       sortRows(rows,{proj:function(r){return r.exp;}, boost:function(r){ var avg=N.statTotal(stat,r.p)/r.p.games; return avg>0?r.exp/avg:null; }});
       stampRanks(rows);
+      /* No strip on a counting prop: at the projection line every over is a
+         coin flip (the five "highest" are ties), at Low or High the record
+         has no band there (the tracker grades only the projection line),
+         and either way the strip would answer a different line than the
+         one on screen. The touchdown view is the one with a ranking. */
       var t=trim(rows); rows=t.rows;
       var strength=N.DEFAULTS[ST.oppShrinkKey], word=ST.label.toLowerCase();
       /* Whose real games the pool is made of. The board gains a view the
@@ -902,6 +940,9 @@
        pinned. On no view at all: closed, quietly, the board as it was. */
     function openById(id,quiet){
       var i=findRow(id);
+      /* Under the cut but on the view (a featured card, a deep link while
+         sorted by edge): pin him and lift the cut, the filters untouched. */
+      if(i<0){ state.pin=id; state.showAll=true; render(); i=findRow(id); if(i<0){ state.pin=null; } }
       if(i<0){
         var was={showAll:state.showAll,team:state.team,pos:state.pos,q:state.q,starOnly:state.starOnly};
         state.showAll=true; state.team=''; state.pos=''; state.q=''; state.starOnly=false; state.pin=id;
@@ -1344,6 +1385,7 @@
       if(e.target.closest('[data-clearslip]')){ state.slip=null; state.slipError=null; state.slipLegs=null; render(); return; }
       if(e.target.closest('[data-more]')){ state.showAll=true; render(); return; }
       var st=e.target.closest('[data-star]'); if(st){ toggleStar(st.getAttribute('data-star'),st); return; }
+      var fc=e.target.closest('[data-fid]'); if(fc){ openById(String(fc.getAttribute('data-fid'))); return; }
       var btn=e.target.closest('.row'); if(!btn) return;
       openDrawer(+btn.getAttribute('data-i'),btn);
     });

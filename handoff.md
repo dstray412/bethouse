@@ -30,6 +30,33 @@ Zero dependencies, no build step, no server, no API key. `node --test` with
 **named files** — bare discovery pulls in the backtests, which fire live API
 calls. The list lives in seven places and `dom.test.mjs` checks all seven.
 
+## B4: the featured strip (2026-10-01, evening)
+
+`track-core.report` writes `bands` on each prop of the record
+(`[{lo, n, predicted, actual}]`, 10-point bands with 15+ graded calls;
+both record files regenerated locally, every other field unchanged).
+`football-board.js featuredHtml(rows, prop, chanceOf, word)` builds the
+strip from the view's rows before the twenty-row cut, top five by the
+chance to score (the TOUCHDOWN view only, after the review: a stat's
+over at the projection line is a coin flip for all and the tracker
+grades no other line),
+each card the record's band for its chance (chosen on the rounded
+chance the card prints), or "under 15 graded calls at X–Y% yet" when
+no band covers it; nothing without a record for the prop; not on the
+game view. A card carries `data-fid` and opens the player through
+`openById`, which now pins a player under the cut before it falls back
+to clearing the filters. Measured today: the NFL record's top band is
+50–60% (n 18) and the top three cards (65, 65, 61%) say "under 15 calls
+yet"; college's top band is 60–70%. The review also fixed `evaluate`'s
+band loop (float drift put a call at exactly 0.3 in the 20–30 band and
+ran an eleventh time); both record files regenerated.
+TODO(simplify): the strip's top cards carry no record sentence until
+the touchdown record has 15 graded calls at 60–70%; revisit the copy
+once nfl-record.js carries that band. CSS
+`.featured` / `.fcards` / `.fcard`; the narrow-width rules sit at the
+bottom of the sheet because the face-track test requires every base
+rule to precede the first phone block.
+
 ## The college refresh failed (2026-10-01, 18:26 UTC)
 
 `cfb-data.js would be 1093 KB, over the 1 MB ceiling`: A1's per-game
