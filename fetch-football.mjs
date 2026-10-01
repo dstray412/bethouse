@@ -778,7 +778,40 @@ export function recentRows(games, n, model) {
   return by;
 }
 
-export function boardPlayer(p, { roster, injuries, backups, opponentOf, recent, usage, model }) {
+/*
+ * The vacated share, per team: who is ruled out this week (the report,
+ * through the model's availability()), who is in the group (a player
+ * with a record whose team it is and who appeared in one of the team's
+ * last vacRecent games; a name on the report who did not is long gone
+ * and the survivors' rates already carry his absence), and the model's one arithmetic
+ * for the two ratios every remaining teammate carries (vacatedShares).
+ * Returns a Map by player id of {r, c, o}: the receiving and rushing
+ * ratios, rounded, and the names of those who vacated; a row with
+ * nothing vacated gets no entry, and a player ruled out gets none. The
+ * replay (backtest-nfl.mjs) builds the same group the same way from
+ * nflverse's reports.
+ */
+export function vacatedByTeam(model, players, games, injuries) {
+  const out = new Map();
+  if (!model || typeof model.vacatedShares !== "function") return out;
+  const byTeam = new Map();
+  for (const p of players || []) { if (!p || !p.team) continue; if (!byTeam.has(p.team)) byTeam.set(p.team, []); byTeam.get(p.team).push(p); }
+  const ordered = (games || []).slice().sort((a, b) => String(a.date).localeCompare(String(b.date)));
+  for (const [team, list] of byTeam) {
+    const recentGames = ordered.filter((g) => (g.home && g.home.team === team) || (g.away && g.away.team === team)).slice(-model.DEFAULTS.vacRecent);
+    const active = new Set();
+    for (const g of recentGames) for (const q of g.players || []) if (q.team === team) active.add(String(q.id));
+    const outIds = new Set(list.filter((p) => model.availability(injuries && injuries[p.id] && injuries[p.id].status) === "out").map((p) => String(p.id)));
+    const group = list.filter((p) => active.has(String(p.id)));
+    const shares = model.vacatedShares(group, outIds);
+    if (!(shares.rec > 0) && !(shares.rush > 0)) continue;
+    const names = group.filter((p) => shares.out.includes(String(p.id))).map((p) => p.name);
+    for (const p of group) if (!outIds.has(String(p.id))) out.set(String(p.id), { r: Math.round(shares.rec * 1000) / 1000, c: Math.round(shares.rush * 1000) / 1000, o: names });
+  }
+  return out;
+}
+
+export function boardPlayer(p, { roster, injuries, backups, vac, opponentOf, recent, usage, model }) {
   const on = roster && typeof roster.get === "function" ? roster.get(String(p.id)) : null;
   /* The recent-weighted totals, only the stats whose decay is under 1: the log itself would double the file. */
   const w = model && p.slog ? model.weightedStatTotals(p) : null;
@@ -798,6 +831,7 @@ export function boardPlayer(p, { roster, injuries, backups, opponentOf, recent, 
     opp: (opponentOf && opponentOf[p.team]) || null,
     ...(inj ? { status: inj.status, ...(inj.detail ? { injury: inj.detail } : {}) } : {}),
     ...(backups && backups.has(p.id) ? { backupQB: true } : {}),
+    ...(vac && vac.has(String(p.id)) ? { vac: vac.get(String(p.id)) } : {}),
     ...(rows && rows.length ? { recent: rows } : {}),
     ...(known(use) ? { usage: use } : {}),
     ...(known(use3) ? { usage3: use3 } : {}),
@@ -976,6 +1010,11 @@ export async function buildBoard(league, history) {
   /* One quarterback throws for a team: see backupPassers. */
   const backups = backupPassers(model, placed.players, current, roster, injuries, season);
 
+  /* The vacated share: see vacatedByTeam. The ratios ride the row; the
+     model's per-prop strengths decide whether they move a number. */
+  const vac = vacatedByTeam(model, placed.players, current, injuries);
+  console.log(`  vacated share: ${vac.size} players carry a ratio from teammates ruled out`);
+
   /* The last few game lines per player, for the drawer's recent-games
      tab. The history files are not published, so the rows ride in the
      data file; league.recentGames caps them so the college file stays
@@ -991,7 +1030,8 @@ export async function buildBoard(league, history) {
        recorded after it only. */
     /* The terms this build ran with, stamped on every record row (track-football.mjs), so the record reads by era. */
     model: { tdDecay: model.DEFAULTS.tdDecay, tdRz: model.DEFAULTS.tdRz, tdScript: model.DEFAULTS.tdScript,
-      yardDecay: model.DEFAULTS.yardDecay, rushDecay: model.DEFAULTS.rushDecay, rushrecDecay: model.DEFAULTS.rushrecDecay },
+      yardDecay: model.DEFAULTS.yardDecay, rushDecay: model.DEFAULTS.rushDecay, rushrecDecay: model.DEFAULTS.rushrecDecay,
+      tdVac: model.DEFAULTS.tdVac, yardVac: model.DEFAULTS.yardVac, rushVac: model.DEFAULTS.rushVac, recsVac: model.DEFAULTS.recsVac, rushrecVac: model.DEFAULTS.rushrecVac },
     season, week: up.week,
     statsSeasons,
     linesFetched: lines.size ? now : null,
@@ -1010,7 +1050,7 @@ export async function buildBoard(league, history) {
       /* Anyone with enough games and any real workload: a skill player's
          touches, or enough attempts to be gated as a passer. */
       .filter((p) => p.games >= 3 && ((p.carries + model.receivingOpportunity(p)) >= 10 || p.passAtt >= model.DEFAULTS.passMinOpportunity))
-      .map((p) => boardPlayer(p, { roster, injuries, backups, opponentOf, recent, usage, model })),
+      .map((p) => boardPlayer(p, { roster, injuries, backups, vac, opponentOf, recent, usage, model })),
     injuries: hurtByTeam,
     injuriesAt: league.injuriesUrl ? new Date().toISOString() : null,
     usagePool: round(usagePool.slice(0, 4000), 3),

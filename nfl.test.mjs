@@ -1547,3 +1547,132 @@ test("wind: at windK 0 nothing moves; with a term, an outdoor game over the floo
   close(nfl.projectGame(ratings, "KC", "LAC", { wind: null, windK: 0.5 }).total, base.total, 1e-9, "no reading, no term");
   close(nfl.projectGame(ratings, "KC", "LAC", { wind: 25, windK: 0.5, windFloor: 20 }).total, base.total - 2.5, 1e-9, "the floor is a constant");
 });
+
+/* ------------------------------------------------------------------ *
+ * The vacated share (A4's second term). Oracle: the definition. For a
+ * team's group, each member's per-game opportunity rate r = opportunity /
+ * games; V is the sum of r over members ruled out, S over the members
+ * still in; the ratio V/S is what each remaining player's volume would
+ * scale by if the vacated work were shared out in proportion. The model
+ * applies it as 1 + strength * ratio, on usage for touchdowns and on exp
+ * (never base) for a counting prop; the strength is a per-prop constant (tdVac, yardVac, ...) that ships at 0 until the replay
+ * clears a value on a window it was not fitted on.
+ * ------------------------------------------------------------------ */
+test("vacatedShares: V/S from per-game rates, receiving and rushing apart; nothing out is 0; everyone out is 0; a member with no games counts nowhere", () => {
+  const group = [
+    { id: "a", games: 10, carries: 0, targets: 80 },   // 8.0 targets a game
+    { id: "b", games: 10, carries: 20, targets: 40 },  // 4.0 targets, 2.0 carries
+    { id: "c", games: 5, carries: 100, targets: 10 },  // 2.0 targets, 20.0 carries
+    { id: "d", games: 0, carries: 0, targets: 0 },
+  ];
+  const none = nfl.vacatedShares(group, new Set());
+  assert.deepEqual([none.rec, none.rush, none.out], [0, 0, []]);
+  const bOut = nfl.vacatedShares(group, new Set(["b"]));
+  assert.ok(Math.abs(bOut.rec - 4 / 10) < 1e-9, "V/S for targets: b's 4 over a's 8 + c's 2");
+  assert.ok(Math.abs(bOut.rush - 2 / 20) < 1e-9, "V/S for carries: b's 2 over c's 20");
+  assert.deepEqual(bOut.out, ["b"]);
+  const all = nfl.vacatedShares(group, new Set(["a", "b", "c"]));
+  assert.deepEqual([all.rec, all.rush], [0, 0], "nobody left to take the work: no ratio, not infinity");
+  const dOut = nfl.vacatedShares(group, new Set(["d"]));
+  assert.deepEqual([dOut.rec, dOut.rush, dOut.out], [0, 0, []], "a member with no games vacates nothing and is not named");
+  /* A passer is in no group: he neither vacates nor receives, and his scrambles are not in the carries denominator. */
+  const withQb = group.concat([{ id: "q", games: 10, carries: 50, targets: 0, passAtt: 300 }]);
+  assert.deepEqual(nfl.vacatedShares(withQb, new Set(["b"])), bOut, "a quarterback's carries entered the group");
+  assert.deepEqual(nfl.vacatedShares(withQb, new Set(["q"])), { rec: 0, rush: 0, out: [] }, "a quarterback ruled out vacated carries to the backs");
+  assert.deepEqual(nfl.vacatedShares([], new Set(["a"])), { rec: 0, rush: 0, out: [] });
+  assert.deepEqual(nfl.vacatedShares(null, null), { rec: 0, rush: 0, out: [] });
+});
+
+test("vacated share in the touchdown score: at tdVac 0 nothing moves and the factors read 1; with a term the usage rate rises by the vacated share of its own kind, the observed count untouched", () => {
+  // The shipped strengths (A4, 2026-10-01, fixed lines, the corrected sweep): touchdowns 0.75, receiving yards 0.5, receptions 0.5, rush + rec 0.75; rushing yards off, worse on validation at every strength.
+  assert.deepEqual([nfl.DEFAULTS.tdVac, nfl.DEFAULTS.yardVac, nfl.DEFAULTS.rushVac, nfl.DEFAULTS.recsVac, nfl.DEFAULTS.rushrecVac], [0.75, 0.5, 0, 0.5, 0.75]);
+  const p = { games: 10, tds: 3, carries: 20, targets: 60 };
+  const plain = nfl.scoreAnytimeTD(p, { teamFactor: 1, oppFactor: 1 });
+  const off = nfl.scoreAnytimeTD(p, { teamFactor: 1, oppFactor: 1, vacRec: 0.5, vacRush: 0.25, opts: { tdVac: 0 } });
+  assert.equal(off.prob, plain.prob, "a ratio with tdVac 0 moved the chance");
+  assert.deepEqual([off.vacRec, off.vacRush], [1, 1]);
+  const on = nfl.scoreAnytimeTD(p, { teamFactor: 1, oppFactor: 1, vacRec: 0.5, vacRush: 0.25, opts: { tdVac: 1 } });
+  assert.deepEqual([on.vacRec, on.vacRush], [1.5, 1.25]);
+  const want = nfl.usageTDs(2 * 1.25, 6 * 1.5);
+  assert.ok(Math.abs(on.usageRate - want) < 1e-12, "the usage rate is not the scaled workload's");
+  assert.ok(Math.abs(on.vacFactor - want / nfl.usageTDs(2, 6)) < 1e-12, "vacFactor is not what the share did to the usage rate as a whole");
+  assert.equal(off.vacFactor, 1);
+  const noTargets = nfl.scoreAnytimeTD({ games: 10, tds: 2, carries: 40, targets: 0 }, { teamFactor: 1, oppFactor: 1, vacRec: 0.5, vacRush: 0, opts: { tdVac: 1 } });
+  assert.equal(noTargets.vacFactor, 1, "a vacated share of the targets moved a player with no targets");
+  const passer = nfl.scoreAnytimeTD({ games: 10, tds: 2, carries: 40, targets: 0, passAtt: 300 }, { teamFactor: 1, oppFactor: 1, vacRec: 0.5, vacRush: 0.5, opts: { tdVac: 1 } });
+  assert.deepEqual([passer.vacRec, passer.vacRush, passer.vacFactor], [1, 1, 1], "a quarterback inherited a back's carries");
+  const rzOn = nfl.scoreAnytimeTD(p, { teamFactor: 1, oppFactor: 1, vacRec: 0.5, vacRush: 0.25, opts: { tdVac: 1, tdRz: 1 } });
+  assert.equal(rzOn.vacFactor, 1, "the vacated share ran beside a red-zone fit it is not wired to");
+  assert.equal(on.observed, plain.observed, "the vacated share scaled his own count");
+  assert.ok(on.prob > plain.prob);
+  const half = nfl.scoreAnytimeTD(p, { teamFactor: 1, oppFactor: 1, vacRec: 0.5, vacRush: 0.25, opts: { tdVac: 0.5 } });
+  assert.deepEqual([half.vacRec, half.vacRush], [1.25, 1.125], "the strength scales the ratio");
+  const capped = nfl.scoreAnytimeTD(p, { teamFactor: 1, oppFactor: 1, vacRec: 4, vacRush: 0, opts: { tdVac: 1 } });
+  assert.equal(capped.vacRec, 1.6, "a vacated share is capped like the other factors");
+  const neg = nfl.scoreAnytimeTD(p, { teamFactor: 1, oppFactor: 1, vacRec: -0.5, opts: { tdVac: 1 } });
+  assert.equal(neg.vacRec, 1, "a negative ratio is nonsense and reads 1");
+});
+
+test("vacated share on a counting prop: on exp, never base; receiving props take the receiving share, rushing the rushing share, rush + rec a blend by his own yardage, passing none", () => {
+  const rec = { games: 10, carries: 40, targets: 80, recYds: 800, rushYds: 200, recs: 60, passAtt: 0, passYds: 0 };
+  const ALL_ON = { yardVac: 1, rushVac: 1, recsVac: 1, rushrecVac: 1 };
+  for (const stat of ["recyds", "recs", "rushyds", "rushrec"]) {
+    const plain = nfl.projectedStat(stat, rec, null, { oppFactor: 1 });
+    const off = nfl.projectedStat(stat, rec, { ...ALL_ON, [nfl.STATS[stat].vacKey]: 0 }, { oppFactor: 1, vacRec: 0.5, vacRush: 0.2 });
+    assert.equal(off.exp, plain.exp, stat + ": a ratio with its own strength at 0 moved the projection, or another prop's strength reached it");
+    assert.equal(off.vacFactor, 1);
+    const on = nfl.projectedStat(stat, rec, ALL_ON, { oppFactor: 1, vacRec: 0.5, vacRush: 0.2 });
+    const ratio = stat === "rushyds" ? 0.2 : stat === "rushrec" ? 0.8 * 0.5 + 0.2 * 0.2 : 0.5;
+    assert.ok(Math.abs(on.vacFactor - (1 + ratio)) < 1e-12, stat + ": the factor is not 1 + the share of its kind");
+    assert.ok(Math.abs(on.exp - plain.base * (1 + ratio)) < 1e-9, stat + ": exp is not base times the factor");
+    assert.equal(on.base, plain.base, stat + ": the factor moved base, which is the gate");
+  }
+  const qb = { games: 10, carries: 20, targets: 0, recYds: 0, rushYds: 50, recs: 0, passAtt: 300, passYds: 2400 };
+  const pass = nfl.projectedStat("passyds", qb, { yardVac: 1, rushVac: 1, recsVac: 1, rushrecVac: 1 }, { oppFactor: 1, vacRec: 0.5, vacRush: 0.5 });
+  assert.equal(pass.vacFactor, 1, "a passer's volume is not vacated by a receiver out");
+  const qbRush = nfl.projectedStat("rushyds", qb, { rushVac: 1 }, { oppFactor: 1, vacRec: 0, vacRush: 0.5 });
+  assert.equal(qbRush.vacFactor, 1, "a quarterback's rushing line took a back's vacated carries");
+  /* The gate reads base: a vacated share cannot put a player on the board or take him off. */
+  const gate = nfl.statEligible("recyds", { games: 10, carries: 0, targets: 20, recYds: 60, rushYds: 0, recs: 15, passAtt: 0, passYds: 0 }, { yardVac: 1 }, { oppFactor: 1, vacRec: 3 });
+  const gate0 = nfl.statEligible("recyds", { games: 10, carries: 0, targets: 20, recYds: 60, rushYds: 0, recs: 15, passAtt: 0, passYds: 0 }, null, { oppFactor: 1 });
+  assert.equal(!!gate, !!gate0, "the vacated share changed eligibility");
+});
+
+test("vacatedByTeam: the ratios each board row carries, from the report through the model's one arithmetic; a player ruled out, a long-absent one and another team's are left out", async () => {
+  const { vacatedByTeam } = await import("./fetch-football.mjs");
+  const players = [
+    { id: "a", name: "Alpha Out", team: "KC", games: 10, carries: 0, targets: 80 },     // 8 a game, ruled out
+    { id: "b", name: "Bravo", team: "KC", games: 10, carries: 20, targets: 40 },        // 4 a game, 2 carries
+    { id: "c", name: "Charlie", team: "KC", games: 5, carries: 100, targets: 10 },      // 2 a game, 20 carries
+    { id: "d", name: "Delta Gone", team: "KC", games: 8, carries: 0, targets: 64 },     // 8 a game, not seen in KC's last three games
+    { id: "e", name: "Echo", team: "LAC", games: 10, carries: 0, targets: 50 },
+  ];
+  const game = (date, ids) => ({ date, home: { team: "KC" }, away: { team: "LAC" }, players: ids.map((id) => ({ id, team: id === "e" ? "LAC" : "KC" })) });
+  const games = [game("2026-09-01", ["a", "b", "c", "d", "e"]), game("2026-09-08", ["a", "b", "c", "e"]), game("2026-09-15", ["a", "b", "c", "e"]), game("2026-09-22", ["b", "c", "e"])];
+  const injuries = { a: { status: "Out", team: "KC" }, b: { status: "Questionable", team: "KC" } };
+  const vac = vacatedByTeam(nfl, players, games, injuries);
+  assert.equal(vac.get("b").r, Math.round((8 / 6) * 1000) / 1000, "Bravo's receiving ratio is not Alpha's rate over Bravo's and Charlie's, to three places");
+  assert.equal(vac.get("c").r, Math.round((8 / 6) * 1000) / 1000);
+  assert.equal(vac.get("b").c, 0, "nobody out carried the ball: no rushing ratio");
+  assert.deepEqual(vac.get("b").o, ["Alpha Out"], "the row does not name who vacated");
+  assert.equal(vac.has("a"), false, "the player ruled out carries no ratio");
+  assert.equal(vac.has("d"), false, "a player not seen in the team's last games neither vacates nor receives");
+  /* A name on the report who has not played in the team's last games is long gone: he vacates nothing. */
+  const gone = vacatedByTeam(nfl, players, games, { d: { status: "Injured Reserve", team: "KC" } });
+  assert.equal(gone.size, 0, "a player on injured reserve since before the window's last games vacated a stale rate");
+  assert.equal(vac.has("e"), false, "another team's player with nobody out carries nothing");
+  assert.equal(vacatedByTeam(nfl, players, games, {}).size, 0, "nobody out: no row carries a ratio");
+  assert.equal(vacatedByTeam(nfl, players, [], injuries).size, 0, "no games played: nobody is in a group");
+});
+
+test("boardPlayer: the vacated ratios ride the row only where the fetcher computed them", async () => {
+  const { boardPlayer } = await import("./fetch-football.mjs");
+  const rec = { id: "1", name: "A", team: "KC", games: 5, tds: 1, carries: 0, targets: 30, recYds: 300, rushYds: 0, recs: 20, passAtt: 0, passYds: 0 };
+  const vac = new Map([["1", { r: 0.123, c: 0, o: ["B"] }]]);
+  const a = boardPlayer(rec, { roster: null, injuries: {}, backups: new Set(), opponentOf: {}, vac });
+  assert.deepEqual(a.vac, { r: 0.123, c: 0, o: ["B"] }, "the fetcher's rounded ratios ride the row as they are");
+  const b = boardPlayer({ ...rec, id: "2" }, { roster: null, injuries: {}, backups: new Set(), opponentOf: {}, vac });
+  assert.equal("vac" in b, false, "a row with nothing vacated carries no field");
+  const c = boardPlayer(rec, { roster: null, injuries: {}, backups: new Set(), opponentOf: {} });
+  assert.equal("vac" in c, false);
+});

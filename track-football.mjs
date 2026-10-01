@@ -178,10 +178,13 @@ export function playerRows(M, D, p, g) {
     return { ...r, key: predKey(r) };
   };
 
+  /* The vacated share the fetcher wrote on the row, as the board hands it over. */
+  const vacR = (q) => (q.vac ? q.vac.r : undefined), vacC = (q) => (q.vac ? q.vac.c : undefined);
   const td = M.scoreAnytimeTD(p, {
     teamFactor: (teamFactors[p.team] || {}).off || 1,
     oppFactor: p.opp ? oppDef(p.opp) : 1,
     usagePool,
+    vacRec: vacR(p), vacRush: vacC(p),
   });
   if (td && isFinite(td.prob)) out.push(row({ prop: "td", prob: p4(td.prob) }));
 
@@ -190,7 +193,7 @@ export function playerRows(M, D, p, g) {
      drift. A record of players the board never displayed would grade a
      bet nobody was offered. */
   for (const stat of Object.keys(M.STATS)) {
-    const y = M.statEligible(stat, p, null, { oppFactor: p.opp ? M.allowOf(teamFactors, p.opp, stat) : null });
+    const y = M.statEligible(stat, p, null, { oppFactor: p.opp ? M.allowOf(teamFactors, p.opp, stat) : null, vacRec: vacR(p), vacRush: vacC(p) });
     if (!y) continue;
     const pool = poolFor(stat);
 

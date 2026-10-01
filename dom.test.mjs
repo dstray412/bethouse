@@ -1036,8 +1036,9 @@ const PLAYERS = [
 ];
 
 /** Mount the real board on the TD view with players, edge.js and watchlist.js present. */
-async function mountPlayers({ players, storage, storageThrows, noWatchlist, search, pools, games, record, teamFactors, noChips, model }) {
-  const nfl = (await import("./nfl.js")).default;
+async function mountPlayers({ players, storage, storageThrows, noWatchlist, search, pools, games, record, teamFactors, noChips, model, bound }) {
+  /* `bound`: a model with other constants (nfl.bind(...)), for a term the shipped constants hold at 0. */
+  const nfl = bound || (await import("./nfl.js")).default;
   const doc = stubDoc();
   const store = new Map(Object.entries(storage || {}));
   const win = { BetHouseEdge: (await import("./edge.js")).default, BetHouseParlay: (await import("./parlay.js")).default, BetHouseFaces: (await import("./faces.js")).default, pushed: [], listeners: {} };
@@ -1890,6 +1891,79 @@ test("the home's tops wear the game's two-colour stripe, as its game cards do", 
   assert.match(html, /T\.stripe\(edge\.game\.league,edge\.game\.awayKey,edge\.game\.homeKey\)/, "the EV top does not take its game's stripe");
   assert.match(html, /T\.stripe\(tdGame\.league,tdGame\.awayKey,tdGame\.homeKey\)/, "the touchdown top does not take its game's stripe");
   assert.match(src(SHEET), /\.tops \.card\{[^}]*overflow:hidden/, "the top card does not clip its stripe to its corners");
+});
+
+/* ------------------------------------------------------------------ *
+ * The vacated share on the page. The fetcher writes `vac` {r, c, o} on a
+ * row whose teammates are ruled out; the board hands the ratios to the
+ * model on every call (rows, slips), and the card says so only where the
+ * model's strength moved the number: a why sentence and an arithmetic
+ * cell naming who vacated. At the shipped strengths of 0 nothing is
+ * printed, since nothing moved.
+ * ------------------------------------------------------------------ */
+test("the vacated ratios reach the model from the row, and the card names who vacated only where the number moved", async () => {
+  const nfl = (await import("./nfl.js")).default;
+  const players = PLAYERS.map((p) => (p.id === "a" ? { ...p, vac: { r: 0.4, c: 0, o: ["Xavier Out"] } } : p));
+  const bound = nfl.bind({ tdVac: 1, yardVac: 1, recsVac: 1, rushVac: 1, rushrecVac: 1 });
+  const { app, doc, press } = await mountPlayers({ players, pools: recPool(nfl), bound });
+  let i = app.__rows.findIndex((r) => r.p.id === "a");
+  let r = app.__rows[i];
+  assert.equal(r.s.vacRec, 1.4, "the row's receiving ratio did not reach the touchdown score");
+  assert.equal(r.s.vacRush, 1);
+  assert.ok(Math.abs(r.s.vacFactor - 1.4) < 1e-9, "a receiver's whole workload is targets, so the factor on the rate is the receiving one");
+  clickRow(app, i);
+  assert.match(doc.getElementById("dbands").innerHTML, /<li>Xavier Out out <b>\+40%<\/b>: his share of the targets goes to those still in<\/li>/, "the why band does not name who vacated");
+  press("dtabs", "The arithmetic");
+  const body = doc.getElementById("dbody").innerHTML;
+  assert.match(body, /<dt>Teammates out<\/dt><dd><b class="up">×1\.40<\/b><span>Xavier Out; his share of the targets and carries to those still in[^<]*it multiplies the workload rate above/, "no arithmetic cell for the vacated share, or it does not say what it multiplies");
+  assert.ok(body.indexOf("<dt>From workload</dt>") < body.indexOf("<dt>Teammates out</dt>") && body.indexOf("<dt>Teammates out</dt>") < body.indexOf("<dt>His own rate</dt>"), "the vacated cell does not sit under the workload rate it multiplies");
+  const j = app.__rows.findIndex((x) => x.p.id === "b");
+  assert.equal(app.__rows[j].s.vacRec, 1, "a row with no teammate out took a ratio");
+  clickRow(app, j);
+  assert.doesNotMatch(doc.getElementById("dbody").innerHTML, /Teammates out/, "a cell for a factor of one");
+  /* A hair over one is not a mover: a passer whose carries take a sliver of a vacated share gets no cell and no sentence. */
+  const sliver = await mountPlayers({ players: PLAYERS.map((p) => (p.id === "b" ? { ...p, vac: { r: 0, c: 0.01, o: ["Zed Out"] } } : p)), pools: recPool(nfl), bound });
+  const sb = sliver.app.__rows.find((x) => x.p.id === "b");
+  assert.ok(sb.s.vacFactor > 1 && sb.s.vacFactor < 1.02, "the fixture should move the rate by under two percent, got " + sb.s.vacFactor);
+  clickRow(sliver.app, sliver.app.__rows.indexOf(sb));
+  assert.doesNotMatch(sliver.doc.getElementById("dbands").innerHTML, /Zed Out/, "a sentence for a factor inside two percent");
+  sliver.press("dtabs", "The arithmetic");
+  assert.doesNotMatch(sliver.doc.getElementById("dbody").innerHTML, /Teammates out/, "a cell for a factor inside two percent");
+  /* A name is a third-party string: it reaches the card escaped, in the sentence and in the cell. */
+  const hostile = await mountPlayers({ players: PLAYERS.map((p) => (p.id === "a" ? { ...p, vac: { r: 0.4, c: 0, o: ["<img src=x onerror=alert(1)>"] } } : p)), pools: recPool(nfl), bound });
+  clickRow(hostile.app, hostile.app.__rows.findIndex((x) => x.p.id === "a"));
+  assert.doesNotMatch(hostile.doc.getElementById("dbands").innerHTML, /<img/, "a vacated name reached the why band unescaped");
+  assert.match(hostile.doc.getElementById("dbands").innerHTML, /&lt;img src=x onerror=alert\(1\)&gt; out/);
+  hostile.press("dtabs", "The arithmetic");
+  assert.doesNotMatch(hostile.doc.getElementById("dbody").innerHTML, /<img/, "a vacated name reached the cell unescaped");
+  /* Several names ruled out: the sentence says "their". */
+  const many = await mountPlayers({ players: PLAYERS.map((p) => (p.id === "a" ? { ...p, vac: { r: 0.4, c: 0, o: ["Xavier Out", "Yves Out"] } } : p)), pools: recPool(nfl), bound });
+  clickRow(many.app, many.app.__rows.findIndex((x) => x.p.id === "a"));
+  assert.match(many.doc.getElementById("dbands").innerHTML, /Xavier Out, Yves Out out <b>\+40%<\/b>: their share of the targets/, "two names ruled out still read as one man");
+  /* Four names: two and a count, so a phone card is not a roster. And never more than three sentences. */
+  const four = await mountPlayers({ players: PLAYERS.map((p) => (p.id === "a" ? { ...p, vac: { r: 0.4, c: 0, o: ["W Out", "X Out", "Y Out", "Z Out"] } } : p)), pools: recPool(nfl), bound, teamFactors: { KC: { off: 1.2, def: 1, allow: {} }, LAC: { off: 1, def: 1.2, allow: {} } } });
+  clickRow(four.app, four.app.__rows.findIndex((x) => x.p.id === "a"));
+  const bands4 = four.doc.getElementById("dbands").innerHTML;
+  assert.match(bands4, /W Out, X Out and 2 more out/, "four names are listed in full");
+  assert.equal((bands4.match(/<li>/g) || []).length, 3, "the why band carries more than three sentences");
+  press("view", "Receiving yards");
+  i = app.__rows.findIndex((x) => x.p.id === "a"); r = app.__rows[i];
+  assert.equal(r.vacFactor, 1.4, "the ratio did not reach the counting prop");
+  assert.ok(Math.abs(r.exp - r.base * r.oppFactor * 1.4) < 1e-9, "exp is not base times the factor");
+  clickRow(app, i);
+  assert.match(doc.getElementById("dbands").innerHTML, new RegExp("<li>Xavier Out out <b>\\+40%</b>: his share of the targets goes to those still in, which adds <b>" + Math.abs(r.exp - r.base * r.oppFactor).toFixed(0) + "</b></li>"), "the stat why band does not say what the vacated share added");
+  press("dtabs", "The arithmetic");
+  assert.match(doc.getElementById("dbody").innerHTML, /<dt>Teammates out<\/dt><dd><b class="up">×1\.40<\/b>/);
+  /* The shipped strengths: the ratio rides the row, the model holds it at 0, the card says nothing. */
+  const plain = await mountPlayers({ players, pools: recPool(nfl) });
+  const k = plain.app.__rows.findIndex((x) => x.p.id === "a");
+  assert.equal(plain.app.__rows[k].s.vacRec, 1 + nfl.DEFAULTS.tdVac * 0.4);
+  clickRow(plain.app, k);
+  if (nfl.DEFAULTS.tdVac === 0) assert.doesNotMatch(plain.doc.getElementById("dbands").innerHTML, /Xavier Out/, "a sentence about a share the model did not apply");
+  /* Every model call on the page hands the ratios over: the rows, and the slip's candidates. */
+  const js = src("football-board.js");
+  assert.equal((js.match(/vacRec:vacR\(p\), vacRush:vacC\(p\)/g) || []).length, 4, "the four model calls do not all pass the vacated ratios");
+  assert.equal((src("track-football.mjs").match(/vacRec: vacR\(p\), vacRush: vacC\(p\)/g) || []).length, 2, "the tracker's two model calls do not both pass the vacated ratios");
 });
 
 test("the defence chip replaces the stat row's soft/tough badge: only where the opponent is in the number, and then at the strength the model applies", async () => {

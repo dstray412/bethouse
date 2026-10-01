@@ -201,6 +201,53 @@
     windK: 0,
     windFloor: 15,
     /*
+     * The vacated share (A4): when a teammate is ruled out, his share of
+     * the team's work goes to the players still in, in proportion to
+     * theirs. vacatedShares() turns a team's group and the ids ruled out
+     * into two ratios, V/S for targets and for carries (V the per-game
+     * rates of those out, S of those still in); the caller hands them to
+     * scoreAnytimeTD (ctx.vacRec, ctx.vacRush) and projectedStat, which
+     * apply 1 + strength * ratio, capped at 1.6: on the workload behind
+     * the touchdown rate (tdVac), and on a counting prop's projection
+     * (its own key, like the decays), never its gate. 0 is off. The
+     * replay reads nflverse's weekly injury reports (filed before
+     * kickoff) through the model's own availability(); the board reads
+     * ESPN's. vacRecent is who counts as in the group: a player who
+     * appeared in one of the team's last that-many games, ruled out or
+     * not, so a long-absent name (injured reserve since last season)
+     * neither vacates nor receives: the survivors' rates already carry
+     * his absence, and counting him again would double it. A passer is
+     * in no group and takes no share: a quarterback does not inherit a
+     * back's carries. Measured 2026-10-01 on fixed lines, fit 2023-24 and
+     * validated 2025-26, strengths 0.25, 0.5, 0.75 and 1 (Δ/SE, fit then
+     * validation; the band is the worst move of a band both runs have,
+     * the rule's cap 3pp; the table is printed by the comparison tools):
+     *
+     *   touchdown   0.25: -3.3 / -2.5   0.5: -3.1 / -2.6   0.75: -2.8 / -2.5   1: -2.5 / -2.4   (all clear)
+     *   recyds      0.25: -5.9 / -6.7   0.5: -4.2 / -5.1   0.75: -2.5 / -3.6   1: -0.9 / -2.3   (all clear)
+     *   rushyds     0.25: -4.8 / -1.0   0.5 and up: worse on validation                           DEAD
+     *   recs        0.25: -8.2 / -4.8   0.5: -6.5 / -3.3   0.75: -4.8 / -1.9   1: -3.2 / -0.4
+     *   rushrec     0.25, 0.5: a fit band +4.1 / +4.6pp   0.75: -3.8 / -3.8   1: -1.6 / -2.4
+     *
+     * Shipped, each the largest validation gain among the values clean on
+     * both windows: tdVac 0.75 (the gain still rises at 1, but 1 is the
+     * sweep's edge, not a peak), yardVac 0.5 (a plateau with 0.75; the
+     * cleaner fit window), recsVac 0.5, rushrecVac 0.75; rushVac 0. A
+     * first sweep had rushing at 0.25 and these two at 0: it readmitted
+     * long-absent names to the group, let passers take carries and ran
+     * the pool with the term; the review caught all three. The sweep:
+     *
+     *   node backtest-nfl.mjs --fixed-lines --from 2023 --to 2024 --set tdVac=<v> --set yardVac=<v> ... --dump fit-<v>.json
+     *   node backtest-nfl.mjs --fixed-lines --from 2025 --set ... --dump val-<v>.json
+     *   node compare-td.mjs fit-0.json fit-<v>.json; node compare-stats.mjs fit-0.json fit-<v>.json
+     */
+    tdVac: 0.75,
+    yardVac: 0.5,
+    rushVac: 0,
+    recsVac: 0.5,
+    rushrecVac: 0.75,
+    vacRecent: 3,
+    /*
      * HOW MUCH OF THE MODEL'S OPINION ABOUT A LINE TO BELIEVE.
      *
      * Against 480 closing spreads, regressing the outcome on the model's
@@ -721,6 +768,44 @@
   }
 
   /**
+   * The vacated share of a team's work. `group` is the team's players
+   * with a record (season-to-date, the board's window), `outIds` the ids
+   * ruled out this week. Each member's per-game rate is his opportunity
+   * over his games; the receiving ratio is the rate of those out over the
+   * rate of those still in, and the rushing ratio the same on carries.
+   * A member with no games counts nowhere; nobody left in means no
+   * ratio, not infinity. One copy, read by the board's fetcher and the
+   * replay, so the two cannot share the work out differently.
+   */
+  /** A passer, by workload: enough attempts to be gated as one. No roster is needed, so the replay and the board agree. */
+  function isPasser(record, o) {
+    return num(record && record.passAtt) >= num((o || DEFAULTS).passMinOpportunity);
+  }
+
+  function vacatedShares(group, outIds, opts) {
+    const o = Object.assign({}, DEFAULTS, opts || {});
+    const out = outIds && typeof outIds.has === "function" ? outIds : new Set(outIds || []);
+    let vr = 0, sr = 0, vc = 0, sc = 0;
+    const named = [];
+    for (const m of group || []) {
+      if (!m) continue;
+      const games = num(m.games);
+      if (!(games > 0) || isPasser(m, o)) continue;
+      const r = receivingOpportunity(m, o) / games, c = num(m.carries) / games;
+      if (out.has(String(m.id))) { vr += r; vc += c; named.push(String(m.id)); }
+      else { sr += r; sc += c; }
+    }
+    return { rec: vr > 0 && sr > 0 ? vr / sr : 0, rush: vc > 0 && sc > 0 ? vc / sc : 0, out: named };
+  }
+
+  /** 1 + strength * ratio, capped like the other factors; 1 for no ratio, a bad one, or a strength of 0. */
+  function vacFactorOf(ratio, strength) {
+    const r = num(ratio), k = num(strength);
+    if (!(r > 0) || !(k > 0)) return 1;
+    return clamp(1 + k * r, 1, 1.6);
+  }
+
+  /**
    * @param player {games, tds, carries, targets|recs} season to date
    * @param ctx    {teamFactor, oppFactor} multipliers, 1.0 = league average
    */
@@ -741,6 +826,19 @@
     // same games, weighted toward the recent ones, the evidence unchanged.
     const wl = o.tdDecay < 1 ? weightedLine(player, o) : null;
     if (wl) { usageRate = wl.usageRate; observed = wl.tds; perGameCarries = wl.perGameCarries; perGameReceiving = wl.perGameReceiving; }
+
+    // The vacated share: the workload behind the rate scaled by what the
+    // teammates ruled out leave behind, his own count untouched (tdVac).
+    // A passer takes none (a quarterback does not inherit a back's
+    // carries). Not wired to the red-zone fit: that term is dead at 0,
+    // and a revival has to measure the two together, since the weighted
+    // red-zone rows are not scaled here.
+    const takes = !isPasser(player, o) && !(num(o.tdRz) > 0);
+    const vacRec = takes ? vacFactorOf(ctx && ctx.vacRec, o.tdVac) : 1, vacRush = takes ? vacFactorOf(ctx && ctx.vacRush, o.tdVac) : 1;
+    const usageBefore = usageRate;
+    if (vacRec !== 1 || vacRush !== 1) usageRate = usageTDs(perGameCarries * vacRush, perGameReceiving * vacRec, o, rz);
+    // What the share did to his workload rate as a whole: a passer with no targets moves only by his carries.
+    const vacFactor = usageBefore > 0 && usageRate > 0 ? usageRate / usageBefore : 1;
 
     // Shrink the observed rate toward what the workload implies.
     const base = (observed + o.tdK * usageRate) / (games + o.tdK);
@@ -781,6 +879,9 @@
       teamFactor,
       oppFactor,
       scriptFactor,
+      vacRec, // the vacated-share factors on each kind of workload, and on the usage rate as a whole: 1 while tdVac is 0
+      vacRush,
+      vacFactor,
       rz,
       weighted: !!wl,
       games,
@@ -848,14 +949,14 @@
    * so a league can bind its own.
    */
   const STATS = {
-    recyds:  { label: "Receiving yards", total: ["recYds"],  opportunity: "receiving", box: [["rec", "yds"]],  priorKey: "yardPrior", poolFloorKey: "yardPoolFloor", poolShareKey: "yardPoolShare", minOppKey: "yardMinOpportunity", floorKey: "yardFloor", oppShrinkKey: "yardOppShrink", decayKey: "yardDecay" },
-    rushyds: { label: "Rushing yards",   total: ["rushYds"], opportunity: "carries",   box: [["rush", "yds"]], priorKey: "rushPrior", poolFloorKey: "rushPoolFloor", poolShareKey: "rushPoolShare", minOppKey: "rushMinOpportunity", floorKey: "rushFloor", oppShrinkKey: "rushOppShrink", decayKey: "rushDecay" },
-    passyds: { label: "Passing yards",   total: ["passYds"], opportunity: "passAtt",   box: [["pass", "yds"]], priorKey: "passPrior", poolFloorKey: "passPoolFloor", poolShareKey: "passPoolShare", minOppKey: "passMinOpportunity", floorKey: "passFloor", oppShrinkKey: "passOppShrink", decayKey: "passDecay" },
-    recs:    { label: "Receptions",      total: ["recs"],    opportunity: "receiving", box: [["rec", "rec"]],  priorKey: "recsPrior", poolFloorKey: "recsPoolFloor", poolShareKey: "recsPoolShare", minOppKey: "yardMinOpportunity", floorKey: "recsFloor", oppShrinkKey: "recsOppShrink", decayKey: "recsDecay" },
+    recyds:  { label: "Receiving yards", total: ["recYds"],  opportunity: "receiving", box: [["rec", "yds"]],  priorKey: "yardPrior", poolFloorKey: "yardPoolFloor", poolShareKey: "yardPoolShare", minOppKey: "yardMinOpportunity", floorKey: "yardFloor", oppShrinkKey: "yardOppShrink", decayKey: "yardDecay", vacKey: "yardVac", vac: "rec" },
+    rushyds: { label: "Rushing yards",   total: ["rushYds"], opportunity: "carries",   box: [["rush", "yds"]], priorKey: "rushPrior", poolFloorKey: "rushPoolFloor", poolShareKey: "rushPoolShare", minOppKey: "rushMinOpportunity", floorKey: "rushFloor", oppShrinkKey: "rushOppShrink", decayKey: "rushDecay", vacKey: "rushVac", vac: "rush" },
+    passyds: { label: "Passing yards",   total: ["passYds"], opportunity: "passAtt",   box: [["pass", "yds"]], priorKey: "passPrior", poolFloorKey: "passPoolFloor", poolShareKey: "passPoolShare", minOppKey: "passMinOpportunity", floorKey: "passFloor", oppShrinkKey: "passOppShrink", decayKey: "passDecay", vacKey: null, vac: null },
+    recs:    { label: "Receptions",      total: ["recs"],    opportunity: "receiving", box: [["rec", "rec"]],  priorKey: "recsPrior", poolFloorKey: "recsPoolFloor", poolShareKey: "recsPoolShare", minOppKey: "yardMinOpportunity", floorKey: "recsFloor", oppShrinkKey: "recsOppShrink", decayKey: "recsDecay", vacKey: "recsVac", vac: "rec" },
     /* Rushing + receiving yards: the book's line for a back who catches
        and a receiver who runs. The two totals summed, touches (carries +
        receiving opportunity) for whether he is in that business. */
-    rushrec: { label: "Rush + rec yards", total: ["rushYds", "recYds"], opportunity: "touches", box: [["rush", "yds"], ["rec", "yds"]], priorKey: "rushrecPrior", poolFloorKey: "rushrecPoolFloor", poolShareKey: "rushrecPoolShare", minOppKey: "yardMinOpportunity", floorKey: "rushrecFloor", oppShrinkKey: "rushrecOppShrink", decayKey: "rushrecDecay" },
+    rushrec: { label: "Rush + rec yards", total: ["rushYds", "recYds"], opportunity: "touches", box: [["rush", "yds"], ["rec", "yds"]], priorKey: "rushrecPrior", poolFloorKey: "rushrecPoolFloor", poolShareKey: "rushrecPoolShare", minOppKey: "yardMinOpportunity", floorKey: "rushrecFloor", oppShrinkKey: "rushrecOppShrink", decayKey: "rushrecDecay", vacKey: "rushrecVac", vac: "both" },
   };
 
   /*
@@ -1043,7 +1144,21 @@
     const b = base != null ? base : expectedStat(stat, record, o);
     if (b == null) return null;
     const oppFactor = statOppFactor(stat, ctx && ctx.oppFactor, o);
-    return { exp: b * oppFactor, base: b, oppFactor };
+    const vacFactor = statVacFactor(stat, record, ctx, o);
+    return { exp: b * oppFactor * vacFactor, base: b, oppFactor, vacFactor };
+  }
+
+  /** The vacated-share factor for a stat: the receiving ratio, the rushing one, a blend by his own yardage for rush + rec, none for passing. */
+  function statVacFactor(stat, record, ctx, o) {
+    const st = STATS[stat];
+    if (!st || !st.vac || !ctx || isPasser(record, o)) return 1;
+    const k = o[st.vacKey];
+    if (st.vac === "rec") return vacFactorOf(ctx.vacRec, k);
+    if (st.vac === "rush") return vacFactorOf(ctx.vacRush, k);
+    // The blend is his plain season split, not the decayed one the base used: a stated choice, measured as such.
+    const ry = num(record && record.recYds), uy = num(record && record.rushYds), tot = ry + uy;
+    if (!(tot > 0)) return 1;
+    return vacFactorOf((ry / tot) * num(ctx.vacRec) + (uy / tot) * num(ctx.vacRush), k);
   }
 
   /** Receiving yards, the original gate. Kept by name for its callers. */
@@ -1371,6 +1486,7 @@
       statOppFactor: (stat, allow, opts) => statOppFactor(stat, allow, merge(opts)),
       opponentIn,
       allowOf,
+      vacatedShares: (group, out, opts) => vacatedShares(group, out, merge(opts)),
       empiricalOver: (e, t, pool, opts) => empiricalOver(e, t, pool, merge(opts)),
       sortedPool,
       poolNear,
@@ -1423,6 +1539,7 @@
     statOppFactor,
     opponentIn,
     allowOf,
+    vacatedShares,
     empiricalOver,
     sortedPool,
     poolNear,

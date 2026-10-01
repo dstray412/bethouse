@@ -758,3 +758,18 @@ season boundary and after an early exit, and replay it against the history
 file before shipping -- one query over `nfl-history.json` found both
 failures in a minute. Filter the population by what it is (the roster's
 position), not by what it did once.
+
+## A sweep ran on the wrong window because the shell did not split a variable (2026-10-01)
+
+Eight replays were launched from a loop that built the window flags in a
+variable (`win="--from 2023 --to 2024"`) and passed `$win`. zsh does not
+word-split an unquoted variable, so the replay received one argument it
+did not recognise, ran over every season, and dumped files whose
+`window` read `{from: null, to: null}`. The comparison tool refused the
+pairing, which is the only reason the mistake was caught before a table
+was written from it. The same slip had already cost a wrong-base dump
+during A3.
+
+**Rule:** a replay's flags are typed out literally on each command line,
+never assembled in a shell variable; and the first thing read off a dump
+is its `window` and `overrides` header, before any number in it.

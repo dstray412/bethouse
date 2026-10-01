@@ -31,7 +31,42 @@ Zero dependencies, no build step, no server, no API key. `node --test` with
 **named files** — bare discovery pulls in the backtests, which fire live API
 calls. The list lives in seven places and `dom.test.mjs` checks all seven.
 
-## A5: the plan is published (2026-10-01, latest)
+## A4b: the vacated share, four of five ship (2026-10-01, latest)
+
+**What.** `vacatedShares(group, outIds)` in nfl.js: per-game rates
+(targets, carries) of a team's group, V the rate of those ruled out,
+S of those still in, two ratios V/S. `scoreAnytimeTD` takes
+`ctx.vacRec`/`ctx.vacRush` and scales the workload behind the rate by
+`1 + tdVac × ratio` (his own count untouched); `projectedStat` scales
+`exp` (never `base`) by the prop's own key (`yardVac`, `rushVac`,
+`recsVac`, `rushrecVac`; rush + rec blends by his own yardage; passing
+none). The replay loads nflverse's injury reports (2023–2026 on disk,
+4,026 of 4,028 ruled-out players joined through the crosswalk), builds
+each side's group (appeared in the team's last `vacRecent` games, or
+on the report) and hands the ratios to the candidate calls only; REF
+zeroes the five keys. The fetcher does the same from ESPN's report
+(`vacatedByTeam`) and writes `vac: {r, c, o}` on the row; the board's
+four model calls and the tracker's two pass the ratios; the card gets
+a why sentence and an arithmetic cell only where the factor moved.
+
+**Shipped.** tdVac 0.75, yardVac 0.5, recsVac 0.5, rushrecVac 0.75;
+rushVac 0 (worse on validation at every strength). The first sweep
+said rushing 0.25 and the other two 0; code review found three
+defects that changed the measurement (long-absent names readmitted
+to the group, passers inheriting carries, the replay's pool carrying
+the term) and the corrected sweep is in the README's A4 entry, printed
+by `compare-sweep.mjs` (committed). Era stamp names the five
+strengths. The why band is capped at three sentences; the touchdown
+cell sits under the workload rate it multiplies; names are two and a
+count.
+
+**Open.** Questionable as a partial vacancy (six in ten play);
+Doubtful counts as out, as everywhere on the board; the three
+board-replay edges in Known gaps (trades, cuts, roster listings); the
+college board has no report, so no term; `--set` now refuses a key the
+model does not have.
+
+## A5: the plan is published (2026-10-01)
 
 **What.** The README's opening now describes the site as it is (one
 board a sport, the card, the record and teams pages); "Does it work?"
@@ -48,8 +83,7 @@ dead with the forecast on the panel, A5 this. Track B: B0 the card
 says why, B1/B2 team colours, B3 chips, B4 the featured strip, B5 the
 teams page, B6 colour on the measured deltas.
 
-**Open, not started.** The vacated-share term (a teammate at the same
-position out); wind as an input to passing yards; share-based
+**Open, not started.** Wind as an input to passing yards; share-based
 opportunity and an air-yards prior for receiving yards; a college
 replay of the decays (every college decay pinned at 1).
 

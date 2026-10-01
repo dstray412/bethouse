@@ -128,9 +128,11 @@ Counting props are graded on fixed lines from a reference model so the
 candidate cannot change the question it is asked. Every row below is
 from that design; the sections further down carry each table in full.
 
-**Shipped.** One kind of term cleared: a recent-form weight, a game's
+**Shipped.** Two kinds of term cleared: a recent-form weight, a game's
 weight in a player's line falling by a fixed share per game of age,
-scaled so the shrink toward his prior is untouched.
+scaled so the shrink toward his prior is untouched; and a vacated
+share, the work of a teammate ruled out going to the players still in,
+in proportion to theirs, at a strength per prop.
 
 | term | constant | fit 2023–24 Brier | Δ/SE | validation 2025–26 Brier | Δ/SE |
 |---|---|---|---|---|---|
@@ -138,6 +140,10 @@ scaled so the shrink toward his prior is untouched.
 | receiving yards, recent-form decay | 0.88 | 0.22238 → 0.22024 | −6.6 | 0.21819 → 0.21545 | −6.5 |
 | rushing yards, recent-form decay | 0.97 | 0.21889 → 0.21723 | −10.4 | 0.22022 → 0.21889 | −5.5 |
 | rush + rec yards, recent-form decay | 0.90 | 0.21701 → 0.21442 | −10.1 | 0.21409 → 0.21142 | −8.3 |
+| anytime touchdown, vacated share | 0.75 | 0.15432 → 0.15419 | −2.8 | 0.15683 → 0.15672 | −2.5 |
+| receiving yards, vacated share | 0.5 | 0.22024 → 0.21948 | −4.2 | 0.21545 → 0.21444 | −5.1 |
+| receptions, vacated share | 0.5 | 0.20605 → 0.20495 | −6.5 | 0.19850 → 0.19783 | −3.3 |
+| rush + rec yards, vacated share | 0.75 | 0.21442 → 0.21336 | −3.8 | 0.21142 → 0.21034 | −3.8 |
 
 **Measured and not shipped.** Each stays at 0 in `nfl.js` with its
 table in the section named.
@@ -151,6 +157,7 @@ table in the section named.
 | levelled pool for passing yards | read the over off the share of the pool nearest the passer's level | the one value that won on validation (0.67, −3.1) moved a band 8.8pp | A3 |
 | recent-form decay on receptions, passing yards | as above | noise on validation at every value | A3 |
 | wind on the total | points per mph over a floor off an outdoor game's projection | every value clears the fit window by three SE and none reaches validation (floor 15: +0.5 to +0.7; floor 10: −0.6 to −0.9) | A4 |
+| vacated share on rushing yards | a back's carries to the backs still in | better on the fit window at 0.25 (−4.8) and worse on validation at every strength (−1.0 to +1.4) | A4 |
 
 The data file records the constants each build ran with and the
 tracker stamps them on every row, so the record reads by era. College
@@ -180,14 +187,17 @@ says it. **Anytime touchdown**: his carries and targets a game (recent
 games weighted up, 3% a game of age) give an expected touchdown rate
 through two measured constants (0.0335 a carry, 0.0473 a target); his
 own scoring rate is pulled toward that by a workload prior (`tdK`);
-the result is scaled by his offence against the league and the
-opponent's defence, and the whole is pulled 25% toward the league
-average, which is what stops the top of the board running hot. The
+the workload scales up when a teammate is ruled out (three quarters
+of his vacated share of the targets and carries, in proportion); the result
+is scaled by his offence against the league and the opponent's
+defence, and the whole is pulled 25% toward the league average, which
+is what stops the top of the board running hot. The
 chance is a Poisson at that rate. **A counting prop**: his yards (or
 catches) a game over the window, recent games weighted up where the
 decay shipped, pulled part of the way toward an ordinary player at his
 position, the opponent's defence applied at half strength on rushing
-and passing yards and nowhere else, and the over read off real games
+and passing yards and nowhere else, a teammate's vacated share added
+on receiving yards, receptions and rush + rec, and the over read off real games
 by comparable players near his own level, not a bell curve. **A game
 line**: team ratings from the box scores, home field, a wind hook that
 is live and at 0; the replay found no edge against the close, and the
@@ -223,6 +233,7 @@ should be re-fitted when the run environment shifts.
 | `teams.js` / `teams-data.js` / `fetch-teams.mjs` | A team's two colours, for the stripe on the home's game cards, the tint behind the drawer's hero and the tray card's edge, and nowhere on text. The table is ESPN's team lists (NFL and MLB by abbreviation, college by ESPN id), fetched by hand and committed. Tested in `teams.test.mjs`. |
 | `fetch-stadiums.mjs` / `stadiums.json` | Where each NFL game is played, as a point: ESPN's venues, Open-Meteo's geocoder, and whether there is a roof. Run by hand when a venue changes; committed. |
 | `fetch-weather.mjs` | The forecast at kickoff for every open outdoor game, from Open-Meteo, written on the game as `wind`, `temp`, `indoor`; descriptive on the drawer, read by `projectGame` where `windK` (0) decides. Tested in `fetch-weather.test.mjs`. |
+| `compare-sweep.mjs` | A whole sweep as one table from the dumps, with the rule as written in the last column; the A4 vacated-share table is its output. |
 | `experiment-wind.mjs` | The wind term's measurement over 27 seasons, fit 1999–2021 and validated 2022–2025; the table is under A4. |
 | `chips.js` | The chips a football row and its card wear: each a measured number past a threshold that lives here and nowhere else (volume, red zone, snaps, deep, soft or tough defence). Plain data; the board escapes. Tested in `chips.test.mjs`. |
 | `record.html` / `record-page.js` | The record page: the replay tables (static) and the live records and parlay records for both football boards, from the files the trackers write. Tested in `record-page.test.mjs`. |
@@ -1981,8 +1992,71 @@ file, a forecast that fails or stalls, or one that does not reach the
 hour leaves the game without a reading, never with a wrong one. The projection reads `wind` through the hook, and at 0 it
 moves nothing. College has no stadium table and gets no forecast.
 
-The other A4 term, the vacated share when a teammate at the same
-position is out, was not measured in this pass; it is in Known gaps.
+**2026-10-01, A4: the vacated share, four of five ship.** When a
+teammate is ruled out, where does his work go? The term says: to the
+players still in, in proportion to theirs. For a team's group (every
+player with a record who appeared in one of the team's last three
+games; a name on the report who did not is long gone, and the
+survivors' rates already carry his absence) each member's per-game
+rate is his targets, or carries, over his games; V is the rate of
+those ruled out, S of those still in, and every remaining player's
+volume scales by `1 + strength × V/S`, capped at 1.6, on the workload
+behind the touchdown rate and on a counting prop's projection, never
+its gate. A passer is in no group and takes no share. One arithmetic
+(`vacatedShares` in `nfl.js`), read by the fetcher from ESPN's report
+and by the replay from nflverse's weekly reports, filed before
+kickoff; 4,026 of the 4,028 players those reports ruled out joined to
+an ESPN id. Fitted on 2023–24 and validated on 2025–26, fixed lines,
+the pool the board ships (no term in it), strengths 0.25, 0.5, 0.75
+and 1, a constant per prop as the decays are. The table is printed by
+the comparison tools from the dumps, and the last column is the rule
+as written: Brier improves on both windows, validation Δ/SE at or
+below −2, no band both runs have moves worse than 3pp on either.
+
+| prop | strength | fit Brier | fit Δ/SE | fit band | val Brier | val Δ/SE | val band | rule |
+| td | 0.25 | 0.15432 → 0.15425 | -3.33 | +0.27pp | 0.15683 → 0.15678 | -2.48 | +0.37pp | clears |
+| td | 0.5 | 0.15432 → 0.15421 | -3.13 | +0.23pp | 0.15683 → 0.15675 | -2.58 | +0.48pp | clears |
+| td | 0.75 | 0.15432 → 0.15419 | -2.79 | +0.56pp | 0.15683 → 0.15672 | -2.50 | +0.55pp | clears |
+| td | 1 | 0.15432 → 0.15419 | -2.47 | +0.18pp | 0.15683 → 0.15670 | -2.41 | +0.38pp | clears |
+| recyds | 0.25 | 0.22024 → 0.21966 | -5.86 | +0.10pp | 0.21545 → 0.21476 | -6.72 | +1.27pp | clears |
+| recyds | 0.5 | 0.22024 → 0.21948 | -4.19 | +1.57pp | 0.21545 → 0.21444 | -5.13 | +1.21pp | clears |
+| recyds | 0.75 | 0.22024 → 0.21960 | -2.54 | +2.10pp | 0.21545 → 0.21442 | -3.60 | +0.00pp | clears |
+| recyds | 1 | 0.22024 → 0.21995 | -0.92 | +0.86pp | 0.21545 → 0.21462 | -2.27 | +0.00pp | clears |
+| rushyds | 0.25 | 0.21723 → 0.21580 | -4.80 | +1.41pp | 0.21889 → 0.21866 | -1.03 | +0.35pp | validation inside the noise |
+| rushyds | 0.5 | 0.21723 → 0.21624 | -2.18 | +1.43pp | 0.21889 → 0.21894 | +0.13 | +0.93pp | Brier worse on a window |
+| rushyds | 0.75 | 0.21723 → 0.21709 | -0.27 | +2.17pp | 0.21889 → 0.21931 | +0.92 | +1.01pp | Brier worse on a window |
+| rushyds | 1 | 0.21723 → 0.21764 | +0.69 | +2.53pp | 0.21889 → 0.21959 | +1.42 | +1.13pp | Brier worse on a window |
+| recs | 0.25 | 0.20605 → 0.20529 | -8.21 | +1.79pp | 0.19850 → 0.19799 | -4.81 | +1.34pp | clears |
+| recs | 0.5 | 0.20605 → 0.20495 | -6.51 | +1.29pp | 0.19850 → 0.19783 | -3.34 | +1.62pp | clears |
+| recs | 0.75 | 0.20605 → 0.20490 | -4.81 | +1.53pp | 0.19850 → 0.19795 | -1.91 | +2.29pp | validation inside the noise |
+| recs | 1 | 0.20605 → 0.20508 | -3.21 | +1.55pp | 0.19850 → 0.19834 | -0.44 | +2.62pp | validation inside the noise |
+| rushrec | 0.25 | 0.21442 → 0.21332 | -8.68 | +4.10pp | 0.21142 → 0.21063 | -6.93 | +0.00pp | a band moved past 3pp |
+| rushrec | 0.5 | 0.21442 → 0.21312 | -6.00 | +4.55pp | 0.21142 → 0.21034 | -5.25 | +0.00pp | a band moved past 3pp |
+| rushrec | 0.75 | 0.21442 → 0.21336 | -3.75 | +1.93pp | 0.21142 → 0.21034 | -3.82 | +0.00pp | clears |
+| rushrec | 1 | 0.21442 → 0.21389 | -1.58 | +2.38pp | 0.21142 → 0.21058 | -2.44 | +0.93pp | clears |
+
+Shipped, each the largest validation gain among the values clean on
+both windows: touchdowns **0.75** (the gain is still rising at 1, but
+1 is the sweep's edge and an edge is not a peak), receiving yards
+**0.5** (a plateau with 0.75, and the cleaner fit window), receptions
+**0.5**, rush + rec **0.75** (0.25 and 0.5 move the smallest fit-window
+band past 3pp; 0.75 clears). Rushing yards is dead: worse on
+validation at every strength. The first pass of this sweep said the
+opposite on three props (rushing at 0.25, receptions and rush + rec
+off) and the review found why: the group readmitted names on injured
+reserve since last season, whose stale rate the survivors' rates
+already carried; a quarterback could inherit a back's carries; and the
+replay's pool carried the term while the board's cannot. Each was a
+real defect, and the corrected term is stronger on every prop that
+ships and dead on the one that does not.
+
+What the card says: a why sentence naming who vacated and the factor
+("K. Allen out +18%: his share of the targets goes to those still
+in"), and an arithmetic cell, only on a row the strength moved;
+nothing on a prop whose strength is 0. The row carries `vac` ({r, c,
+o}: the two ratios and the names) only where the fetcher computed one;
+a player ruled out carries none and is not shown. The era stamp names
+the five strengths, so rows recorded before 2026-10-01 read as 0.
 
 ### Suggested parlays, and what the replay said about one game
 
@@ -2637,9 +2711,16 @@ reason, and the number to watch is touchdowns.
   forecast on every open outdoor game; but a wind term on the projected
   total fails validation at every strength and floor tried (the A4 table),
   so `windK` is 0 and the reading is a fact on the panel, not a price.
-- **A teammate's absence is not redistributed.** When a starter at the same
-  position is out, his target or carry share stays with him; the vacated-share
-  term in the plan was not measured.
+- **A teammate's absence is redistributed on four props and not on rushing yards, with four known edges.**
+  The vacated share treats Out, Doubtful and the reserve lists as a
+  vacancy, the one availability rule the whole board uses (a Doubtful
+  player is hidden too); Questionable is not a vacancy, since about six
+  in ten play. The board's group can differ from the replay's at the
+  margin: a traded player vacates from his roster team on the board and
+  his last box score's team in the replay; a player cut from the roster
+  leaves the board's group and stays in the replay's; the roster's own
+  listing rules out players the report never named. Each pushes the
+  board's ratio a little above the replay's; none is measured.
 - **College has no injury feed**, so a college player ruled out stays on the
   board until his box score is empty. The NFL board hides him.
 - **Line movement is not a signal.** Following the move at the current line

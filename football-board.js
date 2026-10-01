@@ -308,7 +308,8 @@
        are markup the caller built: numbers, code constants, and names
        already passed through esc(). */
     var whyBand=function(items){
-      var list=items.filter(Boolean);
+      /* At most three sentences (DESIGN.md): the callers put his line first and the movers in order of size, so what drops is the smallest. */
+      var list=items.filter(Boolean).slice(0,3);
       if(!list.length) return '';
       return '<div class="dband why"><div class="bl"><small>Why</small><ul class="dwhy">'+list.map(function(s){ return '<li>'+s+'</li>'; }).join('')+'</ul></div></div>';
     };
@@ -442,6 +443,12 @@
        searching each abbreviation inside the full team name, which dropped
        six of sixteen games ("San Francisco 49ers" contains no "SF") and
        misattributed two more ("Arizona Cardinals" contains "CAR"). */
+    /* The vacated share the fetcher wrote on the row (teammates ruled out): the two ratios the model takes, undefined when none. */
+    var vacR=function(p){ return p.vac?p.vac.r:undefined; }, vacC=function(p){ return p.vac?p.vac.c:undefined; };
+    var vacNames=function(p){ var o=p.vac&&p.vac.o||[]; if(!o.length) return 'a teammate'; var shown=o.slice(0,2).map(esc).join(', '); return o.length>2?shown+' and '+(o.length-2)+' more':shown; };
+    var vacHis=function(p){ return p.vac&&p.vac.o&&p.vac.o.length>1?'their':'his'; };
+    /* A vacated share is said only past the two-percent cut every factor uses: a hair over one is not a mover. */
+    var vacMoved=function(f){ return f!=null&&f>=1.02; };
     /* The model's own lookup, which refuses a non-positive allowance, so the note never prints one. */
     var allowFor=function(team,stat){ return N.allowOf(D.teamFactors,team,stat); };
     var oppFactorFor=function(team){
@@ -461,7 +468,7 @@
       var tf=(D.teamFactors[p.team]||{}).off||1;
       // The opponent's defence, the same term the backtest used.
       var of=p.opp?oppFactorFor(p.opp):1;
-      var s=N.scoreAnytimeTD(p,{teamFactor:tf, oppFactor:of, usagePool:usagePool, scriptFactor:scriptOf(p.team)});
+      var s=N.scoreAnytimeTD(p,{teamFactor:tf, oppFactor:of, usagePool:usagePool, scriptFactor:scriptOf(p.team), vacRec:vacR(p), vacRush:vacC(p)});
       if(!s) return null;
       var pk=priceKeyOf(p,'td');
       return {p:p,s:s,chance:s.prob,pk:pk,pe:priceEdge(s.prob,pk),chips:chipsOf(p,s.oppFactor,'touchdowns')};
@@ -504,7 +511,9 @@
         /* The bigger mover first. */
         var terms=[
           {f:opp?s.oppFactor:1, t:opp?factorWhy(esc(opp)+' defence',s.oppFactor,'gives up more touchdowns than average','gives up fewer touchdowns than average'):''},
-          {f:s.teamFactor, t:factorWhy(esc(r.p.team)+' offence',s.teamFactor,'scores more than the league','scores less than the league')}
+          {f:s.teamFactor, t:factorWhy(esc(r.p.team)+' offence',s.teamFactor,'scores more than the league','scores less than the league')},
+          /* The vacated share, by what it did to his workload rate as a whole; only when a strength moved it. */
+          {f:s.vacFactor||1, t:vacMoved(s.vacFactor)?factorWhy(vacNames(r.p)+' out',s.vacFactor,vacHis(r.p)+' share of the '+(s.vacRec>=s.vacRush?oppWord:'carries')+' goes to those still in',''):''}
         ].filter(function(x){ return x.t; }).sort(function(a,b){ return Math.abs(b.f-1)-Math.abs(a.f-1); }).map(function(x){ return x.t; });
         return band('head','Chance to score',pct(r.s.prob),'fair '+sgn(N.fairPrice(r.s.prob)),r.s.usageAveraged?'averaged over real week-to-week workload swings':'')+
           whyBand([line].concat(terms))+
@@ -523,7 +532,8 @@
           {l:'Position',v:esc(r.p.pos||'—')},
           {l:'Model rank',v:rankOf(r),n:'by chance to score'},
           {l:'Workload',v:r.s.perGameCarries.toFixed(1)+' · '+r.s.perGameReceiving.toFixed(1),n:'carries and '+oppWord+' a game over '+r.p.games+' games'+(r.s.weighted?', recent games weighted up':'')},
-          {l:'From workload',v:r.s.usageRate.toFixed(3),n:'touchdowns a game: '+N.DEFAULTS.tdPerCarry+' per carry, '+N.DEFAULTS.tdPerTarget+' per '+oppUnit+', measured'},
+          {l:'From workload',v:r.s.usageRate.toFixed(3),n:'touchdowns a game: '+N.DEFAULTS.tdPerCarry+' per carry, '+N.DEFAULTS.tdPerTarget+' per '+oppUnit+', measured'+(vacMoved(r.s.vacFactor)?', the workload scaled up by the share below':'')},
+          vacMoved(r.s.vacFactor)?{l:'Teammates out',v:'×'+r.s.vacFactor.toFixed(2),n:vacNames(r.p)+'; '+vacHis(r.p)+' share of the '+oppWord+' and carries to those still in, in proportion, at the measured strength: it multiplies the workload rate above, not the expected touchdowns',c:dirOf(r.s.vacFactor-1,0.02)}:null,
           {l:'His own rate',v:r.s.observedRate.toFixed(3),n:'a game, the plain count; kept '+pct(r.s.shrink,0)+' of it, the rest is workload'},
           {l:'Offence',v:'×'+r.s.teamFactor.toFixed(2),n:'his team against the league',c:dirOf(r.s.teamFactor-1,0.02)},
           {l:'Opponent',v:r.p.opp?esc(r.p.opp)+' ×'+r.s.oppFactor.toFixed(2):'—',n:r.p.opp?(r.s.oppFactor>1.02?'gives up more touchdowns than average':r.s.oppFactor<0.98?'gives up fewer than average':'about average'):'no opponent scheduled',c:r.p.opp?dirOf(r.s.oppFactor-1,0.02):''},
@@ -537,7 +547,7 @@
     /* One player's counting-prop row at the line setting in force, or null. */
     function statRow(stat,p,pool){
       // The one gate, shared with the tracker: see nfl.js statEligible.
-      var y=N.statEligible(stat,p,null,{oppFactor:allowFor(p.opp,stat)});
+      var y=N.statEligible(stat,p,null,{oppFactor:allowFor(p.opp,stat), vacRec:vacR(p), vacRush:vacC(p)});
       if(!y) return null;
       var line=Math.round(y.exp*state.lineMult)+0.5;
       var over=N.empiricalOver(y.exp,line,pool);
@@ -547,7 +557,7 @@
          then the factor the model applied (the allowance at the stat's
          strength), so the chip means the same thing on every view. */
       var strength=N.DEFAULTS[N.STATS[stat].oppShrinkKey];
-      return {p:p,exp:y.exp,base:y.base,oppFactor:y.oppFactor,line:line,over:over,chance:over,pk:pk,pe:priceEdge(over,pk),
+      return {p:p,exp:y.exp,base:y.base,oppFactor:y.oppFactor,vacFactor:y.vacFactor,line:line,over:over,chance:over,pk:pk,pe:priceEdge(over,pk),
         chips:chipsOf(p,strength?y.oppFactor:null,N.STATS[stat].label.toLowerCase())};
     }
     function renderStat(stat){
@@ -622,8 +632,11 @@
         var at=strength&&strength<1?' at '+(strength===0.5?'half':Math.round(strength*100)+'%')+' strength':'';
         var oppWhy=r.p.opp&&strength&&allow?factorWhy(esc(r.p.opp)+' defence',r.oppFactor,'gives up more '+word+' than average'+at+', which adds <b>'+Math.abs(r.exp-r.base).toFixed(0)+'</b>','gives up fewer '+word+' than average'+at+', which takes off <b>'+Math.abs(r.exp-r.base).toFixed(0)+'</b>'):'';
         var hitWhy=hit?'Cleared <b>'+Math.ceil(r.line)+'+</b> in <b>'+hit.hits+'</b> of his last <b>'+hit.n+'</b> games':'';
+        /* The vacated share, when the prop's strength moved the number: what it added, on top of the opponent. */
+        var vacWhy=vacMoved(r.vacFactor)?factorWhy(vacNames(r.p)+' out',r.vacFactor,vacHis(r.p)+' share of the '+(N.STATS[stat].vac==='rush'?'carries':oppWordFor)+' goes to those still in, which adds <b>'+Math.abs(r.exp-r.base*r.oppFactor).toFixed(0)+'</b>',''):'';
+        var movers=[{f:r.oppFactor||1,t:oppWhy},{f:r.vacFactor||1,t:vacWhy}].filter(function(x){ return x.t; }).sort(function(a,b){ return Math.abs(b.f-1)-Math.abs(a.f-1); }).map(function(x){ return x.t; });
         return band('head','Projected '+word,Math.round(r.exp),'over '+r.line+' hits '+pct(r.over,0)+' · fair '+fair,'bet it only if the book is offering better than '+fair)+
-          whyBand([line,oppWhy,hitWhy])+
+          whyBand([line].concat(movers).concat([hitWhy]))+
           rateBand(avg>0?r.exp/avg:null, avg.toFixed(0)+unit+' a game', r.exp-avg, stat==='recs'?'catches':'yards')+
           receiptBand(stat,r);
       };
@@ -658,6 +671,7 @@
           /* The shrink toward the prior, and the recent-form weight when the model applies one: with it on, a rising line regresses UP. */
           Math.abs(r.base-avg)>=0.5?{l:'Regressed to',v:r.base.toFixed(0),c:dirOf(Math.round(r.base)-Math.round(avg)),n:(N.DEFAULTS[ST.decayKey]<1&&r.p.w&&r.p.w[stat]!=null?'his recent games weighted up ('+Math.round((1-N.DEFAULTS[ST.decayKey])*100)+'% a game of age), then ':'')+'part of the way toward an ordinary player\'s '+N.DEFAULTS[ST.priorKey]+(games<10?'; few games, so a long way':'')}:null,
           oppCell,
+          vacMoved(r.vacFactor)?{l:'Teammates out',v:'×'+r.vacFactor.toFixed(2),n:vacNames(r.p)+'; '+vacHis(r.p)+' share of the work to those still in, in proportion, at the measured strength, which adds '+Math.abs(r.exp-r.base*r.oppFactor).toFixed(0),c:dirOf(r.vacFactor-1,0.02)}:null,
           {l:'Read off',v:used.toLocaleString('en-US'),n:'real games by '+poolWord+(used<held?' whose own projection was nearest his':' against their own projections')},
           edgeCell(r.pe,r.over),
           {l:'Games',v:String(games),n:'in the window'}
@@ -1147,12 +1161,12 @@
         if(!available(p)) return;
         var g=openGame(p.team); if(!g) return;
         if(on('td')){
-          var s=N.scoreAnytimeTD(p,{teamFactor:(D.teamFactors[p.team]||{}).off||1, oppFactor:p.opp?oppFactorFor(p.opp):1, usagePool:usagePool, scriptFactor:scriptOf(p.team)});
+          var s=N.scoreAnytimeTD(p,{teamFactor:(D.teamFactors[p.team]||{}).off||1, oppFactor:p.opp?oppFactorFor(p.opp):1, usagePool:usagePool, scriptFactor:scriptOf(p.team), vacRec:vacR(p), vacRush:vacC(p)});
           if(s&&isFinite(s.prob)) out.push({key:g.id+'|'+p.id+'|td', playerId:String(p.id), gameId:g.id, team:p.team, opp:p.opp, name:p.name, prob:s.prob, prop:'td', propLabel:LABEL.td});
         }
         STAT_IDS.forEach(function(stat){
           if(!on(stat)) return;
-          var y=N.statEligible(stat,p,null,{oppFactor:allowFor(p.opp,stat)}); if(!y) return;
+          var y=N.statEligible(stat,p,null,{oppFactor:allowFor(p.opp,stat), vacRec:vacR(p), vacRush:vacC(p)}); if(!y) return;
           // The replay counted a counting-prop leg only with 300+ games in its pool; so does the slip.
           // ...and "in its pool" means the games the over is actually read off, the stat's share nearest his level.
           var pool=poolFor(stat); if(N.poolReads(pool,y.exp).length<300) return;

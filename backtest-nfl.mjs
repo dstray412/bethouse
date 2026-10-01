@@ -32,7 +32,8 @@
  *   node backtest-nfl.mjs --fit                 # sweep tdK and tdShrink
  */
 
-import { readEnrichment, attach as attachEnrichment } from "./enrich-nfl.mjs";
+import { readEnrichment, attach as attachEnrichment, loadCrosswalk } from "./enrich-nfl.mjs";
+import { loadInjuries } from "./nflverse.mjs";
 import { readFileSync, existsSync, writeFileSync } from "node:fs";
 import { leagueFromArgs } from "./football-leagues.mjs";
 import { seasonLines } from "./fetch-football.mjs";
@@ -51,7 +52,10 @@ const overrides = {};
 args.forEach((a, i) => {
   if (a !== "--set") return;
   const [k, v] = String(args[i + 1] || "").split("=");
-  if (k) overrides[k] = isFinite(Number(v)) ? Number(v) : v;
+  if (!k) return;
+  /* A key the model does not have would run the base and print a reassuring banner. */
+  if (!Object.prototype.hasOwnProperty.call(league.model.DEFAULTS, k)) throw new Error(`--set ${k}: not a model constant (near: ${Object.keys(league.model.DEFAULTS).filter((d) => d.toLowerCase().includes(k.slice(0, 3).toLowerCase())).join(", ") || "nothing"})`);
+  overrides[k] = isFinite(Number(v)) ? Number(v) : v;
 });
 const M = Object.keys(overrides).length ? league.model.bind(overrides) : league.model;
 if (Object.keys(overrides).length) console.log(`overrides: ${JSON.stringify(overrides)}`);
@@ -67,7 +71,7 @@ if (Object.keys(overrides).length) console.log(`overrides: ${JSON.stringify(over
    re-measured under this flag. The summary tables keep the model's own
    lines, as the board offers them. */
 const FIXED = args.includes("--fixed-lines");
-const REF = FIXED ? league.model.bind({ yardDecay: 1, rushDecay: 1, passDecay: 1, recsDecay: 1, rushrecDecay: 1, yardOppShrink: 0, rushOppShrink: 0, passOppShrink: 0, recsOppShrink: 0, rushrecOppShrink: 0 }) : null;
+const REF = FIXED ? league.model.bind({ yardDecay: 1, rushDecay: 1, passDecay: 1, recsDecay: 1, rushrecDecay: 1, yardOppShrink: 0, rushOppShrink: 0, passOppShrink: 0, recsOppShrink: 0, rushrecOppShrink: 0, tdVac: 0, yardVac: 0, rushVac: 0, recsVac: 0, rushrecVac: 0 }) : null;
 if (FIXED) console.log("fixed lines: eligibility and the graded line from the plain season expectation (no decay, no opponent); the model supplies the probability");
 const {
   buildTeamRatings, projectGame, spreadProbability, totalProbability,
@@ -106,6 +110,33 @@ const history = JSON.parse(readFileSync(HISTORY, "utf8"));
 const ALL = (history.games || [])
   .slice()
   .sort((a, b) => a.season - b.season || a.week - b.week || String(a.date).localeCompare(String(b.date)));
+
+/* Who was ruled out, by week, from nflverse's weekly injury reports
+   (filed before kickoff, so a projection may read them), joined to ESPN
+   ids through the players crosswalk and read through the model's own
+   availability(), the rule the board applies to ESPN's report. The
+   vacated-share terms (tdVac and the per-prop keys) read this; at 0 they change nothing, and a
+   replay without the files is the same replay with a warning. NFL only:
+   college has no report. */
+const outByWeek = new Map();
+if (league.id === "nfl" && !args.includes("--measure")) {
+  try {
+    const seasons = [...new Set(ALL.map((g) => g.season))];
+    const [inj, xw] = await Promise.all([loadInjuries(seasons), loadCrosswalk()]);
+    let joined = 0, seen = 0;
+    for (const r of inj) {
+      if (M.availability(r.status) !== "out") continue;
+      seen++;
+      const espn = xw.gsis.get(String(r.id));
+      if (!espn) continue;
+      joined++;
+      const k = `${r.season}|${r.week}`;
+      if (!outByWeek.has(k)) outByWeek.set(k, new Set());
+      outByWeek.get(k).add(String(espn));
+    }
+    console.log(`injury reports: ${joined} of ${seen} players ruled out joined to an ESPN id, seasons ${seasons.join(",")}`);
+  } catch (e) { console.log(`  WARNING: no injury reports (${e.message}); the vacated-share term has nothing to read`); }
+}
 
 const FROM = Number(flag("--from", 0));
 const TO = Number(flag("--to", 0));
@@ -321,6 +352,7 @@ const levelled = (stat, entries) => {
    of the pool; the rungs probe its tails, where one pool shared by a
    20-yard player and a 90-yard one is most likely to be wrong. */
 const ladderRows = Object.fromEntries(STAT_IDS.map((k) => [k, []]));
+const vacStats = { games: 0, rec: 0, rush: 0, maxRec: 0, tdRows: 0, statRows: 0 }; // how often the vacated share had something to say
 const marginErr = [], totalErr = []; // the model's own projection error
 
 for (let i = START_INDEX; i < ALL.length; i++) {
@@ -337,6 +369,26 @@ for (let i = START_INDEX; i < ALL.length; i++) {
   // Rebuilding state per game is wasteful but unambiguous: there is no way
   // for a later game to leak in. 1,760 games is still under a minute.
   const st = stateFrom(prior, all);
+
+  /* The vacated share, per side: the team's group is every player with a
+     record whose last game was with the team and who appeared in one of
+     its last vacRecent games (a name on the report who did not is long
+     gone, and the survivors' rates already carry his absence); the
+     model's own arithmetic turns the group and the ids ruled out into the
+     two ratios every remaining teammate carries into his score. The same
+     group rule as the fetcher's vacatedByTeam. */
+  const outIds = outByWeek.get(`${g.season}|${g.week}`) || new Set();
+  const vacBy = new Map();
+  for (const T of [g.home.team, g.away.team]) {
+    const recentGames = prior.filter((h) => h.home.team === T || h.away.team === T).slice(-M.DEFAULTS.vacRecent);
+    const active = new Set();
+    for (const h of recentGames) for (const q of h.players) if (q.team === T) active.add(String(q.id));
+    const group = [...st.players.values()].filter((r) => r.team === T && active.has(String(r.id)));
+    const shares = M.vacatedShares(group, outIds);
+    vacBy.set(T, shares);
+    if (shares.out.length) { vacStats.games++; vacStats.rec += shares.rec; vacStats.rush += shares.rush; if (shares.rec > vacStats.maxRec) vacStats.maxRec = shares.rec; }
+  }
+  const vacOf = (p) => { const v = vacBy.get(p.team); return v && !outIds.has(String(p.id)) ? { vacRec: v.rec, vacRush: v.rush } : {}; };
 
   /* ---- spread and total, against the closing line ---- */
   const proj = projectGame(st.ratings, g.home.team, g.away.team, { neutral: !!g.neutral });
@@ -394,8 +446,9 @@ for (let i = START_INDEX; i < ALL.length; i++) {
     // Game script: this team's projected points against the league's, from the same projection graded above.
     const pts = p.team === g.home.team ? proj.homePts : proj.awayPts;
     const scriptFactor = isFinite(pts) && st.ratings && isFinite(st.ratings.league) && st.ratings.league > 0 ? pts / st.ratings.league : 1;
-    const s = scoreAnytimeTD(rec, { teamFactor: tf, oppFactor: of, usagePool: uPool, scriptFactor });
+    const s = scoreAnytimeTD(rec, { teamFactor: tf, oppFactor: of, usagePool: uPool, scriptFactor, ...vacOf(p) });
     if (!s) continue;
+    if (s.vacFactor !== 1) vacStats.tdRows++;
     const scored = (p.rush?.td || 0) + (p.rec?.td || 0) > 0 ? 1 : 0;
     tdRows.push({ prob: s.prob, actual: scored, name: p.name, games: rec.games,
       id: p.id, team: p.team, gameId: g.id, season: g.season, week: g.week,
@@ -433,10 +486,11 @@ for (let i = START_INDEX; i < ALL.length; i++) {
       const rec = st.players.get(p.id);
       /* The exam: who is graded and at what line. Fixed lines take both
          from the reference model; otherwise the model sets its own. */
-      const ref = FIXED ? REF.statEligible(stat, rec, null, { oppFactor: st.allow(opp, stat) }) : statEligible(stat, rec, null, { oppFactor: st.allow(opp, stat) });
+      const ref = FIXED ? REF.statEligible(stat, rec, null, { oppFactor: st.allow(opp, stat) }) : statEligible(stat, rec, null, { oppFactor: st.allow(opp, stat), ...vacOf(p) });
       if (!ref) continue;
-      const y = FIXED ? projectedStat(stat, rec, null, { oppFactor: st.allow(opp, stat) }) : ref;
+      const y = FIXED ? projectedStat(stat, rec, null, { oppFactor: st.allow(opp, stat), ...vacOf(p) }) : ref;
       if (!y || !(y.exp > 0)) continue;
+      if (y.vacFactor !== 1) vacStats.statRows++;
       for (const mult of [0.6, 0.8, 1.0, 1.25, 1.6]) {
         const line = Math.round(ref.exp * mult) + 0.5;
         const pOver = empiricalOver(y.exp, line, pool);
@@ -465,6 +519,7 @@ for (let i = START_INDEX; i < ALL.length; i++) {
       const opp = opponentIn(g, p);
       if (!opp) continue;
       // Membership on his own level, ratio against the adjusted projection: fetch-football.mjs says why.
+      // No vacated share here: the board's pool cannot carry one (the fetcher holds this week's report, not every past game's), and the replay prices off the pool the board ships.
       const y = projectedStat(stat, rec, null, { oppFactor: st.allow(opp, stat) });
       if (y.base >= floor) statPool[stat].push({ exp: y.exp, ratio: gameValue(stat, p) / y.exp });
     }
@@ -535,6 +590,8 @@ function rescoreTD(K, shrink) {
     return { prob: Math.min(0.95, p), actual: r.actual };
   });
 }
+
+if (outByWeek.size) console.log(`\nVACATED SHARE — ${vacStats.games} team-games with a player ruled out (mean ratio targets ${(vacStats.rec / Math.max(1, vacStats.games)).toFixed(3)}, carries ${(vacStats.rush / Math.max(1, vacStats.games)).toFixed(3)}, largest targets ${vacStats.maxRec.toFixed(2)}); at tdVac ${M.DEFAULTS.tdVac} / yardVac ${M.DEFAULTS.yardVac} / rushVac ${M.DEFAULTS.rushVac} / recsVac ${M.DEFAULTS.recsVac} / rushrecVac ${M.DEFAULTS.rushrecVac} it moved ${vacStats.tdRows} touchdown rows and ${vacStats.statRows} counting-prop rows`);
 
 /* --dump file: every touchdown row's probability and outcome, keyed so two
    runs can be compared row for row (compare-td.mjs): paired differences,
