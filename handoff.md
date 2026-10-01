@@ -13,7 +13,7 @@ commit you are reading and how old the data on disk is.
 
 ## Where things are
 
-**Eight pages**, all live and deployed:
+**Nine pages**, all live and deployed:
 
 | page | what |
 |---|---|
@@ -21,6 +21,7 @@ commit you are reading and how old the data on disk is.
 | `baseball.html` | baseball. 1+ H/R/RBI, total bases, home runs, suggested parlay |
 | `live.html` | the live tracker: the props you marked, counted off the feeds |
 | `record.html` | the record: the replay tables and the live records for both football boards. Added 2026-10-01 |
+| `teams.html` | the teams page: every NFL offence and defence from the play-by-play profiles, sortable. Added 2026-10-01 |
 | `nfl.html` | anytime TD; receiving, rushing, rush + rec and passing yards and receptions, each with a ladder of alternate lines; game matchups from play-by-play. Spreads and totals shown with the board saying they do not beat the close |
 | `cfb.html` | college football, the same props and ladders (no matchups). Added 2026-09-05 |
 | `golf.html` | PGA Tour make-the-cut |
@@ -30,7 +31,29 @@ Zero dependencies, no build step, no server, no API key. `node --test` with
 **named files** — bare discovery pulls in the backtests, which fire live API
 calls. The list lives in seven places and `dom.test.mjs` checks all seven.
 
-## B6: colour beyond the figure (2026-10-01, latest)
+## A5: the plan is published (2026-10-01, latest)
+
+**What.** The README's opening now describes the site as it is (one
+board a sport, the card, the record and teams pages); "Does it work?"
+gained "The football models, term by term", one row per shipped term
+with its fit and validation Brier and Δ/SE and one row per term
+measured and left at 0, each pointing at its full table; "The model"
+gained "The NFL player model", what each football number is made of
+in the words the boards' notes use. The board's notes name their
+inputs (B6). The record keeps grading, stamped by era.
+
+**The plan is complete.** Track A: A1 usage feed, A2 touchdown decay
+0.97, A3 per-prop decays (0.88 / 0.97 / 0.90), A4 wind measured and
+dead with the forecast on the panel, A5 this. Track B: B0 the card
+says why, B1/B2 team colours, B3 chips, B4 the featured strip, B5 the
+teams page, B6 colour on the measured deltas.
+
+**Open, not started.** The vacated-share term (a teammate at the same
+position out); wind as an input to passing yards; share-based
+opportunity and an air-yards prior for receiving yards; a college
+replay of the decays (every college decay pinned at 1).
+
+## B6: colour beyond the figure (2026-10-01)
 
 **What.** The drawer's arithmetic cells take a class only where the
 value is a delta the model computed: `up`/`down` (two-percent cut) on

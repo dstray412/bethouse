@@ -15,17 +15,26 @@ Open `index.html` for the home (tonight's slate across the boards),
 
 ## What it is
 
-A daily board. For each game it shows the hitters most likely to hit the bet,
-and the chance that they do. Name, number, nothing else.
+A daily board, one page a sport. The home shows tonight's slate across
+them. The NFL and college boards price anytime touchdown and five
+counting props (receiving, rushing, rush + rec and passing yards,
+receptions), each with a ladder of alternate lines, and show the game
+lines with the board's own verdict on them. The baseball board prices
+1+ hit, run or RBI, total bases and home runs; the golf board, making
+the cut. For each player it shows the chance and the fair price, and
+up to three chips that each carry a measured number. Name, number, why.
 
-Tap a player for the detail: the fair price, the plate appearances his lineup
-slot buys, how much his rate was regressed, and every adjustment applied.
+Tap a player for the card: the chance with its fair price, at most
+three sentences on what moved the number, the projection against his
+own rate, and the receipt (recorded before kickoff, graded once the
+game is final). The arithmetic is a tab away, every term as a cell.
+The record page carries the replay tables and the live records; the
+teams page, what every NFL offence does and every defence allows.
 
-Click any row and it shows its work: the plate appearances the lineup slot
-buys, the player's season line, how much his rate was regressed toward league
-average, the opposing starter's adjustment, and the arithmetic.
-
-Home run rankings are in there too, on a toggle.
+It began as the baseball board, and the sections below are in the
+order the work happened; the football model's own section is further
+down, and the rule every model change has to clear is under "The rule
+for every model change".
 
 ## What it isn't
 
@@ -107,6 +116,47 @@ project (`edge.js`, `fetch-odds.mjs`) is for, and it is why the two halves need
 each other. The model tells you who; the de-vig engine tells you whether the
 number on offer is good enough.
 
+### The football models, term by term
+
+The NFL player models were rebuilt between 2026-09-30 and 2026-10-01
+under one rule (stated in full under "The rule for every model
+change"): a term is fitted on 2023 to 2024 and validated on 2025 to
+2026, paired row for row against the model without it, and ships only
+if the Brier score improves on both windows, the paired Δ/SE is at or
+below −2 on validation, and no calibration band moves worse than 3pp.
+Counting props are graded on fixed lines from a reference model so the
+candidate cannot change the question it is asked. Every row below is
+from that design; the sections further down carry each table in full.
+
+**Shipped.** One kind of term cleared: a recent-form weight, a game's
+weight in a player's line falling by a fixed share per game of age,
+scaled so the shrink toward his prior is untouched.
+
+| term | constant | fit 2023–24 Brier | Δ/SE | validation 2025–26 Brier | Δ/SE |
+|---|---|---|---|---|---|
+| anytime touchdown, recent-form decay | 0.97 | 0.15459 → 0.15432 (n 8,521) | −4.2 | 0.15720 → 0.15683 (n 5,715) | −4.0 |
+| receiving yards, recent-form decay | 0.88 | 0.22238 → 0.22024 | −6.6 | 0.21819 → 0.21545 | −6.5 |
+| rushing yards, recent-form decay | 0.97 | 0.21889 → 0.21723 | −10.4 | 0.22022 → 0.21889 | −5.5 |
+| rush + rec yards, recent-form decay | 0.90 | 0.21701 → 0.21442 | −10.1 | 0.21409 → 0.21142 | −8.3 |
+
+**Measured and not shipped.** Each stays at 0 in `nfl.js` with its
+table in the section named.
+
+| term | what it would do | why it stays off | section |
+|---|---|---|---|
+| game script | scale expected touchdowns by the projected team total | worse at every power on the fit window (Δ/SE +2.1 to +3.8), worse or noise on validation | A2 |
+| red-zone usage | five-term usage fit with carries and targets inside the 20 and carries inside the 5 | worse than the two-term fit on both windows (+4.0 fit, +1.5 validation) | A2 |
+| opponent on receiving yards | the defence's allowance applied to the projection | noise on fixed lines (fit +0.4, validation −1.7); the own-line pass that looked like −2.4 was the line moving | A3 |
+| opponent on receptions, rush + rec | the same at half strength | noise on both windows; worse on the fit window for rush + rec | A3 |
+| levelled pool for passing yards | read the over off the share of the pool nearest the passer's level | the one value that won on validation (0.67, −3.1) moved a band 8.8pp | A3 |
+| recent-form decay on receptions, passing yards | as above | noise on validation at every value | A3 |
+| wind on the total | points per mph over a floor off an outdoor game's projection | every value clears the fit window by three SE and none reaches validation (floor 15: +0.5 to +0.7; floor 10: −0.6 to −0.9) | A4 |
+
+The data file records the constants each build ran with and the
+tracker stamps them on every row, so the record reads by era. College
+pins every decay at 1 (its own replay has not run) and its file would
+not hold the per-game log the weight needs.
+
 ---
 
 ## The model
@@ -122,6 +172,26 @@ Three things drive this prop, in order:
    whoever went 2-for-3 in his debut.
 3. **Context.** The opposing starter's opponent average and the offense around
    the hitter, both clamped so a six-start sample can't dominate.
+
+### The NFL player model
+
+What each football number is made of, as the note above each view now
+says it. **Anytime touchdown**: his carries and targets a game (recent
+games weighted up, 3% a game of age) give an expected touchdown rate
+through two measured constants (0.0335 a carry, 0.0473 a target); his
+own scoring rate is pulled toward that by a workload prior (`tdK`);
+the result is scaled by his offence against the league and the
+opponent's defence, and the whole is pulled 25% toward the league
+average, which is what stops the top of the board running hot. The
+chance is a Poisson at that rate. **A counting prop**: his yards (or
+catches) a game over the window, recent games weighted up where the
+decay shipped, pulled part of the way toward an ordinary player at his
+position, the opponent's defence applied at half strength on rushing
+and passing yards and nowhere else, and the over read off real games
+by comparable players near his own level, not a bell curve. **A game
+line**: team ratings from the box scores, home field, a wind hook that
+is live and at 0; the replay found no edge against the close, and the
+board says so on every game.
 
 ### The correlation constant
 
