@@ -251,6 +251,27 @@ answers one question first and keeps the rest a tab away. So:
 
 Nothing measured was removed. It moved one click from the headline.
 
+**B6, colour beyond the figure (2026-10-01).** The last of the loosened
+taste rules, used. In the drawer's arithmetic a cell is coloured only
+where it reports a delta the model computed, by the number's direction:
+the offence and opponent factors (green above one, red below, plain
+inside two percent), the regression (which way the prior pulled him),
+and the edge at a typed price, which is a cell of its own now with the
+price and the fair one beside it, and is not there until a price is
+typed. The opponent cell on a counting prop prints the factor the model
+applied (half the allowance on rushing and passing yards), the one
+number the chip and the why band already carry, with the raw allowance
+and the strength in its note. The notes above each view lead with the
+inputs the number is made of (what is counted, what is weighted, what
+it is pulled toward, which real games the over is read off, whether the
+opponent is in it) and then the check it passed; every figure in them
+is kept, and the touchdown note gains one, the 3% recent-form weight
+it was already applying. A test now holds each note's words to its
+own model: the receiving word (college counts receptions), yards not
+touches on rush + rec, each decay, the league pull. The home's two football tops wear their game's
+two-colour stripe, as the game cards do. Nothing coloured reports
+nothing measured.
+
 **B5, the teams page (2026-10-01).** `teams.html`: every NFL offence and
 defence from the play-by-play profiles on one sortable table, with the
 team's mark and colour edge: plays a game, pass rate, pass rate over
@@ -341,7 +362,8 @@ one card per game, and a row of tops.
   the most EV on tonight's football slate (or, on a day without
   football, the next day that has it, and the card says which), and how
   many props the live tracker is following. A card whose number does
-  not exist is not shown.
+  not exist is not shown. The two football tops wear their game's
+  two-colour stripe (B6).
 - **The tile** counts games on the slate, players priced across the
   boards (football players plus batters in posted lineups) and
   predictions graded (the sum of the four records).

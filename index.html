@@ -179,7 +179,8 @@
   /* The top of the boards: each card only when its number exists. */
   var tops='';
   /* `val` is markup the caller built (a name beside a mono figure); everything else is text and escaped here. */
-  var top=function(label,val,meta,href,link){ return '<div class="card"><div class="cprop">'+esc(label)+'</div><div class="cval">'+val+'</div><div class="cmeta">'+esc(meta)+'</div><a class="open" href="'+esc(href)+'" aria-label="'+esc(link)+' board">'+esc(link)+' →</a></div>'; };
+  /* `stripe` is the game's two colours from teams.js, a background on its own element, as on a game card. */
+  var top=function(label,val,meta,href,link,stripe){ return '<div class="card">'+(stripe?'<span class="gstripe" style="background:'+esc(stripe)+'"></span>':'')+'<div class="cprop">'+esc(label)+'</div><div class="cval">'+val+'</div><div class="cmeta">'+esc(meta)+'</div><a class="open" href="'+esc(href)+'" aria-label="'+esc(link)+' board">'+esc(link)+' →</a></div>'; };
   /* The football tops come from tonight's football games, or, on a day
      without any, from the next day that has some, and say which. */
   var fb=s.games.some(function(g){ return g.sport==='football'; })?s:H.slate(all.filter(function(g){ return g.sport==='football'; }), now);
@@ -187,11 +188,12 @@
   var whenWord=fb===s?'':' · '+(fb.label||'next up');
   var tdN=H.topTD(N,{nfl:data.nfl},fb.games), tdC=H.topTD(C,{cfb:data.cfb},fb.games);
   var td=tdN&&tdC?(tdN.prob>=tdC.prob?tdN:tdC):(tdN||tdC);
-  if(td) tops+=top('Top touchdown chance'+whenWord, esc(td.name)+' <span class="mono">'+pct(td.prob)+'</span>', td.team+' vs '+td.opp+' · '+td.league, td.board, td.league==='NFL'?'NFL':'CFB');
+  var tdGame=td?fb.games.find(function(g){ return g.id===td.gameId; }):null;
+  if(td) tops+=top('Top touchdown chance'+whenWord, esc(td.name)+' <span class="mono">'+pct(td.prob)+'</span>', td.team+' vs '+td.opp+' · '+td.league, td.board, td.league==='NFL'?'NFL':'CFB', T&&tdGame?T.stripe(tdGame.league,tdGame.awayKey,tdGame.homeKey):'');
   /* Model EV, not "edge": the replay found the game lines do not beat the close, so this is the
      model's best number on the slate, shown with that caveat, and only from one percent up. */
   var edge=H.topEdge(fbCards);
-  if(edge) tops+=top('Top model EV on a line'+whenWord, esc(edge.card.pick.text)+' <span class="mono">'+H.evLabel(edge.card.pick.ev)+'</span>', edge.game.away+' at '+edge.game.home+' · '+pct(edge.card.pick.prob)+' to cover at '+edge.card.pick.price+' · the replay found no proven edge in the lines', edge.game.board, edge.game.league==='NFL'?'NFL':'CFB');
+  if(edge) tops+=top('Top model EV on a line'+whenWord, esc(edge.card.pick.text)+' <span class="mono">'+H.evLabel(edge.card.pick.ev)+'</span>', edge.game.away+' at '+edge.game.home+' · '+pct(edge.card.pick.prob)+' to cover at '+edge.card.pick.price+' · the replay found no proven edge in the lines', edge.game.board, edge.game.league==='NFL'?'NFL':'CFB', T?T.stripe(edge.game.league,edge.game.awayKey,edge.game.homeKey):'');
   var tracked=0; try{ if(W&&W.parseTracks) tracked=W.parseTracks(window.localStorage.getItem(W.TRACK_KEY)).length; }catch(e){ tracked=0; }
   tops+=top('Tracking live', '<span class="mono">'+tracked+'</span> '+(tracked===1?'prop':'props'), tracked?'counted off the feeds while the games are on':'press Track on a player to follow him here', 'live.html', 'Live');
   if(!hasFb&&!fb.games.length) tops+=top('Football', '<span class="mono">0</span> games on file', 'the football boards rebuild daily; nothing is scheduled in their files', 'nfl.html', 'NFL');

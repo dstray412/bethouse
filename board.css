@@ -431,6 +431,7 @@ footer td{padding:1px 14px 1px 0}
 .dcell dd{margin:0}
 .dcell b{display:block;font-family:var(--mono);font-size:17px;font-weight:600;color:var(--text);font-variant-numeric:tabular-nums}
 .dcell dd span{display:block;font-size:13px;line-height:1.4;color:var(--muted);margin-top:3px}
+.dcell b.up{color:var(--good)} .dcell b.down{color:var(--bad)}
 .dclose{font:inherit;font-family:var(--label);font-size:18px;line-height:1;color:var(--muted);background:var(--surface);border:1px solid var(--line);border-radius:var(--r-btn);width:38px;height:38px;cursor:pointer;flex:none}
 .dclose:hover{color:var(--text);border-color:var(--rule)}
 .dtabs{margin-bottom:14px;flex-wrap:wrap;overflow:visible}
@@ -559,7 +560,7 @@ button.rung:hover{border-color:var(--rule)}
 .open{color:var(--accent);font-family:var(--label);font-size:12px;letter-spacing:.1em;text-transform:uppercase;text-decoration:none;font-weight:600;white-space:nowrap}
 .open:hover{text-decoration:underline}
 .tops{margin-bottom:26px}
-.tops .card{display:flex;flex-direction:column;gap:6px}
+.tops .card{display:flex;flex-direction:column;gap:6px;overflow:hidden}
 .tops .cval{font-family:var(--display);font-size:20px;font-weight:600;line-height:1.2}
 .tops .cval .mono{font-family:var(--mono);color:var(--accent);font-variant-numeric:tabular-nums}
 .tops .open{margin-top:auto;padding-top:6px}

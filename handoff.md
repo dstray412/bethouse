@@ -30,7 +30,33 @@ Zero dependencies, no build step, no server, no API key. `node --test` with
 **named files** — bare discovery pulls in the backtests, which fire live API
 calls. The list lives in seven places and `dom.test.mjs` checks all seven.
 
-## A4: wind measured and dead; the forecast on the panel (2026-10-01, latest)
+## B6: colour beyond the figure (2026-10-01, latest)
+
+**What.** The drawer's arithmetic cells take a class only where the
+value is a delta the model computed: `up`/`down` (two-percent cut) on
+the offence and opponent factors and on "Regressed to"; the edge rule's
+class on a new Edge cell, present only once a price is typed, with the
+price and the fair price in its note (`edgeCell`, `dirOf`, `cells` in
+football-board.js; `.dcell b.up/.down` in board.css); the cell reads
+`r.pe` when the tab is drawn, and the only price input is on the
+overview tab, so no redraw path was needed. The counting
+props' Opponent cell prints the applied factor (`r.oppFactor`) rather
+than the raw allowance, the chip's and the why band's number, with the
+allowance and strength in the note. The home's football tops take
+`T.stripe(...)` of their game (`top()` gained a `stripe` argument;
+`.tops .card` clips). The notes on nfl.html and cfb.html lead with the
+inputs, every figure kept and one added (the touchdown note's 3%
+weight). Code review caught two false inputs in the first draft
+(college "targets" where its model reads receptions; rush + rec
+"touches" where the number is yards), so a third test holds each
+note's words to its own model's constants. Tests: three in
+dom.test.mjs (the cells, the tops, the notes). README B6 entry, DESIGN.md (arithmetic, Top card, decisions row).
+
+**Next.** A5: the README's "Does it work?" and "The model" rewritten
+with the A2–A4 tables, the record keeps grading, the notes already
+name the inputs.
+
+## A4: wind measured and dead; the forecast on the panel (2026-10-01)
 
 **What.** `experiment-wind.mjs` walks the game model forward over 27
 nflverse seasons and grades a wind term on the total (`windK` points

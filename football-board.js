@@ -261,11 +261,21 @@
        note; a band is one line across the drawer with a label on the
        left and a figure on the right. Both take text the caller has
        already escaped where it came from data. */
+    /* A cell's value takes a class only where it reports a delta the model
+       computed (B6): `up`/`down` by the number's direction, or the edge
+       rule's class at a typed price. A factor of one stays plain. */
     var cells=function(list){
       return '<dl class="dcells">'+list.filter(Boolean).map(function(c){
-        return '<div class="dcell"><dt>'+c.l+'</dt><dd><b>'+c.v+'</b>'+(c.n?'<span>'+c.n+'</span>':'')+'</dd></div>';
+        /* The label and the class are literals today; escaped so that stays true whoever adds a cell. The value and note are markup the caller escaped at the source. */
+        return '<div class="dcell"><dt>'+esc(c.l)+'</dt><dd><b'+(c.c?' class="'+esc(c.c)+'"':'')+'>'+c.v+'</b>'+(c.n?'<span>'+c.n+'</span>':'')+'</dd></div>';
       }).join('')+'</dl>';
     };
+    /* The direction class for a measured delta past a cut (the factors use
+       the two-percent cut the notes use for "about average"; the regression
+       the printed figures, so two that print alike are not coloured apart). */
+    var dirOf=function(delta,cut){ var c=cut==null?0:cut; return delta>c?'up':delta<-c?'down':''; };
+    /* The edge at the typed price as a cell, or nothing without a price. */
+    var edgeCell=function(pe,prob){ return pe?{l:'Edge',v:E.formatPct(pe.ev),n:'at '+sgn(pe.price)+' against a fair '+sgn(N.fairPrice(prob)),c:edgeClass(pe.ev)}:null; };
     var band=function(cls,label,fig,side,sub){
       return '<div class="dband '+cls+'"><div class="bl"><small>'+label+'</small>'+(sub?'<span>'+sub+'</span>':'')+'</div>'+
         '<div class="br">'+(fig!=null?'<b class="fig">'+fig+'</b>':'')+(side?'<span>'+side+'</span>':'')+'</div></div>';
@@ -432,7 +442,8 @@
        searching each abbreviation inside the full team name, which dropped
        six of sixteen games ("San Francisco 49ers" contains no "SF") and
        misattributed two more ("Arizona Cardinals" contains "CAR"). */
-    var allowFor=function(team,stat){ var f=team&&D.teamFactors[team]; return f&&f.allow?f.allow[stat]:null; };
+    /* The model's own lookup, which refuses a non-positive allowance, so the note never prints one. */
+    var allowFor=function(team,stat){ return N.allowOf(D.teamFactors,team,stat); };
     var oppFactorFor=function(team){
       var f=D.teamFactors[team];
       return f&&isFinite(f.def)?f.def:1;
@@ -514,9 +525,10 @@
           {l:'Workload',v:r.s.perGameCarries.toFixed(1)+' · '+r.s.perGameReceiving.toFixed(1),n:'carries and '+oppWord+' a game over '+r.p.games+' games'+(r.s.weighted?', recent games weighted up':'')},
           {l:'From workload',v:r.s.usageRate.toFixed(3),n:'touchdowns a game: '+N.DEFAULTS.tdPerCarry+' per carry, '+N.DEFAULTS.tdPerTarget+' per '+oppUnit+', measured'},
           {l:'His own rate',v:r.s.observedRate.toFixed(3),n:'a game, the plain count; kept '+pct(r.s.shrink,0)+' of it, the rest is workload'},
-          {l:'Offence',v:'×'+r.s.teamFactor.toFixed(2),n:'his team against the league'},
-          {l:'Opponent',v:r.p.opp?esc(r.p.opp)+' ×'+r.s.oppFactor.toFixed(2):'—',n:r.p.opp?(r.s.oppFactor>1.02?'gives up more touchdowns than average':r.s.oppFactor<0.98?'gives up fewer than average':'about average'):'no opponent scheduled'},
+          {l:'Offence',v:'×'+r.s.teamFactor.toFixed(2),n:'his team against the league',c:dirOf(r.s.teamFactor-1,0.02)},
+          {l:'Opponent',v:r.p.opp?esc(r.p.opp)+' ×'+r.s.oppFactor.toFixed(2):'—',n:r.p.opp?(r.s.oppFactor>1.02?'gives up more touchdowns than average':r.s.oppFactor<0.98?'gives up fewer than average':'about average'):'no opponent scheduled',c:r.p.opp?dirOf(r.s.oppFactor-1,0.02):''},
           {l:'Expected TDs',v:r.s.lambda.toFixed(3),n:'pulled '+Math.round((1-N.DEFAULTS.tdShrink)*100)+'% toward the league average, which stops the top of the board running hot'},
+          edgeCell(r.pe,r.s.prob),
           {l:'Games',v:String(r.p.games),n:'in the window'}
         ].concat(statusCells(r.p)));
       };
@@ -629,8 +641,9 @@
            different one per stat and per league, so it is the note above
            the board (copy.noteStat) that says it, once. */
         var oppCell=!r.p.opp?{l:'Opponent',v:'—',n:'no opponent placed yet'}
-          :strength&&allow?(function(){ var d=Math.round((allow-1)*100), delta=r.exp-r.base;
-              return {l:'Opponent',v:esc(r.p.opp)+' '+(d>=0?'+':'')+d+'%',n:'gives up '+Math.abs(d)+'% '+(d>=0?'more':'fewer')+' '+word+' than average, which '+(delta>=0?'adds':'takes off')+' '+Math.abs(delta).toFixed(0)}; })()
+          /* The applied factor, the number the chip and the why band carry, with the raw allowance and the strength in the note: one figure for the opponent on every surface. */
+          :strength&&allow?(function(){ var d=Math.round((r.oppFactor-1)*100), a=Math.round((allow-1)*100), delta=r.exp-r.base;
+              return {l:'Opponent',v:esc(r.p.opp)+' '+(d>=0?'+':'')+d+'%',n:'gives up '+Math.abs(a)+'% '+(a>=0?'more':'fewer')+' '+word+' than average'+(strength<1?', applied at '+(strength===0.5?'half':Math.round(strength*100)+'%')+' strength':'')+', which '+(delta>=0?'adds':'takes off')+' '+Math.abs(delta).toFixed(0),c:dirOf(r.oppFactor-1,0.02)}; })()
           :{l:'Opponent',v:esc(r.p.opp),n:'not in this number'};
         /* How many games this player's over was actually read off: the
            whole pool in an older data file, the stat's share of the games
@@ -643,9 +656,10 @@
           {l:'Season average',v:avg.toFixed(0),n:unit.trim()+' a game over '+games+' games, every game alike'},
           opps!=null?{l:'Opportunities',v:(opps/games).toFixed(1),n:oppWordFor+' a game over '+games+' games'}:null,
           /* The shrink toward the prior, and the recent-form weight when the model applies one: with it on, a rising line regresses UP. */
-          Math.abs(r.base-avg)>=0.5?{l:'Regressed to',v:r.base.toFixed(0),n:(N.DEFAULTS[ST.decayKey]<1&&r.p.w&&r.p.w[stat]!=null?'his recent games weighted up ('+Math.round((1-N.DEFAULTS[ST.decayKey])*100)+'% a game of age), then ':'')+'part of the way toward an ordinary player\'s '+N.DEFAULTS[ST.priorKey]+(games<10?'; few games, so a long way':'')}:null,
+          Math.abs(r.base-avg)>=0.5?{l:'Regressed to',v:r.base.toFixed(0),c:dirOf(Math.round(r.base)-Math.round(avg)),n:(N.DEFAULTS[ST.decayKey]<1&&r.p.w&&r.p.w[stat]!=null?'his recent games weighted up ('+Math.round((1-N.DEFAULTS[ST.decayKey])*100)+'% a game of age), then ':'')+'part of the way toward an ordinary player\'s '+N.DEFAULTS[ST.priorKey]+(games<10?'; few games, so a long way':'')}:null,
           oppCell,
           {l:'Read off',v:used.toLocaleString('en-US'),n:'real games by '+poolWord+(used<held?' whose own projection was nearest his':' against their own projections')},
+          edgeCell(r.pe,r.over),
           {l:'Games',v:String(games),n:'in the window'}
         ].concat(statusCells(r.p)));
       };
@@ -1356,6 +1370,9 @@
         r.pe=priceEdge(r.chance,pk);
         var cell=document.getElementById('px'+i); if(cell) cell.innerHTML=pxInner(r.pe);
         var ed=document.getElementById('pxe'+i); if(ed) ed.innerHTML=pxEdgeInner(r.pe);
+        /* The arithmetic tab's edge cell reads r.pe when the tab is drawn;
+           the only price input is on the overview tab, so the two are
+           never on screen together and nothing here redraws. */
         return;
       }
       if(t.id!=='slipprice') return;

@@ -625,6 +625,39 @@ test("every counting prop the model has has a note on both football boards", asy
   }
 });
 
+/* B6: the notes lead with the inputs, so the words must be the model's.
+   Oracles in code: `receivingStat` says whether a league counts targets
+   or receptions, `STATS[stat].total` says a yards prop is made of yards
+   and not of the touches that only gate it, and the shrink constants
+   say how far the touchdown number is pulled toward the league. */
+test("each board's notes name the inputs its own model reads: the receiving word, yards not touches, the league pull", async () => {
+  const nfl = (await import("./nfl.js")).default, cfb = (await import("./cfb.js")).default;
+  for (const [f, M] of [["nfl.html", nfl], ["cfb.html", cfb]]) {
+    const js = src(f);
+    const notes = js.slice(js.indexOf("noteTD:"), js.indexOf("noteGames:"));
+    const td = notes.slice(0, notes.indexOf("noteStat:"));
+    const word = M.DEFAULTS.receivingStat === "recs" ? "receptions" : "targets", other = word === "targets" ? "receptions" : "targets";
+    assert.match(td, new RegExp("carries and " + word + " a game"), `${f}: the touchdown note does not name ${word}, which is what its model counts`);
+    assert.doesNotMatch(td, new RegExp("\\b" + other + "\\b"), `${f}: the touchdown note names ${other}, which its model never reads`);
+    assert.match(td, new RegExp("pulled " + Math.round((1 - M.DEFAULTS.tdShrink) * 100) + "% toward the league average"), `${f}: the touchdown note's league pull is not the model's`);
+    const rr = notes.slice(notes.indexOf("rushrec:"));
+    assert.deepEqual(nfl.STATS.rushrec.total, ["rushYds", "recYds"], "the fixture assumes rush + rec is made of the two yardages");
+    assert.match(rr, /rushing and receiving yards a game/, `${f}: the rush + rec note does not say the number is yards`);
+    assert.doesNotMatch(rr, /touches a game/, `${f}: the rush + rec note claims touches, which only gate the prop`);
+    /* A weight is claimed only where the league's decay is under one. */
+    for (const [key, pct] of [["recyds", "yardDecay"], ["rushyds", "rushDecay"], ["rushrec", "rushrecDecay"]]) {
+      /* The entry runs from its key to the next stat's key, or the end of the table; a colon inside the prose is not a boundary. */
+      const start = notes.indexOf(key + ":"), ends = Object.keys(nfl.STATS).map((k) => notes.indexOf("\n      " + k + ":", start + 1)).filter((i) => i > start);
+      const entry = notes.slice(start, ends.length ? Math.min(...ends) : notes.length);
+      const dec = M.DEFAULTS[pct];
+      if (dec < 1) assert.match(entry, new RegExp("weighted up, " + Math.round((1 - dec) * 100) + "% a game of age"), `${f}: ${key} does not state its own decay`);
+      else assert.doesNotMatch(entry, /weighted up/, `${f}: ${key} claims a weight the league does not apply`);
+    }
+    if (M.DEFAULTS.tdDecay < 1) assert.match(td, new RegExp("weighted up, " + Math.round((1 - M.DEFAULTS.tdDecay) * 100) + "% a game of age"), `${f}: the touchdown note does not state its decay`);
+    else assert.doesNotMatch(td, /weighted up/, `${f}: the touchdown note claims a weight the league does not apply`);
+  }
+});
+
 /* ------------------------------------------------------------------ *
  * The panel reads the model, it does not re-derive it
  *
@@ -1808,6 +1841,55 @@ test("a row wears up to three chips under the name, each a chips.js chip, and no
   // Without chips.js the board mounts and no row wears a chip.
   const bare = await mountPlayers({ players: PLAYERS.concat([CHIPPED, TEAMMATE]), teamFactors, noChips: true });
   assert.doesNotMatch(bare.app.innerHTML, /class="chip/);
+});
+
+/* ------------------------------------------------------------------ *
+ * B6: colour beyond the headline figure. A cell in the arithmetic is
+ * coloured only where it reports a delta the model computed (the offence
+ * and opponent factors, the regression, the edge at a typed price), by
+ * the direction of the number; a factor of one stays plain, and the edge
+ * is a cell only when a price was typed. The home's tops wear the game's
+ * stripe as the game cards do.
+ * ------------------------------------------------------------------ */
+
+test("the arithmetic colours a cell only where the model moved the number, and carries the edge at a typed price", async () => {
+  const nfl = (await import("./nfl.js")).default;
+  const W = (await import("./watchlist.js")).default, E = (await import("./edge.js")).default;
+  const rp = recPool(nfl).recyds;
+  const pools = { recyds: rp, rushyds: rp };
+  const teamFactors = { KC: { off: 1.15, def: 1, allow: { rushyds: 1.3 } }, LAC: { off: 1, def: 0.85, allow: {} } };
+  const { app, doc, press } = await mountPlayers({ players: PLAYERS, pools, teamFactors, storage: { [W.PRICE_KEY]: JSON.stringify({ "NFL|2026-2|a|td": "+400" }) } });
+  const arith = (id) => { const i = app.__rows.findIndex((r) => r.p.id === id); clickRow(app, i); press("dtabs", "The arithmetic"); return { r: app.__rows[i], body: doc.getElementById("dbody").innerHTML }; };
+  /* Alpha (KC vs LAC): offence 15% over the league, opponent 15% under, a price typed. */
+  let { r, body } = arith("a");
+  assert.match(body, /<dt>Offence<\/dt><dd><b class="up">×1\.15<\/b>/, "the offence's factor above one is not coloured up");
+  assert.match(body, /<dt>Opponent<\/dt><dd><b class="down">LAC ×0\.85<\/b>/, "the opponent's factor below one is not coloured down");
+  assert.ok(r.pe && r.pe.price === 400, "the typed price did not reach the row");
+  const cls = r.pe.ev > 0.02 ? "good" : r.pe.ev >= 0 ? "warn" : "bad";
+  assert.match(body, new RegExp('<dt>Edge</dt><dd><b class="edge ' + cls + '">' + E.formatPct(r.pe.ev).replace(/[+%]/g, "\\$&") + '</b><span>at \\+400 against a fair ' + (nfl.fairPrice(r.s.prob) > 0 ? "\\+" : "") + nfl.fairPrice(r.s.prob)), "the edge at the typed price is not a cell, or its colour is not the edge rule's");
+  /* Bravo (LAC vs KC): both factors at one, no price: nothing coloured, no edge cell. */
+  ({ r, body } = arith("b"));
+  assert.match(body, /<dt>Offence<\/dt><dd><b>×1\.00<\/b>/, "a factor of one is coloured");
+  assert.match(body, /<dt>Opponent<\/dt><dd><b>KC ×1\.00<\/b>/, "a factor of one is coloured");
+  assert.doesNotMatch(body, /<dt>Edge<\/dt>/, "an edge cell with no price typed");
+  /* Rushing yards: KC gives up 30% more, applied at half strength, +15%, coloured up; the regression by its own direction. */
+  press("view", "Rushing yards");
+  ({ r, body } = arith("b"));
+  assert.match(body, /<dt>Opponent<\/dt><dd><b class="up">KC \+15%<\/b>/, "the applied allowance is not coloured by its sign");
+  const avg = nfl.statTotal("rushyds", r.p) / r.p.games;
+  if (Math.abs(r.base - avg) >= 0.5) assert.match(body, new RegExp('<dt>Regressed to</dt><dd><b class="' + (r.base > avg ? "up" : "down") + '">'), "the regression is not coloured by its direction");
+  const css = src(SHEET);
+  assert.match(css, /\.dcell b\.up\{color:var\(--good\)\}/, "no rule for an up cell");
+  assert.match(css, /\.dcell b\.down\{color:var\(--bad\)\}/, "no rule for a down cell");
+});
+
+test("the home's tops wear the game's two-colour stripe, as its game cards do", () => {
+  const html = src("index.html");
+  assert.match(html, /var top=function\(label,val,meta,href,link,stripe\)/, "the top card takes no stripe");
+  assert.match(html, /<div class="card">'\+\(stripe\?'<span class="gstripe" style="background:'\+esc\(stripe\)\+'"><\/span>':''\)/, "the stripe is not an escaped background on its own element");
+  assert.match(html, /T\.stripe\(edge\.game\.league,edge\.game\.awayKey,edge\.game\.homeKey\)/, "the EV top does not take its game's stripe");
+  assert.match(html, /T\.stripe\(tdGame\.league,tdGame\.awayKey,tdGame\.homeKey\)/, "the touchdown top does not take its game's stripe");
+  assert.match(src(SHEET), /\.tops \.card\{[^}]*overflow:hidden/, "the top card does not clip its stripe to its corners");
 });
 
 test("the defence chip replaces the stat row's soft/tough badge: only where the opponent is in the number, and then at the strength the model applies", async () => {

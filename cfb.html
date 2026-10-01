@@ -120,26 +120,28 @@ BetHouseFootballBoard.mount({
   league: 'College football',
   fetcher: 'fetch-cfb.mjs',
   copy: {
-    noteTD: 'Chance of <b>scoring a touchdown</b>. Checked against <b>25,345</b> unseen FBS player-games — '+
+    /* Each note leads with the inputs the number is made of, then the
+       check it passed; every figure is from the README's college tables (B6). */
+    noteTD: 'Chance of <b>scoring a touchdown</b>, from his carries and receptions a game (every game alike), his own scoring rate pulled toward '+
+      'what that workload usually scores, his offence against the league and the opponent\'s defence, the whole pulled 10% toward the league average. '+
+      'Checked against <b>25,345</b> unseen FBS player-games: '+
       'bias 1.4 points, cold, and the top of the board runs 2 to 4 points cold. Tap a player for the work.',
     noteStat: {
-      recyds: 'Chance of going <b>over</b> a receiving yards line. Checked against <b>62,595</b> unseen '+
-        'player-games — <b>2 points cold</b>, both seasons, and the replay is sensitive to a modelling choice by about that much either way. '+
-        'Read the number as approximate. The opponent is shown but not applied: on the replay it moved nothing. '+
-        'The shape comes from real receiver games, not a bell curve.',
-      rushyds: 'Chance of going <b>over</b> a rushing yards line, the opponent\'s run defence applied at half strength. '+
-        'Checked against <b>43,770</b> unseen player-games — bias 0.5 points, hot, the seasons within a point. The shape comes from '+
-        'real games by backs the board would price, not a bell curve; a pool that let quarterbacks\' scrambles in ran 9 points cold.',
-      passyds: 'Chance of going <b>over</b> a passing yards line, the opponent\'s pass defence applied at half strength. '+
-        'Checked against <b>9,760</b> unseen player-games — bias 1.5 points, cold, and the bands say the number is too timid '+
-        'at both ends. Read it as approximate. The shape comes from real quarterback games, not a bell curve.',
-      recs: 'Chance of going <b>over</b> a receptions line. Checked against <b>53,240</b> unseen '+
-        'player-games — bias 0.9 points, cold, every band within 3. The opponent is shown but not applied: on the replay it '+
-        'made this prop worse. The shape comes from real receiver games, not a bell curve.',
-      rushrec: 'Chance of going <b>over</b> a <b>rushing plus receiving</b> yards line — the back who catches and the '+
-        'receiver who runs, his two yardages added and priced as one number, off real games by backs and receivers. '+
-        'Replayed over 94,580 player-games on college constants: bias 0.1 points, the seasons within a point. The '+
-        'opponent is not applied. Tap a player for every alternate line with its fair price.'
+      recyds: 'Chance of going <b>over</b> a receiving yards line, from his yards a game, pulled part of the way toward an ordinary receiver, '+
+        'with the over read off real receiver games rather than a bell curve. The opponent is shown but not applied: on the replay it moved nothing. '+
+        'Checked against <b>62,595</b> unseen player-games: <b>2 points cold</b>, both seasons, and the replay is sensitive to a modelling choice by about that much either way. '+
+        'Read the number as approximate.',
+      rushyds: 'Chance of going <b>over</b> a rushing yards line, from his yards a game, pulled toward an ordinary back, the opponent\'s run defence applied at half strength, '+
+        'and the over read off real games by backs the board would price. Checked against <b>43,770</b> unseen player-games: bias 0.5 points, hot, the seasons within a point; '+
+        'a pool that let quarterbacks\' scrambles in ran 9 points cold.',
+      passyds: 'Chance of going <b>over</b> a passing yards line, from his yards a game, pulled toward an ordinary starter, the opponent\'s pass defence applied at half strength, '+
+        'and the over read off real quarterback games. Checked against <b>9,760</b> unseen player-games: bias 1.5 points, cold, and the bands say the number is too timid '+
+        'at both ends. Read it as approximate.',
+      recs: 'Chance of going <b>over</b> a receptions line, from his catches a game, pulled toward an ordinary receiver, with the over read off real receiver games. '+
+        'The opponent is shown but not applied: on the replay it made this prop worse. Checked against <b>53,240</b> unseen player-games: bias 0.9 points, cold, every band within 3.',
+      rushrec: 'Chance of going <b>over</b> a <b>rushing plus receiving</b> yards line: the back who catches and the receiver who runs, his two yardages added and priced as one number, '+
+        'from his rushing and receiving yards a game, pulled toward an ordinary player, off real games by backs and receivers. The opponent is not applied. '+
+        'Replayed over 94,580 player-games on college constants: bias 0.1 points, the seasons within a point. Tap a player for every alternate line with its fair price.'
     },
     noteGames: 'The side the model likes on each game, against a real line, with its expected value at the price. '+
       '<b>Not proven against the closing line</b> — read the note below before betting one.',
