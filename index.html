@@ -61,6 +61,9 @@
      data file that is missing is a board the home does not show. -->
 <script src="edge.js"></script>
 <script src="faces.js"></script>
+<!-- Written by fetch-teams.mjs: each team's colours, for the stripe on a game card. -->
+<script src="teams-data.js"></script>
+<script src="teams.js"></script>
 <script src="nfl.js"></script>
 <script src="cfb.js"></script>
 <script src="watchlist.js"></script>
@@ -88,7 +91,7 @@
   function render(){
   /* The college model is its own; without it a college card shows no numbers rather than the NFL's. */
   var H=window.BetHouseHome, N=window.BetHouseNFL, C=window.BetHouseCFB||null, E=window.BetHouseEdge, W=window.BetHouseWatchlist;
-  var F=window.BetHouseFaces||null;
+  var F=window.BetHouseFaces||null, T=window.BetHouseTeams||null;
   var esc=function(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); };
   var el=function(id){ return document.getElementById(id); };
   var data={ nfl:window.BetHouseNFLData||null, cfb:window.BetHouseCFBData||null, mlb:window.BETHOUSE_MLB||null, pga:window.BetHousePGAData||null,
@@ -153,7 +156,9 @@
       foot='<div><small>Pitchers · ERA</small><b>'+esc(H.pitcherLabel(g.raw.awayFaces))+'<br>'+esc(H.pitcherLabel(g.raw.homeFaces))+'</b></div>'+
            '<div><small>Lineups</small><b>'+lineupWord(g)+'</b></div>';
     }
-    h+='<div class="gcard '+g.state+'">'+
+    /* The two teams' colours as a stripe along the top (teams.js): a background, never a text colour. */
+    var stripe=T?T.stripe(g.league,g.awayKey,g.homeKey):'';
+    h+='<div class="gcard '+g.state+'">'+(stripe?'<span class="gstripe" style="background:'+esc(stripe)+'"></span>':'')+
       '<div class="gtop"><span>'+esc(g.league)+chipFor(g)+'</span><span class="gtime">'+esc(H.clock(g.start))+'</span></div>'+
       '<div class="gteams">'+teamHtml(g,'away',card)+'<span class="at">at</span>'+teamHtml(g,'home',card)+'</div>'+
       '<div class="gfoot">'+foot+'<a class="open" href="'+esc(g.board)+'" aria-label="Open the '+esc(g.league)+' board: '+esc(g.away)+' at '+esc(g.home)+'">Open →</a></div>'+

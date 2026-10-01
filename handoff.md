@@ -30,6 +30,39 @@ Zero dependencies, no build step, no server, no API key. `node --test` with
 **named files** — bare discovery pulls in the backtests, which fire live API
 calls. The list lives in seven places and `dom.test.mjs` checks all seven.
 
+## B1/B2: team colours and the loosened taste rules (2026-10-01, later)
+
+- `teams.js` (UMD `BetHouseTeams`, `teams.test.mjs`, in all seven
+  gates): `use(table)`, `colour(league,key)` → `{primary, secondary}`
+  as `#hex` or null, `stripe(league,away,home)` → two solid halves (or
+  one colour, or ''), `tint(league,key,alpha=0.16)` → `rgba()`. Keys
+  as faces.js: NFL/MLB abbreviation, college ESPN id. Table:
+  `teams-data.js` from `node fetch-teams.mjs` (ESPN's keyless team
+  lists; 32 NFL, 690 college, 30 MLB; run by hand, committed, not in
+  any workflow).
+- Where it goes: `index.html` game card `<span class="gstripe">` (4px,
+  top); the drawer's `#dhead` gets `style="background:<tint>"` (set to
+  '' for a team with no colour, so the stub and a browser agree); the
+  tray card's `border-left-color`. `dhead` is in the stale-page list.
+  A dom test scans both files for any text-colour sink fed by a team
+  value. `paint()` picks the secondary when the primary's luminance is
+  under `DARK` (0.02), and null when the secondary is dark too: black
+  primaries are real (PIT, LV, 330 FBS rows, 313 of them with no
+  usable secondary on ESPN's list, which therefore paint nothing).
+  Navies (CHI, DEN, HOU, NYY) switch to their secondary as well. A
+  one-sided stripe is the known half beside `transparent`.
+  MLB rows are also written under statsapi's abbreviation (`cws`, `az`)
+  because home.js keys by it; the shape test checks every abbreviation
+  in mlb-data.js resolves. `fetch-teams.mjs` refuses to write below a
+  per-league floor. `teams-data.js`'s `generated` stamp is deliberately
+  outside provenance.mjs's one-day freshness gate: the table is
+  decade-scale.
+- B1: DESIGN.md colours/typography/don'ts rewritten (team colours,
+  kickers, measured colour); the head-label test pins the first two
+  columns and that every figure column has a head. The 56ch note cap
+  is KEPT on purpose (the plan said 72ch; the test's own measurement
+  says that is 93 characters).
+
 ## B0: the card says why (2026-10-01)
 
 The user compared nhlpropking.com's card with ours: too much text to

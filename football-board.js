@@ -45,7 +45,7 @@
     var stalePools = Object.keys(D.pools||{}).some(function(k){ return Array.isArray(D.pools[k]); });
     /* ...and an older page than script: the drawer's markup arrived with
        phase 2 (2026-09-29); without it a row click would go nowhere. */
-    var stalePage = ['drawer','dbody','starseg','tray','tcards','dcompare','parlayseg'].some(function(id){ return !document.getElementById(id); });
+    var stalePage = ['drawer','dbody','starseg','tray','tcards','dcompare','parlayseg','dhead'].some(function(id){ return !document.getElementById(id); });
     if (missing.length || stalePools || stalePage) {
       app.innerHTML = '<div class="empty"><div class="big">Reload this page</div>' +
         '<div>Your browser has a '+(stalePools?'newer model than data file':stalePage?'newer script than page':'newer page than model script')+'. A hard refresh (Cmd/Ctrl+Shift+R) fixes it.</div></div>';
@@ -188,6 +188,11 @@
        row keeps its empty disc so the grid does not move. */
     var F=window.BetHouseFaces||null;
     var teamKeyOf=function(team){ return F?F.teamKey(cfg.league,team,gameOf[team]):null; };
+    /* A team's colour (teams.js), only ever a background or a border: the
+       hero's tint and the tray card's left edge. '' without the module. */
+    var TC=window.BetHouseTeams||null;
+    var tintOf=function(team){ return TC?TC.tint(cfg.league,teamKeyOf(team)):''; };
+    var edgeOf=function(team){ return (TC&&TC.paint(cfg.league,teamKeyOf(team)))||''; };
     var mark=function(team,px){ return F?F.mark(cfg.league,teamKeyOf(team),px):''; };
     var face=function(p,px){ return F?F.face(cfg.league,p&&p.id,px):'<span class="face"></span>'; };
     var mtch=function(p,ratio){ return '<span class="mtch">'+mark(p.team)+esc(p.team)+(p.opp?' vs '+mark(p.opp)+esc(p.opp):'')+(ratio!==undefined?'<br>'+ratePill(ratio):'')+'</span>'; };
@@ -910,6 +915,10 @@
       if(dk) dk.textContent = r.p ? (r.p.team+(r.p.opp?' vs '+r.p.opp:'')) : ('Week '+D.week);
       var df=document.getElementById('dface');
       if(df) df.innerHTML = r.p ? (F?F.face(cfg.league,r.p.id,150,'large'):'')+mark(r.p.team,28) : mark(r.a,28)+mark(r.h,28);
+      /* The hero's tint: the player's team; for a game, the home side. */
+      var dh=document.getElementById('dhead'), tint=tintOf(r.p?r.p.team:r.h);
+      /* A DOM attribute, not markup, so no esc(): the value is a bare colour teams.js validated at the source. */
+      if(dh) dh.setAttribute('style', tint?'background:'+tint:'');
       document.getElementById('dsub').textContent = r.p ? ((r.p.pos?r.p.pos+' · ':'')+'Model rank '+rankOf(r)+' · '+propLabelOf(r))
         : [r.g&&r.g.venue, r.g&&r.g.date&&isFinite(Date.parse(r.g.date))?new Date(r.g.date).toLocaleString(undefined,{weekday:'short',hour:'numeric',minute:'2-digit'}):''].filter(Boolean).join(' · ')||('week '+D.week);
       var db=document.getElementById('dbands');
@@ -1000,8 +1009,8 @@
       trayEl.hidden=!ids.length;
       var h='';
       ids.forEach(function(id){
-        var p=playerById(id), r=rowFor(p);
-        h+='<div class="tcard"><div class="tname">'+face(p,32)+esc(p.name)+'<span class="pos">'+esc(p.team)+(p.opp?' vs '+esc(p.opp):'')+'</span></div>';
+        var p=playerById(id), r=rowFor(p), edge=edgeOf(p.team);
+        h+='<div class="tcard"'+(edge?' style="border-left-color:'+esc(edge)+'"':'')+'><div class="tname">'+face(p,32)+esc(p.name)+'<span class="pos">'+esc(p.team)+(p.opp?' vs '+esc(p.opp):'')+'</span></div>';
         if(!r) h+='<div class="tnum">—<small>not on this view</small></div>';
         else if(state.view==='td') h+='<div class="tnum">'+pct(r.s.prob,0)+'<small>to score · '+sgn(N.fairPrice(r.s.prob))+' fair</small></div>';
         else h+='<div class="tnum">'+Math.round(r.exp)+'<small>'+(state.view==='recs'?'catches':'yards')+' · o'+r.line+' hits '+pct(r.over,0)+' · '+sgn(N.fairPrice(r.over))+' fair</small></div>';

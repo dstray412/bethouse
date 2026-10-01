@@ -1406,10 +1406,24 @@ test("every football view renders one column-head row that names its columns, on
   const heads = (html) => (html.match(/<div class="thead">([\s\S]*?)<\/div>/) || [])[1] || "";
   const labels = (html) => [...heads(html).matchAll(/<span[^>]*>([^<]*)<\/span>/g)].map((m) => m[1]).filter(Boolean);
   assert.equal((app.innerHTML.match(/class="thead"/g) || []).length, 1, "the touchdown view has no head row, or two");
-  assert.deepEqual(labels(app.innerHTML), ["Rk", "Player", "Matchup · vs rate", "Chance", "Fair", "Price / edge"]);
+  /* B1: the rule is that the row's first two columns are the rank and the player and every
+     figure column has a head; the exact words are taste, and taste is allowed to move. */
+  const headed = (html) => {
+    const hs = [...heads(html).matchAll(/<span([^>]*)>([^<]*)<\/span>/g)];
+    const cells = (html.match(/<button class="row[^"]*"[^>]*>([\s\S]*?)<\/button>/) || ["", ""])[1];
+    const figures = (cells.match(/class="(prob|be|fair|px)[ "]/g) || []).length;
+    // A figure head is a right-aligned span (thead's r:1) with words in it; one per figure cell, exactly.
+    const figureHeads = hs.filter((m) => /class="r[ "]/.test(m[1]) && m[2].trim()).length;
+    return { labels: hs.map((m) => m[2]).filter(Boolean), figures, figureHeads };
+  };
+  let h = headed(app.innerHTML);
+  assert.deepEqual(h.labels.slice(0, 2), ["Rk", "Player"]);
+  assert.equal(h.figureHeads, h.figures, "a figure column has no head: " + h.labels.join(" | "));
   assert.match(app.innerHTML, /<div class="game v-td">/);
   press("view", "Receiving yards");
-  assert.deepEqual(labels(app.innerHTML), ["Rk", "Player", "Matchup · vs rate", "Proj", "Over", "Fair", "Price / edge"]);
+  h = headed(app.innerHTML);
+  assert.deepEqual(h.labels.slice(0, 2), ["Rk", "Player"]);
+  assert.equal(h.figureHeads, h.figures, "a figure column has no head: " + h.labels.join(" | "));
   assert.match(app.innerHTML, /<div class="game v-stat">/);
   press("view", "Spread & total");
   assert.deepEqual(labels(app.innerHTML).slice(0, 2), ["Rk", "Matchup"]);
@@ -1495,7 +1509,7 @@ test("live.html is a board: shared stylesheet, the scripts it needs, a card list
 
 test("index.html is the home: the shared models and every board's data, the slate's ids, logos only from ESPN's CDN", () => {
   const html = src("index.html");
-  for (const s of ["edge.js", "nfl.js", "cfb.js", "watchlist.js", "home.js", "mlb-data.js", "pga-data.js", "nfl-data.js", "cfb-data.js"]) {
+  for (const s of ["edge.js", "nfl.js", "cfb.js", "watchlist.js", "home.js", "mlb-data.js", "pga-data.js", "nfl-data.js", "cfb-data.js", "teams-data.js", "teams.js"]) {
     assert.match(html, new RegExp('<script src="' + s.replace(".", "\\.") + '"'), "index.html loads " + s);
   }
   for (const id of ["tile", "hero", "slate", "gcards", "tops"]) assert.match(html, new RegExp('id="' + id + '"'), "index.html has #" + id);
@@ -1909,4 +1923,87 @@ test("the stylesheet carries the chips line, the why list, the how list and the 
   for (const c of [".who .chips{", ".chip.up{", ".chip.down{", ".dband.why{", ".dwhy{", ".dwhy li{", ".dbody .how{", ".hows li{", ".rec{", ".dband.receipt a{"]) assert.ok(css.includes(c), "no rule for " + c);
   assert.doesNotMatch(css, /\n\.how\{/, "a bare .how rule would also style the note's disclosure, which shares the class");
   assert.match(css, /\.who \.chips\{[^}]*white-space:nowrap[^}]*overflow:hidden/, "the chips line can wrap and grow the row");
+});
+
+/* ------------------------------------------------------------------ *
+ * B2 — team colours, where DESIGN.md lets them go and nowhere else
+ *
+ * teams.js hands back bare colour values from teams-data.js (ESPN's team
+ * lists, by fetch-teams.mjs). They go on a stripe along the top of the
+ * home's game cards, a faint tint behind the drawer's hero and the tray
+ * card's left edge: backgrounds and borders, never a text colour, so
+ * white text on near-black keeps its contrast whatever the team.
+ * ------------------------------------------------------------------ */
+
+test("the home's game card wears the two teams' stripe from teams.js, as a background, and nothing without the module", () => {
+  const html = src("index.html");
+  assert.match(html, /T=window\.BetHouseTeams\|\|null/, "the home does not feature-detect teams.js");
+  assert.match(html, /T\?T\.stripe\(g\.league,g\.awayKey,g\.homeKey\):''/, "the stripe is not teams.js's, away then home");
+  assert.match(html, /<span class="gstripe" style="background:'\+esc\(stripe\)\+'"><\/span>/, "the stripe is not an escaped background on its own element");
+  const css = src(SHEET);
+  assert.match(css, /\.gstripe\{[^}]*position:absolute[^}]*height:4px/, "no stripe rule");
+  assert.match(css, /\.gcard\{[^}]*position:relative[^}]*overflow:hidden/, "the card does not clip its stripe to its corners");
+});
+
+test("the drawer's hero takes the team's tint and the tray card its edge, both from teams.js, both as background or border", async () => {
+  const teams = (await import("./teams.js")).default;
+  const data = { NFL: { kc: { p: "e31837", s: "ffb81c" }, lac: { p: "0080c6", s: "ffc20e" } } };
+  // The module reads the page's global at load; the board reads the module. Mount with the table in place.
+  const nfl = (await import("./nfl.js")).default;
+  const doc = stubDoc();
+  const win = { BetHouseEdge: (await import("./edge.js")).default, BetHouseParlay: (await import("./parlay.js")).default, BetHouseFaces: (await import("./faces.js")).default, BetHouseWatchlist: (await import("./watchlist.js")).default, BetHouseChips: (await import("./chips.js")).default, BetHouseTeams: teams.use(data), pushed: [], listeners: {} };
+  win.location = { search: "", pathname: "/nfl.html" }; win.history = { pushState() {}, replaceState() {} }; win.addEventListener = () => {};
+  win.localStorage = { getItem: () => null, setItem() {}, removeItem() {} };
+  // eslint-disable-next-line no-new-func
+  new Function("window", "document", src("football-board.js"))(win, doc);
+  win.BetHouseFootballBoard.mount({ model: nfl, data: { season: 2026, week: 2, statsSeasons: [2025, 2026], generated: "2026-09-21T00:00", gamesCached: 2, games: GAMES, ratings: RATINGS, teamFactors: {}, players: PLAYERS, pools: {}, usagePool: [] },
+    record: null, league: "NFL", fetcher: "x", copy: { noteTD: "n", noteStat: Object.fromEntries(Object.keys(nfl.STATS).map((k) => [k, "n"])), noteGames: "n", gameBanner: "<p>n</p>", mlVerdict: "n", gameHonestly: "n" } });
+  const app = doc.getElementById("app");
+  const i = app.__rows.findIndex((r) => r.p.id === "a"); // KC
+  clickRow(app, i);
+  assert.equal(doc.getElementById("dhead").attrs.style, "background:rgba(227,24,55,0.16)", "the hero is not tinted with KC's primary at the faint alpha");
+  const j = app.__rows.findIndex((r) => r.p.id === "d"); // ZZZ: no colour on file
+  clickRow(app, j);
+  assert.equal(doc.getElementById("dhead").attrs.style, "", "the previous team's tint survived onto a team with none");
+  // The tray card: a left edge in the team's primary.
+  clickRow(app, i);
+  doc.getElementById("dcompare").handlers.click[0]();
+  assert.match(doc.getElementById("tcards").innerHTML, /<div class="tcard" style="border-left-color:#e31837">/, "the tray card has no team edge");
+  // Where the colours may go: background and border properties only. A team colour on text is the one
+  // thing DESIGN.md forbids, so the whole file is scanned for a text-colour sink, not just the call line:
+  // a `.style.color` write anywhere, or a `color:` CSS string concatenated with a team value.
+  for (const page of ["football-board.js", "index.html"]) {
+    const s = src(page);
+    assert.doesNotMatch(s, /\.style\.color\b/, page + " writes a text colour from script");
+    assert.doesNotMatch(s, /[^-]color:\s*['"]?\s*\+\s*(esc\()?(tint|edge|stripe)\b/, page + ": a team colour is concatenated into a color: declaration");
+    assert.doesNotMatch(s, /(tint|edge|stripe)\s*\+\s*['"][^'"]*;?\s*color:/, page + ": a team colour precedes a color: declaration");
+    // Every place a team value is used as a style must be a background or border property.
+    for (const m of s.matchAll(/(background|border-left-color|[a-z-]+):\s*['"]?\s*\+\s*(esc\()?(tint|edge|stripe)\b/g)) {
+      assert.ok(["background", "border-left-color"].includes(m[1]), page + ": a team colour on the " + m[1] + " property");
+    }
+  }
+  for (const f of ["nfl.html", "cfb.html"]) {
+    assert.match(src(f), /<script src="teams-data\.js"><\/script>\s*<script src="teams\.js"><\/script>/, f + " does not load the colours before teams.js");
+    assert.match(markup(f), /id="dhead"/, f + " has no #dhead for the tint");
+  }
+  assert.match(src("football-board.js"), /'dhead'\]/, "dhead is not in the stale-page list");
+  assert.match(src(SHEET), /\.tcard\{[^}]*border-left:4px solid/, "the tray card has no left edge to colour");
+  teams.use(null);
+});
+
+test("teams-data.js is committed, generated by fetch-teams.mjs, and carries a six-hex primary for every NFL team", () => {
+  const s = src("teams-data.js");
+  assert.match(s, /^\/\* generated by fetch-teams\.mjs/);
+  const data = JSON.parse(s.slice(s.indexOf("{"), s.lastIndexOf("}") + 1));
+  assert.equal(Object.keys(data.NFL).length, 32);
+  for (const [k, v] of Object.entries(data.NFL)) { assert.match(k, /^[a-z0-9]{2,5}$/); assert.match(v.p, /^[0-9a-f]{6}$/, k + " has no primary"); }
+  assert.ok(Object.keys(data["College football"]).length > 100, "the college table is short");
+  assert.ok(Object.keys(data.MLB).length >= 30);
+  assert.ok(s.length < 60000, "the colours file is bigger than its job");
+  // A black primary is real (the Steelers), and teams.js paints with the secondary: so every black NFL primary must have one.
+  for (const [k, v] of Object.entries(data.NFL)) if (v.p === "000000") assert.match(v.s || "", /^[0-9a-f]{6}$/, k + " is black with no secondary to paint");
+  // The home keys baseball by statsapi's abbreviation (home.js): every one in the data file must resolve, aliases included.
+  const mlb = src("mlb-data.js");
+  const abbrs = new Set([...mlb.matchAll(/"abbrev":"([A-Z]{2,3})"/g)].map((m) => m[1].toLowerCase()));
+  for (const a of abbrs) assert.ok(data.MLB[a], "mlb-data.js names " + a.toUpperCase() + " and teams-data.js has no row for it");
 });

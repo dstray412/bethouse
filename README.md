@@ -148,6 +148,7 @@ should be re-fitted when the run environment shifts.
 |---|---|
 | `index.html` | The home: tonight's slate, one card per game with the two teams' logos, the football boards' projection and pick, a row of tops. |
 | `home.js` | The home's arithmetic: one slate out of the boards' data, which day it shows, the football card, the tops, the tile. Tested in `home.test.mjs`. |
+| `teams.js` / `teams-data.js` / `fetch-teams.mjs` | A team's two colours, for the stripe on the home's game cards, the tint behind the drawer's hero and the tray card's edge, and nowhere on text. The table is ESPN's team lists (NFL and MLB by abbreviation, college by ESPN id), fetched by hand and committed. Tested in `teams.test.mjs`. |
 | `chips.js` | The chips a football row and its card wear: each a measured number past a threshold that lives here and nowhere else (volume, red zone, snaps, deep, soft or tough defence). Plain data; the board escapes. Tested in `chips.test.mjs`. |
 | `record.html` / `record-page.js` | The record page: the replay tables (static) and the live records and parlay records for both football boards, from the files the trackers write. Tested in `record-page.test.mjs`. |
 | `faces.js` | A player's photo and a team's mark for every page: the urls by league and size, and the one `<img>` markup (lazy, no referrer, fixed box, hidden on error). Tested in `faces.test.mjs`. |
@@ -244,6 +245,23 @@ answers one question first and keeps the rest a tab away. So:
   controls row, on every view; the row stays on the game view for it.
 
 Nothing measured was removed. It moved one click from the headline.
+
+**Later the same day (B1/B2).** The taste rules loosened as the plan
+said: a team's colours now appear as a stripe along the top of the
+home's game cards (away then home), a faint tint behind the drawer's
+hero and a left edge on a tray card, from `teams.js` and ESPN's team
+lists (`node fetch-teams.mjs` writes `teams-data.js`; colours change
+about once a decade, so it is run by hand). A team colour is only ever
+a background or a border, never a text colour, which a test pins. A
+team whose primary is black (the Steelers, a third of the FBS) paints
+with its secondary, or nothing when that is dark too, and a card with
+one team unknown shows the known half beside a transparent one rather
+than a confident wrong colour or an invisible black one.
+Kickers are allowed; green and red may mark any measured delta; the
+column-head test asks that the first two columns are the rank and the
+player and that every figure column has a head, not for the exact
+words. The note's 56ch measure stays: this repo's own measurement is
+that 72ch is 93 characters on this face, past the limit the test cites.
 
 ## Faces
 

@@ -334,12 +334,13 @@ footer td{padding:1px 14px 1px 0}
 /* The card's hero: matchup label, name and rank on the left, the photo
    on the right, the buttons in the corner; then the bands, one line
    each, then the tabs and the cells. */
-.dhead{display:flex;align-items:flex-end;gap:14px;padding:0 0 12px;margin-bottom:12px;border-bottom:1px solid var(--line);position:relative;min-height:120px}
+/* The hero takes a faint tint of the team's primary behind the photo (teams.js); the text on it stays white. */
+.dhead{display:flex;align-items:flex-end;gap:14px;padding:18px 20px 12px;margin:-18px -20px 12px;border-bottom:1px solid var(--line);position:relative;min-height:138px}
 .dwho{flex:1;min-width:0;align-self:flex-end;padding-top:44px}
 .dkick{font-family:var(--label);font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:6px}
 .dface{display:flex;flex-direction:column;align-items:center;gap:6px;flex:none;align-self:flex-end;margin-right:8px}
 .dface:empty{display:none}
-.dbtns{position:absolute;top:0;right:0}
+.dbtns{position:absolute;top:18px;right:20px}
 .dhead h2{font-family:var(--display);font-size:28px;font-weight:700;margin:0;line-height:1.1;font-variation-settings:'opsz' 40}
 .dsub{color:var(--muted);font-size:15px;margin-top:6px}
 .dbands{display:flex;flex-direction:column;gap:0;margin-bottom:14px;border:1px solid var(--line);border-radius:var(--r-panel);overflow:hidden;background:var(--surface)}
@@ -405,7 +406,8 @@ button.rung:hover{border-color:var(--rule)}
   .drawer{top:auto;left:0;right:0;width:100%;max-height:88vh;border-left:0;border-top:1px solid var(--line);border-radius:var(--r-panel) var(--r-panel) 0 0;padding:14px 14px 24px}
   .dcells{grid-template-columns:repeat(2,minmax(0,1fr))}
   .dhead h2{font-size:24px}
-  .dhead{min-height:0}
+  .dhead{min-height:0;padding:14px 14px 12px;margin:-14px -14px 12px;border-radius:var(--r-panel) var(--r-panel) 0 0}
+  .dbtns{top:14px;right:14px}
   .dwho{padding-top:40px}
   .dband .fig{font-size:22px}
   .dband.head .fig{font-size:26px}
@@ -430,7 +432,7 @@ button.rung:hover{border-color:var(--rule)}
   display:flex;gap:10px;align-items:stretch;box-shadow:0 -6px 20px rgba(0,0,0,.4)}
 .tray:not([hidden])~footer{margin-bottom:150px}
 .tcards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;flex:1;min-width:0}
-.tcard{position:relative;border:1px solid var(--line);border-radius:var(--r-btn);padding:10px 34px 10px 14px;background:var(--surface);font-size:14px;color:var(--muted)}
+.tcard{position:relative;border:1px solid var(--line);border-left:4px solid var(--line);border-radius:var(--r-btn);padding:10px 34px 10px 14px;background:var(--surface);font-size:14px;color:var(--muted)}
 .tcard .tname{font-family:var(--display);font-weight:600;font-size:15px;color:var(--text)}
 .tcard .tnum{font-family:var(--mono);font-size:20px;font-weight:600;color:var(--accent);font-variant-numeric:tabular-nums;margin-top:2px}
 .tcard .tnum small{font-family:var(--body);font-size:13px;font-weight:400;color:var(--muted);margin-left:6px}
@@ -493,7 +495,9 @@ button.rung:hover{border-color:var(--rule)}
 .btn.primary{color:var(--ink);background:var(--accent);border-color:var(--accent);font-weight:600}
 .shead{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;padding:0 2px 10px}
 .gcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px;margin-bottom:30px}
-.gcard{border:1px solid var(--line);border-radius:var(--r-panel);background:var(--surface);padding:14px 16px 12px;display:flex;flex-direction:column;gap:12px}
+.gcard{position:relative;overflow:hidden;border:1px solid var(--line);border-radius:var(--r-panel);background:var(--surface);padding:14px 16px 12px;display:flex;flex-direction:column;gap:12px}
+/* The two teams' colours along the top of a game card (teams.js), away then home. */
+.gstripe{position:absolute;top:0;left:0;right:0;height:4px}
 .gcard.post{opacity:.7}
 .gcard .gtop{display:flex;justify-content:space-between;align-items:center;font-family:var(--label);font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
 .gcard .gtop .gtime{font-family:var(--mono);letter-spacing:0;text-transform:none;font-size:13px;color:var(--text)}
