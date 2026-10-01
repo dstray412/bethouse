@@ -21834,6 +21834,772 @@
    "prob": 0.1836,
    "kickoff": "2026-10-04T17:00Z",
    "recordedAt": "2026-09-30T15:25:33.858Z"
+  },
+  {
+   "gameId": "401872971",
+   "playerId": "4613202",
+   "name": "Kyle Williams",
+   "team": "NE",
+   "opp": "BUF",
+   "prop": "recyds",
+   "line": 21.5,
+   "prob": 0.3553,
+   "ladder": {
+    "10": 0.631,
+    "20": 0.3953,
+    "25": 0.3072,
+    "30": 0.2231,
+    "40": 0.1253,
+    "50": 0.0703,
+    "60": 0.0392
+   },
+   "kickoff": "2026-10-04T17:00Z",
+   "recordedAt": "2026-10-01T18:25:53.250Z",
+   "model": {
+    "tdDecay": 0.97,
+    "tdRz": 0,
+    "tdScript": 0,
+    "yardDecay": 0.88,
+    "rushDecay": 0.97,
+    "rushrecDecay": 0.9
+   }
+  },
+  {
+   "gameId": "401872971",
+   "playerId": "4037235",
+   "name": "Greg Dortch",
+   "team": "BUF",
+   "opp": "NE",
+   "prop": "recyds",
+   "line": 22.5,
+   "prob": 0.3804,
+   "ladder": {
+    "10": 0.6633,
+    "20": 0.4382,
+    "25": 0.3476,
+    "30": 0.2688,
+    "40": 0.1548,
+    "50": 0.093,
+    "60": 0.0538,
+    "70": 0.0259
+   },
+   "kickoff": "2026-10-04T17:00Z",
+   "recordedAt": "2026-10-01T18:25:53.261Z",
+   "model": {
+    "tdDecay": 0.97,
+    "tdRz": 0,
+    "tdScript": 0,
+    "yardDecay": 0.88,
+    "rushDecay": 0.97,
+    "rushrecDecay": 0.9
+   }
+  },
+  {
+   "gameId": "401872974",
+   "playerId": "4682652",
+   "name": "Devin Neal",
+   "team": "MIN",
+   "opp": "MIA",
+   "prop": "td",
+   "prob": 0.2265,
+   "kickoff": "2026-10-04T20:05Z",
+   "recordedAt": "2026-10-01T18:25:53.266Z",
+   "model": {
+    "tdDecay": 0.97,
+    "tdRz": 0,
+    "tdScript": 0,
+    "yardDecay": 0.88,
+    "rushDecay": 0.97,
+    "rushrecDecay": 0.9
+   }
+  },
+  {
+   "gameId": "401872974",
+   "playerId": "4682652",
+   "name": "Devin Neal",
+   "team": "MIN",
+   "opp": "MIA",
+   "prop": "rushyds",
+   "line": 25.5,
+   "prob": 0.4543,
+   "ladder": {
+    "10": 0.7667,
+    "20": 0.5621,
+    "25": 0.472,
+    "30": 0.3752,
+    "40": 0.2278,
+    "50": 0.1241,
+    "60": 0.0668,
+    "70": 0.0327
+   },
+   "kickoff": "2026-10-04T20:05Z",
+   "recordedAt": "2026-10-01T18:25:53.266Z",
+   "model": {
+    "tdDecay": 0.97,
+    "tdRz": 0,
+    "tdScript": 0,
+    "yardDecay": 0.88,
+    "rushDecay": 0.97,
+    "rushrecDecay": 0.9
+   }
+  },
+  {
+   "gameId": "401872974",
+   "playerId": "4682652",
+   "name": "Devin Neal",
+   "team": "MIN",
+   "opp": "MIA",
+   "prop": "recs",
+   "line": 2.5,
+   "prob": 0.3261,
+   "ladder": {
+    "2": 0.6026,
+    "3": 0.3261,
+    "4": 0.1354,
+    "5": 0.0457
+   },
+   "kickoff": "2026-10-04T20:05Z",
+   "recordedAt": "2026-10-01T18:25:53.266Z",
+   "model": {
+    "tdDecay": 0.97,
+    "tdRz": 0,
+    "tdScript": 0,
+    "yardDecay": 0.88,
+    "rushDecay": 0.97,
+    "rushrecDecay": 0.9
+   }
+  },
+  {
+   "gameId": "401872974",
+   "playerId": "4682652",
+   "name": "Devin Neal",
+   "team": "MIN",
+   "opp": "MIA",
+   "prop": "rushrec",
+   "line": 37.5,
+   "prob": 0.4307,
+   "ladder": {
+    "10": 0.8407,
+    "20": 0.6993,
+    "25": 0.6213,
+    "30": 0.5463,
+    "40": 0.4023,
+    "50": 0.2847,
+    "60": 0.2003,
+    "70": 0.1343,
+    "80": 0.089,
+    "90": 0.0567,
+    "100": 0.0343
+   },
+   "kickoff": "2026-10-04T20:05Z",
+   "recordedAt": "2026-10-01T18:25:53.266Z",
+   "model": {
+    "tdDecay": 0.97,
+    "tdRz": 0,
+    "tdScript": 0,
+    "yardDecay": 0.88,
+    "rushDecay": 0.97,
+    "rushrecDecay": 0.9
+   }
+  },
+  {
+   "gameId": "401872975",
+   "playerId": "16731",
+   "name": "Brandin Cooks",
+   "team": "SF",
+   "opp": "DEN",
+   "prop": "rushrec",
+   "line": 26.5,
+   "prob": 0.3507,
+   "ladder": {
+    "10": 0.6887,
+    "20": 0.474,
+    "25": 0.3813,
+    "30": 0.3027,
+    "40": 0.182,
+    "50": 0.1057,
+    "60": 0.055,
+    "70": 0.0303
+   },
+   "kickoff": "2026-10-04T20:25Z",
+   "recordedAt": "2026-10-01T18:25:53.273Z",
+   "model": {
+    "tdDecay": 0.97,
+    "tdRz": 0,
+    "tdScript": 0,
+    "yardDecay": 0.88,
+    "rushDecay": 0.97,
+    "rushrecDecay": 0.9
+   }
+  },
+  {
+   "gameId": "401872978",
+   "playerId": "4372780",
+   "name": "Tommy Tremble",
+   "team": "CAR",
+   "opp": "DET",
+   "prop": "recyds",
+   "line": 21.5,
+   "prob": 0.3456,
+   "ladder": {
+    "10": 0.6237,
+    "20": 0.3852,
+    "25": 0.2947,
+    "30": 0.2138,
+    "40": 0.1184,
+    "50": 0.0647,
+    "60": 0.0372
+   },
+   "kickoff": "2026-10-05T00:20Z",
+   "recordedAt": "2026-10-01T18:25:53.318Z",
+   "model": {
+    "tdDecay": 0.97,
+    "tdRz": 0,
+    "tdScript": 0,
+    "yardDecay": 0.88,
+    "rushDecay": 0.97,
+    "rushrecDecay": 0.9
+   }
+  },
+  {
+   "gameId": "401872975",
+   "playerId": "4361741",
+   "name": "Brock Purdy",
+   "team": "SF",
+   "opp": "DEN",
+   "prop": "rushrec",
+   "line": 25.5,
+   "prob": 0.346,
+   "ladder": {
+    "10": 0.665,
+    "20": 0.453,
+    "25": 0.36,
+    "30": 0.278,
+    "40": 0.169,
+    "50": 0.0943,
+    "60": 0.0467,
+    "70": 0.0247
+   },
+   "kickoff": "2026-10-04T20:25Z",
+   "recordedAt": "2026-10-01T18:25:53.355Z",
+   "model": {
+    "tdDecay": 0.97,
+    "tdRz": 0,
+    "tdScript": 0,
+    "yardDecay": 0.88,
+    "rushDecay": 0.97,
+    "rushrecDecay": 0.9
+   }
+  },
+  {
+   "gameId": "401872976",
+   "playerId": "4567048",
+   "name": "Kenneth Walker III",
+   "team": "KC",
+   "opp": "LV",
+   "prop": "recyds",
+   "line": 23.5,
+   "prob": 0.3739,
+   "ladder": {
+    "10": 0.6762,
+    "20": 0.4539,
+    "25": 0.3601,
+    "30": 0.2838,
+    "40": 0.1661,
+    "50": 0.1006,
+    "60": 0.0582,
+    "70": 0.0315
+   },
+   "kickoff": "2026-10-04T20:25Z",
+   "recordedAt": "2026-10-01T18:25:53.365Z",
+   "model": {
+    "tdDecay": 0.97,
+    "tdRz": 0,
+    "tdScript": 0,
+    "yardDecay": 0.88,
+    "rushDecay": 0.97,
+    "rushrecDecay": 0.9
+   }
+  },
+  {
+   "gameId": "401872978",
+   "playerId": "5123663",
+   "name": "Isaac TeSlaa",
+   "team": "DET",
+   "opp": "CAR",
+   "prop": "rushrec",
+   "line": 26.5,
+   "prob": 0.3497,
+   "ladder": {
+    "10": 0.687,
+    "20": 0.473,
+    "25": 0.38,
+    "30": 0.302,
+    "40": 0.182,
+    "50": 0.1057,
+    "60": 0.055,
+    "70": 0.0303
+   },
+   "kickoff": "2026-10-05T00:20Z",
+   "recordedAt": "2026-10-01T18:25:53.384Z",
+   "model": {
+    "tdDecay": 0.97,
+    "tdRz": 0,
+    "tdScript": 0,
+    "yardDecay": 0.88,
+    "rushDecay": 0.97,
+    "rushrecDecay": 0.9
+   }
+  },
+  {
+   "gameId": "401872973",
+   "playerId": "4360939",
+   "name": "Rashod Bateman",
+   "team": "BAL",
+   "opp": "TEN",
+   "prop": "rushrec",
+   "line": 26.5,
+   "prob": 0.3413,
+   "ladder": {
+    "10": 0.6773,
+    "20": 0.4643,
+    "25": 0.371,
+    "30": 0.295,
+    "40": 0.1773,
+    "50": 0.1037,
+    "60": 0.0523,
+    "70": 0.0273
+   },
+   "kickoff": "2026-10-04T17:00Z",
+   "recordedAt": "2026-10-01T18:25:53.424Z",
+   "model": {
+    "tdDecay": 0.97,
+    "tdRz": 0,
+    "tdScript": 0,
+    "yardDecay": 0.88,
+    "rushDecay": 0.97,
+    "rushrecDecay": 0.9
+   }
+  },
+  {
+   "gameId": "401872971",
+   "playerId": "3915411",
+   "name": "Ty Johnson",
+   "team": "BUF",
+   "opp": "NE",
+   "prop": "recyds",
+   "line": 24.5,
+   "prob": 0.3739,
+   "ladder": {
+    "10": 0.6871,
+    "20": 0.4673,
+    "25": 0.3739,
+    "30": 0.2987,
+    "40": 0.1762,
+    "50": 0.1055,
+    "60": 0.0618,
+    "70": 0.0344
+   },
+   "kickoff": "2026-10-04T17:00Z",
+   "recordedAt": "2026-10-01T18:25:53.430Z",
+   "model": {
+    "tdDecay": 0.97,
+    "tdRz": 0,
+    "tdScript": 0,
+    "yardDecay": 0.88,
+    "rushDecay": 0.97,
+    "rushrecDecay": 0.9
+   }
+  },
+  {
+   "gameId": "401872978",
+   "playerId": "4567096",
+   "name": "John Metchie III",
+   "team": "CAR",
+   "opp": "DET",
+   "prop": "rushrec",
+   "line": 26.5,
+   "prob": 0.3393,
+   "ladder": {
+    "10": 0.6753,
+    "20": 0.4637,
+    "25": 0.369,
+    "30": 0.292,
+    "40": 0.177,
+    "50": 0.1033,
+    "60": 0.0523,
+    "70": 0.0273
+   },
+   "kickoff": "2026-10-05T00:20Z",
+   "recordedAt": "2026-10-01T18:25:53.488Z",
+   "model": {
+    "tdDecay": 0.97,
+    "tdRz": 0,
+    "tdScript": 0,
+    "yardDecay": 0.88,
+    "rushDecay": 0.97,
+    "rushrecDecay": 0.9
+   }
+  },
+  {
+   "gameId": "401872979",
+   "playerId": "4360689",
+   "name": "Tyler Shough",
+   "team": "NO",
+   "opp": "ATL",
+   "prop": "rushyds",
+   "line": 20.5,
+   "prob": 0.4543,
+   "ladder": {
+    "10": 0.7162,
+    "20": 0.472,
+    "25": 0.352,
+    "30": 0.2633,
+    "40": 0.1241,
+    "50": 0.0559
+   },
+   "kickoff": "2026-10-06T00:15Z",
+   "recordedAt": "2026-10-01T18:25:53.498Z",
+   "model": {
+    "tdDecay": 0.97,
+    "tdRz": 0,
+    "tdScript": 0,
+    "yardDecay": 0.88,
+    "rushDecay": 0.97,
+    "rushrecDecay": 0.9
+   }
+  },
+  {
+   "gameId": "401872970",
+   "playerId": "4710855",
+   "name": "Konata Mumpfield",
+   "team": "LAR",
+   "opp": "PHI",
+   "prop": "recyds",
+   "line": 23.5,
+   "prob": 0.3735,
+   "ladder": {
+    "10": 0.6726,
+    "20": 0.4511,
+    "25": 0.3581,
+    "30": 0.2821,
+    "40": 0.1653,
+    "50": 0.0986,
+    "60": 0.057,
+    "70": 0.0307
+   },
+   "kickoff": "2026-10-04T17:00Z",
+   "recordedAt": "2026-10-01T18:25:53.529Z",
+   "model": {
+    "tdDecay": 0.97,
+    "tdRz": 0,
+    "tdScript": 0,
+    "yardDecay": 0.88,
+    "rushDecay": 0.97,
+    "rushrecDecay": 0.9
+   }
+  },
+  {
+   "gameId": "401872970",
+   "playerId": "4685201",
+   "name": "Tanner McKee",
+   "team": "PHI",
+   "opp": "LAR",
+   "prop": "td",
+   "prob": 0.0844,
+   "kickoff": "2026-10-04T17:00Z",
+   "recordedAt": "2026-10-01T18:25:53.538Z",
+   "model": {
+    "tdDecay": 0.97,
+    "tdRz": 0,
+    "tdScript": 0,
+    "yardDecay": 0.88,
+    "rushDecay": 0.97,
+    "rushrecDecay": 0.9
+   }
+  },
+  {
+   "gameId": "401872970",
+   "playerId": "4715355",
+   "name": "Darius Cooper",
+   "team": "PHI",
+   "opp": "LAR",
+   "prop": "rushrec",
+   "line": 25.5,
+   "prob": 0.3473,
+   "ladder": {
+    "10": 0.6657,
+    "20": 0.4543,
+    "25": 0.3613,
+    "30": 0.2827,
+    "40": 0.171,
+    "50": 0.0953,
+    "60": 0.0483,
+    "70": 0.025
+   },
+   "kickoff": "2026-10-04T17:00Z",
+   "recordedAt": "2026-10-01T18:25:53.552Z",
+   "model": {
+    "tdDecay": 0.97,
+    "tdRz": 0,
+    "tdScript": 0,
+    "yardDecay": 0.88,
+    "rushDecay": 0.97,
+    "rushrecDecay": 0.9
+   }
+  },
+  {
+   "gameId": "401872975",
+   "playerId": "3127306",
+   "name": "Dante Pettis",
+   "team": "SF",
+   "opp": "DEN",
+   "prop": "td",
+   "prob": 0.1113,
+   "kickoff": "2026-10-04T20:25Z",
+   "recordedAt": "2026-10-01T18:25:53.554Z",
+   "model": {
+    "tdDecay": 0.97,
+    "tdRz": 0,
+    "tdScript": 0,
+    "yardDecay": 0.88,
+    "rushDecay": 0.97,
+    "rushrecDecay": 0.9
+   }
+  },
+  {
+   "gameId": "401872975",
+   "playerId": "3127306",
+   "name": "Dante Pettis",
+   "team": "SF",
+   "opp": "DEN",
+   "prop": "recyds",
+   "line": 29.5,
+   "prob": 0.4272,
+   "ladder": {
+    "10": 0.7773,
+    "20": 0.5954,
+    "25": 0.5137,
+    "30": 0.4272,
+    "40": 0.2926,
+    "50": 0.1964,
+    "60": 0.1273,
+    "70": 0.0821,
+    "80": 0.0501,
+    "90": 0.0271
+   },
+   "kickoff": "2026-10-04T20:25Z",
+   "recordedAt": "2026-10-01T18:25:53.554Z",
+   "model": {
+    "tdDecay": 0.97,
+    "tdRz": 0,
+    "tdScript": 0,
+    "yardDecay": 0.88,
+    "rushDecay": 0.97,
+    "rushrecDecay": 0.9
+   }
+  },
+  {
+   "gameId": "401872975",
+   "playerId": "3127306",
+   "name": "Dante Pettis",
+   "team": "SF",
+   "opp": "DEN",
+   "prop": "recs",
+   "line": 2.5,
+   "prob": 0.3857,
+   "ladder": {
+    "2": 0.6695,
+    "3": 0.3857,
+    "4": 0.1827,
+    "5": 0.075,
+    "6": 0.0281
+   },
+   "kickoff": "2026-10-04T20:25Z",
+   "recordedAt": "2026-10-01T18:25:53.554Z",
+   "model": {
+    "tdDecay": 0.97,
+    "tdRz": 0,
+    "tdScript": 0,
+    "yardDecay": 0.88,
+    "rushDecay": 0.97,
+    "rushrecDecay": 0.9
+   }
+  },
+  {
+   "gameId": "401872975",
+   "playerId": "3127306",
+   "name": "Dante Pettis",
+   "team": "SF",
+   "opp": "DEN",
+   "prop": "rushrec",
+   "line": 32.5,
+   "prob": 0.4117,
+   "ladder": {
+    "10": 0.795,
+    "20": 0.6223,
+    "25": 0.5353,
+    "30": 0.4573,
+    "40": 0.318,
+    "50": 0.2123,
+    "60": 0.1353,
+    "70": 0.087,
+    "80": 0.05,
+    "90": 0.029
+   },
+   "kickoff": "2026-10-04T20:25Z",
+   "recordedAt": "2026-10-01T18:25:53.554Z",
+   "model": {
+    "tdDecay": 0.97,
+    "tdRz": 0,
+    "tdScript": 0,
+    "yardDecay": 0.88,
+    "rushDecay": 0.97,
+    "rushrecDecay": 0.9
+   }
+  },
+  {
+   "gameId": "401872974",
+   "playerId": "4569682",
+   "name": "Audric Estime",
+   "team": "MIN",
+   "opp": "MIA",
+   "prop": "td",
+   "prob": 0.2559,
+   "kickoff": "2026-10-04T20:05Z",
+   "recordedAt": "2026-10-01T18:25:53.557Z",
+   "model": {
+    "tdDecay": 0.97,
+    "tdRz": 0,
+    "tdScript": 0,
+    "yardDecay": 0.88,
+    "rushDecay": 0.97,
+    "rushrecDecay": 0.9
+   }
+  },
+  {
+   "gameId": "401872974",
+   "playerId": "4569682",
+   "name": "Audric Estime",
+   "team": "MIN",
+   "opp": "MIA",
+   "prop": "recyds",
+   "line": 23.5,
+   "prob": 0.3888,
+   "ladder": {
+    "10": 0.6823,
+    "20": 0.4648,
+    "25": 0.3715,
+    "30": 0.2951,
+    "40": 0.1738,
+    "50": 0.1039,
+    "60": 0.0606,
+    "70": 0.0323
+   },
+   "kickoff": "2026-10-04T20:05Z",
+   "recordedAt": "2026-10-01T18:25:53.557Z",
+   "model": {
+    "tdDecay": 0.97,
+    "tdRz": 0,
+    "tdScript": 0,
+    "yardDecay": 0.88,
+    "rushDecay": 0.97,
+    "rushrecDecay": 0.9
+   }
+  },
+  {
+   "gameId": "401872974",
+   "playerId": "4569682",
+   "name": "Audric Estime",
+   "team": "MIN",
+   "opp": "MIA",
+   "prop": "rushyds",
+   "line": 34.5,
+   "prob": 0.4625,
+   "ladder": {
+    "10": 0.8759,
+    "20": 0.6944,
+    "25": 0.6153,
+    "30": 0.5252,
+    "40": 0.3888,
+    "50": 0.2633,
+    "60": 0.1787,
+    "70": 0.1091,
+    "80": 0.06,
+    "90": 0.0382,
+    "100": 0.0205
+   },
+   "kickoff": "2026-10-04T20:05Z",
+   "recordedAt": "2026-10-01T18:25:53.557Z",
+   "model": {
+    "tdDecay": 0.97,
+    "tdRz": 0,
+    "tdScript": 0,
+    "yardDecay": 0.88,
+    "rushDecay": 0.97,
+    "rushrecDecay": 0.9
+   }
+  },
+  {
+   "gameId": "401872974",
+   "playerId": "4569682",
+   "name": "Audric Estime",
+   "team": "MIN",
+   "opp": "MIA",
+   "prop": "recs",
+   "line": 2.5,
+   "prob": 0.4085,
+   "ladder": {
+    "2": 0.6877,
+    "3": 0.4085,
+    "4": 0.2005,
+    "5": 0.0871,
+    "6": 0.0323
+   },
+   "kickoff": "2026-10-04T20:05Z",
+   "recordedAt": "2026-10-01T18:25:53.557Z",
+   "model": {
+    "tdDecay": 0.97,
+    "tdRz": 0,
+    "tdScript": 0,
+    "yardDecay": 0.88,
+    "rushDecay": 0.97,
+    "rushrecDecay": 0.9
+   }
+  },
+  {
+   "gameId": "401872974",
+   "playerId": "4569682",
+   "name": "Audric Estime",
+   "team": "MIN",
+   "opp": "MIA",
+   "prop": "rushrec",
+   "line": 48.5,
+   "prob": 0.465,
+   "ladder": {
+    "10": 0.9117,
+    "20": 0.818,
+    "25": 0.7627,
+    "30": 0.7037,
+    "40": 0.578,
+    "50": 0.4547,
+    "60": 0.3543,
+    "70": 0.267,
+    "80": 0.192,
+    "90": 0.1397,
+    "100": 0.103,
+    "125": 0.037
+   },
+   "kickoff": "2026-10-04T20:05Z",
+   "recordedAt": "2026-10-01T18:25:53.557Z",
+   "model": {
+    "tdDecay": 0.97,
+    "tdRz": 0,
+    "tdScript": 0,
+    "yardDecay": 0.88,
+    "rushDecay": 0.97,
+    "rushrecDecay": 0.9
+   }
   }
  ],
  "graded": false,
@@ -22599,5 +23365,13 @@
    "correlation": "mixed",
    "recordedAt": "2026-09-29T18:05:32.150Z"
   }
- ]
+ ],
+ "model": {
+  "tdDecay": 0.97,
+  "tdRz": 0,
+  "tdScript": 0,
+  "yardDecay": 0.88,
+  "rushDecay": 0.97,
+  "rushrecDecay": 0.9
+ }
 }
