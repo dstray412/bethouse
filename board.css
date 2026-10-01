@@ -340,7 +340,12 @@ footer td{padding:1px 14px 1px 0}
 .dkick{font-family:var(--label);font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:6px}
 .dface{display:flex;flex-direction:column;align-items:center;gap:6px;flex:none;align-self:flex-end;margin-right:8px}
 .dface:empty{display:none}
-.dbtns{position:absolute;top:18px;right:20px}
+/* The Compare and close buttons: a bar stuck to the top of the scrolling
+   drawer, so they stay in reach however far the card is scrolled (on a
+   phone the hero used to carry them off with it). The bar takes no
+   height and no taps; only its buttons do. */
+.dbar{position:sticky;top:0;z-index:3;height:0;display:flex;justify-content:flex-end;gap:8px;align-items:flex-start;pointer-events:none}
+.dbar button{pointer-events:auto}
 .dhead h2{font-family:var(--display);font-size:28px;font-weight:700;margin:0;line-height:1.1;font-variation-settings:'opsz' 40}
 .dsub{color:var(--muted);font-size:15px;margin-top:6px}
 .dbands{display:flex;flex-direction:column;gap:0;margin-bottom:14px;border:1px solid var(--line);border-radius:var(--r-panel);overflow:hidden;background:var(--surface)}
@@ -407,7 +412,7 @@ button.rung:hover{border-color:var(--rule)}
   .dcells{grid-template-columns:repeat(2,minmax(0,1fr))}
   .dhead h2{font-size:24px}
   .dhead{min-height:0;padding:14px 14px 12px;margin:-14px -14px 12px;border-radius:var(--r-panel) var(--r-panel) 0 0}
-  .dbtns{top:14px;right:14px}
+  .dbar{margin-top:-2px}
   .dwho{padding-top:40px}
   .dband .fig{font-size:22px}
   .dband.head .fig{font-size:26px}
@@ -424,7 +429,6 @@ button.rung:hover{border-color:var(--rule)}
 .star[aria-pressed=true]{color:var(--accent)}
 /* The compare tray: up to three players side by side at the foot of
    the page, each with the number the current view ranks by. */
-.dbtns{display:flex;gap:8px;align-items:center;flex:none}
 .dcompare{font:inherit;font-family:var(--body);font-size:14px;color:var(--muted);background:var(--surface);border:1px solid var(--line);border-radius:var(--r-btn);padding:0 13px;height:38px;cursor:pointer}
 .dcompare:hover{color:var(--text);border-color:var(--rule)}
 .dcompare[disabled]{opacity:.5;cursor:default}

@@ -134,6 +134,53 @@
     tdDecay: 0.97,
     tdScript: 0,
 
+    /*
+     * The recent-form weight on a counting prop's season line (A3), one
+     * constant per prop because the replay says they differ. 1 is equal
+     * weights. The per-game log is `record.slog` (seasonLines, in
+     * memory) or the precomputed weighted totals `record.w` the fetcher
+     * writes from it; weights are scaled to sum to the game count, so
+     * the yardK shrink is untouched. Measured like tdDecay: fit
+     * 2023-24, validate 2025-26, paired rows per prop (node
+     * backtest-nfl.mjs --set <key>=<v> --dump …; node compare-stats.mjs
+     * base cand). The rule is the README's ("The rule for every model
+     * change"); a prop keeps 1 where no value cleared it.
+     *
+     * Measured on FIXED LINES (backtest-nfl.mjs --fixed-lines, 2026-10-01):
+     * the graded line and the eligibility come from the plain season
+     * expectation, so base and candidate answer the same questions and
+     * every row pairs. Paired Brier Δ/SE, fit / validation, and the worst
+     * move of a band both runs have (the rule's 3pp); a band only the
+     * candidate reaches is noted, not charged.
+     *
+     *             0.97           0.95           0.92           0.90           0.88           0.85
+     *   recyds  -10.5 / -9.3   -9.8 / -8.3    —              -7.6 / -7.2    -6.6 / -6.5    -5.1 / -5.1
+     *            band +0.5/+1.6  +1.1/+2.0                    +1.3/+2.1      +0.7/+1.7      +0.5/+1.5
+     *   rushyds -10.4 / -5.5   -10.0 / -7.0   -9.4 / -6.7    -8.5 / -6.2    —
+     *            band +1.0/+2.9  +1.0/[+3.1]   +1.5/[+3.3]    +1.5/[+3.8]
+     *   rushrec  —             -13.2 / -10.9  -11.3 / -9.4   -10.1 / -8.3   -9.0 / -7.1    -7.3 / -5.7
+     *            band          +1.0/+0.3      +1.3/+0.3      +1.3/+0.3      +1.1/+0.3      +0.7/+1.0
+     *   passyds, recs: not re-measured; on the model's own lines neither cleared validation (noise), so they stay at 1.
+     *
+     * Receiving yards: every value clears; the validation Brier gain is
+     * largest at 0.88 (0.21819 → 0.21545, n 14,990) and smaller on both
+     * sides. Rushing yards: 0.97 is the only value whose validation band
+     * holds (the 70-80 band moves +2.9pp at 0.97, +3.1 at 0.95, +3.8 at
+     * 0.90); fit 0.21889 → 0.21723, validation 0.22022 → 0.21889. Rush +
+     * rec: every value clears; the validation gain plateaus at 0.90 and
+     * 0.88 (0.21409 → 0.21142 and 0.21141) and falls at 0.85, and 0.90
+     * has the cleaner fit window. The first sweep, graded on each model's own
+     * lines, read 0.88 / 0.90 / 0.92 and a receiving-yards opponent term;
+     * the review showed that design favours the candidate (rows whose
+     * outcome flipped with the line were dropped, and a noisier expectation
+     * earns easier questions), so every constant here is the fixed-line one.
+     */
+    yardDecay: 0.88,
+    rushDecay: 0.97,
+    passDecay: 1,
+    recsDecay: 1,
+    rushrecDecay: 0.9,
+
     /* Team scoring: home field is worth about two points now, not three. */
     homeField: 1.97,
     leaguePoints: 22.96, // per team per game
@@ -245,6 +292,13 @@
      * small everywhere, which is what the game-line work found too: the
      * box score adds little the market and the pool do not already carry.
      */
+    /* Receiving yards at half strength, re-measured for A3 (2026-10-01)
+       with 2026 in the window: on the model's own lines it looked like a
+       narrow pass (validation Δ/SE -2.4); graded on fixed lines it is
+       noise on both windows (fit +0.4, validation -1.7), so it stays at
+       0, as the two-season replay said. Receptions at half strength is
+       noise on both windows and rush + rec is worse on the fit window;
+       both stay at 0. */
     yardOppShrink: 0,
     rushOppShrink: 0.5,
     passOppShrink: 0.5,
@@ -774,14 +828,14 @@
    * so a league can bind its own.
    */
   const STATS = {
-    recyds:  { label: "Receiving yards", total: ["recYds"],  opportunity: "receiving", box: [["rec", "yds"]],  priorKey: "yardPrior", poolFloorKey: "yardPoolFloor", poolShareKey: "yardPoolShare", minOppKey: "yardMinOpportunity", floorKey: "yardFloor", oppShrinkKey: "yardOppShrink" },
-    rushyds: { label: "Rushing yards",   total: ["rushYds"], opportunity: "carries",   box: [["rush", "yds"]], priorKey: "rushPrior", poolFloorKey: "rushPoolFloor", poolShareKey: "rushPoolShare", minOppKey: "rushMinOpportunity", floorKey: "rushFloor", oppShrinkKey: "rushOppShrink" },
-    passyds: { label: "Passing yards",   total: ["passYds"], opportunity: "passAtt",   box: [["pass", "yds"]], priorKey: "passPrior", poolFloorKey: "passPoolFloor", poolShareKey: "passPoolShare", minOppKey: "passMinOpportunity", floorKey: "passFloor", oppShrinkKey: "passOppShrink" },
-    recs:    { label: "Receptions",      total: ["recs"],    opportunity: "receiving", box: [["rec", "rec"]],  priorKey: "recsPrior", poolFloorKey: "recsPoolFloor", poolShareKey: "recsPoolShare", minOppKey: "yardMinOpportunity", floorKey: "recsFloor", oppShrinkKey: "recsOppShrink" },
+    recyds:  { label: "Receiving yards", total: ["recYds"],  opportunity: "receiving", box: [["rec", "yds"]],  priorKey: "yardPrior", poolFloorKey: "yardPoolFloor", poolShareKey: "yardPoolShare", minOppKey: "yardMinOpportunity", floorKey: "yardFloor", oppShrinkKey: "yardOppShrink", decayKey: "yardDecay" },
+    rushyds: { label: "Rushing yards",   total: ["rushYds"], opportunity: "carries",   box: [["rush", "yds"]], priorKey: "rushPrior", poolFloorKey: "rushPoolFloor", poolShareKey: "rushPoolShare", minOppKey: "rushMinOpportunity", floorKey: "rushFloor", oppShrinkKey: "rushOppShrink", decayKey: "rushDecay" },
+    passyds: { label: "Passing yards",   total: ["passYds"], opportunity: "passAtt",   box: [["pass", "yds"]], priorKey: "passPrior", poolFloorKey: "passPoolFloor", poolShareKey: "passPoolShare", minOppKey: "passMinOpportunity", floorKey: "passFloor", oppShrinkKey: "passOppShrink", decayKey: "passDecay" },
+    recs:    { label: "Receptions",      total: ["recs"],    opportunity: "receiving", box: [["rec", "rec"]],  priorKey: "recsPrior", poolFloorKey: "recsPoolFloor", poolShareKey: "recsPoolShare", minOppKey: "yardMinOpportunity", floorKey: "recsFloor", oppShrinkKey: "recsOppShrink", decayKey: "recsDecay" },
     /* Rushing + receiving yards: the book's line for a back who catches
        and a receiver who runs. The two totals summed, touches (carries +
        receiving opportunity) for whether he is in that business. */
-    rushrec: { label: "Rush + rec yards", total: ["rushYds", "recYds"], opportunity: "touches", box: [["rush", "yds"], ["rec", "yds"]], priorKey: "rushrecPrior", poolFloorKey: "rushrecPoolFloor", poolShareKey: "rushrecPoolShare", minOppKey: "yardMinOpportunity", floorKey: "rushrecFloor", oppShrinkKey: "rushrecOppShrink" },
+    rushrec: { label: "Rush + rec yards", total: ["rushYds", "recYds"], opportunity: "touches", box: [["rush", "yds"], ["rec", "yds"]], priorKey: "rushrecPrior", poolFloorKey: "rushrecPoolFloor", poolShareKey: "rushrecPoolShare", minOppKey: "yardMinOpportunity", floorKey: "rushrecFloor", oppShrinkKey: "rushrecOppShrink", decayKey: "rushrecDecay" },
   };
 
   /*
@@ -808,6 +862,37 @@
     let t = 0;
     for (const f of st.total) t += num(record[f]);
     return t;
+  }
+
+  /** A counting stat's total with recent games weighted up (the prop's decayKey):
+      from the per-game log when the record carries one (rows in STAT
+      order, oldest first), else the fetcher's precomputed `w`, else the
+      plain total. Weights are scaled to sum to the game count. */
+  function weightedStatTotal(stat, record, opts) {
+    const o = Object.assign({}, DEFAULTS, opts || {});
+    const plain = statTotal(stat, record);
+    const st = STATS[stat];
+    const decay = st ? num(o[st.decayKey]) : 1;
+    if (!(decay < 1) || !record) return plain;
+    const log = record.slog;
+    if (Array.isArray(log) && log.length) {
+      const i = Object.keys(STATS).indexOf(stat);
+      if (i < 0) return plain;
+      let wsum = 0, tot = 0;
+      for (let k = 0; k < log.length; k++) { const w = Math.pow(decay, log.length - 1 - k); wsum += w; tot += w * num(log[k][i]); }
+      return wsum > 0 ? tot * (log.length / wsum) : plain;
+    }
+    if (record.w && record.w[stat] != null && isFinite(record.w[stat])) return num(record.w[stat]);
+    return plain;
+  }
+
+  /** The weighted total of every stat whose decay is under 1, for the fetcher to write as `w`; null without a log or with every decay at 1. */
+  function weightedStatTotals(record, opts) {
+    const o = Object.assign({}, DEFAULTS, opts || {});
+    if (!record || !Array.isArray(record.slog) || !record.slog.length) return null;
+    const out = {};
+    for (const stat of Object.keys(STATS)) if (num(o[STATS[stat].decayKey]) < 1) out[stat] = Number(weightedStatTotal(stat, record, opts).toFixed(2));
+    return Object.keys(out).length ? out : null;
   }
 
   /** A box-score line (the fetcher's rush / rec / pass blocks) in the
@@ -863,12 +948,12 @@
     return num(record[st.opportunity]);
   }
 
-  /** The shrunk per-game expectation of a stat. */
+  /** The shrunk per-game expectation of a stat, off the recent-weighted total when the prop's decay is under 1. */
   function expectedStat(stat, record, opts) {
     const st = STATS[stat];
     if (!st || !record) return null;
     const prior = Object.assign({}, DEFAULTS, opts || {})[st.priorKey];
-    return expectedVolume(statTotal(stat, record), record.games, prior, opts);
+    return expectedVolume(weightedStatTotal(stat, record, opts), record.games, prior, opts);
   }
 
   /**
@@ -1250,6 +1335,8 @@
       STATS,
       LADDERS,
       statTotal,
+      weightedStatTotal: (stat, rec, opts) => weightedStatTotal(stat, rec, merge(opts)),
+      weightedStatTotals: (rec, opts) => weightedStatTotals(rec, merge(opts)),
       ladder: (stat, exp, pool, opts) => ladder(stat, exp, pool, merge(opts)),
       gameLine,
       gameValue,
@@ -1300,6 +1387,8 @@
     STATS,
     LADDERS,
     statTotal,
+    weightedStatTotal,
+    weightedStatTotals,
     ladder,
     gameLine,
     gameValue,

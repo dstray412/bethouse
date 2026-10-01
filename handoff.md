@@ -30,6 +30,38 @@ Zero dependencies, no build step, no server, no API key. `node --test` with
 **named files** — bare discovery pulls in the backtests, which fire live API
 calls. The list lives in seven places and `dom.test.mjs` checks all seven.
 
+## A3: the counting props (2026-10-01, latest)
+
+Shipped (nfl.js DEFAULTS, the fixed-line table beside them):
+`yardDecay 0.88`, `rushDecay 0.97`, `rushrecDecay 0.9` (`passDecay`,
+`recsDecay` stay 1); `yardOppShrink` stays 0 (the own-line pass had it
+at 0.5; fixed lines say noise); `passPoolShare` stays 0 (dead). College
+(`cfb.js`) pins the decays to 1 until its own replay.
+
+The measurement design changed mid-step after the code review:
+`backtest-nfl.mjs --fixed-lines` takes the graded line and the
+eligibility from a reference model (no decay, no opponent) so base and
+candidate grade the same propositions; the line is in the dump key;
+`compare-td.mjs paired()` refuses dumps from different windows or line
+designs and reports rows with the same key and a different outcome
+(always 0 under fixed lines); `verdict()` charges only bands both runs
+have and notes a band only the candidate reaches. `compare-td.test.mjs`
+pins all of it and is in the seven gates. The README's "The rule for
+every model change" is now the one statement of the rule; nfl.js and
+compare-stats.mjs point at it.
+
+Plumbing: `seasonLines` keeps `record.slog` (one value per stat in
+STATS order, oldest first) in memory; `boardPlayer` writes `w` (only
+the stats whose decay is under 1, via `model.weightedStatTotals`), so
+the data file carries three numbers a player, not the log.
+`weightedStatTotal(stat, record)` reads slog, then w, then the plain
+total; `expectedStat` goes through it. The arithmetic tab's "Regressed
+to" cell says when the weight is on. Two shell slips this step, both
+zsh not splitting a variable (`$w`, `$OFF`): one sweep ran without a
+window and one base ran with the shipped defaults; both were caught by
+the dump's `overrides` field and re-run with explicit flags. Always
+pass `--set` flags literally.
+
 ## B1/B2: team colours and the loosened taste rules (2026-10-01, later)
 
 - `teams.js` (UMD `BetHouseTeams`, `teams.test.mjs`, in all seven

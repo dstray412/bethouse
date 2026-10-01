@@ -781,7 +781,8 @@ test("gameLine / gameValue: a box-score line, read the way a season record is", 
 
 test("statOppFactor: the opponent's allowance at the stat's strength, 1 when there is none", () => {
   // Oracle: the touchdown model's oppFactor, which this mirrors: 1 = league average, clamped 0.6..1.6.
-  assert.equal(nfl.statOppFactor("recyds", 1.3), 1, "shipped strength 0: the replay found no information in the opponent for receiving yards");
+  assert.equal(nfl.statOppFactor("recyds", 1.3), 1, "shipped strength 0: the opponent carries nothing for receiving yards (A3 re-measured it on fixed lines: noise)");
+  close(nfl.bind({ yardOppShrink: 0.5 }).statOppFactor("recyds", 1.3), 1.15, 1e-9, "at half strength, half way to the allowance");
   close(nfl.statOppFactor("rushyds", 1.3), 1 + nfl.DEFAULTS.rushOppShrink * 0.3);
   const C = nfl.bind({ passOppShrink: 1, rushOppShrink: 0.5 });
   close(C.statOppFactor("passyds", 1.3), 1.3);
@@ -1420,6 +1421,10 @@ test("seasonLines: every player gets a per-game log; red-zone sums only over gam
 
 test("the shipped touchdown terms: decay at 0.97, script and red zone off, so the board and the replay agree with the README's tables", () => {
   assert.equal(nfl.DEFAULTS.tdDecay, 0.97);
+  // A3 (2026-10-01): the per-prop decay where it cleared both windows, the receiving opponent at half strength.
+  assert.deepEqual([nfl.DEFAULTS.yardDecay, nfl.DEFAULTS.rushDecay, nfl.DEFAULTS.passDecay, nfl.DEFAULTS.recsDecay], [0.88, 0.97, 1, 1]);
+  assert.equal(nfl.DEFAULTS.rushrecDecay, 0.9);
+  assert.deepEqual([nfl.DEFAULTS.yardOppShrink, nfl.DEFAULTS.recsOppShrink, nfl.DEFAULTS.rushrecOppShrink, nfl.DEFAULTS.passPoolShare], [0, 0, 0, 0], "no opponent term for receiving yards: noise on fixed lines");
   assert.equal(nfl.DEFAULTS.tdScript, 0);
   assert.equal(nfl.DEFAULTS.tdRz, 0);
   // With the decay on, a player whose log is present is weighted; one without a log is scored as before.
@@ -1441,4 +1446,69 @@ test("seasonLines: the per-game log is oldest first whatever order the games arr
   const cfb = (await import("./cfb.js")).default;
   const cfbLine = seasonLines(newestFirst, cfb).players.get("p1");
   assert.deepEqual(cfbLine.log.map((row) => row[2]), [2, 6], "oldest first, receptions for college, where targets are never recorded");
+});
+
+/* ------------------------------------------------------------------ *
+ * A3: the per-prop decay, the recent-form weight on a counting prop's line
+ *
+ * Oracle: the tdDecay rule in weightedLine — the newest game weighs 1,
+ * each older game decay^age, weights scaled to sum to the game count so
+ * the yardK shrink sees the same amount of evidence. The log is
+ * `record.slog`, one value per stat in STATS order, oldest first, as
+ * seasonLines (fetch-football.mjs) writes it with gameValue; the board
+ * carries the fetcher's precomputed `w` instead.
+ * ------------------------------------------------------------------ */
+/* A log row from a game line, the way seasonLines builds one: every stat's game value in STATS order. */
+const slogRow = (p) => Object.keys(nfl.STATS).map((stat) => nfl.gameValue(stat, p));
+const rec4 = (lines) => ({ games: lines.length,
+  recYds: lines.reduce((s, p) => s + (p.rec?.yds || 0), 0), recs: lines.reduce((s, p) => s + (p.rec?.rec || 0), 0),
+  rushYds: lines.reduce((s, p) => s + (p.rush?.yds || 0), 0), passYds: 0, carries: 0, targets: 30, passAtt: 0, slog: lines.map(slogRow) });
+const RISING = rec4([{ rec: { yds: 20, rec: 2 } }, { rec: { yds: 40, rec: 4 } }, { rec: { yds: 60, rec: 6 } }, { rec: { yds: 80, rec: 8 } }]);
+const FLAT = rec4([{ rec: { yds: 50 } }, { rec: { yds: 50 } }, { rec: { yds: 50 } }, { rec: { yds: 50 } }]);
+
+test("a decay of 1 is today's model: the weighted total is the plain total, with or without a log", () => {
+  for (const k of ["passDecay", "recsDecay"]) assert.equal(nfl.DEFAULTS[k], 1, k + " ships at 1: no value cleared the rule on both windows");
+  close(nfl.weightedStatTotal("recyds", RISING, { yardDecay: 1 }), 200);
+  close(nfl.expectedStat("recyds", RISING, { yardDecay: 1 }), nfl.expectedVolume(200, 4, nfl.DEFAULTS.yardPrior));
+  close(nfl.weightedStatTotal("recyds", { games: 4, recYds: 200 }, { yardDecay: 0.9 }), 200, 1e-9, "no log and no w: the plain total");
+});
+
+test("a decay under 1 weights recent games up without changing the evidence: a flat log is unchanged, a rising one rises, weights sum to the game count", () => {
+  close(nfl.weightedStatTotal("recyds", FLAT, { yardDecay: 0.8 }), 200, 1e-9, "equal games, any decay: the same total");
+  const w = nfl.weightedStatTotal("recyds", RISING, { yardDecay: 0.8 });
+  // By hand: weights 0.512, 0.64, 0.8, 1 (sum 2.952); Σ w·v = 10.24+25.6+48+80 = 163.84; scaled by 4/2.952 = 222.0.
+  close(w, 163.84 * 4 / 2.952, 1e-6);
+  assert.ok(w > 200, "a rising line weighted toward the recent games is above its plain total");
+  close(nfl.expectedStat("recyds", RISING, { yardDecay: 0.8 }), nfl.expectedVolume(w, 4, nfl.DEFAULTS.yardPrior), 1e-9, "the expectation is the shrink of the weighted total");
+  // Each stat reads its own column: receptions from the rec column, rush + rec from the sum.
+  close(nfl.weightedStatTotal("recs", RISING, { recsDecay: 0.8 }), 16.384 * 4 / 2.952, 1e-6, "receptions read the wrong column");
+  const rr = rec4([{ rush: { yds: 20 }, rec: { yds: 10 } }, { rush: { yds: 50 }, rec: { yds: 20 } }]);
+  close(nfl.weightedStatTotal("rushrec", rr, { rushrecDecay: 0.5 }), (0.5 * 30 + 70) * 2 / 1.5, 1e-9, "the rushrec column is not the sum");
+});
+
+test("the fetcher's precomputed w stands in for the log on the board, agrees with it to rounding, and carries only the stats whose decay is under 1", () => {
+  const only = { yardDecay: 0.8, rushDecay: 1, passDecay: 1, recsDecay: 1, rushrecDecay: 1 };
+  const w = nfl.weightedStatTotals(RISING, only);
+  assert.deepEqual(Object.keys(w), ["recyds"], "w carries a stat whose decay is 1, or misses the one that is not");
+  assert.deepEqual(Object.keys(nfl.weightedStatTotals(RISING)).sort(), ["recyds", "rushrec", "rushyds"], "the shipped decays: three stats in w, not five");
+  const board = { games: 4, recYds: 200, recs: 20, w };
+  close(nfl.weightedStatTotal("recyds", board, { yardDecay: 0.8 }), w.recyds, 1e-9);
+  // toFixed(2) on the total: within 0.005 of the log's figure, so the per-game expectation within 0.002.
+  close(nfl.expectedStat("recyds", board, { yardDecay: 0.8 }), nfl.expectedStat("recyds", RISING, { yardDecay: 0.8 }), 2e-3, "the board's w and the replay's log disagree beyond rounding");
+  close(nfl.expectedStat("recyds", board, { yardDecay: 1 }), nfl.expectedVolume(200, 4, nfl.DEFAULTS.yardPrior), 1e-9, "with the decay off, w is ignored");
+  assert.equal(nfl.weightedStatTotals({ games: 4, recYds: 200 }), null, "no log, no w");
+  assert.equal(nfl.weightedStatTotals(RISING, { yardDecay: 1, rushDecay: 1, passDecay: 1, recsDecay: 1, rushrecDecay: 1 }), null, "every decay at 1: nothing to write");
+});
+
+test("end to end: seasonLines writes the log the decay reads, so a rising receiver projects above his plain average", async () => {
+  const { seasonLines } = await import("./fetch-football.mjs");
+  const game = (date, yds) => ({ id: "g" + date, season: 2026, week: 1, date, home: { team: "KC", score: 0 }, away: { team: "LAC", score: 0 },
+    players: [{ id: "r1", name: "Rising", team: "KC", rec: { yds, rec: 3, tgt: 5, td: 0 } }] });
+  const { players } = seasonLines([game("2026-09-21", 60), game("2026-09-07", 20), game("2026-09-14", 40)], nfl);
+  const r = players.get("r1");
+  assert.deepEqual(r.slog.map((row) => row[Object.keys(nfl.STATS).indexOf("recyds")]), [20, 40, 60], "the log is not oldest first, or not the receiving column");
+  assert.equal(r.slog.length, r.games);
+  close(nfl.weightedStatTotal("recyds", r, { yardDecay: 1 }), 120, 1e-9);
+  assert.ok(nfl.weightedStatTotal("recyds", r, { yardDecay: 0.8 }) > 120, "the rising line did not rise");
+  close(nfl.weightedStatTotal("recyds", r, { yardDecay: 0.8 }), (0.64 * 20 + 0.8 * 40 + 60) * 3 / 2.44, 1e-9);
 });

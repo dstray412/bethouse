@@ -55,6 +55,20 @@ args.forEach((a, i) => {
 });
 const M = Object.keys(overrides).length ? league.model.bind(overrides) : league.model;
 if (Object.keys(overrides).length) console.log(`overrides: ${JSON.stringify(overrides)}`);
+/* --fixed-lines: the design for comparing two models on the counting
+   props. The lines graded (and who is eligible) come from one REFERENCE
+   model, the plain season line with no recent-form weight and no opponent,
+   so a base run and a candidate run grade the same propositions row for
+   row and only the probability differs. Without it a model whose
+   expectation moves also moves the line it is graded on, and the paired
+   comparison answers two different questions (the A3 review caught this:
+   rows whose outcome flipped with the line were silently dropped, and a
+   noisier expectation earns easier questions). Every A3 constant was
+   re-measured under this flag. The summary tables keep the model's own
+   lines, as the board offers them. */
+const FIXED = args.includes("--fixed-lines");
+const REF = FIXED ? league.model.bind({ yardDecay: 1, rushDecay: 1, passDecay: 1, recsDecay: 1, rushrecDecay: 1, yardOppShrink: 0, rushOppShrink: 0, passOppShrink: 0, recsOppShrink: 0, rushrecOppShrink: 0 }) : null;
+if (FIXED) console.log("fixed lines: eligibility and the graded line from the plain season expectation (no decay, no opponent); the model supplies the probability");
 const {
   buildTeamRatings, projectGame, spreadProbability, totalProbability,
   scoreAnytimeTD, expectedVolume, empiricalOver, usagePoolFrom, receivingOpportunity,
@@ -416,15 +430,20 @@ for (let i = START_INDEX; i < ALL.length; i++) {
       if (!(statOpportunity(stat, gameLine(p)) >= 1)) continue;
       const opp = opponentIn(g, p);
       if (!opp) continue;
-      const y = statEligible(stat, st.players.get(p.id), null, { oppFactor: st.allow(opp, stat) });
-      if (!y) continue;
+      const rec = st.players.get(p.id);
+      /* The exam: who is graded and at what line. Fixed lines take both
+         from the reference model; otherwise the model sets its own. */
+      const ref = FIXED ? REF.statEligible(stat, rec, null, { oppFactor: st.allow(opp, stat) }) : statEligible(stat, rec, null, { oppFactor: st.allow(opp, stat) });
+      if (!ref) continue;
+      const y = FIXED ? projectedStat(stat, rec, null, { oppFactor: st.allow(opp, stat) }) : ref;
+      if (!y || !(y.exp > 0)) continue;
       for (const mult of [0.6, 0.8, 1.0, 1.25, 1.6]) {
-        const line = Math.round(y.exp * mult) + 0.5;
+        const line = Math.round(ref.exp * mult) + 0.5;
         const pOver = empiricalOver(y.exp, line, pool);
         if (pOver == null) continue;
         statRows[stat].push({ season: g.season, week: g.week, prob: pOver, actual: gameValue(stat, p) > line ? 1 : 0,
           // `pool` is the games the over was READ off (the stat's share nearest his level), which is what the parlay gate means by a pool.
-          mult, id: p.id, team: p.team, gameId: g.id, name: p.name, pool: M.poolReads(pool, y.exp).length });
+          mult, line, id: p.id, team: p.team, gameId: g.id, name: p.name, pool: M.poolReads(pool, y.exp).length });
       }
       if (LADDER) {
         const actual = gameValue(stat, p);
@@ -519,13 +538,17 @@ function rescoreTD(K, shrink) {
 
 /* --dump file: every touchdown row's probability and outcome, keyed so two
    runs can be compared row for row (compare-td.mjs): paired differences,
-   not two means. */
+   not two means. The counting props ride along under `stats`, one list
+   per stat, keyed with the line multiple as well, so an A3 term is graded
+   the same way (node compare-td.mjs base.json cand.json recyds). */
 {
   const dump = flag("--dump", null);
   if (dump) {
     const rows = tdRows.map((r) => [`${r.season}|${r.week}|${r.gameId}|${r.id}`, Number(r.prob.toFixed(5)), r.actual, ...(r.inputs || [])]);
-    writeFileSync(dump, JSON.stringify({ overrides, window: { from: flag("--from", null), to: flag("--to", null) }, n: rows.length, rows }));
-    console.log(`dumped ${rows.length} touchdown rows to ${dump}`);
+    /* The line is in the key: two runs pair only where they graded the same proposition. */
+    const stats = Object.fromEntries(STAT_IDS.map((stat) => [stat, statRows[stat].map((r) => [`${r.season}|${r.week}|${r.gameId}|${r.id}|${r.mult}|${r.line}`, Number(r.prob.toFixed(5)), r.actual])]));
+    writeFileSync(dump, JSON.stringify({ overrides, window: { from: flag("--from", null), to: flag("--to", null) }, fixedLines: FIXED, n: rows.length, rows, stats }));
+    console.log(`dumped ${rows.length} touchdown rows and ${STAT_IDS.map((s) => `${statRows[s].length} ${s}`).join(", ")} to ${dump}`);
   }
 }
 

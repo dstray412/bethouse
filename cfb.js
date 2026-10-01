@@ -142,6 +142,13 @@
     yardMinGames: 3,
     yardMinOpportunity: 7, // receptions: the NFL catches 67.9% of targets, so its 10 targets is 6.8 of these
     yardFloor: 20,
+    /* The NFL's A3 terms (2026-10-01: recent-form decay on the counting
+       props) are measured on NFL seasons only. College keeps equal
+       weights until its own replay (node backtest-nfl.mjs --league cfb
+       --fixed-lines) clears them. */
+    yardDecay: 1,
+    rushDecay: 1,
+    rushrecDecay: 1,
 
     receivingStat: "recs",
   };

@@ -45,7 +45,7 @@
     var stalePools = Object.keys(D.pools||{}).some(function(k){ return Array.isArray(D.pools[k]); });
     /* ...and an older page than script: the drawer's markup arrived with
        phase 2 (2026-09-29); without it a row click would go nowhere. */
-    var stalePage = ['drawer','dbody','starseg','tray','tcards','dcompare','parlayseg','dhead'].some(function(id){ return !document.getElementById(id); });
+    var stalePage = ['drawer','dbody','starseg','tray','tcards','dcompare','parlayseg','dhead','dbar'].some(function(id){ return !document.getElementById(id); });
     if (missing.length || stalePools || stalePage) {
       app.innerHTML = '<div class="empty"><div class="big">Reload this page</div>' +
         '<div>Your browser has a '+(stalePools?'newer model than data file':stalePage?'newer script than page':'newer page than model script')+'. A hard refresh (Cmd/Ctrl+Shift+R) fixes it.</div></div>';
@@ -579,9 +579,10 @@
           {l:'Projection',v:r.exp.toFixed(0),n:unit.trim()+' this game'},
           {l:'Over the line',v:pct(r.over,0),n:'o'+r.line+' · fair '+sgn(N.fairPrice(r.over))},
           {l:'Model rank',v:rankOf(r),n:'by projection'},
-          {l:'Season average',v:avg.toFixed(0),n:unit.trim()+' a game over '+games+' games'},
+          {l:'Season average',v:avg.toFixed(0),n:unit.trim()+' a game over '+games+' games, every game alike'},
           opps!=null?{l:'Opportunities',v:(opps/games).toFixed(1),n:oppWordFor+' a game over '+games+' games'}:null,
-          Math.abs(r.base-avg)>=0.5?{l:'Regressed to',v:r.base.toFixed(0),n:'part of the way toward an ordinary player\'s '+N.DEFAULTS[ST.priorKey]+(games<10?'; few games, so a long way':'')}:null,
+          /* The shrink toward the prior, and the recent-form weight when the model applies one: with it on, a rising line regresses UP. */
+          Math.abs(r.base-avg)>=0.5?{l:'Regressed to',v:r.base.toFixed(0),n:(N.DEFAULTS[ST.decayKey]<1&&r.p.w&&r.p.w[stat]!=null?'his recent games weighted up ('+Math.round((1-N.DEFAULTS[ST.decayKey])*100)+'% a game of age), then ':'')+'part of the way toward an ordinary player\'s '+N.DEFAULTS[ST.priorKey]+(games<10?'; few games, so a long way':'')}:null,
           oppCell,
           {l:'Read off',v:used.toLocaleString('en-US'),n:'real games by '+poolWord+(used<held?' whose own projection was nearest his':' against their own projections')},
           {l:'Games',v:String(games),n:'in the window'}
@@ -996,6 +997,19 @@
     });
     var dcloseEl=document.getElementById('dclose');
     if(dcloseEl&&dcloseEl.addEventListener) dcloseEl.addEventListener('click',function(){ closeDrawer(); });
+    /* A phone's sheet closes on a downward swipe that starts with the
+       card scrolled to its top: a drag anywhere else is the scroll. The
+       threshold is well past a tap and short of a scroll gesture. */
+    var SWIPE=120, touch=null;
+    if(drawerEl&&drawerEl.addEventListener){
+      drawerEl.addEventListener('touchstart',function(e){ var t=e.touches&&e.touches[0]; touch=t?{y:t.clientY, top:drawerEl.scrollTop||0}:null; },{passive:true});
+      drawerEl.addEventListener('touchmove',function(e){ /* nothing to do until the finger lifts; the scroll stays native */ },{passive:true});
+      drawerEl.addEventListener('touchend',function(e){
+        var t=e.changedTouches&&e.changedTouches[0]; if(!touch||!t) return;
+        var dy=t.clientY-touch.y, fromTop=touch.top<=0; touch=null;
+        if(fromTop&&dy>=SWIPE&&state.drawer) closeDrawer();
+      });
+    }
     if(scrimEl&&scrimEl.addEventListener) scrimEl.addEventListener('click',function(){ closeDrawer(); });
     /* ---- the compare tray ----
        Up to three players side by side, each with the number the current

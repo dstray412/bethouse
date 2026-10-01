@@ -1616,12 +1616,28 @@ decay, game script) are wired and sit at zero until the replay clears
 one on a window it was not fitted on; the section below carries each
 table as it is measured.
 
+### The rule for every model change
+
+Stated once, here; the model's comments and the comparison tools point
+at it. A term is fitted on 2023 to 2024 and validated on 2025 to 2026,
+paired against the model without it row for row (`compare-td.mjs`: the
+mean paired difference in squared error and its standard error). It
+ships only if all three hold: **Brier improves on both windows**; **the
+paired Δ/SE is at or below −2 on the validation window** (the fit
+window may be inside the noise, since that is the window the value was
+chosen on); **no calibration band moves worse by more than 3pp** on
+either window. For a counting prop the two runs must grade the same
+propositions: `--fixed-lines` takes the graded line and the eligibility
+from a reference model (the plain season line, no recent-form weight,
+no opponent) and the candidate supplies only the probability. Without
+it a model whose expectation moves also moves the line it is graded on,
+and a noisier expectation earns easier questions; the first A3 pass
+was measured that way and re-measured under the flag (the table says
+which).
+
 **2026-09-30, A2: the touchdown model, three terms measured.** Each was
-fitted on 2023 to 2024 and validated on 2025 to 2026, paired against the
-equal-weight model row for row (`compare-td.mjs`: the mean paired
-difference in squared error and its standard error), with the rule that
-a term ships only if Brier improves on both windows and no calibration
-band moves worse than 3pp.
+fitted on 2023 to 2024 and validated on 2025 to 2026 under the rule
+above (touchdown rows have no line, so the pairing is exact as it is).
 
 - **Recent-form decay, shipped at 0.97.** A game's weight in a
   player's line falls by 3% per game of age, the weights scaled to sum
@@ -1649,9 +1665,74 @@ band moves worse than 3pp.
   constant stays at 0; the usage rows stay on the board for the chips
   that will read them.
 
+**2026-10-01, A3: the counting props.** The same rule, per prop, with
+the replay's counting-prop rows dumped beside the touchdown rows and
+compared row for row (`node backtest-nfl.mjs --fixed-lines --set
+<key>=<v> --dump`, then `node compare-stats.mjs base cand`, one line
+per prop). Five props, four terms. Every number below is from the
+fixed-line design; the first pass was graded on each model's own lines,
+which the review showed favours the candidate (rows whose outcome
+flipped with the line were silently dropped from the pairing, and a
+noisier expectation earns easier questions), and it put a receiving
+opponent term and a stronger rushing decay on the board that the
+fixed-line replay takes off.
+
+- **Recent-form decay, per prop.** A game's weight in a player's
+  season line falls by a fixed share per game of age, weights scaled to
+  sum to his game count so the shrink toward the prior is untouched
+  (the touchdown model's rule, on a per-game stat log the record
+  builder keeps for the replay and the fetcher distils into weighted
+  totals for the board). It ships where it cleared both windows:
+  **receiving yards at 0.88** (fit 0.22238 → 0.22024, Δ/SE −6.6;
+  validation 0.21819 → 0.21545, Δ/SE −6.5; every value from 0.97 to
+  0.85 cleared, the validation gain peaks at 0.88 and falls away on
+  both sides; the candidate reaches a 70–80% band the base never did,
+  4.8pp cold on 136 rows, inside that band's own noise), **rushing
+  yards at 0.97** (fit 0.21889 → 0.21723, Δ/SE −10.4; validation
+  0.22022 → 0.21889, Δ/SE −5.5; stronger values gain more on Brier
+  but move the 70–80% validation band worse by 3.1 to 3.8pp, so 0.97
+  is the one clean value), **rush + rec yards at 0.90** (fit 0.21701 → 0.21442, Δ/SE −10.1;
+  validation 0.21409 → 0.21142, Δ/SE −8.3; every value from 0.95 to
+  0.85 cleared, the validation gain plateaus at 0.90 and 0.88 and falls
+  at 0.85, and 0.90 has the cleaner fit window).
+  Receptions and passing yards were noise on validation at every value
+  on the first pass and were not re-measured; both keep equal weights.
+- **The opponent for receiving yards, dead.** On the model's own lines
+  it looked like a narrow pass (validation Δ/SE −2.4); on fixed lines
+  it is noise on both windows (fit +0.4, validation −1.7). It stays
+  off, as the two-season replay said. Receptions at half strength is
+  noise on both windows and rush + rec is worse on the fit window;
+  both stay off.
+- **A levelled pool for passing yards, dead.** The 300+ rung runs about
+  5pp hot and the 150+ rung 5pp cold on both windows (the pool is too
+  wide), but reading the over off the share of the pool nearest the
+  passer's level (0.33, 0.5, 0.67 of it) was worse or noise on the fit
+  window and the one value that won on validation (0.67, Δ/SE −3.1)
+  moved a band 8.8pp. The pool stays flat; the defect stays recorded.
+- **All three shipped terms together**, replayed as the board now runs
+  (fixed lines, every row paired, no row dropped): receiving yards fit
+  0.22238 → 0.22024 (Δ/SE −6.6) and validation 0.21819 → 0.21545
+  (−6.5); rushing yards 0.21889 → 0.21723 (−10.4) and 0.22022 →
+  0.21889 (−5.5); rush + rec 0.21701 → 0.21442 (−10.1) and 0.21409 →
+  0.21142 (−8.3); passing yards and receptions byte-identical to the
+  base; the touchdown rows untouched (validation Brier 0.1568). The
+  worst move of a band both runs have is +2.9pp (rushing yards, the
+  70–80% validation band).
+- Not measured this pass: share-based opportunity and an air-yards
+  prior. The decay carries the recent-form signal the share term was
+  meant to; the air-yards prior waits for a window in which receiving
+  yards is not already moving.
+- A reader should know two things about the design. The decay also
+  reshapes the ratio pool, since the pool divides by the weighted
+  expectation; the band checks held, so it held empirically. And the
+  fixed-line comparison grades a reference line, not the line the
+  board offers; the board's own-line calibration is the live record's
+  question.
+
 The data file records the terms each build ran with (`model`), and the
 tracker stamps it on each row it records, so the record can be read by
-era: rows recorded before 2026-09-30 were scored with equal weights.
+era: rows recorded before 2026-09-30 were scored with equal weights,
+and counting-prop rows before 2026-10-01 with equal weights.
 The row's pill still shows his season rate, the plain count; the
 weighted figure behind the probability is in the panel's workload
 cell, labelled as weighted.

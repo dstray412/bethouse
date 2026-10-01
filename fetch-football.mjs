@@ -695,6 +695,11 @@ export function seasonLines(games, model) {
       const rzc = x && x.rzc != null ? x.rzc : null;
       if (!r.log) r.log = [];
       r.log.push([td, p.rush?.att || 0, model.receivingOpportunity(model.gameLine(p)), rzc, rzc != null ? (x.rzt || 0) : null, rzc != null ? (x.glc || 0) : null]);
+      /* The counting props' per-game log (the per-prop decay reads it): one value
+         per stat in the model's STATS order, oldest first. In memory for
+         the replay; the board gets the weighted totals (`w`), not the log. */
+      if (!r.slog) r.slog = [];
+      r.slog.push(STAT_IDS.map((stat) => model.gameValue(stat, p)));
       if (rzc != null) {
         if (!r.rz) r.rz = { c: 0, t: 0, g: 0, n: 0 };
         r.rz.c += rzc; r.rz.t += x.rzt || 0; r.rz.g += x.glc || 0; r.rz.n++;
@@ -772,8 +777,10 @@ export function recentRows(games, n, model) {
   return by;
 }
 
-export function boardPlayer(p, { roster, injuries, backups, opponentOf, recent, usage }) {
+export function boardPlayer(p, { roster, injuries, backups, opponentOf, recent, usage, model }) {
   const on = roster && typeof roster.get === "function" ? roster.get(String(p.id)) : null;
+  /* The recent-weighted totals, only the stats whose decay is under 1: the log itself would double the file. */
+  const w = model && p.slog ? model.weightedStatTotals(p) : null;
   const inj = injuries && injuries[p.id];
   const rows = recent && recent.get(p.id);
   /* His usage over the window and over his last three games, only when
@@ -795,6 +802,7 @@ export function boardPlayer(p, { roster, injuries, backups, opponentOf, recent, 
     ...(known(use3) ? { usage3: use3 } : {}),
     ...(p.rz && p.rz.n ? { rz: p.rz } : {}),
     ...(p.log && p.log.length ? { log: p.log } : {}),
+    ...(w ? { w } : {}),
   };
 }
 
@@ -970,7 +978,9 @@ export async function buildBoard(league, history) {
     /* Which model terms this build ran with, so the record can be read by
        era: a day file copies it, and a term that ships changes rows
        recorded after it only. */
-    model: { tdDecay: model.DEFAULTS.tdDecay, tdRz: model.DEFAULTS.tdRz, tdScript: model.DEFAULTS.tdScript },
+    /* The terms this build ran with, stamped on every record row (track-football.mjs), so the record reads by era. */
+    model: { tdDecay: model.DEFAULTS.tdDecay, tdRz: model.DEFAULTS.tdRz, tdScript: model.DEFAULTS.tdScript,
+      yardDecay: model.DEFAULTS.yardDecay, rushDecay: model.DEFAULTS.rushDecay, rushrecDecay: model.DEFAULTS.rushrecDecay },
     season, week: up.week,
     statsSeasons,
     linesFetched: lines.size ? now : null,
@@ -988,7 +998,7 @@ export async function buildBoard(league, history) {
       /* Anyone with enough games and any real workload: a skill player's
          touches, or enough attempts to be gated as a passer. */
       .filter((p) => p.games >= 3 && ((p.carries + model.receivingOpportunity(p)) >= 10 || p.passAtt >= model.DEFAULTS.passMinOpportunity))
-      .map((p) => boardPlayer(p, { roster, injuries, backups, opponentOf, recent, usage })),
+      .map((p) => boardPlayer(p, { roster, injuries, backups, opponentOf, recent, usage, model })),
     injuries: hurtByTeam,
     injuriesAt: league.injuriesUrl ? new Date().toISOString() : null,
     usagePool: round(usagePool.slice(0, 4000), 3),

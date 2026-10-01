@@ -83,7 +83,8 @@
   <div>If this does not clear, run <code>node fetch-nfl.mjs</code>.</div></div></div>
 <div class="scrim" id="scrim" hidden></div>
 <div class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="dtitle" hidden>
-  <div class="dhead" id="dhead"><div class="dwho"><div class="dkick" id="dkick"></div><h2 id="dtitle"></h2><div class="dsub" id="dsub"></div></div><div class="dface" id="dface"></div><div class="dbtns"><button type="button" class="dcompare" id="dcompare" hidden>Compare</button><button type="button" class="dclose" id="dclose" aria-label="Close">×</button></div></div>
+  <div class="dbar" id="dbar"><button type="button" class="dcompare" id="dcompare" hidden>Compare</button><button type="button" class="dclose" id="dclose" aria-label="Close">×</button></div>
+  <div class="dhead" id="dhead"><div class="dwho"><div class="dkick" id="dkick"></div><h2 id="dtitle"></h2><div class="dsub" id="dsub"></div></div><div class="dface" id="dface"></div></div>
   <div class="dbands" id="dbands"></div>
   <div class="seg dtabs" id="dtabs" role="group" aria-label="Sections"></div>
   <div class="why dbody" id="dbody"></div>
@@ -123,11 +124,11 @@ BetHouseFootballBoard.mount({
     noteTD: 'Chance of <b>scoring a touchdown</b>. Checked against <b>8,470</b> unseen player-games — '+
       'bias 0.8 points, every band within 3. Tap a player for the work.',
     noteStat: {
-      recyds: 'Chance of going <b>over</b> a receiving yards line. Checked against <b>23,805</b> unseen '+
-        'player-games — bias 1.7 points, hot, the seasons 0 and 3. The opponent is shown but not applied: on the replay it '+
-        'moved nothing. The shape comes from real receiver games near his own level, not a bell curve.',
-      rushyds: 'Chance of going <b>over</b> a rushing yards line, the opponent\'s run defence applied at half strength. '+
-        'Checked against <b>11,150</b> unseen player-games — bias 0.9 points, hot, the seasons within a point. The shape comes from '+
+      recyds: 'Chance of going <b>over</b> a receiving yards line, his recent games weighted up (12% a game of age). Checked against <b>23,805</b> unseen '+
+        'player-games — bias 1.7 points, hot, the seasons 0 and 3, measured 2026-09-21 before the recent-form weight, which read better on a window it was not fitted on '+
+        '(2026-10-01, the README has the table). The opponent is shown but not applied: on the replay it moved nothing. The shape comes from real receiver games near his own level, not a bell curve.',
+      rushyds: 'Chance of going <b>over</b> a rushing yards line, his recent games weighted up (3% a game of age) and the opponent\'s run defence applied at half strength. '+
+        'Checked against <b>11,150</b> unseen player-games — bias 0.9 points, hot, the seasons within a point (measured 2026-09-21, before the recent-form weight). The shape comes from '+
         'real games by backs the board would price, not a bell curve; a pool that let quarterbacks\' scrambles in ran 7 points cold.',
       passyds: 'Chance of going <b>over</b> a passing yards line, the opponent\'s pass defence applied at half strength. '+
         'Checked against <b>4,560</b> unseen player-games — bias 1.1 points, hot, but the two seasons disagree by 4 points and '+
@@ -136,8 +137,8 @@ BetHouseFootballBoard.mount({
         'player-games — bias 0.1 points, though the two seasons disagree by 6. The opponent is shown but not applied: '+
         'on the replay it moved nothing. The shape comes from real receiver games, not a bell curve.',
       rushrec: 'Chance of going <b>over</b> a <b>rushing plus receiving</b> yards line — the back who catches and the '+
-        'receiver who runs, his two yardages added and priced as one number, off real games by backs and receivers. '+
-        'Replayed over 30,245 player-games: bias 0.8 points, the seasons within two. The opponent is not applied: on the '+
+        'receiver who runs, his two yardages added and priced as one number, his recent games weighted up (10% a game of age), off real games by backs and receivers. '+
+        'Replayed over 30,245 player-games: bias 0.8 points, the seasons within two (measured 2026-09-21, before the recent-form weight). The opponent is not applied: on the '+
         'replay it read worse. Tap a player for every alternate line with its fair price.'
     },
     noteGames: 'The side the model likes on each game, against a real line, with its expected value at the price. '+
