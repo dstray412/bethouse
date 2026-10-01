@@ -13,13 +13,14 @@ commit you are reading and how old the data on disk is.
 
 ## Where things are
 
-**Seven pages**, all live and deployed:
+**Eight pages**, all live and deployed:
 
 | page | what |
 |---|---|
 | `index.html` | the home: tonight's slate across the boards, game cards with logos, tops |
 | `baseball.html` | baseball. 1+ H/R/RBI, total bases, home runs, suggested parlay |
 | `live.html` | the live tracker: the props you marked, counted off the feeds |
+| `record.html` | the record: the replay tables and the live records for both football boards. Added 2026-10-01 |
 | `nfl.html` | anytime TD; receiving, rushing, rush + rec and passing yards and receptions, each with a ladder of alternate lines; game matchups from play-by-play. Spreads and totals shown with the board saying they do not beat the close |
 | `cfb.html` | college football, the same props and ladders (no matchups). Added 2026-09-05 |
 | `golf.html` | PGA Tour make-the-cut |
@@ -28,6 +29,58 @@ commit you are reading and how old the data on disk is.
 Zero dependencies, no build step, no server, no API key. `node --test` with
 **named files** — bare discovery pulls in the backtests, which fire live API
 calls. The list lives in seven places and `dom.test.mjs` checks all seven.
+
+## B0: the card says why (2026-10-01)
+
+The user compared nhlpropking.com's card with ours: too much text to
+tell why one player is a favourite. Shipped, all on `football-board.js`
+with `board.css`:
+
+- The drawer's bands: head, **why** (at most three sentences: his
+  line; the opponent and offence factors only when ≥5%, bigger first;
+  for a stat the allowance and the recent-games hit count), rate,
+  receipt. The receipt is this call's facts plus a link to
+  `record.html#nfl`; the record's n/predicted/actual left the card.
+- Tabs: Overview (price, Track, "How he gets there" = chips with notes
+  + one game-log sentence) · Alternate lines · Recent games · **The
+  arithmetic** (the old nine cells, unchanged). `app.__over` is the
+  overview builder, `app.__detail` the arithmetic (and a game's table).
+- `chips.js` (UMD, `BetHouseChips`, `chips.test.mjs`): thresholds in
+  one place. Volume ±20%: the last three games of `p.log` against the
+  games before them (≥6 games). Red zone ≥20%: his `rz` touches over
+  the touches summed for every player on his team in the DATA FILE
+  (not the team's true total, which the file lacks; the note says
+  "logged for KC's priced players"). Snaps ≥70%/≤40%, deep ≥30%
+  (`usage.ays`), defence ±7% on the factor the model APPLIES (`y.oppFactor`
+  for a stat, i.e. the allowance at the fitted strength, half for
+  rushing/passing yards; none when `oppShrinkKey` is 0). The stat row's
+  hand-typed soft/tough badge is gone. Rows wear `CH.row()` (three; one
+  on a phone via CSS), the overview all of them; a stat overview with
+  no chips still carries the recent-games hit sentence, so college
+  (no `log`/`rz`/`usage` yet) never opens on a bare price box.
+- Review fixes folded in before the commit: the controls row was never
+  un-hidden once the game-view toggle moved to per-child hiding (the
+  DOM stub now seeds `hidden` from nfl.html's markup so that class of
+  bug fails in the suite); the TD why line uses plain per-game counts
+  beside the plain rate (the decay-weighted workload stays labelled in
+  the arithmetic tab); closing the parlay strip also clears the typed
+  slip price; `receivingOpportunity` is in NEEDS; the record page's
+  minus signs are U+2212 like the boards'.
+- `record.html` + `record-page.js` (UMD, `record-page.test.mjs`): the
+  replay tables are static markup there (moved out of the two HTML
+  pages' `copy.footer`, which no longer exists); `liveRecord` and
+  `parlayRecord` moved there from the board. Every board has a
+  `Record →` nav link; `BOARDS` in `dom.test.mjs` is eight.
+- The parlay strip sits under the controls row and hides behind one
+  `Suggest a parlay` button (`#parlaywrap`/`#parlayseg`); the controls
+  row shows on the game view with only that button. `#sortwrap` and
+  `#teamwrap` ids added; `parlayseg` is in the stale-page list.
+- `dom.test.mjs`: the stub's `innerHTML` setter now drops children on
+  `""`, so a re-rendered segment's `children[0]` is the live button.
+
+Not done, by design: baseball and PGA keep their own footers; the
+record page says so. Next in the plan: B1/B2 (DESIGN.md loosening, team
+colours), then A3.
 
 ## A2: the touchdown model (2026-09-30)
 

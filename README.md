@@ -148,6 +148,8 @@ should be re-fitted when the run environment shifts.
 |---|---|
 | `index.html` | The home: tonight's slate, one card per game with the two teams' logos, the football boards' projection and pick, a row of tops. |
 | `home.js` | The home's arithmetic: one slate out of the boards' data, which day it shows, the football card, the tops, the tile. Tested in `home.test.mjs`. |
+| `chips.js` | The chips a football row and its card wear: each a measured number past a threshold that lives here and nowhere else (volume, red zone, snaps, deep, soft or tough defence). Plain data; the board escapes. Tested in `chips.test.mjs`. |
+| `record.html` / `record-page.js` | The record page: the replay tables (static) and the live records and parlay records for both football boards, from the files the trackers write. Tested in `record-page.test.mjs`. |
 | `faces.js` | A player's photo and a team's mark for every page: the urls by league and size, and the one `<img>` markup (lazy, no referrer, fixed box, hidden on error). Tested in `faces.test.mjs`. |
 | `baseball.html` | The baseball board. |
 | `board.css` | The one stylesheet every board loads: tokens, header, controls, rows, panels, the phone and touch rules. A page's own components sit in a short `<style>` after the link. |
@@ -190,23 +192,58 @@ should be re-fitted when the run environment shifts.
 
 ## The player card
 
-**2026-09-29.** Opening a player on the NFL or college board shows a
-card, after the user's reference. The head is a hero: the matchup as a
-small label, the name, `position · Model rank #n of N · prop`, and the
-large photo as a cutout on the right. Under it, three bands: the
-headline figure with its fair price (the chance to score, or the
-projection with the line and the chance of the over); a receipt saying
-the call was recorded before kickoff and how many calls of this prop
-the record has graded with their bias (from `nfl-record.js` /
-`cfb-record.js`, so it is absent on a board with no record); and the
-projection against his own rate, the same ratio the row's pill uses,
-with the difference. Then the price input, the Track button, the tabs,
-and the overview as a grid of labelled cells carrying the same numbers
-the old table did (workload, own rate, offence, opponent, expected
-touchdowns, and for a counting prop the season average, opportunities,
-regression, the opponent's allowance and how many real games the over
-was read off). Nothing about odds movement: there is no feed for a
-player's price and the page does not invent one.
+**2026-10-01.** The user put nhlpropking.com's card beside ours and said
+the board carried too much text to tell why one player is a favourite.
+He was right about where the noise came from: the card laid the whole
+formula flat in nine equal cells, the record's aggregate sat on every
+card as if it were the player's story, and six hundred words of replay
+tables sat under every table. Prop King is not less data; every surface
+answers one question first and keeps the rest a tab away. So:
+
+- **The first screen is three claims.** The chance (or the projection
+  with the line and the chance of the over) with its fair price. Then
+  **Why**: at most three measured sentences, his line first (`1.20 TD a
+  game on 19.6 carries and 3.3 targets over 20 games`), then only the
+  terms that moved the number five percent or more, the bigger first
+  (`WSH defence +21%: gives up more touchdowns than average`; for a
+  counting prop, the opponent's allowance when it is applied, and how
+  many of his recent games cleared the line). Then the projection
+  against his own rate, as before. Then the receipt, which now says only
+  this call's facts (recorded before kickoff, built at HH:MM UTC, graded
+  once the game is final) and links to the record page; the record's
+  count, predicted and actual for the prop left the card.
+- **The arithmetic is a tab.** The nine cells (workload, from workload,
+  own rate, offence, opponent, expected touchdowns; or season average,
+  opportunities, regression, allowance, pool) are unchanged and live
+  under *The arithmetic*. The *Overview* is the price input, the Track
+  button and *How he gets there*: the chips below with their notes, and
+  one sentence from his game log.
+- **Chips** (`chips.js`, thresholds in one place, `chips.test.mjs`).
+  Each is a measured number past a threshold, from the fields A1 added
+  to the data file: `Volume up +34%` (the last three games' carries and
+  targets against the games before them, past twenty percent either
+  way, with six games or more), `Red zone 42%` (his share of the
+  red-zone touches logged for his team's priced players, from twenty
+  percent; the file carries no true team total and the chip's note says
+  whose touches they are), `Snaps 84%` (seventy or above, forty or
+  below), `Deep 38%` (the air-yards share from thirty percent), `Soft D
+  +21%` / `Tough D −11%` (the opponent factor the model applies, which
+  for a counting prop is the allowance at the stat's fitted strength,
+  half for rushing and passing yards; seven percent either side, the
+  badge the stat rows always carried). The why band's opponent sentence
+  says the same applied figure and names the strength. Chips need the
+  usage feed, so the college board wears only the defence chip until
+  A1 reaches it. A row wears up to three under the name,
+  one on a phone; the overview wears them all. Nothing adjectival: Prop
+  King's "Major gain" is `Volume up +34%` here.
+- **The record page** (`record.html`, `record-page.js`). The replay
+  tables and the live records for both football boards moved there,
+  one section per league; each board's footer is one line: the graded
+  count, the touchdown bias, and the link. Every board links to it.
+- **The parlay strip** hides behind one *Suggest a parlay* button in the
+  controls row, on every view; the row stays on the game view for it.
+
+Nothing measured was removed. It moved one click from the headline.
 
 ## Faces
 

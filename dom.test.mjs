@@ -34,7 +34,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const DIR = dirname(fileURLToPath(import.meta.url));
-const BOARDS = ["index.html", "baseball.html", "golf.html", "nfl.html", "cfb.html", "bets.html", "live.html"];
+const BOARDS = ["index.html", "baseball.html", "golf.html", "nfl.html", "cfb.html", "bets.html", "live.html", "record.html"];
 const src = (f) => readFileSync(resolve(DIR, f), "utf8");
 
 /*
@@ -785,8 +785,13 @@ test("the board asks the model how many games a pool holds, never .length", () =
    created children, registers listeners, and reads back textContent. */
 function stubEl(tag) {
   return {
-    tag, children: [], handlers: {}, attrs: {},
-    innerHTML: "", textContent: "", value: "", className: "", hidden: false,
+    tag, children: [], handlers: {}, attrs: {}, _html: "",
+    /* seg() empties a host with innerHTML = "" before rebuilding its
+       buttons; the stub drops the old children too, so a test that reads
+       children[0] after a re-render sees the live button, not a stale one. */
+    get innerHTML() { return this._html; },
+    set innerHTML(v) { this._html = v; if (v === "") this.children = []; },
+    textContent: "", value: "", className: "", hidden: false,
     appendChild(c) { this.children.push(c); return c; },
     addEventListener(type, fn) { (this.handlers[type] = this.handlers[type] || []).push(fn); },
     setAttribute(k, v) { this.attrs[k] = String(v); },
@@ -795,11 +800,16 @@ function stubEl(tag) {
   };
 }
 
+/* The two football pages ship some elements `hidden` (the controls row,
+   the parlay strip, the drawer); an element the stub mints takes that
+   from nfl.html's markup, so a script that forgets to show one fails
+   here the way it would in a browser (the controls row did, B0 review). */
+const SHIPPED_HIDDEN = new Set([...markup("nfl.html").matchAll(/<[^>]*\sid="([^"]+)"[^>]*\shidden[\s>]/g)].map((m) => m[1]));
 function stubDoc() {
   const byId = new Map();
   return {
     getElementById(id) {
-      if (!byId.has(id)) byId.set(id, stubEl(id));
+      if (!byId.has(id)) { const e = stubEl(id); e.hidden = SHIPPED_HIDDEN.has(id); byId.set(id, e); }
       return byId.get(id);
     },
     createElement(tag) { return stubEl(tag); },
@@ -1003,7 +1013,7 @@ const PLAYERS = [
 ];
 
 /** Mount the real board on the TD view with players, edge.js and watchlist.js present. */
-async function mountPlayers({ players, storage, storageThrows, noWatchlist, search, pools, games, record }) {
+async function mountPlayers({ players, storage, storageThrows, noWatchlist, search, pools, games, record, teamFactors, noChips }) {
   const nfl = (await import("./nfl.js")).default;
   const doc = stubDoc();
   const store = new Map(Object.entries(storage || {}));
@@ -1012,6 +1022,7 @@ async function mountPlayers({ players, storage, storageThrows, noWatchlist, sear
   win.history = { pushState(_s, _t, url) { win.pushed.push(url); }, replaceState(_s, _t, url) { win.pushed.push(url); } };
   win.addEventListener = (type, fn) => { (win.listeners[type] = win.listeners[type] || []).push(fn); };
   if (!noWatchlist) win.BetHouseWatchlist = (await import("./watchlist.js")).default;
+  if (!noChips) win.BetHouseChips = (await import("./chips.js")).default;
   if (storageThrows) Object.defineProperty(win, "localStorage", { get() { throw new Error("SecurityError: storage is disabled"); } });
   else win.localStorage = { getItem: (k) => (store.has(k) ? store.get(k) : null), setItem: (k, v) => store.set(k, String(v)), removeItem: (k) => store.delete(k) };
   // eslint-disable-next-line no-new-func
@@ -1020,7 +1031,7 @@ async function mountPlayers({ players, storage, storageThrows, noWatchlist, sear
     model: nfl,
     data: {
       season: 2026, week: 2, statsSeasons: [2025, 2026], generated: "2026-09-21T00:00", gamesCached: 2,
-      games: games || GAMES, ratings: RATINGS, teamFactors: {}, players, pools: pools || {}, usagePool: [],
+      games: games || GAMES, ratings: RATINGS, teamFactors: teamFactors || {}, players, pools: pools || {}, usagePool: [],
     },
     record: record || null, league: "NFL", fetcher: "fetch-nfl.mjs",
     copy: {
@@ -1097,9 +1108,9 @@ test("typing a price in the panel prices the row at once, through edge.js, and i
   const { app, doc, win, store } = await mountPlayers({ players: PLAYERS });
   const W = win.BetHouseWatchlist, E = win.BetHouseEdge;
   const i = app.__rows.findIndex((r) => r.p.id === "a");
-  const panel = app.__detail(app.__rows[i]);
+  const panel = app.__over(app.__rows[i]);
   const key = W.priceKey({ league: "NFL", slate: "2026-2", playerId: "a", prop: "td" });
-  assert.ok(panel.includes(`data-pk="${key}"`), "the panel has no price input for this row");
+  assert.ok(panel.includes(`data-pk="${key}"`), "the overview has no price input for this row");
   const input = stubEl("input"); input.setAttribute("data-pk", key); input.setAttribute("data-i", String(i)); input.value = "-120";
   app.handlers.input[0]({ target: input });
   const ev = E.evPct(app.__rows[i].s.prob, E.americanToDecimal(-120));
@@ -1153,13 +1164,16 @@ const clickRow = (app, i) => {
 };
 
 test("a row opens the drawer with the player in the URL; Escape and the back button close it and give focus back", async () => {
-  const { app, doc, win } = await mountPlayers({ players: PLAYERS });
+  const { app, doc, win, press } = await mountPlayers({ players: PLAYERS });
   const i = app.__rows.findIndex((r) => r.p.id === "a");
   const btn = clickRow(app, i);
   const drawer = doc.getElementById("drawer");
   assert.equal(drawer.hidden, false, "the drawer did not open");
   assert.equal(doc.getElementById("scrim").hidden, false);
-  assert.ok(doc.getElementById("dbody").innerHTML.includes("carries"), "the overview is not the reasoning table");
+  assert.ok(doc.getElementById("dbody").innerHTML.includes('class="dact"'), "the overview does not lead with the price row");
+  press("dtabs", "The arithmetic");
+  assert.ok(doc.getElementById("dbody").innerHTML.includes("carries"), "the arithmetic tab is not the reasoning cells");
+  press("dtabs", "Overview");
   assert.ok(doc.getElementById("dtitle").textContent.includes("Alpha Wide"));
   assert.deepEqual(win.pushed.slice(-1), ["?player=a&prop=td"], "the URL does not name the player");
   const closeBtn = doc.getElementById("dclose");
@@ -1339,6 +1353,7 @@ test("the slip from stars is the starred players' legs and nothing else, one per
   const { app, win, press } = await mountPlayers({ players, games });
   const W = win.BetHouseWatchlist, key = (id) => W.watchKey({ league: "NFL", playerId: id });
   clickStar(app, key("a")); clickStar(app, key("f"));
+  press("parlayseg", "Suggest a parlay");
   press("pscope", "Starred");
   press("plegs", "3 legs");
   assert.ok(app.innerHTML.includes("Cannot build that slip"), "two stars cannot fill three legs");
@@ -1531,7 +1546,8 @@ test("faces.js is the only file that writes an <img>, its markup carries the hou
       assert.match(url, /^https:\/\/(a\.espncdn\.com|img\.mlbstatic\.com)\//, page + ": an image host that is not a league's: " + url);
     }
   }
-  for (const page of BOARDS) assert.match(src(page), /<script src="faces\.js"><\/script>/, page + " does not load faces.js");
+  // The record page prints no player and no team, so it has no faces to load.
+  for (const page of BOARDS.filter((p) => p !== "record.html")) assert.match(src(page), /<script src="faces\.js"><\/script>/, page + " does not load faces.js");
   const hosts = faces.match(/https:\/\/[a-z0-9.-]+/g) || [];
   assert.deepEqual([...new Set(hosts)].sort(), ["https://a.espncdn.com", "https://img.mlbstatic.com"], "faces.js names a host that is not a league's");
 });
@@ -1603,16 +1619,19 @@ test("the stylesheet gives every column set a face track after the rank", () => 
  *
  * The drawer's head is a hero (matchup label, name, position and model
  * rank, the large photo), then bands: the headline figure with its fair
- * price, a receipt naming what the record has graded for this prop
- * (only when a record is mounted), and the projection against his own
- * rate. The overview is a grid of labelled cells with the same numbers
- * the old table carried, "carries" included.
+ * price; why, at most three sentences naming the terms that moved him;
+ * the projection against his own rate; and a receipt (only when a
+ * record is mounted) saying this call was recorded before kickoff and
+ * linking to the record page. The record's aggregate for the prop is
+ * NOT on the card: it is the model's honesty, not his story. The
+ * overview is the price row and "how he gets there"; the arithmetic
+ * (the labelled cells, "carries" included) is its own tab.
  * ------------------------------------------------------------------ */
 
 test("the drawer's hero names the matchup, the position and the model rank in the whole field, and the bands say what the row says", async () => {
   const nfl = (await import("./nfl.js")).default;
   const record = { total: 900, days: [], props: { td: { label: "Anytime touchdown", n: 816, predicted: 21.9, actual: 20.7, bias: 1.2, brier: 0.15 } } };
-  const { app, doc } = await mountPlayers({ players: PLAYERS, pools: recPool(nfl), record });
+  const { app, doc, press } = await mountPlayers({ players: PLAYERS, pools: recPool(nfl), record });
   const field = app.__rows.length;
   const i = app.__rows.findIndex((r) => r.p.id === "a");
   const r = app.__rows[i];
@@ -1624,8 +1643,17 @@ test("the drawer's hero names the matchup, the position and the model rank in th
   // The headline is the row's chance and the row's fair price, to the digit.
   const fp = nfl.fairPrice(r.s.prob);
   assert.match(bands, new RegExp('class="dband head"[\\s\\S]*Chance to score[\\s\\S]*<b class="fig">' + (100 * r.s.prob).toFixed(1) + '%</b>[\\s\\S]*fair ' + (fp > 0 ? "\\+" : "[\\u2212-]") + Math.abs(fp)), "the headline band is not the row's chance and fair price");
-  // The receipt is the record's own words for this prop: count, predicted, actual, off by.
-  assert.match(bands, /class="dband receipt"[\s\S]*Recorded before kickoff[\s\S]*816 anytime touchdown calls graded · predicted 21\.9%, actual 20\.7% · off by \+1\.2pp/, "no receipt band from the record");
+  // Why: his line first, with the numbers the arithmetic uses, then only the terms that moved him five percent or more.
+  // Plain per-game counts beside the plain rate: the decay-weighted workload is labelled in the arithmetic tab.
+  assert.match(bands, new RegExp('class="dband why"[\\s\\S]*<ul class="dwhy"><li><b>' + r.s.observedRate.toFixed(2) + '</b> TD a game on <b>' + (r.p.carries / r.p.games).toFixed(1) + '</b> carries and <b>' + (r.p.targets / r.p.games).toFixed(1) + '</b> targets over <b>' + r.p.games + '</b> games</li>'), "the why band does not lead with his plain line");
+  assert.ok((bands.match(/<li>/g) || []).length <= 3, "the why band runs past three sentences");
+  assert.doesNotMatch(bands, /offence <b>|defence <b>/, "the fixture's factors are 1, so no factor sentence should print");
+  // The receipt: this call's own facts and the way to the record; the record's aggregate stays off the card.
+  const receipt = (bands.match(/class="dband receipt"[\s\S]*?<\/div><\/div>/) || [""])[0];
+  assert.match(receipt, /Recorded before kickoff/, "no receipt band");
+  assert.match(receipt, /graded once the game is final/, "the receipt does not say when it is graded");
+  assert.match(receipt, /<a href="record\.html#nfl">how this prop has graded →<\/a>/, "the receipt does not link to the record page");
+  assert.doesNotMatch(bands, /calls graded|predicted 21\.9|816/, "the record's aggregate is on the card");
   assert.doesNotMatch(bands, /UTC/, "the fixture's build stamp carries no Z, so it must not be labelled UTC");
   // The rate band: the same direction as the row's pill, and the delta to the hundredth with the rounded percent.
   const ratio = r.s.lambda / r.s.observedRate, delta = r.s.lambda - r.s.observedRate, d = Math.round((ratio - 1) * 100);
@@ -1633,9 +1661,13 @@ test("the drawer's hero names the matchup, the position and the model rank in th
   const rowHtml = app.innerHTML.match(new RegExp('data-i="' + i + '">[\\s\\S]*?</button>'))[0];
   assert.equal(cls !== "steady" ? rowHtml.includes('class="pill ' + cls + '"') : rowHtml.includes(">steady<"), true, "the fixture's pill does not match the computed direction");
   assert.match(bands, new RegExp('class="dband rate ' + cls + '"[\\s\\S]*vs his own rate[\\s\\S]*own rate ' + r.s.observedRate.toFixed(3) + ' a game[\\s\\S]*' + (delta >= 0 ? "\\+" : "\\u2212") + Math.abs(delta).toFixed(2) + ' TD \\(' + (d >= 0 ? "\\+" : "\\u2212") + Math.abs(d) + '%\\)'), "the rate band does not say the row's ratio");
+  const over = doc.getElementById("dbody").innerHTML;
+  assert.match(over, /class="dact"[\s\S]*Track anytime TD/, "the price and Track row is missing from the overview");
+  assert.match(over, /Scored in <b>2<\/b> of his last <b>3<\/b> games/, "the overview does not say what his game log says");
+  assert.doesNotMatch(over, /class="dcell"/, "the arithmetic is still on the overview");
+  press("dtabs", "The arithmetic");
   const body = doc.getElementById("dbody").innerHTML;
-  assert.match(body, /class="dact"[\s\S]*Track anytime TD/, "the price and Track row is missing");
-  assert.ok((body.match(/class="dcell"/g) || []).length >= 8, "the overview is not a grid of cells");
+  assert.ok((body.match(/class="dcell"/g) || []).length >= 8, "the arithmetic tab is not a grid of cells");
   assert.match(body, /<dl class="dcells">/, "the cells are not a definition list");
   assert.ok(body.includes("carries"), "the workload cell lost the word carries");
   assert.doesNotMatch(body, /<table>/, "the old definition table is still there");
@@ -1670,9 +1702,15 @@ test("without a record the receipt band is absent; a stat view's card leads with
   clickRow(app, i);
   const bands = doc.getElementById("dbands").innerHTML;
   assert.match(bands, new RegExp('class="dband head"[\\s\\S]*Projected receiving yards[\\s\\S]*<b class="fig">' + Math.round(r.exp) + '</b>[\\s\\S]*over ' + r.line + ' hits ' + Math.round(100 * r.over) + '%'), "the stat card's headline is not the projection with the line and its chance");
-  assert.match(bands, /457 receiving yards calls graded · predicted 41\.0%, actual 42\.9% · off by \u22121\.9pp/, "the stat receipt does not quote its own prop's record, without the label's suffix");
+  assert.match(bands, /class="dband receipt"[\s\S]*how this prop has graded →/, "the stat card has no receipt");
+  assert.doesNotMatch(bands, /457|calls graded/, "the record's aggregate is on the stat card");
+  assert.match(bands, new RegExp('class="dband why"[\\s\\S]*<li>Averages <b>' + (nfl.statTotal("recyds", r.p) / r.p.games).toFixed(0) + '</b> yards a game on <b>' + (nfl.statOpportunity("recyds", r.p) / r.p.games).toFixed(1) + '</b> targets over <b>' + r.p.games + '</b> games</li>'), "the stat why band does not lead with his average");
+  assert.match(bands, new RegExp('<li>Cleared <b>' + Math.ceil(r.line) + '\\+</b> in <b>' + nfl.recentHits("recyds", r.p.recent, Math.ceil(r.line)) + '</b> of his last <b>3</b> games</li>'), "the stat why band does not count his recent games against the line");
   const avg = nfl.statTotal("recyds", r.p) / r.p.games, delta = r.exp - avg, d = Math.round((r.exp / avg - 1) * 100);
   assert.match(bands, new RegExp('own rate ' + avg.toFixed(0) + ' yards a game[\\s\\S]*' + (delta >= 0 ? "\\+" : "\\u2212") + Math.abs(delta).toFixed(0) + ' yards \\(' + (d >= 0 ? "\\+" : "\\u2212") + Math.abs(d) + '%\\)'), "the stat rate band does not say the row's ratio");
+  assert.match(doc.getElementById("dbody").innerHTML, /class="dact"/, "the stat overview does not lead with the price row");
+  assert.match(doc.getElementById("dbody").innerHTML, /How he gets there[\s\S]*Cleared <b>\d+\+<\/b> in <b>\d<\/b> of his last <b>3<\/b> games\./, "a stat overview with no chips is an empty tab");
+  press("dtabs", "The arithmetic");
   const body = doc.getElementById("dbody").innerHTML;
   for (const label of ["Projection", "Over the line", "Model rank", "Season average", "Opportunities", "Opponent", "Read off", "Games"]) assert.match(body, new RegExp('<dt>' + label + '</dt>'), "no cell labelled " + label);
   assert.match(body, new RegExp('<dt>Opportunities</dt><dd><b>' + (nfl.statOpportunity("recyds", r.p) / r.p.games).toFixed(1) + '</b><span>targets a game over ' + r.p.games + ' games'), "opportunities are not per game");
@@ -1701,4 +1739,174 @@ test("the stylesheet lays the card out: a wider panel, the photo as a 150px cuto
   assert.match(css, /\.dcells\{[^}]*grid-template-columns:repeat\(3,/, "the cells are not a three-column grid");
   assert.match(css, /@media \(max-width:760px\)\{[^@]*\.dcells\{[^}]*repeat\(2,/, "no two-column phone rule for the cells");
   for (const c of [".dkick{", ".dband{", ".dband.head", ".dband.receipt", ".dband.rate", ".dcell{", ".dcell dt{", ".dcell dd{"]) assert.ok(css.includes(c), "no rule for " + c);
+});
+
+/* ------------------------------------------------------------------ *
+ * B0 — the card says why; the audit moves one click away
+ *
+ * The user put nhlpropking.com's card beside ours and said the board
+ * carries too much text to tell why one player is a favourite. So: a
+ * row wears up to three chips (chips.js, thresholds in one place), the
+ * card's overview carries them with their notes, the parlay strip hides
+ * behind one button, each board's footer is one line, and the record
+ * tables live on record.html.
+ * ------------------------------------------------------------------ */
+
+/* A player whose data-file fields earn every chip: eight games, the last
+   three heavier; a fifth of his team's red-zone touches; on the field
+   for most snaps; a third of the air yards. */
+const CHIPPED = Object.assign({}, PLAYERS[0], {
+  id: "h", name: "Hotel Wide", games: 8, tds: 4, targets: 64, carries: 0,
+  log: [[0, 0, 6, 0, 1, 0], [1, 0, 6, 0, 1, 0], [0, 0, 6, 0, 0, 0], [1, 0, 6, 0, 1, 0], [0, 0, 6, 0, 1, 0], [1, 0, 12, 0, 2, 0], [0, 0, 11, 0, 1, 0], [1, 0, 11, 0, 2, 0]],
+  rz: { c: 0, t: 9, g: 0, n: 8 }, usage: { snap: 0.86, snapN: 8, tsh: 0.28, ays: 0.34, aysN: 8 },
+});
+/* The same team's other red-zone touches, so the share has a denominator. */
+const TEAMMATE = Object.assign({}, PLAYERS[1], { id: "i", name: "India Back", team: "KC", opp: "LAC", rz: { c: 27, t: 0, g: 9, n: 8 } });
+
+test("a row wears up to three chips under the name, each a chips.js chip, and none without chips.js", async () => {
+  const chips = (await import("./chips.js")).default;
+  const teamFactors = { LAC: { def: 1.21, allow: { recyds: 1.12 } }, KC: { def: 1, allow: {} } };
+  const { app } = await mountPlayers({ players: PLAYERS.concat([CHIPPED, TEAMMATE]), teamFactors });
+  const r = app.__rows.find((x) => x.p.id === "h");
+  assert.ok(r, "the chipped player is not on the board");
+  const expected = chips.forPlayer(CHIPPED, { teamRz: 36, oppFactor: 1.21, opp: "LAC", what: "touchdowns" });
+  assert.deepEqual(r.chips.map((c) => c.id), expected.map((c) => c.id), "the row's chips are not what chips.js computes from the data file and the model's opponent factor");
+  assert.deepEqual(r.chips.map((c) => c.id), ["volume", "redzone", "defence", "snaps", "deep"]);
+  const row = app.innerHTML.match(new RegExp('data-i="' + r.i + '">[\\s\\S]*?</button>'))[0];
+  const who = (row.match(/<span class="who">[\s\S]*?<span class="chips">([\s\S]*?)<\/span><\/span>/) || [])[1];
+  assert.ok(who, "the row has no chips line under the name");
+  const worn = [...who.matchAll(/<span class="chip( [a-z]+)?">([^<]*)/g)].map((m) => m[2]);
+  // Five games at 6 targets, then 12, 11, 11: 11.3 against 6.0 over the five before, +89%.
+  assert.deepEqual(worn, ["Volume up +89%", "Red zone 25%", "Soft D +21%"], "a row wears the first three chips, label and value");
+  assert.match(who, /class="chip up">Volume up/, "volume up is not coloured up");
+  // A player with none of the fields wears only what the model knows (the soft defence); one facing an average
+  // defence wears none, and the line is absent, not empty.
+  assert.deepEqual(app.__rows.find((x) => x.p.id === "a").chips.map((c) => c.id), ["defence"]);
+  const plain = app.__rows.find((x) => x.p.id === "b");
+  assert.deepEqual(plain.chips, []);
+  assert.doesNotMatch(app.innerHTML.match(new RegExp('data-i="' + plain.i + '">[\\s\\S]*?</button>'))[0], /class="chips"/);
+  // Without chips.js the board mounts and no row wears a chip.
+  const bare = await mountPlayers({ players: PLAYERS.concat([CHIPPED, TEAMMATE]), teamFactors, noChips: true });
+  assert.doesNotMatch(bare.app.innerHTML, /class="chip/);
+});
+
+test("the defence chip replaces the stat row's soft/tough badge: only where the opponent is in the number, and then at the strength the model applies", async () => {
+  const nfl = (await import("./nfl.js")).default;
+  // Receiving yards is not shrunk toward the opponent (yardOppShrink 0); rushing yards is, at half strength.
+  assert.equal(nfl.DEFAULTS[nfl.STATS.recyds.oppShrinkKey], 0, "the fixture assumes receiving yards ignores the opponent");
+  assert.equal(nfl.DEFAULTS[nfl.STATS.rushyds.oppShrinkKey], 0.5, "the fixture assumes rushing yards applies the opponent at half strength");
+  const pools = Object.assign(recPool(nfl), { rushyds: recPool(nfl).recyds });
+  // Alpha (KC) faces LAC on the receiving view; Bravo (LAC) faces KC on the rushing view.
+  const teamFactors = { LAC: { def: 1, allow: { recyds: 1.3 } }, KC: { def: 1, allow: { rushyds: 1.3 } } };
+  const { app, doc, press } = await mountPlayers({ players: PLAYERS, pools, teamFactors });
+  press("view", "Receiving yards");
+  const a = app.__rows.find((x) => x.p.id === "a");
+  assert.deepEqual(a.chips.filter((c) => c.id === "defence"), [], "a defence chip on a prop the opponent is not in");
+  press("view", "Rushing yards");
+  const b = app.__rows.find((x) => x.p.id === "b");
+  assert.ok(b, "the back is not on the rushing view");
+  const d = b.chips.find((c) => c.id === "defence");
+  assert.ok(d, "no defence chip on a rushing row against a soft run defence");
+  // The allowance is +30%; applied at half strength the model's factor is +15%, and that is what the chip says.
+  assert.equal(d.label, "Soft D");
+  assert.equal(d.value, "+15%");
+  assert.equal(Math.round((b.oppFactor - 1) * 100), 15, "the row's applied factor is not +15%");
+  clickRow(app, app.__rows.indexOf(b));
+  assert.match(doc.getElementById("dbands").innerHTML, /<li>KC defence <b>\+15%<\/b>: gives up more rushing yards than average at half strength, which adds <b>\d+<\/b><\/li>/, "the why band does not say the applied factor and its strength");
+  assert.doesNotMatch(src("football-board.js"), /soft D<|tough D<|>=1\.07|<=0\.93/, "the old hand-typed badge, or its threshold, is still in the board");
+});
+
+test("the card's overview is the price row and how he gets there: every chip with its note, and one sentence from the game log", async () => {
+  const teamFactors = { LAC: { def: 1.21, allow: {} }, KC: { def: 1, allow: {} } };
+  const { app, doc } = await mountPlayers({ players: PLAYERS.concat([CHIPPED, TEAMMATE]), teamFactors });
+  const i = app.__rows.findIndex((x) => x.p.id === "h");
+  clickRow(app, i);
+  const over = doc.getElementById("dbody").innerHTML;
+  assert.match(over, /<h4 class="muhead">How he gets there<\/h4>/);
+  assert.equal((over.match(/<li>/g) || []).length, 5, "the overview does not carry every chip");
+  assert.match(over, /Red zone 25%<\/span><span>9 of the 36 red-zone touches logged for KC&#39;s priced players \(carries and targets inside the 20\); his over 8 games/, "a chip's note is missing or unescaped");
+  assert.match(over, /LAC gives up 21% more touchdowns than average/);
+  assert.match(over, /Scored in <b>2<\/b> of his last <b>3<\/b> games/);
+  // The why band names the opponent as the mover, with its figure.
+  assert.match(doc.getElementById("dbands").innerHTML, /<li>LAC defence <b>\+21%<\/b>: gives up more touchdowns than average<\/li>/);
+});
+
+test("the parlay strip hides behind one button in the controls row, on every view; pressing it again clears the slip", async () => {
+  const { doc, press, app } = await mountPlayers({ players: PLAYERS });
+  const strip = doc.getElementById("parlayctl"), seg = doc.getElementById("parlayseg");
+  assert.equal(strip.hidden, true, "the parlay strip is open before anyone asked");
+  assert.equal(doc.getElementById("parlaywrap").hidden, false);
+  assert.equal(seg.children.length, 1);
+  assert.equal(seg.children[0].textContent, "Suggest a parlay");
+  assert.equal(seg.children[0].attrs["aria-pressed"], "false");
+  press("parlayseg", "Suggest a parlay");
+  assert.equal(doc.getElementById("parlayctl").hidden, false, "the button did not open the strip");
+  assert.equal(doc.getElementById("parlayseg").children[0].attrs["aria-pressed"], "true");
+  press("plegs", "3 legs");
+  assert.ok(app.innerHTML.includes("Suggested parlay") || app.innerHTML.includes("Cannot build that slip"), "no slip after a press");
+  press("parlayseg", "Suggest a parlay");
+  assert.equal(doc.getElementById("parlayctl").hidden, true, "the strip did not close");
+  assert.ok(!app.innerHTML.includes("Suggested parlay") && !app.innerHTML.includes("Cannot build that slip"), "closing the strip left the slip on the board");
+  // A price typed against a slip dies with the slip: reopen, suggest again, and the box is empty.
+  press("parlayseg", "Suggest a parlay"); press("plegs", "3 legs");
+  app.handlers.input[0]({ target: { id: "slipprice", value: "-150", getAttribute: () => null } });
+  press("parlayseg", "Suggest a parlay");
+  press("parlayseg", "Suggest a parlay"); press("plegs", "3 legs");
+  assert.doesNotMatch(app.innerHTML, /id="slipprice"[^>]*value="/, "the old slip's price survived into the new slip");
+  // The game view keeps the button and hides the rest of the row.
+  assert.ok(SHIPPED_HIDDEN.has("controls"), "nfl.html no longer ships the controls row hidden; this test's guard assumes it does");
+  assert.equal(doc.getElementById("controls").hidden, false, "the script never shows the controls row the page ships hidden");
+  press("view", "Spread & total");
+  assert.equal(doc.getElementById("controls").hidden, false, "the controls row is gone from the game view, and the parlay button with it");
+  assert.equal(doc.getElementById("parlaywrap").hidden, false);
+  for (const id of ["linewrap", "sortwrap", "teamwrap", "poswrap", "starwrap"]) assert.equal(doc.getElementById(id).hidden, true, id + " shows on the game view");
+  press("view", "Anytime TD");
+  for (const id of ["sortwrap", "teamwrap", "poswrap", "starwrap"]) assert.equal(doc.getElementById(id).hidden, false, id + " did not come back");
+  for (const f of ["nfl.html", "cfb.html"]) {
+    const m = markup(f);
+    for (const id of ["sortwrap", "teamwrap", "parlaywrap", "parlayseg", "parlayctl"]) assert.match(m, new RegExp('id="' + id + '"'), f + " has no #" + id);
+    assert.ok(m.indexOf('id="controls"') < m.indexOf('id="parlayctl"'), f + ": the parlay strip must sit under the controls row, not above the note");
+  }
+});
+
+test("each football board's footer is one line with the graded count, the touchdown bias and a link to the record page; the tables are gone", async () => {
+  const record = { total: 2360, days: ["a", "b", "c"], props: { td: { label: "Anytime touchdown", n: 816, predicted: 21.9, actual: 20.7, bias: 1.2, brier: 0.15 } }, parlays: { x: { scope: "slate", legs: 3, n: 1, adjusted: 0.1, cashed: 0 } } };
+  const { doc } = await mountPlayers({ players: PLAYERS, record });
+  const foot = doc.getElementById("foot").innerHTML;
+  assert.match(foot, /<b>2,360<\/b> predictions graded against what this board published · anytime touchdown off by <b>\+1\.2pp<\/b> · <a href="record\.html#nfl">/);
+  assert.doesNotMatch(foot, /<table>|Live record|Suggested parlays|Does it work/, "the record tables are still under the board");
+  assert.match(foot, /Data: ESPN/);
+  const bare = await mountPlayers({ players: PLAYERS });
+  assert.match(bare.doc.getElementById("foot").innerHTML, /Nothing graded yet[\s\S]*<a href="record\.html#nfl">/);
+  const js = src("football-board.js");
+  assert.doesNotMatch(js, /function liveRecord|parlayRecord=|C\.footer/, "football-board.js still renders the record, or reads a footer copy");
+  for (const f of ["nfl.html", "cfb.html"]) assert.doesNotMatch(src(f), /footer:/, f + " still carries the replay table as copy; it lives on record.html");
+});
+
+test("record.html: one section per football league with its replay table and a live-record slot, the record files and the page script, no faces", () => {
+  const m = markup("record.html"), s = src("record.html");
+  for (const id of ["nfl", "cfb", "nfl-live", "cfb-live"]) assert.match(m, new RegExp('id="' + id + '"'), "no #" + id);
+  assert.match(m, /Does it work\?[\s\S]*anytime touchdown[\s\S]*Brier <b>0\.1591<\/b>/, "the NFL replay table is not on the record page");
+  assert.match(m, /Two FBS seasons[\s\S]*Brier <b>0\.1743<\/b>/, "the college replay table is not on the record page");
+  for (const f of ["nfl-record.js", "cfb-record.js", "record-page.js"]) assert.match(s, new RegExp('<script src="' + f.replace(".", "\\.") + '"></script>'), "record.html does not load " + f);
+  assert.match(s, /BetHouseRecordPage\.render\(document/);
+  assert.doesNotMatch(s, /faces\.js|<img/);
+  // The two boards' links land on the two sections: the college board is "College football" to the script.
+  const js = src("football-board.js");
+  const anchors = js.match(/RECORD_ANCHOR=\{([^}]*)\}/);
+  assert.ok(anchors, "football-board.js has no RECORD_ANCHOR map");
+  for (const [league, id] of [["NFL", "nfl"], ["College football", "cfb"]]) {
+    assert.match(anchors[1], new RegExp("'" + league + "':'" + id + "'"), "no anchor for " + league);
+    assert.match(m, new RegExp('id="' + id + '"'), "record.html has no #" + id + " for " + league);
+  }
+  for (const f of ["nfl.html", "cfb.html"]) assert.match(src(f), new RegExp("league: '(" + ["NFL", "College football"].join("|") + ")'"), f + " names a league the anchor map does not know");
+  // Every other board offers the Record link (the nav test above checks the record page links every board).
+  for (const f of BOARDS.filter((b) => b !== "record.html")) assert.match(src(f), /<a class="navlink" href="record\.html">Record →<\/a>/, f + " has no Record link");
+});
+
+test("the stylesheet carries the chips line, the why list, the how list and the record panels", () => {
+  const css = src(SHEET);
+  for (const c of [".who .chips{", ".chip.up{", ".chip.down{", ".dband.why{", ".dwhy{", ".dwhy li{", ".dbody .how{", ".hows li{", ".rec{", ".dband.receipt a{"]) assert.ok(css.includes(c), "no rule for " + c);
+  assert.doesNotMatch(css, /\n\.how\{/, "a bare .how rule would also style the note's disclosure, which shares the class");
+  assert.match(css, /\.who \.chips\{[^}]*white-space:nowrap[^}]*overflow:hidden/, "the chips line can wrap and grow the row");
 });

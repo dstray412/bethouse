@@ -182,6 +182,14 @@ header>.ctl{order:2;flex:1 1 100%}
    the label is a state the board measured (soft, tough, live). */
 .tag,.chip{display:inline-block;margin-left:7px;padding:2px 8px;border:1px solid var(--line);border-radius:999px;
   font-family:var(--label);font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);vertical-align:1px}
+/* The row's chips (chips.js): under the name, one line, up to three, each
+   a measured number past its threshold. up and down take the edge
+   colours as outlines; the rest stay muted. The line clips rather than
+   wraps so a row keeps its height. */
+.who .chips{display:block;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:400}
+.who .chips .chip{margin:0 5px 0 0;font-size:11px;padding:2px 7px;vertical-align:0}
+.chip.up{color:var(--good);border-color:rgba(61,255,92,.5)}
+.chip.down{color:var(--bad);border-color:rgba(255,51,102,.5)}
 .tag.lean{color:var(--text);border-color:var(--rule)}
 .tag.soft,.chip.live{color:var(--good);border-color:rgba(61,255,92,.5)}
 .tag.tough{color:var(--bad);border-color:rgba(255,51,102,.5)}
@@ -216,7 +224,17 @@ header>.ctl{order:2;flex:1 1 100%}
 .banner b{color:var(--text)}
 .empty{padding:44px 20px;text-align:center;color:var(--muted)}
 .empty .big{font-family:var(--display);font-size:18px;font-weight:600;color:var(--text);margin-bottom:7px}
+/* The record page: a panel per league, the replay table then the live
+   record, in the footer's small ruled style. */
+.rec{border:1px solid var(--line);border-radius:var(--r-panel);background:var(--surface);padding:14px 18px 12px;margin-bottom:18px;color:var(--muted);font-size:14px;line-height:1.7}
+.rec .gtitle{margin:0 0 6px}
+.rec b{color:var(--text);font-family:var(--mono);font-size:13px;font-variant-numeric:tabular-nums}
+.rec strong{color:var(--text);font-weight:600}
+.rec table{border-collapse:collapse;margin:8px 0;font-variant-numeric:tabular-nums;font-size:13px}
+.rec td{padding:1px 14px 1px 0;vertical-align:top}
+.rec p{margin:8px 0 0;max-width:72ch}
 footer{margin-top:22px;color:var(--muted);font-size:13px;line-height:1.7}
+footer a{color:var(--text)}
 footer b{color:var(--text);font-family:var(--mono);font-size:13px;font-variant-numeric:tabular-nums}
 footer table{border-collapse:collapse;margin:8px 0;font-variant-numeric:tabular-nums;font-size:13px}
 footer td{padding:1px 14px 1px 0}
@@ -274,6 +292,9 @@ footer td{padding:1px 14px 1px 0}
   .game.v-game{--cols:28px 1fr 96px 68px 14px}
   .face{width:28px;height:28px}
   .face.pair img{width:16px;height:16px}
+  /* A phone's name cell has room for one chip; the rest are in the card. */
+  .who .chips{text-overflow:clip}
+  .who .chips .chip:nth-child(n+2){display:none}
   .dface .face{width:110px;height:82px}
   .prob{font-size:20px}
   .caret{font-size:14px}
@@ -337,7 +358,22 @@ footer td{padding:1px 14px 1px 0}
 .dband.receipt{border-left:3px solid var(--good)}
 .dband.receipt .bl small{color:var(--good)}
 .dband.receipt .br span{white-space:normal;line-height:1.4}
+/* Why: at most three sentences, the terms that moved his number, each
+   with its figure in mono; the full arithmetic is a tab. */
+.dband.why{align-items:flex-start}
+.dwhy{margin:4px 0 0;padding:0;list-style:none;color:var(--text);font-size:15px;line-height:1.5}
+.dwhy li{padding:3px 0 3px 14px;position:relative}
+.dwhy li::before{content:'';position:absolute;left:0;top:.72em;width:6px;height:6px;border-radius:50%;background:var(--accent)}
+.dwhy b{font-family:var(--mono);font-size:14px;font-variant-numeric:tabular-nums;color:var(--text)}
 .dband.rate .fig{font-size:17px;font-family:var(--display);color:var(--text)}
+.dband.receipt a{color:var(--good);text-decoration:none;font-family:var(--label);font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase}
+.dband.receipt a:hover{text-decoration:underline}
+/* How he gets there: every chip the row could wear, with its note. */
+.dbody .how{margin:4px 0 12px}
+.hows{margin:0;padding:0;list-style:none}
+.hows li{display:flex;gap:10px;align-items:baseline;padding:6px 0;border-top:1px solid var(--line);font-size:14px;line-height:1.5}
+.hows li:first-child{border-top:0}
+.hows .chip{margin:0;flex:none}
 .dband.rate.up .fig,.dband.rate.up .br span{color:var(--good)}
 .dband.rate.down .fig,.dband.rate.down .br span{color:var(--bad)}
 .dact{padding:0 0 12px}
