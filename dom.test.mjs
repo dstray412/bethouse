@@ -1013,7 +1013,7 @@ const PLAYERS = [
 ];
 
 /** Mount the real board on the TD view with players, edge.js and watchlist.js present. */
-async function mountPlayers({ players, storage, storageThrows, noWatchlist, search, pools, games, record, teamFactors, noChips }) {
+async function mountPlayers({ players, storage, storageThrows, noWatchlist, search, pools, games, record, teamFactors, noChips, model }) {
   const nfl = (await import("./nfl.js")).default;
   const doc = stubDoc();
   const store = new Map(Object.entries(storage || {}));
@@ -1032,6 +1032,7 @@ async function mountPlayers({ players, storage, storageThrows, noWatchlist, sear
     data: {
       season: 2026, week: 2, statsSeasons: [2025, 2026], generated: "2026-09-21T00:00", gamesCached: 2,
       games: games || GAMES, ratings: RATINGS, teamFactors: teamFactors || {}, players, pools: pools || {}, usagePool: [],
+      ...(model ? { model } : {}),
     },
     record: record || null, league: "NFL", fetcher: "fetch-nfl.mjs",
     copy: {
@@ -1806,7 +1807,7 @@ test("a row wears up to three chips under the name, each a chips.js chip, and no
 
 test("the defence chip replaces the stat row's soft/tough badge: only where the opponent is in the number, and then at the strength the model applies", async () => {
   const nfl = (await import("./nfl.js")).default;
-  // Receptions are not shrunk toward the opponent (recsOppShrink 0); rushing yards are, at half strength (A3 moved receiving yards to half too).
+  // Receptions are not shrunk toward the opponent (recsOppShrink 0); rushing yards are, at half strength.
   assert.equal(nfl.DEFAULTS[nfl.STATS.recs.oppShrinkKey], 0, "the fixture assumes receptions ignore the opponent");
   assert.equal(nfl.DEFAULTS[nfl.STATS.rushyds.oppShrinkKey], 0.5, "the fixture assumes rushing yards applies the opponent at half strength");
   const rp = recPool(nfl).recyds;
@@ -2038,17 +2039,19 @@ test("both football pages keep the drawer's Compare and close buttons in a bar t
   assert.doesNotMatch(css, /\.dbtns\{/, "the old absolute button block is still styled");
 });
 
-test("a downward swipe from the top of the sheet closes the drawer; a swipe mid-scroll, or a short one, does not", async () => {
+test("on a phone a downward swipe from the top of the sheet closes the drawer; a short one, one mid-scroll, a sideways one, or one on a wide screen does not", async () => {
   const { app, doc, win } = await mountPlayers({ players: PLAYERS });
   const drawer = doc.getElementById("drawer");
   const i = app.__rows.findIndex((r) => r.p.id === "a");
-  const swipe = (startY, endY, scrollTop) => {
+  let narrow = true;
+  win.matchMedia = (q) => ({ matches: q === "(max-width:760px)" && narrow });
+  const swipe = (startY, endY, scrollTop, dx = 0) => {
     drawer.scrollTop = scrollTop;
     const h = (t) => (drawer.handlers[t] || [])[0];
-    assert.ok(h("touchstart") && h("touchmove") && h("touchend"), "the drawer has no swipe handlers");
-    h("touchstart")({ touches: [{ clientY: startY }] });
-    h("touchmove")({ touches: [{ clientY: endY }], preventDefault() {} });
-    h("touchend")({ changedTouches: [{ clientY: endY }] });
+    assert.ok(h("touchstart") && h("touchend"), "the drawer has no swipe handlers");
+    assert.equal(drawer.handlers.touchmove, undefined, "a touchmove listener with nothing to do");
+    h("touchstart")({ touches: [{ clientX: 100, clientY: startY }] });
+    h("touchend")({ changedTouches: [{ clientX: 100 + dx, clientY: endY }] });
   };
   clickRow(app, i);
   assert.equal(drawer.hidden, false);
@@ -2056,7 +2059,25 @@ test("a downward swipe from the top of the sheet closes the drawer; a swipe mid-
   assert.equal(drawer.hidden, false, "a 40px drag closed the sheet");
   swipe(100, 260, 200);
   assert.equal(drawer.hidden, false, "a swipe while the card is scrolled down closed it (that drag is the scroll)");
+  swipe(100, 235, 0, 310);
+  assert.equal(drawer.hidden, false, "a mostly sideways drag closed the sheet");
+  narrow = false;
+  swipe(100, 260, 0);
+  assert.equal(drawer.hidden, false, "the side panel on a wide screen dismissed on a drag");
+  narrow = true;
   swipe(100, 260, 0);
   assert.equal(drawer.hidden, true, "a 160px downward swipe from the top did not close the sheet");
   assert.equal(win.pushed.slice(-1)[0], "/nfl.html", "closing by swipe did not clear the player from the URL");
+});
+
+test("a data file whose weighted totals were built under other decays than the model's loses them, so the board never labels a weight it did not apply", async () => {
+  const nfl = (await import("./nfl.js")).default;
+  const withW = PLAYERS.map((p) => Object.assign({}, p, { w: { recyds: p.recYds * 1.2 } }));
+  const stamp = (model) => ({ players: withW.map((p) => Object.assign({}, p)), pools: recPool(nfl), model });
+  const same = await mountPlayers(stamp({ tdDecay: nfl.DEFAULTS.tdDecay, yardDecay: nfl.DEFAULTS.yardDecay, rushDecay: nfl.DEFAULTS.rushDecay, rushrecDecay: nfl.DEFAULTS.rushrecDecay }));
+  assert.ok(same.app.__rows.every((r) => r.p.w), "the same decays: the totals stay");
+  const other = await mountPlayers(stamp({ tdDecay: nfl.DEFAULTS.tdDecay, yardDecay: 0.5, rushDecay: nfl.DEFAULTS.rushDecay, rushrecDecay: nfl.DEFAULTS.rushrecDecay }));
+  assert.ok(other.app.__rows.every((r) => !r.p.w), "a data file built under another decay kept its totals");
+  const none = await mountPlayers(stamp(undefined));
+  assert.ok(none.app.__rows.every((r) => r.p.w), "a data file with no stamp (before the era stamp) is left alone");
 });

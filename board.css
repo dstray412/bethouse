@@ -412,7 +412,7 @@ button.rung:hover{border-color:var(--rule)}
   .dcells{grid-template-columns:repeat(2,minmax(0,1fr))}
   .dhead h2{font-size:24px}
   .dhead{min-height:0;padding:14px 14px 12px;margin:-14px -14px 12px;border-radius:var(--r-panel) var(--r-panel) 0 0}
-  .dbar{margin-top:-2px}
+  .dbar{margin-top:-2px} /* the phone drawer's 14px top padding against the desktop's 18px: the buttons sit on the same line as the hero's kicker */
   .dwho{padding-top:40px}
   .dband .fig{font-size:22px}
   .dband.head .fig{font-size:26px}

@@ -50,6 +50,17 @@ pins all of it and is in the seven gates. The README's "The rule for
 every model change" is now the one statement of the rule; nfl.js and
 compare-stats.mjs point at it.
 
+Verifier pass after the commit (6df2abb), fixed in the follow-up: the
+"outcome differs" detector could never fire (the line is in the key),
+so `sameExam` now REFUSES a counting-prop comparison unless both dumps
+are `--fixed-lines`; `paired()` counts rows missing on either side
+(`notInBase`, `notInCand`) and past 2% unpaired `verdict()` gives NO
+VERDICT; `verdict()` also reports a band the base had and the candidate
+left. The README rule carries the band qualifier. The board drops a
+data file's `w` when its `model` stamp's decays differ from the
+script's (never a weight it did not apply). The swipe-to-close is gated
+to the 760px breakpoint and to downward drags.
+
 Plumbing: `seasonLines` keeps `record.slog` (one value per stat in
 STATS order, oldest first) in memory; `boardPlayer` writes `w` (only
 the stats whose decay is under 1, via `model.weightedStatTotals`), so

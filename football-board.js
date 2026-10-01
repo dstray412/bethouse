@@ -46,6 +46,14 @@
     /* ...and an older page than script: the drawer's markup arrived with
        phase 2 (2026-09-29); without it a row click would go nowhere. */
     var stalePage = ['drawer','dbody','starseg','tray','tcards','dcompare','parlayseg','dhead','dbar'].some(function(id){ return !document.getElementById(id); });
+    /* The data file's weighted totals (`w`) were computed at build time
+       under the decays stamped in D.model. A model script with other
+       decays would project off totals it did not weight and label them
+       with its own percentage, so on a mismatch the totals are dropped
+       and the board runs on the plain season lines until the next build. */
+    var DECAYS=['yardDecay','rushDecay','rushrecDecay','passDecay','recsDecay'];
+    var decayMismatch=!!(D.model&&DECAYS.some(function(k){ return D.model[k]!=null&&Number(D.model[k])!==Number(N.DEFAULTS[k]); }));
+    if(decayMismatch) (D.players||[]).forEach(function(p){ if(p.w) delete p.w; });
     if (missing.length || stalePools || stalePage) {
       app.innerHTML = '<div class="empty"><div class="big">Reload this page</div>' +
         '<div>Your browser has a '+(stalePools?'newer model than data file':stalePage?'newer script than page':'newer page than model script')+'. A hard refresh (Cmd/Ctrl+Shift+R) fixes it.</div></div>';
@@ -997,18 +1005,21 @@
     });
     var dcloseEl=document.getElementById('dclose');
     if(dcloseEl&&dcloseEl.addEventListener) dcloseEl.addEventListener('click',function(){ closeDrawer(); });
-    /* A phone's sheet closes on a downward swipe that starts with the
-       card scrolled to its top: a drag anywhere else is the scroll. The
-       threshold is well past a tap and short of a scroll gesture. */
+    /* A phone's bottom sheet closes on a downward swipe that starts with
+       the card scrolled to its top: a drag anywhere else is the scroll,
+       and a mostly sideways drag is not a swipe down. The side panel on
+       a wider screen (a touch laptop, a tablet in landscape) keeps its
+       buttons and does not dismiss on a drag; the breakpoint is the
+       stylesheet's. The threshold is well past a tap. */
     var SWIPE=120, touch=null;
+    var phone=function(){ var mm=(typeof window!=='undefined'&&window.matchMedia)?window.matchMedia('(max-width:760px)'):null; return !!(mm&&mm.matches); };
     if(drawerEl&&drawerEl.addEventListener){
-      drawerEl.addEventListener('touchstart',function(e){ var t=e.touches&&e.touches[0]; touch=t?{y:t.clientY, top:drawerEl.scrollTop||0}:null; },{passive:true});
-      drawerEl.addEventListener('touchmove',function(e){ /* nothing to do until the finger lifts; the scroll stays native */ },{passive:true});
+      drawerEl.addEventListener('touchstart',function(e){ var t=e.touches&&e.touches[0]; touch=t?{x:t.clientX, y:t.clientY, top:drawerEl.scrollTop||0}:null; },{passive:true});
       drawerEl.addEventListener('touchend',function(e){
         var t=e.changedTouches&&e.changedTouches[0]; if(!touch||!t) return;
-        var dy=t.clientY-touch.y, fromTop=touch.top<=0; touch=null;
-        if(fromTop&&dy>=SWIPE&&state.drawer) closeDrawer();
-      });
+        var dy=t.clientY-touch.y, dx=Math.abs(t.clientX-touch.x), fromTop=touch.top<=0; touch=null;
+        if(fromTop&&dy>=SWIPE&&dx<dy&&phone()&&state.drawer) closeDrawer();
+      },{passive:true});
     }
     if(scrimEl&&scrimEl.addEventListener) scrimEl.addEventListener('click',function(){ closeDrawer(); });
     /* ---- the compare tray ----

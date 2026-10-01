@@ -1626,7 +1626,11 @@ ships only if all three hold: **Brier improves on both windows**; **the
 paired Δ/SE is at or below −2 on the validation window** (the fit
 window may be inside the noise, since that is the window the value was
 chosen on); **no calibration band moves worse by more than 3pp** on
-either window. For a counting prop the two runs must grade the same
+either window, a band being a 10-point slice of predicted probability
+with at least 15 rows in both runs; a band only one run reaches cannot
+have moved and is printed beside the verdict instead. A comparison
+that pairs less than 98% of its rows gets no verdict at all. For a
+counting prop the two runs must grade the same
 propositions: `--fixed-lines` takes the graded line and the eligibility
 from a reference model (the plain season line, no recent-form weight,
 no opponent) and the candidate supplies only the probability. Without

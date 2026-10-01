@@ -18,26 +18,36 @@
  */
 import { readFileSync } from "node:fs";
 
-/** The two dumps must be the same exam: the same window and, for the counting props, the same line design. */
+/** The two dumps must be the same exam: the same window, and for a
+    counting prop's rows BOTH graded on fixed lines. Two own-line dumps
+    agree with each other and are still the biased design, so matching
+    flags is not enough; the touchdown rows have no line and compare
+    under either design. */
 export function sameExam(base, cand) {
   const w = (d) => JSON.stringify(d.window || null);
   if (w(base) !== w(cand)) throw new Error(`the dumps cover different windows: ${w(base)} vs ${w(cand)}`);
-  if (!!base.fixedLines !== !!cand.fixedLines) throw new Error("one dump graded fixed lines and the other the model's own; they are not comparable");
+  if ((base.stat || cand.stat) && !(base.fixedLines && cand.fixedLines)) throw new Error(`${base.stat || cand.stat}: a counting prop compares only between two --fixed-lines dumps (base ${base.fixedLines ? "fixed" : "own lines"}, candidate ${cand.fixedLines ? "fixed" : "own lines"})`);
 }
 
+/* Paired rows: the key names the proposition (and, for a counting prop,
+   the line), so a key in both dumps carries the same outcome by
+   construction. Rows only one side has are counted both ways and
+   reported; under fixed lines there should be none, and a count that is
+   not small means the two runs did not grade the same exam. */
 export function paired(base, cand) {
   sameExam(base, cand);
   const b = new Map(base.rows.map((r) => [r[0], r]));
   const pairs = [];
-  let notInBase = 0, outcomeDiffers = 0;
+  let notInBase = 0;
+  const seen = new Set();
   for (const r of cand.rows) {
     const x = b.get(r[0]);
     if (!x) { notInBase++; continue; }
-    /* The same key must mean the same outcome; a mismatch means the two
-       runs graded different lines, which --fixed-lines exists to prevent. */
-    if (x[2] !== r[2]) { outcomeDiffers++; continue; }
+    seen.add(r[0]);
+    if (x[2] !== r[2]) throw new Error(`${r[0]}: the same key with a different outcome; the dumps are not from the same data`);
     pairs.push({ pb: x[1], pc: r[1], a: r[2] });
   }
+  const notInCand = base.rows.length - seen.size;
   const n = pairs.length;
   const mean = (f) => pairs.reduce((s, p) => s + f(p), 0) / n;
   const brierB = mean((p) => (p.pb - p.a) ** 2), brierC = mean((p) => (p.pc - p.a) ** 2);
@@ -61,7 +71,8 @@ export function paired(base, cand) {
     const top = s.slice(0, k).reduce((t, p) => t + p.a, 0) / k, bot = s.slice(-k).reduce((t, p) => t + p.a, 0) / k;
     return { top, bot };
   };
-  return { n, unmatched: cand.rows.length - n, notInBase, outcomeDiffers, brierB, brierC, delta: d, se, z: se > 0 ? d / se : 0, biasB, biasC, bandsB: bands("pb"), bandsC: bands("pc"), liftB: lift("pb"), liftC: lift("pc") };
+  const dropped = (notInBase + notInCand) / Math.max(1, Math.max(base.rows.length, cand.rows.length));
+  return { n, unmatched: notInBase + notInCand, notInBase, notInCand, dropped, brierB, brierC, delta: d, se, z: se > 0 ? d / se : 0, biasB, biasC, bandsB: bands("pb"), bandsC: bands("pc"), liftB: lift("pb"), liftC: lift("pc") };
 }
 
 /* The rule's band clause: no calibration band moves worse by more than
@@ -72,25 +83,32 @@ export function paired(base, cand) {
    gap against a base gap of zero, which is not what the rule says. */
 export function verdict(r) {
   let worstBand = 0;
-  const newBands = [];
+  const newBands = [], lostBands = [];
+  const name = (lo) => `${Math.round(100 * lo)}-${Math.round(100 * lo) + 10}`;
   for (const c of r.bandsC) {
     const b = r.bandsB.find((x) => x.lo === c.lo);
     const gapC = Math.abs(c.predicted - c.actual);
     if (!b) { newBands.push({ lo: c.lo, gap: gapC, n: c.n }); continue; }
     worstBand = Math.max(worstBand, gapC - Math.abs(b.predicted - b.actual));
   }
+  /* A band the base had and the candidate no longer reaches: mass moved
+     out of it, so it cannot be charged either, and it is said. */
+  for (const b of r.bandsB) if (!r.bandsC.find((x) => x.lo === b.lo)) lostBands.push({ lo: b.lo, gap: Math.abs(b.predicted - b.actual), n: b.n });
   const better = r.delta < 0 && r.z <= -2;
   const worse = r.delta > 0 && r.z >= 2;
-  const extra = newBands.filter((b) => b.gap > 0.03).map((b) => `${Math.round(100 * b.lo)}-${Math.round(100 * b.lo) + 10} is new and off by ${(100 * b.gap).toFixed(1)}pp (n ${b.n})`);
-  const text = better ? (worstBand > 0.03 ? "BETTER on Brier, but a band moved worse by more than 3pp" : "BETTER") : worse ? "WORSE" : "NOISE (within two standard errors)";
-  return { better, worse, worstBand, newBands, text: text + (extra.length ? `; ${extra.join("; ")}` : "") };
+  const extra = newBands.filter((b) => b.gap > 0.03).map((b) => `${name(b.lo)} is new and off by ${(100 * b.gap).toFixed(1)}pp (n ${b.n})`)
+    .concat(lostBands.map((b) => `${name(b.lo)} is gone from the candidate (the base was off by ${(100 * b.gap).toFixed(1)}pp there, n ${b.n})`));
+  /* A comparison that paired less than 98% of its rows is not a comparison of the same exam. */
+  const partial = r.dropped > 0.02 ? ` [${(100 * r.dropped).toFixed(1)}% of rows unpaired: not the same exam, no verdict]` : "";
+  const text = partial ? "NO VERDICT" + partial : better ? (worstBand > 0.03 ? "BETTER on Brier, but a band moved worse by more than 3pp" : "BETTER") : worse ? "WORSE" : "NOISE (within two standard errors)";
+  return { better: better && !partial, worse: worse && !partial, worstBand, newBands, lostBands, text: text + (extra.length ? `; ${extra.join("; ")}` : "") };
 }
 
 export const pp = (v) => ((100 * v >= 0 ? "+" : "") + (100 * v).toFixed(2)) + "pp";
 
 export function report(r, labelB = "base", labelC = "candidate") {
   const lines = [];
-  lines.push(`paired rows ${r.n}${r.notInBase ? ` (${r.notInBase} in the candidate not in the base)` : ""}${r.outcomeDiffers ? ` (${r.outcomeDiffers} with the SAME key and a DIFFERENT outcome: the runs graded different lines, re-run with --fixed-lines)` : ""}`);
+  lines.push(`paired rows ${r.n}${r.notInBase ? ` (${r.notInBase} in the candidate not in the base)` : ""}${r.notInCand ? ` (${r.notInCand} in the base not in the candidate)` : ""}`);
   lines.push(`Brier  ${labelB} ${r.brierB.toFixed(5)}   ${labelC} ${r.brierC.toFixed(5)}   Δ ${(r.delta >= 0 ? "+" : "") + r.delta.toFixed(5)}   SE ${r.se.toFixed(5)}   Δ/SE ${r.z.toFixed(2)}`);
   lines.push(`bias   ${labelB} ${pp(r.biasB)}   ${labelC} ${pp(r.biasC)}`);
   lines.push(`lift   ${labelB} top ${(100 * r.liftB.top).toFixed(1)}% / bottom ${(100 * r.liftB.bot).toFixed(1)}%   ${labelC} top ${(100 * r.liftC.top).toFixed(1)}% / bottom ${(100 * r.liftC.bot).toFixed(1)}%`);
@@ -110,7 +128,7 @@ export function rowsOf(dump, stat) {
   if (!stat) return dump;
   const rows = dump.stats && dump.stats[stat];
   if (!rows) throw new Error(`${stat}: the dump carries no rows for it (dumped before --dump wrote the counting props, or not a stat)`);
-  return { ...dump, rows };
+  return { ...dump, rows, n: rows.length, stat };
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {

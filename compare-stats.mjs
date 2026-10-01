@@ -10,10 +10,9 @@
  * The rule is stated once, in the README under "The rule for every
  * model change"; this prints the numbers it needs, per prop, since a
  * term can help one and hurt another. Both dumps must be the same exam
- * (same window, both --fixed-lines); the `drop` column is rows the
- * candidate has that the base does not plus rows whose outcome differs
- * under the same key, and a non-zero second number means the runs
- * graded different lines (see --fixed-lines in backtest-nfl.mjs).
+ * (same window, both --fixed-lines; the tool refuses otherwise). The
+ * `drop` column is rows only the candidate has + rows only the base
+ * has; under fixed lines both are 0, and past 2% there is no verdict.
  */
 import { readFileSync } from "node:fs";
 import { paired, verdict, rowsOf, pp } from "./compare-td.mjs";
@@ -30,7 +29,7 @@ for (const f of cands) {
     const r = paired(rowsOf(base, stat), rowsOf(cand, stat));
     if (!r.n) { console.log(`  ${stat.padEnd(9)}  no paired rows`); continue; }
     const v = verdict(r);
-    const drop = `${r.notInBase}+${r.outcomeDiffers}`;
-    console.log(`  ${stat.padEnd(9)}${String(r.n).padStart(7)}${drop.padStart(10)}${r.brierB.toFixed(5).padStart(9)}${r.brierC.toFixed(5).padStart(9)}${((r.delta >= 0 ? "+" : "") + r.delta.toFixed(5)).padStart(10)}${r.z.toFixed(2).padStart(7)}${pp(v.worstBand).padStart(8)}  ${v.text}${r.outcomeDiffers ? "   !! outcome differs under the same key: not the same lines" : ""}`);
+    const drop = `${r.notInBase}+${r.notInCand}`;
+    console.log(`  ${stat.padEnd(9)}${String(r.n).padStart(7)}${drop.padStart(10)}${r.brierB.toFixed(5).padStart(9)}${r.brierC.toFixed(5).padStart(9)}${((r.delta >= 0 ? "+" : "") + r.delta.toFixed(5)).padStart(10)}${r.z.toFixed(2).padStart(7)}${pp(v.worstBand).padStart(8)}  ${v.text}`);
   }
 }
