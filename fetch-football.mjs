@@ -659,7 +659,10 @@ export function seasonLines(games, model) {
   const STAT_IDS = Object.keys(model.STATS);
   const allowedBy = Object.fromEntries(STAT_IDS.map((s) => [s, new Map()]));
   const leagueStat = Object.fromEntries(STAT_IDS.map((s) => [s, 0]));
-  for (const g of games) {
+  /* Oldest first, whatever order the caller holds them in: the per-game
+     log's order is what the recent-form weight reads. */
+  const ordered = [...games].sort((a, b) => String(a.date).localeCompare(String(b.date)));
+  for (const g of ordered) {
     const tdBy = { [g.home.team]: 0, [g.away.team]: 0 };
     for (const p of g.players) {
       const opp = model.opponentIn(g, p);
@@ -691,7 +694,7 @@ export function seasonLines(games, model) {
       const x = p.x || null;
       const rzc = x && x.rzc != null ? x.rzc : null;
       if (!r.log) r.log = [];
-      r.log.push([td, p.rush?.att || 0, p.rec?.tgt || 0, rzc, rzc != null ? (x.rzt || 0) : null, rzc != null ? (x.glc || 0) : null]);
+      r.log.push([td, p.rush?.att || 0, model.receivingOpportunity(model.gameLine(p)), rzc, rzc != null ? (x.rzt || 0) : null, rzc != null ? (x.glc || 0) : null]);
       if (rzc != null) {
         if (!r.rz) r.rz = { c: 0, t: 0, g: 0, n: 0 };
         r.rz.c += rzc; r.rz.t += x.rzt || 0; r.rz.g += x.glc || 0; r.rz.n++;
@@ -814,8 +817,9 @@ export async function buildBoard(league, history) {
      is last season plus one game, and the current year takes over as it
      accumulates. Restricting to the current season alone would empty the
      board until week 4 (the three-game gate), and restricting to last
-     season alone would never let it move. The backtest's rule is the same
-     one: every prior game on file. */
+     season alone would never let it move. The backtest applies the same
+     window to each game it grades (backtest-nfl.mjs, `prior`), so the
+     replay's lines are as deep as the board's and no deeper. */
   const current = games.filter((g) => g.season >= season - 1);
   const statsSeasons = [...new Set(current.map((g) => g.season))].sort();
 
@@ -963,6 +967,10 @@ export async function buildBoard(league, history) {
   const round = (a, n) => Array.from(a, (x) => Number(x.toFixed(n)));
   const payload = {
     generated: new Date().toISOString(),
+    /* Which model terms this build ran with, so the record can be read by
+       era: a day file copies it, and a term that ships changes rows
+       recorded after it only. */
+    model: { tdDecay: model.DEFAULTS.tdDecay, tdRz: model.DEFAULTS.tdRz, tdScript: model.DEFAULTS.tdScript },
     season, week: up.week,
     statsSeasons,
     linesFetched: lines.size ? now : null,

@@ -1561,6 +1561,46 @@ decay, game script) are wired and sit at zero until the replay clears
 one on a window it was not fitted on; the section below carries each
 table as it is measured.
 
+**2026-09-30, A2: the touchdown model, three terms measured.** Each was
+fitted on 2023 to 2024 and validated on 2025 to 2026, paired against the
+equal-weight model row for row (`compare-td.mjs`: the mean paired
+difference in squared error and its standard error), with the rule that
+a term ships only if Brier improves on both windows and no calibration
+band moves worse than 3pp.
+
+- **Recent-form decay, shipped at 0.97.** A game's weight in a
+  player's line falls by 3% per game of age, the weights scaled to sum
+  to his game count so the shrink toward workload is untouched. The
+  replay holds the board's own window (this season and last) for every
+  game it grades. Brier on the fit window 0.15459 → 0.15432 (Δ/SE −4.2,
+  n 8,521); on the validation window 0.15720 → 0.15683 (Δ/SE −4.0,
+  n 5,715). Stronger decay (0.95, 0.92, 0.90) scored better on Brier
+  but moved a fit-window calibration band worse than 3pp, and 0.85 was
+  noise, so 0.97 is the strongest clean value. A first pass measured
+  0.95 as clean; its replay gave each game all four cached seasons
+  (lines up to 54 deep against the board's 21) and let the decay shrink
+  the evidence as well as reweight it. The review caught both; the
+  table above is the corrected one.
+- **Game script, dead.** Scaling expected touchdowns by the projected
+  team total was worse at every power on the fit window (Δ/SE +2.1 at
+  0.25 to +3.8 at 1) and worse or noise on validation. The constant
+  stays at 0.
+- **Red-zone usage, dead.** A five-term usage fit (carries, targets,
+  carries inside the 20, targets inside the 20, carries inside the 5)
+  was worse than the two-term fit on both windows whether fitted on box
+  scores (Δ/SE +4.0 fit, +1.5 validation) or on what the model sees at
+  prediction time (+4.5, +2.3). Red-zone touches to date carry nothing
+  about the next game's touchdown beyond carries and targets. The
+  constant stays at 0; the usage rows stay on the board for the chips
+  that will read them.
+
+The data file records the terms each build ran with (`model`), and the
+tracker stamps it on each row it records, so the record can be read by
+era: rows recorded before 2026-09-30 were scored with equal weights.
+The row's pill still shows his season rate, the plain count; the
+weighted figure behind the probability is in the panel's workload
+cell, labelled as weighted.
+
 **2026-09-08.** nflverse-data (github.com/nflverse/nflverse-data, CC-BY-4.0,
 plain CSV, no key) holds every NFL game since 1999 with its closing spread,
 total, moneylines and weather, plus weekly injury reports and depth charts

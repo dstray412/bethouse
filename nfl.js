@@ -93,7 +93,45 @@
      */
     tdRz: 0,
     tdPerCarryRz: 0, tdPerTargetRz: 0, tdPerRzCarry: 0, tdPerRzTarget: 0, tdPerGlCarry: 0,
-    tdDecay: 1,
+    /*
+     * tdDecay SHIPPED at 0.97 on 2026-09-30: a game's weight falls 3% per
+     * game of age (ten weeks old counts 0.74), the weights scaled so they
+     * sum to the game count, so only WHICH games speak changes and the
+     * tdK shrink is untouched. Measured with the replay holding the
+     * board's own window (this season and last) for every graded game,
+     * paired row for row against equal weights (compare-td.mjs):
+     *
+     *   node backtest-nfl.mjs --from 2023 --to 2024 --set tdDecay=<v> --dump fit-<v>.json
+     *   node backtest-nfl.mjs --from 2025 --set tdDecay=<v> --dump val-<v>.json
+     *   node compare-td.mjs fit-1.json fit-<v>.json
+     *
+     *   window           n     base      0.97     0.95     0.92     0.90     0.85
+     *   fit 2023-24   8521  0.15459   0.15432  0.15418  0.15404  0.15399  0.15401
+     *      Δ/SE                         -4.2     -3.9     -3.3     -2.9     -1.9
+     *   val 2025-26   5715  0.15720   0.15683  0.15664  0.15644  0.15638  0.15644
+     *      Δ/SE                         -4.0     -3.6     -3.1     -2.7     -1.7
+     *
+     * The rule: ship the strongest value that beats equal weights on both
+     * windows (Δ/SE at or beyond -2) with no calibration band moving
+     * worse than 3pp on either. 0.97 is that value. 0.95, 0.92 and 0.90
+     * score better still but each moves a fit-window band worse than 3pp
+     * (the 50-60 band, n about 160, from -0.7pp to -4.5pp); 0.85 is
+     * noise on both. An earlier pass measured 0.95 as clean, but its
+     * replay handed every game all four cached seasons (lines up to 54
+     * deep against the board's 21) and let the decay shrink the evidence
+     * as well as reweight it; the A2 review caught both and this table
+     * replaces it. Not fitted on the validation window.
+     *
+     * tdScript is DEAD: every power from 0.25 to 1 was worse on the fit
+     * window (Δ/SE +2.1 to +3.8) and worse or noise on validation. The
+     * projected team total does not help pick the scorer.
+     * tdRz is DEAD: the five-term usage fit, fitted on box scores
+     * (Δ/SE +4.0 fit, +1.5 val) or on prediction-time inputs (+4.5,
+     * +2.3), was worse than the two-term fit on both windows. Red-zone
+     * touches to date do not predict the next game's touchdown beyond
+     * carries and targets. Both stay wired at zero for the record.
+     */
+    tdDecay: 0.97,
     tdScript: 0,
 
     /* Team scoring: home field is worth about two points now, not three. */
@@ -573,21 +611,29 @@
     return { c: num(rz.c) / num(rz.n), t: num(rz.t) / num(rz.n), g: num(rz.g) / num(rz.n) };
   }
 
-  /* The player's line with recent games weighted up: weight decay^age per
-     game, newest first. From `player.log`, one row per game:
-     [td, carries, targets, rzc|null, rzt|null, glc|null]. Returns the
-     weighted games, touchdowns and usage rate, or null without a log. */
+  /* The player's line with recent games weighted up. `player.log` is one
+     row per game, OLDEST FIRST (seasonLines writes it in date order):
+     [td, carries, receiving opportunity, rzc|null, rzt|null, glc|null].
+     The newest game has weight 1 and each older game decay^age. The
+     weights are then scaled so they sum to the number of games, so the
+     decay changes only WHICH games speak, not how much evidence there
+     is: the tdK shrink toward workload stays what it was fitted as.
+     Returns the game count, the weighted touchdowns, the weighted usage
+     rate and the weighted per-game workload, or null without a log. */
   function weightedLine(player, o) {
     const log = player && player.log;
     if (!Array.isArray(log) || !log.length) return null;
-    let games = 0, tds = 0, usage = 0;
+    let wsum = 0, tds = 0, usage = 0, carries = 0, receiving = 0;
     for (let i = 0; i < log.length; i++) {
       const row = log[i];
       const w = Math.pow(o.tdDecay, log.length - 1 - i);
       const rz = row[3] != null ? { c: row[3], t: row[4], g: row[5] } : null;
-      games += w; tds += w * num(row[0]); usage += w * usageTDs(row[1], row[2], o, rz);
+      wsum += w; tds += w * num(row[0]); usage += w * usageTDs(row[1], row[2], o, rz);
+      carries += w * num(row[1]); receiving += w * num(row[2]);
     }
-    return games > 0 ? { games, tds, usageRate: usage / games } : null;
+    if (!(wsum > 0)) return null;
+    const scale = log.length / wsum;
+    return { games: log.length, tds: tds * scale, usageRate: usage / wsum, perGameCarries: carries / wsum, perGameReceiving: receiving / wsum };
   }
 
   /**
@@ -610,19 +656,20 @@
     const games = num(player.games);
     if (games <= 0) return null;
 
-    const perGameCarries = num(player.carries) / games;
-    const perGameReceiving = receivingOpportunity(player, o) / games;
+    let perGameCarries = num(player.carries) / games;
+    let perGameReceiving = receivingOpportunity(player, o) / games;
     const rz = rzPerGame(player);
     let usageRate = usageTDs(perGameCarries, perGameReceiving, o, rz);
     const seasonTds = num(player.tds);
-    let observed = seasonTds, evidence = games;
+    let observed = seasonTds;
 
-    // Recent form, when asked for and when the per-game log is there.
+    // Recent form, when asked for and when the per-game log is there: the
+    // same games, weighted toward the recent ones, the evidence unchanged.
     const wl = o.tdDecay < 1 ? weightedLine(player, o) : null;
-    if (wl) { usageRate = wl.usageRate; observed = wl.tds; evidence = wl.games; }
+    if (wl) { usageRate = wl.usageRate; observed = wl.tds; perGameCarries = wl.perGameCarries; perGameReceiving = wl.perGameReceiving; }
 
     // Shrink the observed rate toward what the workload implies.
-    const base = (observed + o.tdK * usageRate) / (evidence + o.tdK);
+    const base = (observed + o.tdK * usageRate) / (games + o.tdK);
 
     const teamFactor = clamp(num((ctx && ctx.teamFactor) || 1) || 1, 0.6, 1.6);
     const oppFactor = clamp(num((ctx && ctx.oppFactor) || 1) || 1, 0.6, 1.6);
@@ -652,6 +699,7 @@
       rawLambda: raw,
       usageRate,
       observedRate: seasonTds / games, // his plain season rate, whatever the decay weighted
+      observed, // the count the shrink used: the weighted one when the decay is on
       shrink: games / (games + o.tdK),
       usageAveraged: !!pool,
       perGameCarries,

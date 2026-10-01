@@ -254,7 +254,7 @@ test("gradeGamePick: closing line value is points in the pick's favour", () => {
  * Oracle: the book's rule. Over is strictly more than a half-number line,
  * so there is no push; a prop the tracker does not know is not settled.
  * ------------------------------------------------------------------ */
-import { settlePlayer, boxScoreLines } from "./track-football.mjs";
+import { settlePlayer, boxScoreLines, snapshot } from "./track-football.mjs";
 import { seasonLines } from "./fetch-football.mjs";
 import nflModel from "./nfl.js";
 
@@ -583,4 +583,28 @@ test("report: a row is one prediction however many rungs it carries", () => {
   assert.equal(out.props.recyds.predicted, 50);
   assert.equal(out.ladder.all.n, 4);
   assert.equal(out.ladder.stats.recyds.label, "Receiving yards");
+});
+
+test("snapshot stamps each prediction with the model era it was made in; a day file's first era is never overwritten", () => {
+  /* The snapshot's rule is "first prediction wins", so a day file spans builds. The stamp
+     therefore lives on the row, beside recordedAt, and the day-level copy is the first seen.
+     Driven through snapshot() itself against a two-player board on disk. */
+  const dir = tmp();
+  const dataFile = path.join(dir, "board.js");
+  const game = { id: "g1", date: "2099-10-04T17:00:00Z", home: "KC", away: "LV" };
+  const player = (id, team) => ({ id, name: "P" + id, team, opp: team === "KC" ? "LV" : "KC", pos: "RB", games: 4, tds: 2, carries: 60, targets: 8, rushYds: 300, recYds: 60 });
+  const write = (model, players) => fs.writeFileSync(dataFile, `window.T = ${JSON.stringify({ season: 2026, week: 5, games: [game], players, model })};`);
+  const league = { model: nflModel, recordDir: dir, dataFile: path.relative(path.dirname(new URL(import.meta.url).pathname), dataFile), dataGlobal: "T", fetcher: "f.mjs", tracker: "t.mjs" };
+  write(undefined, [player(1, "KC")]);
+  snapshot(league); // a build before the stamp existed
+  write({ tdDecay: 1, tdRz: 0, tdScript: 0 }, [player(1, "KC"), player(2, "LV")]);
+  snapshot(league);
+  write({ tdDecay: 0.97, tdRz: 0, tdScript: 0 }, [player(1, "KC"), player(2, "LV"), player(3, "KC")]);
+  snapshot(league);
+  const day = core.loadDay(dir, "2099-10-04");
+  const td = (id) => day.predictions.find((p) => p.playerId === String(id) && p.prop === "td");
+  assert.deepEqual(day.model, { tdDecay: 1, tdRz: 0, tdScript: 0 }, "the first era on the file stays");
+  assert.equal(td(1).model, undefined, "a row made before the stamp existed carries none, so it is not mislabelled");
+  assert.deepEqual(td(2).model, { tdDecay: 1, tdRz: 0, tdScript: 0 }, "a row keeps the era that made it when a later build re-runs");
+  assert.deepEqual(td(3).model, { tdDecay: 0.97, tdRz: 0, tdScript: 0 }, "a new row carries the era that made it");
 });

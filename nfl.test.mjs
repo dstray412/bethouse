@@ -1380,26 +1380,29 @@ test("rzPerGame and weightedLine: per-game red-zone usage over the games it was 
   const equal = nfl.weightedLine(player, Object.assign({}, nfl.DEFAULTS, { tdDecay: 1 }));
   assert.equal(equal.games, 3); assert.equal(equal.tds, 3);
   const half = nfl.weightedLine(player, Object.assign({}, nfl.DEFAULTS, { tdDecay: 0.5 }));
-  assert.equal(half.games, 0.25 + 0.5 + 1, "weights 0.25, 0.5, 1 oldest to newest");
-  assert.equal(half.tds, 0.25 * 0 + 0.5 * 1 + 1 * 2);
+  assert.equal(half.games, 3, "the evidence is still three games: the weights only choose which games speak");
+  const scale = 3 / (0.25 + 0.5 + 1);
+  assert.ok(Math.abs(half.tds - (0.25 * 0 + 0.5 * 1 + 1 * 2) * scale) < 1e-12, "weights 0.25, 0.5, 1 oldest to newest, scaled to sum to three");
+  assert.ok(Math.abs(half.perGameCarries - (0.25 * 10 + 0.5 * 12 + 1 * 20) / 1.75) < 1e-12, "the weighted per-game workload is returned for the panel");
   assert.equal(nfl.weightedLine({ log: [] }, nfl.DEFAULTS), null);
 });
 
-test("scoreAnytimeTD: at the defaults the three terms change nothing; on, each moves the number the way it says", () => {
+test("scoreAnytimeTD: with every term off the rows and the script factor change nothing; on, each moves the number the way it says", () => {
   const p = { games: 10, tds: 6, carries: 150, targets: 30, rz: { c: 20, t: 5, g: 8, n: 10 },
     log: Array.from({ length: 10 }, (_, i) => [i < 6 ? 1 : 0, 15, 3, 2, 0.5, 0.8]) };
-  const base = nfl.scoreAnytimeTD(p, { teamFactor: 1, oppFactor: 1, scriptFactor: 1.3 });
-  const plain = nfl.scoreAnytimeTD({ games: 10, tds: 6, carries: 150, targets: 30 }, { teamFactor: 1, oppFactor: 1 });
+  const off = { tdDecay: 1, tdScript: 0, tdRz: 0 };
+  const base = nfl.scoreAnytimeTD(p, { teamFactor: 1, oppFactor: 1, scriptFactor: 1.3, opts: off });
+  const plain = nfl.scoreAnytimeTD({ games: 10, tds: 6, carries: 150, targets: 30 }, { teamFactor: 1, oppFactor: 1, opts: off });
   assert.equal(base.prob, plain.prob, "rows and a script factor present, every term off: the same number");
   assert.equal(base.scriptFactor, 1.3); assert.equal(base.weighted, false);
-  const script = nfl.scoreAnytimeTD(p, { teamFactor: 1, oppFactor: 1, scriptFactor: 1.3, opts: { tdScript: 1 } });
+  const script = nfl.scoreAnytimeTD(p, { teamFactor: 1, oppFactor: 1, scriptFactor: 1.3, opts: Object.assign({}, off, { tdScript: 1 }) });
   assert.ok(script.lambda > base.lambda, "a team projected above the league scores more");
-  const half = nfl.scoreAnytimeTD(p, { teamFactor: 1, oppFactor: 1, scriptFactor: 1.3, opts: { tdScript: 0.5 } });
+  const half = nfl.scoreAnytimeTD(p, { teamFactor: 1, oppFactor: 1, scriptFactor: 1.3, opts: Object.assign({}, off, { tdScript: 0.5 }) });
   assert.ok(half.lambda > base.lambda && half.lambda < script.lambda, "the power scales the effect");
-  const rz = nfl.scoreAnytimeTD(p, { teamFactor: 1, oppFactor: 1, opts: { tdRz: 1, tdPerCarryRz: 0.02, tdPerTargetRz: 0.03, tdPerRzCarry: 0.1, tdPerRzTarget: 0.1, tdPerGlCarry: 0.2 } });
+  const rz = nfl.scoreAnytimeTD(p, { teamFactor: 1, oppFactor: 1, opts: Object.assign({}, off, { tdRz: 1, tdPerCarryRz: 0.02, tdPerTargetRz: 0.03, tdPerRzCarry: 0.1, tdPerRzTarget: 0.1, tdPerGlCarry: 0.2 }) });
   assert.deepEqual(rz.rz, { c: 2, t: 0.5, g: 0.8 });
   assert.equal(rz.usageRate, 0.02 * 15 + 0.03 * 3 + 0.1 * 2 + 0.1 * 0.5 + 0.2 * 0.8);
-  const decayed = nfl.scoreAnytimeTD(p, { teamFactor: 1, oppFactor: 1, opts: { tdDecay: 0.8 } });
+  const decayed = nfl.scoreAnytimeTD(p, { teamFactor: 1, oppFactor: 1, opts: Object.assign({}, off, { tdDecay: 0.8 }) });
   assert.equal(decayed.weighted, true);
   assert.ok(decayed.observedRate === base.observedRate, "the reported season rate is still the plain one");
   assert.ok(decayed.lambda < base.lambda, "his scores were all early in the log, so weighting the recent games up lowers him");
@@ -1413,4 +1416,29 @@ test("seasonLines: every player gets a per-game log; red-zone sums only over gam
   const r = players.get("p1");
   assert.deepEqual(r.log, [[1, 10, 2, 3, 1, 2], [1, 10, 2, null, null, null]]);
   assert.deepEqual(r.rz, { c: 3, t: 1, g: 2, n: 1 }, "one game had rows");
+});
+
+test("the shipped touchdown terms: decay at 0.97, script and red zone off, so the board and the replay agree with the README's tables", () => {
+  assert.equal(nfl.DEFAULTS.tdDecay, 0.97);
+  assert.equal(nfl.DEFAULTS.tdScript, 0);
+  assert.equal(nfl.DEFAULTS.tdRz, 0);
+  // With the decay on, a player whose log is present is weighted; one without a log is scored as before.
+  const withLog = { games: 4, tds: 2, carries: 60, targets: 10, log: [[0, 15, 2, null, null, null], [0, 15, 3, null, null, null], [1, 15, 3, null, null, null], [1, 15, 2, null, null, null]] };
+  const s = nfl.scoreAnytimeTD(withLog, { teamFactor: 1, oppFactor: 1 });
+  assert.equal(s.weighted, true);
+  const plain = nfl.scoreAnytimeTD({ games: 4, tds: 2, carries: 60, targets: 10 }, { teamFactor: 1, oppFactor: 1 });
+  assert.equal(plain.weighted, false);
+  assert.ok(s.lambda > plain.lambda, "his two scores were his last two games, so recent weighting lifts him");
+});
+
+test("seasonLines: the per-game log is oldest first whatever order the games arrive in, and holds the league's receiving opportunity", async () => {
+  const { seasonLines } = await import("./fetch-football.mjs");
+  const g = (date, tgt, rec) => ({ date, season: 2026, week: 1, home: { team: "A", score: 20, stats: {} }, away: { team: "B", score: 10, stats: {} },
+    players: [{ id: "p1", name: "P", team: "A", rush: { att: 5, yds: 20, td: 0 }, rec: { rec, tgt, yds: 50, td: 1 } }] });
+  const newestFirst = [g("2026-09-21T00:00Z", 8, 6), g("2026-09-07T00:00Z", 3, 2)];
+  const nflLine = seasonLines(newestFirst, nfl).players.get("p1");
+  assert.deepEqual(nflLine.log.map((row) => row[2]), [3, 8], "oldest first, targets for the NFL");
+  const cfb = (await import("./cfb.js")).default;
+  const cfbLine = seasonLines(newestFirst, cfb).players.get("p1");
+  assert.deepEqual(cfbLine.log.map((row) => row[2]), [2, 6], "oldest first, receptions for college, where targets are never recorded");
 });

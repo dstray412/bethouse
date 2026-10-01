@@ -268,13 +268,15 @@ if (args.includes("--measure")) {
  * Rolling state, rebuilt from prior games only
  * ---------------------------------------------------------------- */
 
-function stateFrom(priorGames) {
+function stateFrom(priorGames, allPrior) {
   // The same season-line builder the board uses, so the replay and the
-  // page cannot count a touchdown or a team factor differently.
+  // page cannot count a touchdown or a team factor differently. The lines
+  // see the board's window; the team ratings, like the board's, see every
+  // prior game on file.
   const { players, usageByPlayer, teamFactors } = seasonLines(priorGames, M);
   return {
     players,
-    ratings: buildTeamRatings(priorGames),
+    ratings: buildTeamRatings(allPrior || priorGames),
     teamFactor: (t) => (teamFactors[t] || {}).off ?? 1,
     oppFactor: (t) => (teamFactors[t] || {}).def ?? 1,
     allow: (t, stat) => allowOf(teamFactors, t, stat),
@@ -310,10 +312,17 @@ const marginErr = [], totalErr = []; // the model's own projection error
 for (let i = START_INDEX; i < ALL.length; i++) {
   const g = ALL[i];
   if (!inWindow(g)) continue;
-  const prior = ALL.slice(0, i);
+  /* The board's window: this season and last. The replay used to hand
+     each game every prior game on file, which with four seasons cached
+     made its lines up to 54 games deep against the board's 21, and a
+     recent-form term measured on the deep line is not the term the board
+     runs (the A2 review caught it). Same rule as buildBoard for the
+     lines; the ratings still take every prior game, as buildBoard's do. */
+  const all = ALL.slice(0, i);
+  const prior = all.filter((h) => h.season >= g.season - 1);
   // Rebuilding state per game is wasteful but unambiguous: there is no way
   // for a later game to leak in. 1,760 games is still under a minute.
-  const st = stateFrom(prior);
+  const st = stateFrom(prior, all);
 
   /* ---- spread and total, against the closing line ---- */
   const proj = projectGame(st.ratings, g.home.team, g.away.team, { neutral: !!g.neutral });
@@ -379,7 +388,8 @@ for (let i = START_INDEX; i < ALL.length; i++) {
       // the model's own inputs at prediction time, for fitting a usage term on what it can see
       inputs: [s.perGameCarries, s.perGameReceiving, s.rz ? s.rz.c : null, s.rz ? s.rz.t : null, s.rz ? s.rz.g : null, rec.games, s.observedRate] });
     tdRowsRaw.push({
-      tds: rec.tds, games: rec.games, usageRate: s.usageRate,
+      // the count the shrink used, weighted when the decay is on, so --fit re-scores the shipped model
+      tds: s.observed, games: rec.games, usageRate: s.usageRate,
       teamFactor: s.teamFactor, oppFactor: s.oppFactor, pool: uPool, actual: scored,
     });
   }

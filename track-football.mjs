@@ -231,6 +231,11 @@ export function snapshot(league) {
   const day = core.loadDay(HIST, date);
   day.season = D.season;
   day.week = D.week;
+  /* The model terms the board ran with. Every row carries its own, beside
+     recordedAt, because "first prediction wins" means a day file spans
+     builds; the day-level copy is the first era seen and is never
+     overwritten. */
+  if (D.model && !day.model) day.model = D.model;
   const seen = new Set(day.predictions.map(predKey));
 
   const gameFor = {};
@@ -252,7 +257,7 @@ export function snapshot(league) {
 
     for (const { key, ...r } of playerRows(M, D, p, g)) {
       if (seen.has(key)) continue;                // Rule 1: first prediction wins
-      day.predictions.push({ ...r, recordedAt: new Date().toISOString() });
+      day.predictions.push({ ...r, recordedAt: new Date().toISOString(), ...(D.model ? { model: D.model } : {}) });
       seen.add(key);
       added++;
       rungs += r.ladder ? Object.keys(r.ladder).length : 0;

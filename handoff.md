@@ -29,6 +29,41 @@ Zero dependencies, no build step, no server, no API key. `node --test` with
 **named files** — bare discovery pulls in the backtests, which fire live API
 calls. The list lives in seven places and `dom.test.mjs` checks all seven.
 
+## A2: the touchdown model (2026-09-30)
+
+Three terms measured on the fit window (2023 to 2024) and validated
+on 2025 to 2026, paired row for row against the equal-weight replay
+(`node backtest-nfl.mjs --from … --dump`, then `node compare-td.mjs`).
+Shipped: `tdDecay` 0.97 (Brier 0.15459 → 0.15432 fit, 0.15720 →
+0.15683 validation, Δ/SE −4.2 and −4.0, no band worse than 3pp; the
+comment beside the constant in nfl.js carries the full table and the
+commands). The A2 review caught two measurement faults in the first
+pass that had made 0.95 look clean: the replay handed every game all
+four cached seasons where the board caps at two, and the decay
+shrank the evidence as well as reweighting it; `backtest-nfl.mjs`
+now applies the board's window to the lines (the team ratings still
+take every prior game, as the board's do), `weightedLine` scales its
+weights to the game count, `--fit` re-scores from the weighted count
+the shrink used, and the grid was re-run. Also from that
+review: the per-game log stores the league's receiving opportunity
+(college records receptions, never targets, and the first cut would
+have zeroed every college receiver's usage on the next build);
+`seasonLines` sorts the games itself; the panel's workload cell shows
+the weighted figures and says so; the era stamp is on each record row
+beside `recordedAt`, and a day file's first era is never overwritten. Dead:
+`tdScript` (worse at every power on both windows) and `tdRz` (worse on
+both windows whether fitted on box scores or on prediction-time
+inputs; `fit-usage.mjs` is the second fit). The data file carries
+`model` and the tracker stamps it into each day file, so the record
+reads by era. A first red-zone pass looked wrong for a data reason
+before the term was measured: the play-by-play only made a row for a
+player who had a red-zone touch, so 66% of player-games read as
+unknown and every rate was inflated; the review caught it and the
+zero fill is coverage-aware now. Also caught there: scrambles were
+dropped (168 of 168 red-zone scrambles in 2025), two-point tries were
+counted. Next: A3, the counting props (target and carry shares, the
+same decay, air yards, the passing 300+ shape).
+
 ## A1: the usage feed (2026-09-30)
 
 Start of the program the user approved: a stronger NFL player-prop
