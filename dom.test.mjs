@@ -34,7 +34,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const DIR = dirname(fileURLToPath(import.meta.url));
-const BOARDS = ["index.html", "baseball.html", "golf.html", "nfl.html", "cfb.html", "bets.html", "live.html", "record.html", "teams.html", "defence.html"];
+const BOARDS = ["index.html", "baseball.html", "golf.html", "nfl.html", "cfb.html", "bets.html", "live.html", "record.html", "teams.html", "defence.html", "offence.html"];
 const src = (f) => readFileSync(resolve(DIR, f), "utf8");
 
 /*
@@ -2321,10 +2321,15 @@ test("the teams page's panel scrolls sideways inside itself, the team cell stick
   assert.doesNotMatch(css, /\.teams th\{[^}]*position:sticky/, "a sticky column head in a panel that never scrolls vertically");
   for (const f of ["faces.js", "teams-data.js", "teams.js", "tendencies-data.js", "tendencies-core.js", "teams-page.js"]) assert.match(src("teams.html"), new RegExp('<script src="' + f.replace(".", "\\.") + '"></script>'), "teams.html does not load " + f);
   assert.match(markup("teams.html"), /id="teams"[\s\S]*id="tfoot"/);
-  /* The defensive cheat sheet: the NFL data file (the sheet rides it), the marks and colours, the page module; the sheet from the data global. */
-  for (const f of ["faces.js", "teams-data.js", "teams.js", "nfl-data.js", "defence-page.js"]) assert.match(src("defence.html"), new RegExp('<script src="' + f.replace(".", "\\.") + '"></script>'), "defence.html does not load " + f);
-  assert.match(markup("defence.html"), /id="sheet"[\s\S]*id="sfoot"/);
-  assert.match(src("defence.html"), /sheet: D && D\.defence \|\| null/, "the page does not read the sheet off the NFL data file");
+  /* The cheat sheets: the NFL data file (the sheets ride it), the marks and colours, the one page module; each page its own sheet off the data global. */
+  for (const page of ["defence.html", "offence.html"]) {
+    for (const f of ["faces.js", "teams-data.js", "teams.js", "nfl-data.js", "sheet-page.js"]) assert.match(src(page), new RegExp('<script src="' + f.replace(".", "\\.") + '"></script>'), page + " does not load " + f);
+    assert.match(markup(page), /id="sheet"[\s\S]*id="sfoot"/);
+  }
+  assert.match(src("defence.html"), /sheet: D && D\.defence \|\| null/, "the defence page does not read its sheet off the NFL data file");
+  assert.match(src("offence.html"), /sheet: D && D\.offence \|\| null/, "the offence page does not read its sheet off the NFL data file");
+  assert.doesNotMatch(src("offence.html"), /D\.defence/, "the offence page reads the defence's sheet");
+  assert.match(src("offence.html"), /side: 'off'/, "the offence page does not name its side"); assert.match(src("defence.html"), /side: 'def'/, "the defence page does not name its side");
   const sheetCss = src(SHEET);
   for (const c of [".sheet{", ".scard{", ".slines li{", ".slines .rk.r1{", ".slines .v{"]) assert.ok(sheetCss.includes(c), "no rule for " + c);
   assert.match(sheetCss, /\.sheet\{columns:2;/, "the sheet is not a two-column flow (a grid leaves a gap beside a tall card)");

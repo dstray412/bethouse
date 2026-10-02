@@ -1749,3 +1749,40 @@ test("defenceSheet: per-game means, season totals, home and road splits, positio
   const open = games.concat([{ ...games[0], id: "9", week: 3, home: { team: "KC", score: null, stats: null }, away: { team: "LAC", score: null, stats: null } }]);
   assert.equal(defenceSheet(open, roster, { season: 2026 }).teams.KC.passYds.n, 2, "a game without a score was counted");
 });
+
+test("teamSheet by side: the offence's sheet is the same games attributed to the offence, with its own home and road, its own turnovers ranked from the fewest, and the defence's sheet unchanged", async () => {
+  const { teamSheet, defenceSheet, OFFENCE_STATS, DEFENCE_STATS } = await import("./fetch-football.mjs");
+  const P = (id, team, o) => Object.assign({ id, name: id, team }, o);
+  const g = (id, week, home, away, hs, as, players) => ({ id, season: 2026, week, date: "2026-09-" + (10 + week) + "T17:00Z", home: { team: home, score: 20, stats: hs }, away: { team: away, score: 17, stats: as }, players });
+  const games = [
+    g("1", 1, "KC", "LAC", { yards: 250, plays: 50, turnovers: 2, firstDowns: 14 }, { yards: 400, plays: 60, turnovers: 0, firstDowns: 22 }, [
+      P("q1", "LAC", { pass: { att: 30, cmp: 20, yds: 300, td: 2, int: 1 }, rush: { att: 2, yds: 10, td: 0 } }), P("w1", "LAC", { rec: { rec: 8, tgt: 10, yds: 150, td: 1 } }),
+      P("q2", "KC", { pass: { att: 25, cmp: 15, yds: 200, td: 1, int: 0 } }), P("r2", "KC", { rush: { att: 20, yds: 50, td: 0 } }), P("w2", "KC", { rec: { rec: 11, tgt: 15, yds: 170, td: 1 } }),
+    ]),
+    g("2", 2, "DEN", "KC", { yards: 300, plays: 55, turnovers: 1, firstDowns: 18 }, { yards: 450, plays: 65, turnovers: 3, firstDowns: 25 }, [
+      P("q3", "DEN", { pass: { att: 20, cmp: 10, yds: 100, td: 0, int: 2 } }), P("r3", "DEN", { rush: { att: 30, yds: 200, td: 2 } }),
+      P("q2", "KC", { pass: { att: 40, cmp: 30, yds: 400, td: 3, int: 1 } }), P("w2", "KC", { rec: { rec: 15, tgt: 20, yds: 250, td: 2 } }),
+    ]),
+  ];
+  const roster = new Map([["w1", { pos: "WR" }], ["w2", { pos: "WR" }], ["r2", { pos: "RB" }], ["r3", { pos: "RB" }]]);
+  const off = teamSheet(games, roster, { season: 2026, side: "off" });
+  const kc = off.teams.KC;
+  /* KC's offence: 200 pass at home in week 1, 400 on the road in week 2; its own turnovers 2 + 3. */
+  assert.deepEqual(kc.passYds, { v: 300, n: 2, rank: 1, of: 3 });
+  assert.deepEqual(kc.passYdsHome, { v: 200, n: 1, rank: 1, of: 2 }, "the offence's home split is where the offence played: KC's 200 at home against DEN's 100");
+  assert.deepEqual(kc.passYdsAway, { v: 400, n: 1, rank: 1, of: 2 });
+  assert.deepEqual(kc.rushYds, { v: 25, n: 2, rank: 2, of: 3 }, "50 then none, 25 a game, between DEN's 200 and LAC's 10");
+  assert.deepEqual(kc.passTd, { v: 4, n: 2, rank: 1, of: 3 }, "four passing TD over two games, 2.0 a game, level with LAC's two in one: a shared first place");
+  assert.equal(off.teams.LAC.passTd.rank, 1, "the tie is shared, not broken");
+  assert.deepEqual(kc.turnovers, { v: 5, n: 2, rank: 3, of: 3 }, "the offence's own turnovers, ranked from the fewest: 2.5 a game is last");
+  assert.deepEqual(off.teams.LAC.turnovers, { v: 0, n: 1, rank: 1, of: 3 });
+  assert.equal(kc.takeaways, undefined, "an offence has no takeaways");
+  assert.deepEqual(kc.recYdsWR, { v: 210, n: 2, rank: 1, of: 3 }, "KC's own receiving yards to its receivers");
+  assert.equal(OFFENCE_STATS.turnovers.label, "Turnovers"); assert.equal(OFFENCE_STATS.turnovers.soft, "fewest"); assert.equal(OFFENCE_STATS.takeaways, undefined);
+  assert.equal(DEFENCE_STATS.turnovers, undefined);
+  assert.equal(off.side, "off"); assert.equal(defenceSheet(games, roster, { season: 2026 }).side, "def");
+  /* The defence's sheet is the same arithmetic the other way: what KC's defence allowed is what LAC's and DEN's offences did. */
+  const def = defenceSheet(games, roster, { season: 2026 });
+  assert.equal(def.teams.KC.passYds.v, 200); assert.equal(off.teams.LAC.passYds.v, 300); assert.equal(off.teams.DEN.passYds.v, 100);
+  assert.equal(def.teams.KC.passYdsHome.v, off.teams.LAC.passYdsAway.v, "KC at home allowed what LAC did on the road");
+});

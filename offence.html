@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>BetHouse — Defences</title>
+<title>BetHouse — Offences</title>
 <link rel="stylesheet" href="fonts/fonts.css">
 <link rel="stylesheet" href="board.css">
 </head>
@@ -12,7 +12,7 @@
 <header>
   <div class="brand">
     <h1 class="logo">BETHOUSE</h1>
-    <div class="tagline">NFL defensive cheat sheet</div>
+    <div class="tagline">NFL offensive cheat sheet</div>
   <nav class="boards" aria-label="Other boards">
   <a class="navlink" href="index.html">Home →</a>
   <a class="navlink" href="bets.html">Bets →</a>
@@ -23,15 +23,15 @@
   <a class="navlink" href="live.html">Live →</a>
   <a class="navlink" href="record.html">Record →</a>
   <a class="navlink" href="teams.html">Teams →</a>
-  <a class="navlink" href="offence.html">Offences →</a>
+  <a class="navlink" href="defence.html">Defences →</a>
   </nav>
   </div>
 </header>
 
-<div class="note">For each game this week, what its two defences have allowed most this season: the lines where a defence ranks in
-the top five, both sides in one list by rank. A soft spot is a place to look, not a price: the model prices a defence
-through its own fitted allowances, at full strength on the touchdown chance and the game line, at half strength on rushing
-and passing yards, and not at all on the other counting props.</div>
+<div class="note">For each game this week, what its two offences have done most this season: the lines where an offence ranks in
+the top five, both sides in one list by rank. A tendency is a place to look, not a price: the model takes from an offence its
+touchdown rate against the league on the touchdown chance and its rating on the game line; a counting prop takes nothing from
+the offence's own production, only the opponent's allowance and the share its injured teammates leave behind.</div>
 
 <div class="sheet" id="sheet"><div class="empty"><div class="big">Loading…</div></div></div>
 <footer id="sfoot"></footer>
@@ -47,12 +47,12 @@ and passing yards, and not at all on the other counting props.</div>
 (function () {
   var D = window.BetHouseNFLData || null;
   BetHouseSheetPage.render(document, {
-    sheet: D && D.defence || null,
+    sheet: D && D.offence || null,
     games: D && D.games || [],
     faces: window.BetHouseFaces || null,
     teams: window.BetHouseTeams || null,
     league: 'NFL',
-    side: 'def'
+    side: 'off'
   });
 })();
 </script>

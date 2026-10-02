@@ -228,7 +228,7 @@ should be re-fitted when the run environment shifts.
 |---|---|
 | `index.html` | The home: tonight's slate, one card per game with the two teams' logos, the football boards' projection and pick, a row of tops. |
 | `home.js` | The home's arithmetic: one slate out of the boards' data, which day it shows, the football card, the tops, the tile. Tested in `home.test.mjs`. |
-| `defence.html` / `defence-page.js` | The defensive cheat sheet: a card a game, the lines where either defence ranks in the top five of 32 for what it allows, from the sheet the fetcher computes (`defenceSheet`); tested in `defence-page.test.mjs`. |
+| `defence.html` / `offence.html` / `sheet-page.js` | The cheat sheets: a card a game, the lines where either defence ranks in the top five of 32 for what it allows, and the twin for what either offence does, from the sheets the fetcher computes (`teamSheet`); tested in `sheet-page.test.mjs`. |
 | `teams.html` / `teams-page.js` | The teams page: one row per NFL team from the tendencies profiles, sortable, with the family chips; tested in `teams-page.test.mjs`. |
 | `tendencies-core.js` | The ranks, the two legibility thresholds, the play families, a matchup and its sentence: the arithmetic the board's matchup panel, the teams page and `tendencies.mjs` share, one copy. |
 | `teams.js` / `teams-data.js` / `fetch-teams.mjs` | A team's two colours, for the stripe on the home's game cards, the tint behind the drawer's hero and the tray card's edge, and nowhere on text. The table is ESPN's team lists (NFL and MLB by abbreviation, college by ESPN id), fetched by hand and committed. Tested in `teams.test.mjs`. |
@@ -333,6 +333,14 @@ answers one question first and keeps the rest a tab away. So:
 
 Nothing measured was removed. It moved one click from the headline.
 
+**The offensive cheat sheet (2026-10-02).** `offence.html`, the twin:
+the same twenty-four lines attributed to the offence that did them,
+ranked from the top (turnovers from the fewest), one renderer for both
+pages (`sheet-page.js`, `teamSheet` by side in the fetcher, shipped as
+`offence` beside `defence`). Its caveat says what the model takes from
+an offence: its team factor on the touchdown chance and its rating on
+the game line; a counting prop is the player's own line.
+
 **The defensive cheat sheet (2026-10-02).** `defence.html`, the
 user's ask after a reference sheet: for each game this week, what its
 two defences have allowed most this season, one card a game, the lines
@@ -356,7 +364,7 @@ teams page, and the caveat says what the model actually does with a
 defence: its own fitted allowances, at full strength on the touchdown
 chance and the game line, at half strength on rushing and passing
 yards, and not at all on the other counting props. Tested in
-`defence-page.test.mjs` and the sheet's arithmetic in `nfl.test.mjs`,
+`sheet-page.test.mjs` and the sheet's arithmetic in `nfl.test.mjs`,
 a three-game fixture computed by hand. Code review caught the first
 draft ranking season totals raw (an extra game played read as an extra
 touchdown allowed) and a caveat that scoped the model's defence term

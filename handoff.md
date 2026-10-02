@@ -13,7 +13,7 @@ commit you are reading and how old the data on disk is.
 
 ## Where things are
 
-**Ten pages**, all live and deployed:
+**Eleven pages**, all live and deployed:
 
 | page | what |
 |---|---|
@@ -23,6 +23,7 @@ commit you are reading and how old the data on disk is.
 | `record.html` | the record: the replay tables and the live records for both football boards. Added 2026-10-01 |
 | `teams.html` | the teams page: every NFL offence and defence from the play-by-play profiles, sortable. Added 2026-10-01 |
 | `defence.html` | the defensive cheat sheet: a card a game, what either defence allows most, ranked out of 32. Added 2026-10-02 |
+| `offence.html` | the offensive cheat sheet, the twin: what either offence does most. Added 2026-10-02 |
 | `nfl.html` | anytime TD; receiving, rushing, rush + rec and passing yards and receptions, each with a ladder of alternate lines; game matchups from play-by-play. Spreads and totals shown with the board saying they do not beat the close |
 | `cfb.html` | college football, the same props and ladders (no matchups). Added 2026-09-05 |
 | `golf.html` | PGA Tour make-the-cut |
@@ -32,7 +33,20 @@ Zero dependencies, no build step, no server, no API key. `node --test` with
 **named files** — bare discovery pulls in the backtests, which fire live API
 calls. The list lives in seven places and `dom.test.mjs` checks all seven.
 
-## The defensive cheat sheet (2026-10-02, latest)
+## The offensive cheat sheet (2026-10-02, latest)
+
+**What.** The twin of the defensive sheet, asked for next. `teamSheet`
+in fetch-football.mjs takes a `side`: "def" attributes a game's output
+to the defence that allowed it, "off" to the offence that did it, home
+being that side's home; the turnover line is `takeaways` on one and
+`turnovers` on the other (both from the fewest). `defenceSheet` is the
+"def" wrapper. One renderer, `sheet-page.js` (UMD `BetHouseSheetPage`,
+was defence-page.js), reads `sheet.side` for the caveat and the empty
+states; `offence.html` loads `D.offence`. Tests: the offence side on
+the same hand-computed fixture in nfl.test.mjs, the caveat in
+sheet-page.test.mjs, both pages in dom.test.mjs. Eleven pages.
+
+## The defensive cheat sheet (2026-10-02)
 
 **What.** The user showed a reference sheet (one card a game, each
 defence's most-allowed lines with MOST/2ND/… badges, ranks out of 32,
@@ -42,11 +56,11 @@ scores and the roster (24 lines a defence: yardage means with home and
 road splits, rates, season totals of touchdowns and takeaways, the
 receiving work by the catcher's position; ranks from the soft end,
 ties shared, a season total ranked a game, each cell saying how many it was ranked among) and ships it as `defence` on nfl-data.js (about 30 KB).
-`defence-page.js` (UMD `BetHouseDefencePage`: lines, gameLines,
+`sheet-page.js` (UMD `BetHouseSheetPage`, written as defence-page.js: lines, gameLines,
 cardHtml, footHtml, render) lists the top five places for both
 defences of each open game, merged by rank. `defence.html` is a tenth
 page; every board links it; BOARDS and the gate lists grew. Tests:
-`defence-page.test.mjs`, the sheet's arithmetic in nfl.test.mjs (a
+`sheet-page.test.mjs`, the sheet's arithmetic in nfl.test.mjs (a
 three-game fixture computed by hand), dom.test.mjs for the page's
 scripts and styles.
 

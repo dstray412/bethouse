@@ -1,14 +1,14 @@
 /*
- * BetHouse — defence-page.test.mjs
- * The defensive cheat sheet: for each open game, what the two defences
- * allow most, from the sheet the fetcher computed. Oracle: the sheet's
+ * BetHouse — sheet-page.test.mjs
+ * The cheat sheets: for each open game, what the two defences allow most
+ * (or the two offences do most), from the sheet the fetcher computed. Oracle: the sheet's
  * own ranks (defenceSheet's test) and the page's stated rules: only the
  * top five places, both defences in one list by rank, a one-game split
  * marked, nothing on a game whose defences have no sheet.
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import page from "./defence-page.js";
+import page from "./sheet-page.js";
 
 const SHEET = {
   through: { season: 2026, week: 3 }, field: 32,
@@ -76,4 +76,28 @@ test("render: open games in kickoff order into #sheet, the caveat into #sfoot wi
   assert.match(els.sheet.innerHTML, /class="empty"/); assert.match(els.sheet.innerHTML, /No sheet/);
   page.render(doc, { sheet: SHEET, games: [], league: "NFL", now });
   assert.match(els.sheet.innerHTML, /No games/);
+});
+
+test("the offence's sheet reads the other way: the caveat says what each offence has done, what the model takes from an offence, and turnovers from the fewest", () => {
+  const OFF = { ...SHEET, side: "off", stats: { ...SHEET.stats, takeaways: undefined, turnovers: { label: "Turnovers", soft: "fewest", kind: "total" } }, teams: { IND: { ...SHEET.teams.IND, takeaways: undefined, turnovers: { v: 2, n: 3, rank: 1, of: 32 } }, WSH: SHEET.teams.WSH } };
+  delete OFF.stats.takeaways; delete OFF.teams.IND.takeaways;
+  const made = (id) => ({ id, innerHTML: "" });
+  const els = { sheet: made("sheet"), sfoot: made("sfoot") };
+  const doc = { getElementById: (id) => els[id] || null };
+  page.render(doc, { sheet: OFF, games: GAMES, league: "NFL", now: Date.parse("2026-10-03T00:00Z") });
+  assert.match(els.sfoot.innerHTML, /What each offence has done most this season/, "the offence's caveat reads as the defence's");
+  assert.match(els.sfoot.innerHTML, /for turnovers, the fewest/);
+  assert.match(els.sfoot.innerHTML, /The model takes from an offence its team factor, its touchdown rate against the league, at full strength on the touchdown chance, and its rating on the game line; a counting prop takes nothing from the offence's own production, only the opponent's allowance and the share its injured teammates leave behind/, "the caveat does not say what the model takes from an offence, in full");
+  assert.doesNotMatch(els.sfoot.innerHTML, /defence/);
+  assert.match(els.sheet.innerHTML, /<span class="rk r1">FEWEST<\/span><b class="tm">IND<\/b> <span class="st">Turnovers<\/span>/);
+  /* A page names its side; a sheet of the other side is refused rather than captioned wrongly. */
+  page.render(doc, { sheet: OFF, games: GAMES, league: "NFL", side: "def", now: Date.parse("2026-10-03T00:00Z") });
+  assert.match(els.sheet.innerHTML, /Wrong sheet/, "the defence page rendered the offence's sheet, or did not say why it refused it");
+  assert.doesNotMatch(els.sheet.innerHTML, /none are on file/, "a refused sheet is reported as missing");
+  assert.equal(els.sfoot.innerHTML, "", "a refused sheet still got a caveat");
+  page.render(doc, { sheet: SHEET, games: GAMES, league: "NFL", side: "def", now: Date.parse("2026-10-03T00:00Z") });
+  assert.match(els.sheet.innerHTML, /scard/, "a sheet without a side is the defence's, as the first build wrote it");
+  /* The defence's caveat is the defence's. */
+  page.render(doc, { sheet: SHEET, games: GAMES, league: "NFL", now: Date.parse("2026-10-03T00:00Z") });
+  assert.match(els.sfoot.innerHTML, /What each defence has allowed most this season/);
 });

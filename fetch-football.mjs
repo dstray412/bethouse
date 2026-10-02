@@ -812,8 +812,9 @@ export function vacatedByTeam(model, players, games, injuries) {
 }
 
 /*
- * The defensive cheat sheet (2026-10-02): for each defence, what the
- * offences it faced did this season, from the box scores on file. Means
+ * The cheat sheets (2026-10-02): for each defence, what the offences it
+ * faced did this season, and for each offence what it did (teamSheet's
+ * `side`), from the box scores on file. The arithmetic is one. Means
  * a game for the yardage and the counts; season totals for touchdowns
  * and takeaways, printed as the count and RANKED a game, since the
  * teams have not all played the same number; the yardage split by where
@@ -853,18 +854,30 @@ export const DEFENCE_STATS = {
   recYdsRB: { label: "Rec yards to RB", soft: "most", kind: "mean" },
   takeaways: { label: "Takeaways", soft: "fewest", kind: "total" },
 };
+/* The offence's sheet: the same lines attributed to the side that did them, and its own turnovers from the fewest. */
+export const OFFENCE_STATS = Object.fromEntries(Object.entries(DEFENCE_STATS).map(([k, v]) => (k === "takeaways" ? ["turnovers", { label: "Turnovers", soft: "fewest", kind: "total" }] : [k, { ...v }])));
 const POS_GROUP = { WR: "WR", TE: "TE", RB: "RB", FB: "RB" };
 
-export function defenceSheet(games, roster, opts) {
-  const season = opts && opts.season;
+export function defenceSheet(games, roster, opts) { return teamSheet(games, roster, { ...(opts || {}), side: "def" }); }
+
+/**
+ * One side's sheet. `side` "def" attributes each game's output to the
+ * defence that allowed it (home and road being where the defence stood);
+ * "off" to the offence that did it. The arithmetic is the same.
+ */
+export function teamSheet(games, roster, opts) {
+  const season = opts && opts.season, side = opts && opts.side === "off" ? "off" : "def";
+  const STATS_OF = side === "off" ? OFFENCE_STATS : DEFENCE_STATS, toKey = side === "off" ? "turnovers" : "takeaways";
   const played = (games || []).filter((g) => g && g.home && g.away && (season == null || g.season === season) && Array.isArray(g.players) && g.home.score != null && g.away.score != null && isFinite(Number(g.home.score)) && isFinite(Number(g.away.score)));
-  const acc = new Map(); // defence -> arrays of per-game readings
+  const acc = new Map(); // owner (the defence, or the offence) -> arrays of per-game readings
   const bag = (team) => { if (!acc.has(team)) acc.set(team, { n: 0, rows: [] }); return acc.get(team); };
   const posOf = (id) => { const r = roster && typeof roster.get === "function" ? roster.get(String(id)) : null; return r && POS_GROUP[r.pos] ? POS_GROUP[r.pos] : null; };
   let week = 0;
   for (const g of played) {
     week = Math.max(week, Number(g.week) || 0);
-    for (const [def, off, atHome] of [[g.home.team, g.away.team, true], [g.away.team, g.home.team, false]]) {
+    for (const [def, off, defHome] of [[g.home.team, g.away.team, true], [g.away.team, g.home.team, false]]) {
+      /* The row accrues to the defence that allowed it or the offence that did it; home is that side's home. */
+      const owner = side === "off" ? off : def, atHome = side === "off" ? !defHome : defHome;
       const row = { atHome, passYds: 0, rushYds: 0, att: 0, cmp: 0, carries: 0, passTd: 0, rushTd: 0, rec: { WR: [0, 0, 0], TE: [0, 0, 0], RB: [0, 0, 0] } };
       for (const p of g.players) {
         if (p.team !== off) continue;
@@ -873,12 +886,12 @@ export function defenceSheet(games, roster, opts) {
         if (p.rec && roster) { const grp = posOf(p.id); if (grp) { row.rec[grp][0] += num(p.rec.rec); row.rec[grp][1] += num(p.rec.yds); row.rec[grp][2] += num(p.rec.td); } }
       }
       /* The offence's own stat block; a game without one leaves these null (player yards are gross of sacks, the team's net: not the same number). */
-      const offStats = (atHome ? g.away : g.home).stats || null;
+      const offStats = (defHome ? g.away : g.home).stats || null;
       row.totalYds = offStats && offStats.yards != null ? num(offStats.yards) : null;
       row.plays = offStats && offStats.plays != null ? num(offStats.plays) : null;
       row.firstDowns = offStats && offStats.firstDowns != null ? num(offStats.firstDowns) : null;
       row.takeaways = offStats && offStats.turnovers != null ? num(offStats.turnovers) : null;
-      const b = bag(def); b.n++; b.rows.push(row);
+      const b = bag(owner); b.n++; b.rows.push(row);
     }
   }
   const r1 = (x) => Math.round(x * 10) / 10, r2 = (x) => Math.round(x * 100) / 100;
@@ -901,7 +914,7 @@ export function defenceSheet(games, roster, opts) {
     if (tyRows.length) out.totalYds = cell(r1(tyRows.reduce((s, r) => s + r.totalYds, 0) / tyRows.length), tyRows.length);
     if (plRows.length) out.ydsPerPlay = cell(r2(plRows.reduce((s, r) => s + r.totalYds, 0) / plRows.reduce((s, r) => s + r.plays, 0)), plRows.length);
     if (fdRows.length) out.firstDowns = cell(r1(fdRows.reduce((s, r) => s + r.firstDowns, 0) / fdRows.length), fdRows.length);
-    if (toRows.length) out.takeaways = cell(toRows.reduce((s, r) => s + r.takeaways, 0), toRows.length);
+    if (toRows.length) out[toKey] = cell(toRows.reduce((s, r) => s + r.takeaways, 0), toRows.length);
     for (const [key, where] of [["Home", true], ["Away", false]]) {
       const split = rows.filter((r) => r.atHome === where);
       if (!split.length) continue;
@@ -919,9 +932,9 @@ export function defenceSheet(games, roster, opts) {
      softer, among the defences that have the stat (`of`). A season total
      is ranked a game, so an extra game played is not an extra touchdown
      allowed; the count is what prints. */
-  for (const key of Object.keys(DEFENCE_STATS)) {
+  for (const key of Object.keys(STATS_OF)) {
     const have = Object.keys(teams).filter((t) => teams[t][key]);
-    const soft = DEFENCE_STATS[key].soft, total = DEFENCE_STATS[key].kind === "total";
+    const soft = STATS_OF[key].soft, total = STATS_OF[key].kind === "total";
     const measure = (t) => (total ? teams[t][key].v / teams[t][key].n : teams[t][key].v);
     for (const t of have) {
       const v = measure(t);
@@ -929,7 +942,7 @@ export function defenceSheet(games, roster, opts) {
       teams[t][key].of = have.length;
     }
   }
-  return { through: { season: season != null ? season : null, week }, field: Object.keys(teams).length, stats: DEFENCE_STATS, teams };
+  return { side, through: { season: season != null ? season : null, week }, field: Object.keys(teams).length, stats: STATS_OF, teams };
 }
 
 export function boardPlayer(p, { roster, injuries, backups, vac, opponentOf, recent, usage, model }) {
@@ -1174,8 +1187,8 @@ export async function buildBoard(league, history) {
       .map((p) => boardPlayer(p, { roster, injuries, backups, vac, opponentOf, recent, usage, model })),
     injuries: hurtByTeam,
     injuriesAt: league.injuriesUrl ? new Date().toISOString() : null,
-    /* The defensive cheat sheet: see defenceSheet. This season's box scores, the roster for the position splits. */
-    ...(league.id === "nfl" ? { defence: defenceSheet(games, roster, { season }) } : {}),
+    /* The cheat sheets: see teamSheet. This season's box scores, the roster for the position splits. */
+    ...(league.id === "nfl" ? { defence: defenceSheet(games, roster, { season }), offence: teamSheet(games, roster, { season, side: "off" }) } : {}),
     usagePool: round(usagePool.slice(0, 4000), 3),
     pools: Object.fromEntries(Object.entries(pools).map(([k, v]) => [k, { stat: k, exp: round(v.exp, 1), ratio: round(v.ratio, 3) }])),
     seasonsCached: history.seasons,

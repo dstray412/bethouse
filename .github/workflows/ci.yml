@@ -30,7 +30,7 @@ jobs:
       # backtest-pga.mjs and fires ~100 live statsapi and ESPN calls. Same command
       # as .pre-commit-config.yaml.
       - name: Run tests
-        run: node --test edge.test.mjs score.test.mjs golf.test.mjs nfl.test.mjs cfb.test.mjs parlay.test.mjs nflverse.test.mjs tendencies.test.mjs cfbfastr.test.mjs statcast.test.mjs bets.test.mjs track.test.mjs clv.test.mjs provenance.test.mjs watchlist.test.mjs live.test.mjs home.test.mjs faces.test.mjs enrich-nfl.test.mjs chips.test.mjs record-page.test.mjs teams.test.mjs compare-td.test.mjs teams-page.test.mjs fetch-weather.test.mjs defence-page.test.mjs dom.test.mjs
+        run: node --test edge.test.mjs score.test.mjs golf.test.mjs nfl.test.mjs cfb.test.mjs parlay.test.mjs nflverse.test.mjs tendencies.test.mjs cfbfastr.test.mjs statcast.test.mjs bets.test.mjs track.test.mjs clv.test.mjs provenance.test.mjs watchlist.test.mjs live.test.mjs home.test.mjs faces.test.mjs enrich-nfl.test.mjs chips.test.mjs record-page.test.mjs teams.test.mjs compare-td.test.mjs teams-page.test.mjs fetch-weather.test.mjs sheet-page.test.mjs dom.test.mjs
 
   secrets:
     runs-on: ubuntu-latest
