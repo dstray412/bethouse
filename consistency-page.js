@@ -7,9 +7,10 @@
  * the same rows the drawer's recent-games tab shows, through the
  * model's own recentHits. A card a rung the board prices (anytime touchdown;
  * 50, 70 and 100 receiving yards; 4 and 6 receptions; 50, 70 and 100
- * rushing yards; 70 and 100 rush + rec; 250 and 300 passing yards): the players
- * ranked by hits, most first, a bar for the share, 60% and up, fifteen
- * a card. A player needs ten games on file, a game this week and no Out
+ * rushing yards; 70 and 100 rush + rec; 250 and 300 passing yards), the
+ * cards organised a family a section with its rungs side by side at one
+ * height: the players ranked by hits, most first, a bar for the share,
+ * 60% and up, ten a card. A player needs ten games on file, a game this week and no Out
  * status. The reader can pick a prop and any line the board prices
  * (the model's ladder) and see everyone at that one rung; the pick
  * rides the URL. Descriptive: a hit count is not a chance; the model's
@@ -26,7 +27,7 @@
   "use strict";
 
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-  const N = 10, FLOOR = 6, SHOWN = 15;
+  const N = 10, FLOOR = 6, SHOWN = 10;
 
   /* The rungs: a line the board itself prices (every one is on the
      model's ladder, nfl.js LADDERS, so the chance the caveat points at
@@ -45,6 +46,16 @@
     { id: "rushrec100", stat: "rushrec", rung: 100, label: "100+ rush + rec yards" },
     { id: "passyds250", stat: "passyds", rung: 250, label: "250+ passing yards" },
     { id: "passyds300", stat: "passyds", rung: 300, label: "300+ passing yards" },
+  ];
+
+  /* The overview's organisation: a section a prop family, its rungs side by side, in the order a bettor reads them. */
+  const GROUPS = [
+    { label: "Anytime TD", rungs: ["td"] },
+    { label: "Receiving yards", rungs: ["recyds50", "recyds70", "recyds100"] },
+    { label: "Receptions", rungs: ["recs4", "recs6"] },
+    { label: "Rushing yards", rungs: ["rushyds50", "rushyds70", "rushyds100"] },
+    { label: "Rush + rec yards", rungs: ["rushrec70", "rushrec100"] },
+    { label: "Passing yards", rungs: ["passyds250", "passyds300"] },
   ];
 
   /** Hits in the player's last ten games on file, or null without a log. A touchdown is the model's own count. */
@@ -164,7 +175,7 @@
     const w = data && data.week != null ? data.week : null, s = data && data.season != null ? data.season : null;
     return "<p>Hits in each player's last ten games on file, this season and last" + (s != null && w != null ? ", before week " + esc(w) + " of " + esc(s) : "") +
       ", at a line the board prices: a game at or over the line is a hit, a touchdown game is one or more. A game he dressed for without a touch or a target leaves no line, so the ten are his last ten with one. " +
-      "Each row says how many of the ten were last season and how many he played for another team; <b>Q</b> marks a player Questionable on the report. A player needs ten games, a game this week and no Out status to be listed; 60% and up, most hits first" + (picked ? ", everyone at that line" : ", fifteen a card on the overview") + ". " +
+      "Each row says how many of the ten were last season and how many he played for another team; <b>Q</b> marks a player Questionable on the report. A player needs ten games, a game this week and no Out status to be listed; 60% and up, most hits first" + (picked ? ", everyone at that line" : ", ten a card on the overview") + ". " +
       "Descriptive: a hit count is not a chance, and the chance the model gives him this week, against this opponent, is on the <a href=\"nfl.html\">NFL board</a>, at this line, in his drawer.</p>";
   }
 
@@ -186,7 +197,8 @@
     const draw = () => {
       const s = (ctl && ctl.__state) || state;
       if (ctl) { ctl.innerHTML = controlsHtml(model, s); ctl.hidden = false; }
-      if (s.prop === "all") host.innerHTML = RUNGS.map((r) => cardHtml(r, rows(model, data.players, r, data.season), o)).join("");
+      if (s.prop === "all") host.innerHTML = GROUPS.map((g) => '<section class="cgroup"><h2 class="gtitle">' + esc(g.label) + '</h2><div class="cgrid">' +
+        g.rungs.map((id) => RUNGS.find((r) => r.id === id)).filter(Boolean).map((r) => cardHtml(r, rows(model, data.players, r, data.season), o)).join("") + "</div></section>").join("");
       else { const r = rungFor(model, s.prop, s.line); host.innerHTML = cardHtml(r, rows(model, data.players, r, data.season, Infinity), o); }
       if (foot) foot.innerHTML = footHtml(data, s.prop !== "all");
     };
@@ -208,5 +220,5 @@
     }
   }
 
-  return { RUNGS, HOME_RUNGS, N, FLOOR, SHOWN, hits, rows, tier, props, lines, rungFor, cleanState, controlsHtml, cardHtml, stripHtml, footHtml, render };
+  return { RUNGS, GROUPS, HOME_RUNGS, N, FLOOR, SHOWN, hits, rows, tier, props, lines, rungFor, cleanState, controlsHtml, cardHtml, stripHtml, footHtml, render };
 });

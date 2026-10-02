@@ -34,7 +34,18 @@ Zero dependencies, no build step, no server, no API key. `node --test` with
 **named files** — bare discovery pulls in the backtests, which fire live API
 calls. The list lives in seven places and `dom.test.mjs` checks all seven.
 
-## Picking a prop and a line on the consistency page (2026-10-02, latest)
+## The consistency overview organised by family (2026-10-02, latest)
+
+**What.** The user found the overview sloppy (thirteen cards of
+different lengths in a column flow). `GROUPS` in consistency-page.js
+(a family a section, its rung ids in order) drives the overview:
+`<section class="cgroup">` with the family as a `.gtitle` and a
+`.cgrid` of its cards, three equal columns stretched to one height
+(two under 1100px, one on a phone); `SHOWN` is 10 on the overview; a
+pick is still one card on its own. The home strip became the same
+grid. CSS columns are gone from `.cons`.
+
+## Picking a prop and a line on the consistency page (2026-10-02)
 
 **What.** The user asked to choose which props to see consistency
 for (20+, 30+, 40+ rushing yards and so on). consistency-page.js

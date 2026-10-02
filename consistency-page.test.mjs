@@ -51,7 +51,7 @@ test("rows: ten games, a game this week, not ruled out, at least six hits, most 
   assert.equal(td[0].n, 10); assert.equal(td[0].pct, 60); assert.equal(td[0].opp, "KC"); assert.equal(td[0].team, "LAC");
   const many = Array.from({ length: 20 }, (_, k) => ({ id: "m" + k, name: "Player " + String(k).padStart(2, "0"), team: "KC", pos: "WR", opp: "LAC", recent: ten((i) => row(i < 6 + (k % 5) ? 60 : 0, 0, 0, 0, 0)) }));
   const big = page.rows(nfl, many, page.RUNGS.find((r) => r.id === "recyds50"));
-  assert.equal(big.length, 15, "more than fifteen a card");
+  assert.equal(big.length, 10, "more than ten a card on the overview");
   assert.equal(page.rows(nfl, many, page.RUNGS.find((r) => r.id === "recyds50"), 2026, 5).length, 5, "the home's cap is not the caller's");
   /* The home's strip: three broad rungs, five a card, through the same card markup, with a link to the page; nothing with nobody. */
   const strip = page.stripHtml(nfl, { players: many, season: 2026 }, {});
@@ -136,6 +136,7 @@ test("render with a picked prop and line: one card at that rung with up to thirt
   const changes = [];
   page.render(doc, { data: { players: many, season: 2026, week: 4 }, model: nfl, state: { prop: "rushyds", line: 40 }, onState: (s) => changes.push(s) });
   assert.equal((els.cons.innerHTML.match(/class="ccard"/g) || []).length, 1, "a picked line is not one card");
+  assert.doesNotMatch(els.cons.innerHTML, /cgroup/, "a pick is wrapped in a family section");
   assert.match(els.cons.innerHTML, /<h3>40\+ rushing yards<\/h3>/);
   assert.equal((els.cons.innerHTML.match(/<li>/g) || []).length, 40, "a picked line does not list everyone at six hits or better: the pick is the page, there is nowhere to send a cut");
   assert.match(els.cfoot.innerHTML, /everyone at that line/, "the caveat does not say a pick lists everyone"); assert.doesNotMatch(els.cfoot.innerHTML, /fifteen a card/);
@@ -151,7 +152,12 @@ test("render with a picked prop and line: one card at that rung with up to thirt
   click({ target: { closest: (sel) => (sel === "[data-prop]" ? { getAttribute: () => "all" } : null) } });
   assert.deepEqual(changes.at(-1), { prop: "all", line: null });
   assert.equal((els.cons.innerHTML.match(/class="ccard"/g) || []).length, page.RUNGS.length, "the overview is not the thirteen cards");
-  assert.match(els.cfoot.innerHTML, /fifteen a card on the overview/);
+  assert.match(els.cfoot.innerHTML, /ten a card on the overview/);
+  /* The overview is organised by prop family: a labelled section each, its rungs side by side, in the order a bettor reads them. */
+  const groups = [...els.cons.innerHTML.matchAll(/<section class="cgroup"><h2 class="gtitle">([^<]+)<\/h2><div class="cgrid">([\s\S]*?)<\/div><\/section>/g)].map((m) => [m[1], (m[2].match(/class="ccard"/g) || []).length]);
+  assert.deepEqual(groups, [["Anytime TD", 1], ["Receiving yards", 3], ["Receptions", 2], ["Rushing yards", 3], ["Rush + rec yards", 2], ["Passing yards", 2]], "the overview is not grouped by family with every rung in its row");
+  assert.deepEqual(page.GROUPS.map((g) => g.label), ["Anytime TD", "Receiving yards", "Receptions", "Rushing yards", "Rush + rec yards", "Passing yards"]);
+  assert.equal(page.GROUPS.reduce((n, g) => n + g.rungs.length, 0), page.RUNGS.length, "a rung is in no family, or in two");
   assert.equal(els.ccontrols.listeners.click.length, 1, "render added a second listener");
   /* A second render on the same host with new data: the one listener draws from the new payload and reports to the new callback. */
   const later = [];

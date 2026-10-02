@@ -2389,7 +2389,8 @@ test("the teams page's panel scrolls sideways inside itself, the team cell stick
   assert.match(src("consistency.html"), /<div class="controls" id="ccontrols" hidden>/, "the empty controls host paints a rule before the controls exist");
   assert.match(src("consistency.html"), /\} catch \(e\) \{/, "a fault in the renderer leaves the page on Loading… forever");
   assert.doesNotMatch(src(SHEET), /#ccontrols\{/, "the controls carry an id override instead of the board's .controls rule");
-  for (const k of [".cons{", ".ccard{", ".ccard li{", ".ccard .bar{", ".ccard .hits.good"]) assert.ok(src(SHEET).includes(k), "no rule for " + k);
+  for (const k of [".cons{", ".ccard{", ".ccard li{", ".ccard .bar{", ".ccard .hits.good", ".cgroup{", ".cgrid{"]) assert.ok(src(SHEET).includes(k), "no rule for " + k);
+  assert.match(src(SHEET), /\.cgrid\{display:grid;grid-template-columns:repeat\(3,minmax\(0,1fr\)\)[^}]*align-items:stretch/, "a family's cards are not a grid of equal widths stretched to one height");
   /* The home carries a strip of the consistency cards: the module loaded, a section to write, the call with the NFL data and model, hidden when there is nothing. */
   assert.ok(src("index.html").indexOf('<script src="consistency-page.js"></script>') > 0, "the home does not load consistency-page.js");
   assert.match(src("index.html"), /<section id="conssec"[\s\S]*id="consstrip"/, "the home has no consistency section");

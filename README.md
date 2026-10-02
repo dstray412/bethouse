@@ -345,8 +345,10 @@ from the ten game lines the data file already ships for the drawer's
 recent-games tab, through the model's own `recentHits` and a new
 `recentTdHits` the board's card and log share too, so the surfaces
 cannot disagree. A player needs ten games, a game this week and no
-Out status; 60% and up, fifteen a card; a rung nobody clears keeps
-its card and says so. The ten reach into last season at this point of
+Out status; 60% and up, ten a card on the overview, which is organised
+a family a section with its rungs side by side at one height, since
+thirteen cards of different lengths in a column flow staggered; a
+rung nobody clears keeps its card and says so. The ten reach into last season at this point of
 the year (at week 4, six or more of them), so each row says how many
 of the ten were last season and how many he played for another team
 (the game line carries his team from this build on), and a
