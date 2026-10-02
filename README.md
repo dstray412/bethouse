@@ -346,12 +346,17 @@ user's ask after a reference sheet: for each game this week, what its
 two defences have allowed most this season, one card a game, the lines
 where a defence ranks in the top five of 32 and both sides in one list
 by rank, so the soft spots on either side of a matchup read at a
-glance. Twenty-four lines a defence from the box scores on file
+glance. Twenty-seven lines a defence from the box scores on file
 (`defenceSheet` in `fetch-football.mjs`, shipped on the NFL data file
 as `defence`): pass, rush and total yards a game with the home and
 road splits, first downs, yards a play, an attempt and a carry,
 completion share, passing and rushing touchdowns and takeaways over
-the season (the count printed, the rank taken a game, since the teams
+the season, and from the play-by-play (added the same day) sacks
+(a defence's ranked from the fewest), red-zone trips (nflverse's own
+flag on the drive, counted once a drive, a two-point try not a trip)
+and third-down share (scrimmage rows; a kneel is neither), for the
+games it covered, since it can lag the box scores by a week (the count
+printed, the rank taken a game, since the teams
 have not all played the same number; takeaways ranked from the fewest,
 since that is the soft end), and receptions, receiving yards and
 touchdowns split by the catcher's position off the roster (a player on

@@ -72,6 +72,7 @@ test("render: open games in kickoff order into #sheet, the caveat into #sfoot wi
   assert.match(els.sfoot.innerHTML, /out of 32 defences/); assert.match(els.sfoot.innerHTML, /1g/); assert.match(els.sfoot.innerHTML, /2026 through week 3/);
   assert.match(els.sfoot.innerHTML, /full strength on the touchdown chance and the game line, at half strength on rushing and passing yards, and not at all on the other counting props/, "the caveat does not say what the model applies, in full");
   assert.match(els.sfoot.innerHTML, /ranked a game/, "the caveat does not say a season total is ranked a game");
+  assert.match(els.sfoot.innerHTML, /sacks, red-zone trips and third downs come from the play-by-play, which can lag the box scores by a week/, "the caveat does not say where the play lines come from, or that they can lag");
   page.render(doc, { sheet: null, games: GAMES, league: "NFL", now });
   assert.match(els.sheet.innerHTML, /class="empty"/); assert.match(els.sheet.innerHTML, /No sheet/);
   page.render(doc, { sheet: SHEET, games: [], league: "NFL", now });
@@ -87,6 +88,7 @@ test("the offence's sheet reads the other way: the caveat says what each offence
   page.render(doc, { sheet: OFF, games: GAMES, league: "NFL", now: Date.parse("2026-10-03T00:00Z") });
   assert.match(els.sfoot.innerHTML, /What each offence has done most this season/, "the offence's caveat reads as the defence's");
   assert.match(els.sfoot.innerHTML, /for turnovers, the fewest/);
+  assert.doesNotMatch(els.sfoot.innerHTML, /sacks, the fewest/, "the offence's sacks taken rank from the most");
   assert.match(els.sfoot.innerHTML, /The model takes from an offence its team factor, its touchdown rate against the league, at full strength on the touchdown chance, and its rating on the game line; a counting prop takes nothing from the offence's own production, only the opponent's allowance and the share its injured teammates leave behind/, "the caveat does not say what the model takes from an offence, in full");
   assert.doesNotMatch(els.sfoot.innerHTML, /defence/);
   assert.match(els.sheet.innerHTML, /<span class="rk r1">FEWEST<\/span><b class="tm">IND<\/b> <span class="st">Turnovers<\/span>/);
@@ -100,4 +102,5 @@ test("the offence's sheet reads the other way: the caveat says what each offence
   /* The defence's caveat is the defence's. */
   page.render(doc, { sheet: SHEET, games: GAMES, league: "NFL", now: Date.parse("2026-10-03T00:00Z") });
   assert.match(els.sfoot.innerHTML, /What each defence has allowed most this season/);
+  assert.match(els.sfoot.innerHTML, /for takeaways and sacks, the fewest/, "the defence's caveat does not say its sacks rank from the fewest");
 });

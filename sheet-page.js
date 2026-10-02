@@ -6,7 +6,7 @@
  * teamSheet) from this season's box scores and ships in nfl-data.js as
  * `defence` and `offence`: per team, each stat's value, how many games
  * it covers and its rank among the teams from the top end (1 the most,
- * or for takeaways and turnovers the fewest). This page lists, per
+ * or for takeaways, turnovers and a defence's sacks the fewest). This page lists, per
  * game, the lines ranked in the top five, both sides merged by rank, so
  * a reader sees at once where each is most generous, or most prolific.
  * The caveat differs by side: what the model takes from a defence, or
@@ -75,9 +75,9 @@
   function footHtml(sheet) {
     const field = sheet && sheet.field, thr = sheet && sheet.through, off = sheet && sheet.side === "off";
     const unit = off ? "offences" : "defences", when = thr && thr.season != null && thr.week ? ", " + esc(thr.season) + " through week " + esc(thr.week) : "";
-    return "<p>" + (off ? "What each offence has done most this season" : "What each defence has allowed most this season") + ", from the box scores" + when +
-      ". A place is out of " + (field != null ? esc(field) : "the") + " " + unit + ", 1 the most (for " + (off ? "turnovers" : "takeaways") + ", the fewest), ties sharing it; only the top five places are listed, and a line ranked among fewer (a split not every " + (off ? "offence" : "defence") + " has yet) says of how many. " +
-      "Yardage is a game; touchdowns and " + (off ? "turnovers" : "takeaways") + " are the season's count, ranked a game so an extra game played is not an extra touchdown" + (off ? "" : " allowed") + "; the home and road splits count that side's games; <b>1g</b> marks a line from a single game. The position splits come from the roster, so a catcher on none is in none. " +
+    return "<p>" + (off ? "What each offence has done most this season" : "What each defence has allowed most this season") + ", from the box scores and the play-by-play" + when +
+      ". A place is out of " + (field != null ? esc(field) : "the") + " " + unit + ", 1 the most (for " + (off ? "turnovers" : "takeaways and sacks") + ", the fewest), ties sharing it; only the top five places are listed, and a line ranked among fewer (a split not every " + (off ? "offence" : "defence") + " has yet) says of how many. " +
+      "Yardage and red-zone trips are a game; touchdowns, sacks and " + (off ? "turnovers" : "takeaways") + " are the season's count, ranked a game so an extra game played is not an extra touchdown" + (off ? "" : " allowed") + "; the home and road splits count that side's games; <b>1g</b> marks a line from a single game. The position splits come from the roster, so a catcher on none is in none; sacks, red-zone trips and third downs come from the play-by-play, which can lag the box scores by a week, and count only the games it covered. " +
       (off
         ? "Descriptive: a tendency is a place to look, not a price. The model takes from an offence its team factor, its touchdown rate against the league, at full strength on the touchdown chance, and its rating on the game line; a counting prop takes nothing from the offence's own production, only the opponent's allowance and the share its injured teammates leave behind."
         : "Descriptive: a soft spot is a place to look, not a price. The model prices a defence through its own fitted allowances: at full strength on the touchdown chance and the game line, at half strength on rushing and passing yards, and not at all on the other counting props.") + "</p>";

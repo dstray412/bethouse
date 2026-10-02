@@ -64,10 +64,22 @@ page; every board links it; BOARDS and the gate lists grew. Tests:
 three-game fixture computed by hand), dom.test.mjs for the page's
 scripts and styles.
 
-**Not in it.** Sacks, red-zone trips and third-down rate: the box
-scores on file do not carry them (the play-by-play does; a later pass
-could add them from tendencies.mjs). Nicknames: the sheet says `IND`,
-not Colts, as the rest of the site does. College: the page is NFL's.
+**Added the same day.** Sacks, red-zone trips and third-down share,
+from the play-by-play: `teamPlayEntries` in enrich-nfl.mjs aggregates
+them per offence per game into the enrichment cache's `teams` map
+(sacks taken; trips by nflverse's `drive_inside20`, once a `drive`, a
+two-point try not a trip; third downs as scrimmage rows graded
+converted or failed, so a kneel or spike is neither), and `teamSheet`
+reads them through `opts.plays` for the games covered; a defence's are
+its opponent's. The offence's sacks rank from the most taken, the
+defence's from the fewest made. Code review measured the first draft
+against the cached play-by-play: two-point tries double-counted trips
+(24 of 32 teams inflated), and loading every row for "penalty third
+downs" bought only kneels and spikes, since the flags never sit on a
+penalty row; both fixed, and the build logs the team-game join.
+
+**Not in it.** Nicknames: the sheet says `IND`, not Colts, as the
+rest of the site does. College: the page is NFL's.
 
 ## A4b: the vacated share, four of five ship (2026-10-01)
 

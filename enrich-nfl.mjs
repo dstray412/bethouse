@@ -23,7 +23,7 @@
  * never as zero: the term it feeds multiplies by one instead.
  */
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
-import { parseCSV, cached, loadPlayByPlay, maxAgeHoursFor, toEspnTeam } from "./nflverse.mjs";
+import { parseCSV, cached, loadPlayByPlay, maxAgeHoursFor, toEspnTeam, isScrimmage } from "./nflverse.mjs";
 
 const RELEASE = "https://github.com/nflverse/nflverse-data/releases/download";
 const num = (v) => { const n = Number(v); return v === "" || v == null || !isFinite(n) ? null : n; };
@@ -116,6 +116,33 @@ export function playEntries(plays, xw) {
   return { entries: out, seen, matched, weeks };
 }
 
+/* The team-game lines the box score cannot see, per offence per game
+   (a defence's are its opponent's): sacks taken (`sack`), red-zone
+   trips (nflverse's own `drive_inside20` flag, constant within a
+   game's `drive`, counted once a drive; a two-point try is not a
+   trip), and third downs attempted and converted (a scrimmage row on
+   down 3 that nflverse marked converted or failed; a kneel or a spike
+   is not a scrimmage row, so it is neither). Scrimmage rows only: the
+   flags are never set on a penalty row (measured 2024-26: none), so
+   every row would add only the kneels. Keyed season|week|offence, the
+   codes as toPlays translated them. */
+export function teamPlayEntries(plays) {
+  const out = new Map();
+  const trips = new Set();
+  const at = (p) => { const k = `${p.season}|${p.week}|${p.posteam}`; let e = out.get(k); if (!e) { e = { sk: 0, rz: 0, t3a: 0, t3c: 0 }; out.set(k, e); } return e; };
+  for (const p of plays) {
+    if (!p.posteam || !isScrimmage(p)) continue;
+    const e = at(p);
+    if (num(p.down) === 3 && (num(p.third_down_converted) === 1 || num(p.third_down_failed) === 1)) { e.t3a++; if (num(p.third_down_converted) === 1) e.t3c++; }
+    if (num(p.sack) === 1) e.sk++;
+    if (num(p.drive_inside20) === 1 && num(p.two_point_attempt) !== 1 && p.drive !== "" && p.drive != null) {
+      const d = `${p.game_id}|${p.drive}`;
+      if (!trips.has(d)) { trips.add(d); e.rz++; }
+    }
+  }
+  return { entries: out };
+}
+
 /* A player-game the weekly stats or the snap counts saw is a game he
    played; if the play-by-play covered that week and no play put him
    inside the 20, his red-zone touches are zero, not unknown. A week the
@@ -203,6 +230,7 @@ export async function buildEnrichment(seasons, opts = {}) {
   const maps = [];
   const report = [];
   const covered = new Set();
+  const teamRows = {};
   for (const s of seasons) {
     const age = { maxAgeHours: maxAgeHoursFor(s) };
     const weekly = weeklyEntries(parseCSV(await cached(`stats_player_week_${s}.csv`, `${RELEASE}/stats_player/stats_player_week_${s}.csv`, age)), xw);
@@ -210,10 +238,13 @@ export async function buildEnrichment(seasons, opts = {}) {
     try {
       snaps = snapEntries(parseCSV(await cached(`snap_counts_${s}.csv`, `${RELEASE}/snap_counts/snap_counts_${s}.csv`, age)), xw);
     } catch (e) { log(`  snap counts ${s}: ${e.message} (skipped)`); }
-    const plays = playEntries(await loadPlayByPlay([s], { keep: ["two_point_attempt"] }), xw);
+    const rows = await loadPlayByPlay([s], { keep: ["two_point_attempt", "third_down_converted", "third_down_failed", "drive", "drive_inside20"] });
+    const plays = playEntries(rows, xw);
+    const teamsOf = teamPlayEntries(rows);
     for (const w of plays.weeks) covered.add(w);
     maps.push(weekly.entries, snaps.entries, plays.entries);
-    report.push(`${s}: weekly ${weekly.matched}/${weekly.seen} joined, snaps ${snaps.matched}/${snaps.seen}, red-zone touches ${plays.matched}/${plays.seen}`);
+    for (const [k, v] of teamsOf.entries) teamRows[k] = v;
+    report.push(`${s}: weekly ${weekly.matched}/${weekly.seen} joined, snaps ${snaps.matched}/${snaps.seen}, red-zone touches ${plays.matched}/${plays.seen}, ${teamsOf.entries.size} team-games of sacks, trips and third downs`);
   }
   /* The seasons rebuilt replace their rows; every other season already in
      the cache stays, so a board build for two seasons cannot shrink the
@@ -221,12 +252,14 @@ export async function buildEnrichment(seasons, opts = {}) {
   const fresh = mergeEntries(...maps);
   const zeros = fillZeroTouches(fresh, covered);
   const prev = readEnrichment();
-  const enrich = {};
+  const enrich = {}, teams = {};
   const rebuilt = new Set(seasons.map(String));
   if (prev && prev.enrich) for (const k in prev.enrich) if (!rebuilt.has(k.split("|")[0])) enrich[k] = prev.enrich[k];
+  if (prev && prev.teams) for (const k in prev.teams) if (!rebuilt.has(k.split("|")[0])) teams[k] = prev.teams[k];
   Object.assign(enrich, fresh);
+  Object.assign(teams, teamRows);
   const kept = prev && prev.seasons ? prev.seasons.filter((x) => !rebuilt.has(String(x))) : [];
-  const out = { generated: new Date().toISOString(), seasons: [...new Set([...kept, ...seasons])].sort(), rows: Object.keys(enrich).length, report, enrich };
+  const out = { generated: new Date().toISOString(), seasons: [...new Set([...kept, ...seasons])].sort(), rows: Object.keys(enrich).length, report, enrich, teams };
   writeFileSync(ENRICH_FILE, JSON.stringify(out));
   for (const line of report) log("  " + line);
   log(`  ${zeros} player-games the stats saw with no red-zone touch set to zero touches`);

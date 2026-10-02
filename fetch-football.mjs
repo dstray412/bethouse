@@ -853,9 +853,13 @@ export const DEFENCE_STATS = {
   recYdsTE: { label: "Rec yards to TE", soft: "most", kind: "mean" },
   recYdsRB: { label: "Rec yards to RB", soft: "most", kind: "mean" },
   takeaways: { label: "Takeaways", soft: "fewest", kind: "total" },
+  /* From the play-by-play (enrich-nfl.mjs teamPlayEntries), only for the games it covered. */
+  sacks: { label: "Sacks", soft: "fewest", kind: "total" },
+  rzTrips: { label: "Red zone trips", soft: "most", kind: "mean" },
+  thirdDownPct: { label: "3rd down %", soft: "most", kind: "pct" },
 };
-/* The offence's sheet: the same lines attributed to the side that did them, and its own turnovers from the fewest. */
-export const OFFENCE_STATS = Object.fromEntries(Object.entries(DEFENCE_STATS).map(([k, v]) => (k === "takeaways" ? ["turnovers", { label: "Turnovers", soft: "fewest", kind: "total" }] : [k, { ...v }])));
+/* The offence's sheet: the same lines attributed to the side that did them, its own turnovers from the fewest, and the sacks it took from the most. */
+export const OFFENCE_STATS = Object.fromEntries(Object.entries(DEFENCE_STATS).map(([k, v]) => (k === "takeaways" ? ["turnovers", { label: "Turnovers", soft: "fewest", kind: "total" }] : k === "sacks" ? [k, { label: "Sacks taken", soft: "most", kind: "total" }] : [k, { ...v }])));
 const POS_GROUP = { WR: "WR", TE: "TE", RB: "RB", FB: "RB" };
 
 export function defenceSheet(games, roster, opts) { return teamSheet(games, roster, { ...(opts || {}), side: "def" }); }
@@ -868,6 +872,9 @@ export function defenceSheet(games, roster, opts) { return teamSheet(games, rost
 export function teamSheet(games, roster, opts) {
   const season = opts && opts.season, side = opts && opts.side === "off" ? "off" : "def";
   const STATS_OF = side === "off" ? OFFENCE_STATS : DEFENCE_STATS, toKey = side === "off" ? "turnovers" : "takeaways";
+  /* The play-by-play's team-game lines, keyed season|week|offence; a Map or a plain object, or nothing. */
+  const playRows = opts && opts.plays ? opts.plays : null;
+  const playsOf = (g, off) => { if (!playRows) return null; const k = `${g.season}|${g.week}|${off}`; return (typeof playRows.get === "function" ? playRows.get(k) : playRows[k]) || null; };
   const played = (games || []).filter((g) => g && g.home && g.away && (season == null || g.season === season) && Array.isArray(g.players) && g.home.score != null && g.away.score != null && isFinite(Number(g.home.score)) && isFinite(Number(g.away.score)));
   const acc = new Map(); // owner (the defence, or the offence) -> arrays of per-game readings
   const bag = (team) => { if (!acc.has(team)) acc.set(team, { n: 0, rows: [] }); return acc.get(team); };
@@ -891,6 +898,9 @@ export function teamSheet(games, roster, opts) {
       row.plays = offStats && offStats.plays != null ? num(offStats.plays) : null;
       row.firstDowns = offStats && offStats.firstDowns != null ? num(offStats.firstDowns) : null;
       row.takeaways = offStats && offStats.turnovers != null ? num(offStats.turnovers) : null;
+      /* The offence's sacks taken, trips and third downs that game; the defence's are these same numbers. */
+      const pl = playsOf(g, off);
+      row.sk = pl ? num(pl.sk) : null; row.rz = pl ? num(pl.rz) : null; row.t3a = pl ? num(pl.t3a) : null; row.t3c = pl ? num(pl.t3c) : null;
       const b = bag(owner); b.n++; b.rows.push(row);
     }
   }
@@ -915,6 +925,10 @@ export function teamSheet(games, roster, opts) {
     if (plRows.length) out.ydsPerPlay = cell(r2(plRows.reduce((s, r) => s + r.totalYds, 0) / plRows.reduce((s, r) => s + r.plays, 0)), plRows.length);
     if (fdRows.length) out.firstDowns = cell(r1(fdRows.reduce((s, r) => s + r.firstDowns, 0) / fdRows.length), fdRows.length);
     if (toRows.length) out[toKey] = cell(toRows.reduce((s, r) => s + r.takeaways, 0), toRows.length);
+    /* Sacks and trips over the games the plays covered; the third-down share over those with a graded third down, which is every covered game in practice, so the two n agree. */
+    const plRowsPbp = rows.filter((r) => r.sk != null), t3Rows = rows.filter((r) => r.t3a != null && r.t3a > 0);
+    if (plRowsPbp.length) { out.sacks = cell(plRowsPbp.reduce((s, r) => s + r.sk, 0), plRowsPbp.length); out.rzTrips = cell(r1(plRowsPbp.reduce((s, r) => s + r.rz, 0) / plRowsPbp.length), plRowsPbp.length); }
+    if (t3Rows.length) out.thirdDownPct = cell(r1((100 * t3Rows.reduce((s, r) => s + r.t3c, 0)) / t3Rows.reduce((s, r) => s + r.t3a, 0)), t3Rows.length);
     for (const [key, where] of [["Home", true], ["Away", false]]) {
       const split = rows.filter((r) => r.atHome === where);
       if (!split.length) continue;
@@ -1001,7 +1015,8 @@ export async function buildBoard(league, history) {
      window to each game it grades (backtest-nfl.mjs, `prior`), so the
      replay's lines are as deep as the board's and no deeper. */
   const current = games.filter((g) => g.season >= season - 1);
-  const statsSeasons = [...new Set(current.map((g) => g.season))].sort();
+  /* A season names a cache file (nflverse/<kind>_<season>.csv), so it is a four-digit year or nothing: the feed's word is not a path. */
+  const statsSeasons = [...new Set(current.map((g) => Number(g.season)))].filter((s) => Number.isInteger(s) && s >= 1999 && s <= 2100).sort();
 
   /* What the box score cannot see, from nflverse, joined by id: snap
      share, target share, air-yards share, red-zone and goal-line touches,
@@ -1009,10 +1024,13 @@ export async function buildBoard(league, history) {
      the lines carry the red-zone sums and the per-game log the model's
      terms read. A feed failure leaves the board without them, never
      without a board. */
-  let usage = null;
+  let usage = null, teamPlays = null;
   if (league.enrich) {
     try {
       const en = await buildEnrichment(statsSeasons, { log: (m) => console.log(m) });
+      teamPlays = en.teams || null;
+      /* The team-game join, reported like the player one: a code the plays spell differently from the history would miss here silently. */
+      if (teamPlays) { const thisSeason = current.filter((g) => g.season === season); const hit = thisSeason.filter((g) => teamPlays[`${g.season}|${g.week}|${g.home.team}`] && teamPlays[`${g.season}|${g.week}|${g.away.team}`]).length; console.log(`  team plays: ${hit} of ${thisSeason.length} games this season joined on both sides`); }
       const joined = attachEnrichment(current, en.enrich);
       console.log(`  enrichment: ${joined.hit} of ${joined.total} player-games joined`);
       usage = gamesByPlayer(current);
@@ -1188,7 +1206,7 @@ export async function buildBoard(league, history) {
     injuries: hurtByTeam,
     injuriesAt: league.injuriesUrl ? new Date().toISOString() : null,
     /* The cheat sheets: see teamSheet. This season's box scores, the roster for the position splits. */
-    ...(league.id === "nfl" ? { defence: defenceSheet(games, roster, { season }), offence: teamSheet(games, roster, { season, side: "off" }) } : {}),
+    ...(league.id === "nfl" ? { defence: defenceSheet(games, roster, { season, plays: teamPlays }), offence: teamSheet(games, roster, { season, side: "off", plays: teamPlays }) } : {}),
     usagePool: round(usagePool.slice(0, 4000), 3),
     pools: Object.fromEntries(Object.entries(pools).map(([k, v]) => [k, { stat: k, exp: round(v.exp, 1), ratio: round(v.ratio, 3) }])),
     seasonsCached: history.seasons,

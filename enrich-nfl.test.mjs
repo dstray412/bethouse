@@ -9,7 +9,7 @@
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { crosswalk, weeklyEntries, snapEntries, playEntries, mergeEntries, fillZeroTouches, attach, usageOf, gamesByPlayer, enrichKey } from "./enrich-nfl.mjs";
+import { crosswalk, weeklyEntries, snapEntries, playEntries, teamPlayEntries, mergeEntries, fillZeroTouches, attach, usageOf, gamesByPlayer, enrichKey } from "./enrich-nfl.mjs";
 
 const XW = crosswalk([
   { gsis_id: "00-0036223", pfr_id: "TaylJo02", espn_id: "4242335", display_name: "Jonathan Taylor" },
@@ -146,4 +146,36 @@ test("weeklyEntries: a row with nothing measured makes no entry, so attach canno
 test("snapEntries: a blank snap share makes no entry", () => {
   const { entries } = snapEntries([{ season: "2025", week: "3", game_type: "REG", position: "RB", pfr_player_id: "TaylJo02", offense_pct: "" }], XW);
   assert.equal(entries.size, 0);
+});
+
+/* The team-game lines the box score cannot see: sacks, red-zone trips
+   and third downs, per offence per game (the defence's are its
+   opponent's). Oracle: nflverse's own flags, checked against the cached
+   2024-26 play-by-play. A sack is `sack` 1 (every one sits on a
+   scrimmage pass row). A red-zone trip is a drive nflverse flags
+   `drive_inside20`, counted once a `drive`; a two-point try is not a
+   trip. A third down is a scrimmage row on down 3 marked converted or
+   failed; a kneel or a spike is graded failed by nflverse but is not a
+   scrimmage row, so it is neither, and the flags never sit on a penalty
+   row. */
+test("teamPlayEntries: sacks, red-zone trips once a drive by nflverse's flag, third downs converted and failed on scrimmage rows, keyed by season|week|offence", () => {
+  const P = (o) => Object.assign({ season: 2026, week: 1, game_id: "g", posteam: "KC", defteam: "LAC", play_type: "pass", pass: 1, rush: 0, down: 1, yardline_100: 60, drive: 1, drive_inside20: 0, sack: 0, third_down_converted: 0, third_down_failed: 0, two_point_attempt: 0 }, o);
+  const plays = [
+    P({ sack: 1, down: 2 }),
+    P({ down: 3, third_down_converted: 1 }),
+    P({ down: 3, third_down_failed: 1 }),
+    P({ down: 3, third_down_failed: 1, play_type: "qb_kneel", pass: 0, qb_kneel: 1 }),       // a kneel nflverse grades failed: not a scrimmage row, not a third down
+    P({ down: 3, third_down_converted: 1, play_type: "no_play", pass: 0 }),                   // a penalty row: not a scrimmage row (and the flag never sits there anyway)
+    P({ drive: 1, drive_inside20: 1 }), P({ drive: 1, drive_inside20: 1, play_type: "run", pass: 0, rush: 1, yardline_100: 4 }),   // one trip, two plays
+    P({ drive: 2, drive_inside20: 1 }),                                                        // a second trip
+    P({ drive: 2, drive_inside20: 1, two_point_attempt: 1, yardline_100: 2 }),                 // the two-point try after it: the same drive, and not a trip
+    P({ drive: 3, drive_inside20: 1, play_type: "field_goal", pass: 0 }),                      // a kick is not a scrimmage row; the flag on the drive's scrimmage rows is what counts
+    P({ posteam: "LAC", defteam: "KC", sack: 1 }), P({ posteam: "LAC", defteam: "KC", down: 3, third_down_failed: 1 }),
+    P({ week: 2, posteam: "WSH", defteam: "LAR", down: 3, third_down_converted: 1 }),
+  ];
+  const t = teamPlayEntries(plays);
+  assert.deepEqual(t.entries.get("2026|1|KC"), { sk: 1, rz: 2, t3a: 2, t3c: 1 });
+  assert.deepEqual(t.entries.get("2026|1|LAC"), { sk: 1, rz: 0, t3a: 1, t3c: 0 });
+  assert.deepEqual(t.entries.get("2026|2|WSH"), { sk: 0, rz: 0, t3a: 1, t3c: 1 }, "keys carry the codes toPlays translated (WAS→WSH, LA→LAR), the history's spelling");
+  assert.equal(teamPlayEntries([]).entries.size, 0);
 });

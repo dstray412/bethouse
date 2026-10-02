@@ -1786,3 +1786,30 @@ test("teamSheet by side: the offence's sheet is the same games attributed to the
   assert.equal(def.teams.KC.passYds.v, 200); assert.equal(off.teams.LAC.passYds.v, 300); assert.equal(off.teams.DEN.passYds.v, 100);
   assert.equal(def.teams.KC.passYdsHome.v, off.teams.LAC.passYdsAway.v, "KC at home allowed what LAC did on the road");
 });
+
+test("teamSheet with play-by-play: sacks (the defence's from the fewest, the offence's taken from the most), red-zone trips a game and third-down share, only for games the plays covered", async () => {
+  const { teamSheet, DEFENCE_STATS, OFFENCE_STATS } = await import("./fetch-football.mjs");
+  const P = (id, team, o) => Object.assign({ id, name: id, team }, o);
+  const g = (id, week, home, away, players) => ({ id, season: 2026, week, date: "2026-09-" + (10 + week) + "T17:00Z", home: { team: home, score: 20, stats: { yards: 300, plays: 60, turnovers: 1, firstDowns: 20 } }, away: { team: away, score: 17, stats: { yards: 300, plays: 60, turnovers: 1, firstDowns: 20 } }, players });
+  const games = [
+    g("1", 1, "KC", "LAC", [P("q1", "LAC", { pass: { att: 30, cmp: 20, yds: 300, td: 2, int: 1 } }), P("q2", "KC", { pass: { att: 25, cmp: 15, yds: 200, td: 1, int: 0 } })]),
+    g("2", 2, "DEN", "KC", [P("q3", "DEN", { pass: { att: 20, cmp: 10, yds: 100, td: 0, int: 2 } }), P("q2", "KC", { pass: { att: 40, cmp: 30, yds: 400, td: 3, int: 1 } })]),
+  ];
+  /* The plays covered week 1 only: KC's offence took 3 sacks, made 2 trips, went 4 of 10 on third down; LAC's took 1, 5 trips, 6 of 12. */
+  const plays = { "2026|1|KC": { sk: 3, rz: 2, t3a: 10, t3c: 4 }, "2026|1|LAC": { sk: 1, rz: 5, t3a: 12, t3c: 6 } };
+  const def = teamSheet(games, null, { season: 2026, side: "def", plays });
+  /* KC's defence in week 1 faced LAC's offence: made 1 sack, allowed 5 trips, 50% on third down; week 2 is not covered, so n is 1. */
+  assert.deepEqual(def.teams.KC.sacks, { v: 1, n: 1, rank: 1, of: 2 }, "the defence's sacks are its opponent's taken, ranked from the fewest");
+  assert.deepEqual(def.teams.LAC.sacks, { v: 3, n: 1, rank: 2, of: 2 });
+  assert.deepEqual(def.teams.KC.rzTrips, { v: 5, n: 1, rank: 1, of: 2 });
+  assert.deepEqual(def.teams.KC.thirdDownPct, { v: 50, n: 1, rank: 1, of: 2 }); assert.deepEqual(def.teams.LAC.thirdDownPct, { v: 40, n: 1, rank: 2, of: 2 });
+  assert.equal(def.teams.DEN.sacks, undefined, "a defence whose only game the plays did not cover has no line, not a zero");
+  assert.equal(def.teams.KC.passYds.n, 2, "the box-score lines still cover both games");
+  const off = teamSheet(games, null, { season: 2026, side: "off", plays });
+  assert.deepEqual(off.teams.KC.sacks, { v: 3, n: 1, rank: 1, of: 2 }, "the offence's sacks are the ones it took, ranked from the most");
+  assert.deepEqual(off.teams.LAC.rzTrips, { v: 5, n: 1, rank: 1, of: 2 });
+  assert.deepEqual(off.teams.KC.thirdDownPct, { v: 40, n: 1, rank: 2, of: 2 });
+  assert.equal(DEFENCE_STATS.sacks.soft, "fewest"); assert.equal(OFFENCE_STATS.sacks.soft, "most"); assert.equal(OFFENCE_STATS.sacks.label, "Sacks taken"); assert.equal(DEFENCE_STATS.sacks.label, "Sacks");
+  assert.equal(DEFENCE_STATS.thirdDownPct.kind, "pct"); assert.equal(DEFENCE_STATS.rzTrips.label, "Red zone trips"); assert.equal(DEFENCE_STATS.thirdDownPct.label, "3rd down %");
+  assert.equal(teamSheet(games, null, { season: 2026 }).teams.KC.sacks, undefined, "no plays: no sack line, not a zero");
+});
