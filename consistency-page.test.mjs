@@ -94,3 +94,99 @@ test("render: a card per rung with rows, the caveat, and empty states that say w
   page.render(doc, { data: { players: [] }, model: nfl });
   assert.equal((els.cons.innerHTML.match(/cnone/g) || []).length, page.RUNGS.length, "an empty board does not show every rung as empty");
 });
+
+/* Choosing the prop and the line: the props are the model's stats plus
+   the touchdown, the lines the model's own ladder for that stat, the
+   state shareable as ?prop=&line=. The picked view is one card, every
+   qualifying player up to thirty; the overview stays the default. */
+test("props and lines: the choices are the model's stats and its ladder, a label for every rung, and the touchdown's one rung", () => {
+  const props = page.props(nfl);
+  assert.deepEqual(props.map((p) => p.id), ["all", "td", "recyds", "recs", "rushyds", "rushrec", "passyds"]);
+  assert.deepEqual(page.lines(nfl, "rushyds"), nfl.LADDERS.rushyds, "the lines are not the model's ladder");
+  assert.deepEqual(page.lines(nfl, "td"), [1]); assert.deepEqual(page.lines(nfl, "all"), []);
+  assert.equal(page.rungFor(nfl, "rushyds", 40).label, "40+ rushing yards"); assert.equal(page.rungFor(nfl, "recs", 3).label, "3+ receptions");
+  assert.equal(page.rungFor(nfl, "td", 1).label, "Anytime TD"); assert.equal(page.rungFor(nfl, "rushrec", 125).label, "125+ rush + rec yards");
+  assert.equal(page.rungFor(nfl, "rushyds", 45), null, "a line the model does not price is not a rung");
+  assert.equal(page.rungFor(nfl, "nope", 40), null);
+});
+
+test("controlsHtml: two segmented controls, the pressed prop and line, the line row only for a picked prop, every button carrying its state", () => {
+  const over = page.controlsHtml(nfl, { prop: "all", line: null });
+  assert.match(over, /<div class="ctl"><label id="lab-cprop">Prop<\/label><div class="seg" id="cprops" role="group" aria-labelledby="lab-cprop">/);
+  assert.match(over, /<button type="button" data-prop="all" aria-pressed="true">Overview<\/button>/);
+  assert.match(over, /<button type="button" data-prop="rushyds" aria-pressed="false">Rushing yards<\/button>/);
+  assert.doesNotMatch(over, /id="clines"/, "a line row on the overview");
+  assert.match(over, /<label id="lab-cprop">Prop<\/label><div class="seg" id="cprops" role="group" aria-labelledby="lab-cprop">/, "the prop strip is not a labelled group, as every other segmented control on the site is");
+  const picked = page.controlsHtml(nfl, { prop: "rushyds", line: 40 });
+  assert.match(picked, /<label id="lab-cline">Line<\/label><div class="seg" id="clines" role="group" aria-labelledby="lab-cline">/);
+  assert.match(picked, /data-prop="rushyds" aria-pressed="true"/);
+  assert.match(picked, /<div class="ctl"><label id="lab-cline">Line<\/label><div class="seg" id="clines" role="group" aria-labelledby="lab-cline">/);
+  assert.match(picked, /<button type="button" data-line="40" aria-pressed="true">40\+<\/button>/);
+  assert.match(picked, /<button type="button" data-line="20" aria-pressed="false">20\+<\/button>/);
+  assert.equal((picked.match(/data-line=/g) || []).length, nfl.LADDERS.rushyds.length, "not every rung of the ladder");
+  const td = page.controlsHtml(nfl, { prop: "td", line: 1 });
+  assert.match(td, /data-line="1" aria-pressed="true">1\+<\/button>/);
+});
+
+test("render with a picked prop and line: one card at that rung with up to thirty rows, the controls pressed, the overview otherwise, and a bad pick falling back", () => {
+  const made = (id) => ({ id, innerHTML: "", listeners: {}, addEventListener(type, fn) { (this.listeners[type] = this.listeners[type] || []).push(fn); } });
+  const els = { ccontrols: made("ccontrols"), cons: made("cons"), cfoot: made("cfoot") };
+  const doc = { getElementById: (id) => els[id] || null };
+  const many = Array.from({ length: 40 }, (_, k) => ({ id: "m" + k, name: "Player " + String(k).padStart(2, "0"), team: "KC", pos: "RB", opp: "LAC", recent: ten((i) => row(0, 0, i < 6 + (k % 5) ? 45 : 10, 0, 0)) }));
+  const changes = [];
+  page.render(doc, { data: { players: many, season: 2026, week: 4 }, model: nfl, state: { prop: "rushyds", line: 40 }, onState: (s) => changes.push(s) });
+  assert.equal((els.cons.innerHTML.match(/class="ccard"/g) || []).length, 1, "a picked line is not one card");
+  assert.match(els.cons.innerHTML, /<h3>40\+ rushing yards<\/h3>/);
+  assert.equal((els.cons.innerHTML.match(/<li>/g) || []).length, 40, "a picked line does not list everyone at six hits or better: the pick is the page, there is nowhere to send a cut");
+  assert.match(els.cfoot.innerHTML, /everyone at that line/, "the caveat does not say a pick lists everyone"); assert.doesNotMatch(els.cfoot.innerHTML, /fifteen a card/);
+  assert.equal(els.ccontrols.hidden, false, "the controls stay hidden once drawn");
+  assert.match(els.ccontrols.innerHTML, /data-prop="rushyds" aria-pressed="true"/); assert.match(els.ccontrols.innerHTML, /data-line="40" aria-pressed="true"/);
+  /* A click on a control reports the new state and redraws. */
+  const click = els.ccontrols.listeners.click[0];
+  click({ target: { closest: (sel) => (sel === "[data-prop]" ? null : { getAttribute: () => "20" }) } });
+  assert.deepEqual(changes.at(-1), { prop: "rushyds", line: 20 });
+  assert.match(els.cons.innerHTML, /<h3>20\+ rushing yards<\/h3>/, "the click did not redraw");
+  click({ target: { closest: (sel) => (sel === "[data-prop]" ? { getAttribute: () => "recs" } : null) } });
+  assert.deepEqual(changes.at(-1), { prop: "recs", line: nfl.LADDERS.recs[0] }, "a new prop does not start at its lowest line");
+  click({ target: { closest: (sel) => (sel === "[data-prop]" ? { getAttribute: () => "all" } : null) } });
+  assert.deepEqual(changes.at(-1), { prop: "all", line: null });
+  assert.equal((els.cons.innerHTML.match(/class="ccard"/g) || []).length, page.RUNGS.length, "the overview is not the thirteen cards");
+  assert.match(els.cfoot.innerHTML, /fifteen a card on the overview/);
+  assert.equal(els.ccontrols.listeners.click.length, 1, "render added a second listener");
+  /* A second render on the same host with new data: the one listener draws from the new payload and reports to the new callback. */
+  const later = [];
+  page.render(doc, { data: { players: many.slice(0, 3), season: 2026, week: 5 }, model: nfl, state: { prop: "rushyds", line: 40 }, onState: (s) => later.push(s) });
+  click({ target: { closest: (sel) => (sel === "[data-prop]" ? null : { getAttribute: () => "20" }) } });
+  assert.deepEqual(later.at(-1), { prop: "rushyds", line: 20 }, "the click reported to the first render's callback");
+  assert.equal(changes.length, 3, "the stale callback was called");
+  assert.equal((els.cons.innerHTML.match(/<li>/g) || []).length, 3, "the click drew from the first render's data");
+  /* A pick the model cannot price falls back to the overview rather than an empty page, and tells the caller so the URL follows. */
+  const norm = [];
+  page.render(doc, { data: { players: many, season: 2026, week: 4 }, model: nfl, state: { prop: "rushyds", line: 45 }, onState: (s) => norm.push(s) });
+  assert.equal((els.cons.innerHTML.match(/class="ccard"/g) || []).length, page.RUNGS.length);
+  assert.match(els.ccontrols.innerHTML, /data-prop="all" aria-pressed="true"/);
+  assert.deepEqual(norm, [{ prop: "all", line: null }], "a cleaned pick was not reported, so the URL would still claim it");
+  norm.length = 0;
+  page.render(doc, { data: { players: many, season: 2026, week: 4 }, model: nfl, state: { prop: "rushyds", line: "40" }, onState: (s) => norm.push(s) });
+  assert.deepEqual(norm, [], "a pick that rendered as given was reported anyway");
+  /* No board: the controls hide, the caveat empties. */
+  page.render(doc, { data: null, model: nfl });
+  assert.equal(els.ccontrols.hidden, true); assert.equal(els.cfoot.innerHTML, "");
+});
+
+test("cleanState: the validation boundary for the URL, table-tested", () => {
+  const C = (s) => page.cleanState(nfl, s);
+  assert.deepEqual(C(null), { prop: "all", line: null });
+  assert.deepEqual(C({ prop: "all" }), { prop: "all", line: null });
+  assert.deepEqual(C({ prop: "rushyds", line: "40" }), { prop: "rushyds", line: 40 }, "a string line from the URL is the number on the ladder");
+  assert.deepEqual(C({ prop: "rushyds", line: null }), { prop: "rushyds", line: 10 }, "a fresh prop starts at its lowest line");
+  assert.deepEqual(C({ prop: "rushyds", line: "" }), { prop: "rushyds", line: 10 }, "a link without a line keeps the prop");
+  assert.deepEqual(C({ prop: "rushyds", line: "45" }), { prop: "all", line: null }, "a line the model does not price is the overview, not a guess");
+  assert.deepEqual(C({ prop: "td", line: "5" }), { prop: "td", line: 1 }, "the touchdown has one rung, so any line is that rung");
+  assert.deepEqual(C({ prop: "<img src=x onerror=alert(1)>", line: "10" }), { prop: "all", line: null });
+  assert.deepEqual(C({ prop: "__proto__", line: "10" }), { prop: "all", line: null }); assert.deepEqual(C({ prop: "constructor" }), { prop: "all", line: null });
+  assert.deepEqual(C({ prop: { toString: () => "rushyds" }, line: "10" }), { prop: "all", line: null }, "a non-string prop is not a prop");
+  /* A ladder without a label is not offered, so it cannot throw in the label. */
+  const bare = Object.assign({}, nfl, { LADDERS: Object.assign({}, nfl.LADDERS, { newstat: [10, 20] }) });
+  assert.deepEqual(page.cleanState(bare, { prop: "newstat", line: "10" }), { prop: "all", line: null });
+});

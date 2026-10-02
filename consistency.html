@@ -30,9 +30,11 @@
 </header>
 
 <div class="note">For each prop at a line the board prices, who cleared it most often in his last ten games on file, this season
-and last: the hits, and the share as a bar. A streak is a count, not a chance: the chance the model gives him this week,
-against this opponent, is on the NFL board, in his drawer, at this line.</div>
+and last: the hits, and the share as a bar. Pick a prop and any line the board prices to see everyone at that one rung, or the
+overview for a standard line of each. A streak is a count, not a chance: the chance the model gives him this week, against
+this opponent, is on the NFL board, in his drawer, at this line.</div>
 
+<div class="controls" id="ccontrols" hidden></div>
 <div class="cons" id="cons"><div class="empty"><div class="big">Loading…</div></div></div>
 <footer id="cfoot"></footer>
 </div>
@@ -45,12 +47,27 @@ against this opponent, is on the NFL board, in his drawer, at this line.</div>
 <script>
 (function () {
   var D = window.BetHouseNFLData || null;
-  BetHouseConsistency.render(document, {
-    data: D,
-    model: window.BetHouseNFL || null,
-    faces: window.BetHouseFaces || null,
-    league: 'NFL'
-  });
+  /* The pick rides the URL (?prop=rushyds&line=40), so a view can be shared; a bad pick falls back to the overview. */
+  var q = new URLSearchParams(location.search);
+  var state = { prop: q.get('prop') || 'all', line: q.get('line') };
+  try {
+    BetHouseConsistency.render(document, {
+      data: D,
+      model: window.BetHouseNFL || null,
+      faces: window.BetHouseFaces || null,
+      league: 'NFL',
+      state: state,
+      onState: function (s) {
+        var u = new URL(location.href);
+        if (s.prop === 'all') { u.searchParams.delete('prop'); u.searchParams.delete('line'); }
+        else { u.searchParams.set('prop', s.prop); u.searchParams.set('line', String(s.line)); }
+        history.replaceState(null, '', u.pathname + (u.search || '') + u.hash);
+      }
+    });
+  } catch (e) {
+    /* A fault leaves a plain message, never "Loading…" forever. */
+    document.getElementById('cons').innerHTML = '<div class="empty"><div class="big">The page could not read the board</div><div>' + String(e && e.message || e).replace(/[&<>]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]; }) + '</div></div>';
+  }
 })();
 </script>
 </body>

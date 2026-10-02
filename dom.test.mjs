@@ -2381,6 +2381,14 @@ test("the teams page's panel scrolls sideways inside itself, the team cell stick
   for (const f of ["faces.js", "nfl.js", "nfl-data.js", "consistency-page.js"]) assert.match(src("consistency.html"), new RegExp('<script src="' + f.replace(".", "\\.") + '"></script>'), "consistency.html does not load " + f);
   assert.match(markup("consistency.html"), /id="cons"[\s\S]*id="cfoot"/);
   assert.match(src("consistency.html"), /model: window\.BetHouseNFL \|\| null/, "the page does not hand the model to the renderer");
+  /* The choice of prop and line rides the URL (?prop=&line=), read on load and written on change, so a view can be shared. */
+  assert.match(markup("consistency.html"), /id="ccontrols"[\s\S]*id="cons"/, "no controls host above the cards");
+  assert.match(src("consistency.html"), /new URLSearchParams\(location\.search\)/, "the page does not read the pick off the URL");
+  assert.match(src("consistency.html"), /history\.replaceState\(/, "the page does not write the pick to the URL");
+  assert.match(src("consistency.html"), /onState:/, "the page does not listen for a change of pick");
+  assert.match(src("consistency.html"), /<div class="controls" id="ccontrols" hidden>/, "the empty controls host paints a rule before the controls exist");
+  assert.match(src("consistency.html"), /\} catch \(e\) \{/, "a fault in the renderer leaves the page on Loading… forever");
+  assert.doesNotMatch(src(SHEET), /#ccontrols\{/, "the controls carry an id override instead of the board's .controls rule");
   for (const k of [".cons{", ".ccard{", ".ccard li{", ".ccard .bar{", ".ccard .hits.good"]) assert.ok(src(SHEET).includes(k), "no rule for " + k);
   /* The home carries a strip of the consistency cards: the module loaded, a section to write, the call with the NFL data and model, hidden when there is nothing. */
   assert.ok(src("index.html").indexOf('<script src="consistency-page.js"></script>') > 0, "the home does not load consistency-page.js");

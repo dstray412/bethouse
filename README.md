@@ -353,8 +353,15 @@ of the ten were last season and how many he played for another team
 Questionable listing shows as a chip. The caveat says what the
 reference does not: a hit count is not a chance, a game without a
 touch leaves no line, and the model's chance at this line is in his
-drawer on the board. Code review caught the first draft citing the
-record page for a streak finding that lives in the baseball replay,
+drawer on the board. The reader can pick a prop and any line the
+board prices (the model's ladder: 10 to 150 yards, 2 to 10 catches,
+150 to 400 passing) and see everyone at that one rung; the pick
+rides the URL as `?prop=rushyds&line=40`, and a line the model does
+not price falls back to the overview, and the URL follows. Code review
+caught a thirty-row cap on a pick that hid most of the field at a low
+line and split identical records alphabetically; a pick lists everyone
+now. It also caught the first draft citing the record page for a streak finding that lives in the
+baseball replay,
 printing today's team over hits earned for another, and three rungs
 the board does not price. `consistency-page.js`, tested in
 `consistency-page.test.mjs`.

@@ -34,7 +34,26 @@ Zero dependencies, no build step, no server, no API key. `node --test` with
 **named files** — bare discovery pulls in the backtests, which fire live API
 calls. The list lives in seven places and `dom.test.mjs` checks all seven.
 
-## The consistency cards on the home (2026-10-02, latest)
+## Picking a prop and a line on the consistency page (2026-10-02, latest)
+
+**What.** The user asked to choose which props to see consistency
+for (20+, 30+, 40+ rushing yards and so on). consistency-page.js
+gains `props(model)` (Overview plus the model's stats), `lines(model,
+prop)` (the model's `LADDERS`, so every pick is a line the board
+prices; the touchdown's one rung), `rungFor`, `controlsHtml` (two
+`.seg` controls into `#ccontrols`), and `render` takes `state` and
+`onState`: the overview is the thirteen cards, a pick is one card with everyone
+at six hits or better (review: a thirty-row cap hid 179 of 209 at
+10+ rush + rec and cut alphabetically through 10/10 records); the pick
+lives on the controls host with the latest draw and callback, one
+click listener per host, a bad pick falls back to the overview and the
+URL is normalised; `cleanState` is exported and table-tested.
+consistency.html reads `?prop=&line=` on load and writes it with
+`history.replaceState` on change. Tests in consistency-page.test.mjs
+(props, lines, labels, controls, render with state, the click path,
+the fallback) and dom.test.mjs (the host, the URL read and write).
+
+## The consistency cards on the home (2026-10-02)
 
 **What.** `stripHtml(model, data, helpers)` in consistency-page.js:
 one card a scoring family at its lowest rung (`HOME_RUNGS`: td, recyds50, rushyds50; not the broadest, which would be 4+ receptions and 70+ rush + rec, and would count the same yards twice), five
