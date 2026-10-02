@@ -34,7 +34,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const DIR = dirname(fileURLToPath(import.meta.url));
-const BOARDS = ["index.html", "baseball.html", "golf.html", "nfl.html", "cfb.html", "bets.html", "live.html", "record.html", "teams.html", "defence.html", "offence.html"];
+const BOARDS = ["index.html", "baseball.html", "golf.html", "nfl.html", "cfb.html", "bets.html", "live.html", "record.html", "teams.html", "defence.html", "offence.html", "consistency.html"];
 const src = (f) => readFileSync(resolve(DIR, f), "utf8");
 
 /*
@@ -853,11 +853,14 @@ function stubDoc() {
 }
 
 /** Mount the real board against the stub and return its game-view panel builder. */
-async function mountBoard({ tendencies, games, ratings }) {
+async function mountBoard({ tendencies, games, ratings, sheets, sheetModule }) {
   const nfl = (await import("./nfl.js")).default;
   const doc = stubDoc();
   const win = { BetHouseTendencyCore: (await import("./tendencies-core.js")).default };
   if (tendencies !== undefined) win.BetHouseTendencies = tendencies;
+  /* The cheat sheets ride the data file (`sheets`: {defence, offence}); the page module renders them. Two knobs, so each guard is tested alone: `sheetModule` false withholds the module with the sheets present, "stale" supplies one without listHtml. */
+  if (sheetModule === "stale") win.BetHouseSheetPage = { miniHtml() { return ""; } };
+  else if ((sheets || sheetModule === true) && sheetModule !== false) win.BetHouseSheetPage = (await import("./sheet-page.js")).default;
   // eslint-disable-next-line no-new-func
   new Function("window", "document", src("football-board.js"))(win, doc);
 
@@ -866,6 +869,7 @@ async function mountBoard({ tendencies, games, ratings }) {
     data: {
       season: 2026, week: 2, statsSeasons: [2025, 2026], generated: "2026-09-21T00:00", gamesCached: 2,
       games, ratings, teamFactors: {}, players: [], pools: {}, usagePool: [],
+      ...(sheets || {}),
     },
     record: null,
     league: "NFL",
@@ -912,6 +916,50 @@ const GAMES = [
   { id: "g2", home: "BBB", away: "AAA", date: "2030-01-02T00:00Z", completed: false, indoor: true },
 ];
 const RATINGS = { off: { KC: 2, LAC: 1, AAA: 0, BBB: 0 }, def: { KC: -1, LAC: 0, AAA: 0, BBB: 0 } };
+
+/* The cheat sheets on the board: a game row's drawer carries every
+   top-five line for both sides of that game, from the sheets on the data
+   file, through the sheet pages' own module. Nothing without the sheets
+   (college) or without the module. */
+test("a game's drawer carries the cheat sheet for its two sides, every top-five line tagged D or O, and nothing without the sheets", async () => {
+  const sheets = {
+    defence: { side: "def", through: { season: 2026, week: 3 }, field: 32, stats: { passYds: { label: "Pass yards", soft: "most", kind: "mean" }, sacks: { label: "Sacks", soft: "fewest", kind: "total" } },
+      teams: { LAC: { passYds: { v: 290.5, n: 3, rank: 1, of: 32 }, sacks: { v: 9, n: 3, rank: 30, of: 32 } }, KC: { passYds: { v: 200, n: 3, rank: 20, of: 32 }, sacks: { v: 2, n: 3, rank: 3, of: 32 } } } },
+    offence: { side: "off", through: { season: 2026, week: 3 }, field: 32, stats: { rushYds: { label: "Rush yards", soft: "most", kind: "mean" } }, teams: { KC: { rushYds: { v: 160.3, n: 3, rank: 2, of: 32 } } } },
+  };
+  const { app, panelFor } = await mountBoard({ tendencies: TENDENCIES, games: GAMES, ratings: RATINGS, sheets });
+  const i = app.__rows.findIndex((r) => r.g.id === "g1");
+  const html = panelFor(i);
+  assert.match(html, /<div class="mu cheat"><h4 class="muhead">Cheat sheet<\/h4>/, "no cheat-sheet section on the game's drawer");
+  const lines = [...html.matchAll(/<li><span class="side ([do])">[DO]<\/span><span class="rk[^"]*">([A-Z0-9]+)<\/span><b class="tm">([A-Z]+)<\/b> <span class="st">([^<]+)</g)].map((m) => m[1] + " " + m[2] + " " + m[3] + " " + m[4].trim());
+  assert.deepEqual(lines, ["d MOST LAC Pass yards", "o 2ND KC Rush yards", "d 3RD KC Sacks"], "not every top-five line of both sides, by rank, defence first on a tie");
+  assert.doesNotMatch(html, /smore/, "the drawer cut lines; it shows them all");
+  assert.match(html, /<a href="defence\.html">Defences →<\/a>/); assert.match(html, /<a href="offence\.html">Offences →<\/a>/);
+  assert.match(html, /top five of 32/, "the section does not say what a place is out of");
+  assert.match(html, /<b>1g<\/b> marks a line from a single game/, "the foot does not explain the one-game mark");
+  assert.match(html, /not a price on its own: the model already prices a defence through its fitted allowances/, "the foot borrows the matchup panel's 'not in a price', which is false for the sheets");
+  assert.match(html, /through week 3/, "the foot does not name the window");
+  /* The drawer's lines take the five-column grid the home card's do, and the panel is boxed. */
+  const css = src(SHEET);
+  assert.match(css, /\.scard\.mini \.slines li,\.mu\.cheat \.slines li\{grid-template-columns:auto auto auto 1fr auto\}/, "the drawer's five-child lines do not get the five-column grid");
+  assert.match(css, /\.mu\.cheat\{[^}]*border:1px solid var\(--line\)/, "the cheat panel has no panel chrome");
+  assert.ok(html.indexOf('class="mu"') < html.indexOf('class="mu cheat"'), "the cheat sheet does not follow the matchup panel");
+  /* A game with nothing in the top five on either side: no section at all. */
+  const j = app.__rows.findIndex((r) => r.g.id === "g2");
+  assert.doesNotMatch(panelFor(j), /Cheat sheet/, "a section with nothing to say");
+  /* Without the sheets on the file, without the module, or with a stale module that lacks listHtml: nothing, and no error, each on its own. */
+  const bare = await mountBoard({ tendencies: TENDENCIES, games: GAMES, ratings: RATINGS });
+  assert.doesNotMatch(bare.panelFor(bare.app.__rows.findIndex((r) => r.g.id === "g1")), /Cheat sheet|slines/, "a cheat-sheet section with no sheets and no module");
+  const noModule = await mountBoard({ tendencies: TENDENCIES, games: GAMES, ratings: RATINGS, sheets, sheetModule: false });
+  assert.doesNotMatch(noModule.panelFor(noModule.app.__rows.findIndex((r) => r.g.id === "g1")), /Cheat sheet|slines/, "sheets on the file but no module: a section anyway");
+  const stale = await mountBoard({ tendencies: TENDENCIES, games: GAMES, ratings: RATINGS, sheets, sheetModule: "stale" });
+  assert.doesNotMatch(stale.panelFor(stale.app.__rows.findIndex((r) => r.g.id === "g1")), /Cheat sheet|slines/, "a cached module without listHtml took the drawer down or rendered");
+  const noSheets = await mountBoard({ tendencies: TENDENCIES, games: GAMES, ratings: RATINGS, sheets: {}, sheetModule: true });
+  assert.doesNotMatch(noSheets.panelFor(noSheets.app.__rows.findIndex((r) => r.g.id === "g1")), /Cheat sheet|slines/, "the module but no sheets: a section anyway");
+  /* The NFL page loads the module before the board; the college page, which has no sheets, need not. */
+  const nflHtml = src("nfl.html");
+  assert.ok(nflHtml.indexOf('<script src="sheet-page.js"></script>') > 0 && nflHtml.indexOf('<script src="sheet-page.js"></script>') < nflHtml.indexOf('<script src="football-board.js"></script>'), "nfl.html does not load sheet-page.js before the board");
+});
 
 test("the matchup section renders for a game whose teams are in the tendencies file", async () => {
   const { app, panelFor } = await mountBoard({ tendencies: TENDENCIES, games: GAMES, ratings: RATINGS });
@@ -2329,6 +2377,11 @@ test("the teams page's panel scrolls sideways inside itself, the team cell stick
   assert.match(src("defence.html"), /sheet: D && D\.defence \|\| null/, "the defence page does not read its sheet off the NFL data file");
   assert.match(src("offence.html"), /sheet: D && D\.offence \|\| null/, "the offence page does not read its sheet off the NFL data file");
   assert.doesNotMatch(src("offence.html"), /D\.defence/, "the offence page reads the defence's sheet");
+  /* The consistency page: the model (for recentHits and availability), the marks, the NFL data file, the page module; the data global. */
+  for (const f of ["faces.js", "nfl.js", "nfl-data.js", "consistency-page.js"]) assert.match(src("consistency.html"), new RegExp('<script src="' + f.replace(".", "\\.") + '"></script>'), "consistency.html does not load " + f);
+  assert.match(markup("consistency.html"), /id="cons"[\s\S]*id="cfoot"/);
+  assert.match(src("consistency.html"), /model: window\.BetHouseNFL \|\| null/, "the page does not hand the model to the renderer");
+  for (const k of [".cons{", ".ccard{", ".ccard li{", ".ccard .bar{", ".ccard .hits.good"]) assert.ok(src(SHEET).includes(k), "no rule for " + k);
   /* The home carries a strip of both sheets: the module loaded after the data it reads, a section to write, and the call with both sheets off the NFL data file. */
   const home = src("index.html");
   assert.ok(home.indexOf('<script src="sheet-page.js"></script>') > 0, "the home does not load sheet-page.js");
@@ -2340,7 +2393,7 @@ test("the teams page's panel scrolls sideways inside itself, the team cell stick
   assert.match(home, /catch\(e\)\{ el\('cheatsec'\)\.hidden=true; \}/, "a fault in the strip is not contained to the strip");
   assert.match(src("offence.html"), /side: 'off'/, "the offence page does not name its side"); assert.match(src("defence.html"), /side: 'def'/, "the defence page does not name its side");
   const sheetCss = src(SHEET);
-  for (const c of [".sheet{", ".scard{", ".slines li{", ".slines .rk.r1{", ".slines .v{", ".scard.mini{", ".scard.mini .slines li{", ".slines .side{", ".scard .smore{"]) assert.ok(sheetCss.includes(c), "no rule for " + c);
+  for (const c of [".sheet{", ".scard{", ".slines li{", ".slines .rk.r1{", ".slines .v{", ".scard.mini{", ".scard.mini .slines li,.mu.cheat .slines li{", ".slines .side{", ".scard .smore{"]) assert.ok(sheetCss.includes(c), "no rule for " + c);
   assert.match(sheetCss, /\.sheet\{columns:2;/, "the sheet is not a two-column flow (a grid leaves a gap beside a tall card)");
   assert.match(sheetCss, /\.scard\{[^}]*break-inside:avoid/, "a card can split across columns");
   assert.match(sheetCss, /@media \(max-width:760px\)\{\.sheet\{columns:1\}/, "the sheet does not stack on a phone");

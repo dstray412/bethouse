@@ -36,7 +36,7 @@
        exist, or the first keystroke fails silently (the search box did,
        2026-09-09). Say so instead. */
     var NEEDS = ['STATS','statEligible','statOppFactor','allowOf','scoreAnytimeTD','empiricalOver','fairPrice','availability','playerMatches',
-      'statTotal','statOpportunity','ladder','projectGame','pickGame','poolSize','poolReads','recentValues','recentHits','recentDate','receivingOpportunity'];
+      'statTotal','statOpportunity','ladder','projectGame','pickGame','poolSize','poolReads','recentValues','recentHits','recentTdHits','recentDate','receivingOpportunity'];
     var missing = NEEDS.filter(function(k){ return typeof N[k] !== 'function' && k !== 'STATS' || (k === 'STATS' && !N.STATS); });
     /* The same mix the other way: a fresh model with a data file from
        before the pools were levelled (2026-09-21) would price every prop
@@ -522,7 +522,7 @@
       };
       /* The overview: the price and Track row, then how he gets there. */
       app.__over=function(r){
-        var rec=r.p.recent, scored=rec&&rec.length?rec.filter(function(x){ return (Number(x[6])||0)>=1; }).length:null;
+        var rec=r.p.recent, scored=rec&&rec.length?N.recentTdHits(rec):null;
         return actRow(pxInput(r)+trackBtn(r,'td'))+
           howHtml(r.chips, scored!=null?'Scored in <b>'+scored+'</b> of his last <b>'+rec.length+'</b> games.':'');
       };
@@ -788,6 +788,24 @@
       return h+'</div></div>';
     }
     /* Both directions of one game, or '' when the file has neither side. */
+    /* The cheat sheets for a game (NFL: the data file carries `defence`
+       and `offence`, sheet-page.js renders them): every top-five line
+       for both sides, tagged D or O, under the matchup panel. Nothing
+       without the sheets or the module, so college shows nothing. */
+    function cheatHtml(r){
+      var SP=window.BetHouseSheetPage||null;
+      /* Guarded on shape, like TCORE: a stale cached module must not take the drawer down. */
+      if(!SP||typeof SP.listHtml!=='function'||!r.g||!(D.defence||D.offence)) return '';
+      var list=SP.listHtml(D.defence||null,D.offence||null,r.g);
+      if(!list||!list.html) return '';
+      /* The field, when the two sheets agree on it; a line ranked among fewer says so itself. */
+      var fd=D.defence&&D.defence.field, fo=D.offence&&D.offence.field, field=fd&&fo?(fd===fo?fd:null):(fd||fo||null);
+      var thr=(D.defence&&D.defence.through)||(D.offence&&D.offence.through)||null;
+      return '<div class="mu cheat"><h4 class="muhead">Cheat sheet</h4>'+list.html+
+        '<p class="mufoot">What each side has allowed (<b>D</b>) or done (<b>O</b>) most this season'+(thr&&thr.week?' through week '+esc(thr.week):'')+', the top five'+(field?' of '+esc(field):'')+
+        '; turnovers, takeaways and a defence\'s sacks rank from the fewest; <b>1g</b> marks a line from a single game, and a line ranked among fewer says of how many. '+
+        'A place to look, not a price on its own: the model already prices a defence through its fitted allowances (full strength on the touchdown chance and the game line, half on rushing and passing yards) and an offence through its touchdown rate and rating. <a href="defence.html">Defences →</a> <a href="offence.html">Offences →</a></p></div>';
+    }
     function matchupHtml(r){
       if(!TEND) return '';
       var body=matchupSide(r.a,r.h)+matchupSide(r.h,r.a);
@@ -908,7 +926,7 @@
           esc(r.a)+' offence <b>'+(D.ratings.off[r.a]||0).toFixed(2)+
           '</b>, defence <b>'+(D.ratings.def[r.a]||0).toFixed(2)+'</b></td></tr>';
         t+='<tr><td>honestly</td><td>'+C.gameHonestly+'</td></tr>';
-        return t+'</table>'+matchupHtml(r);
+        return t+'</table>'+matchupHtml(r)+cheatHtml(r);
       };
     }
 

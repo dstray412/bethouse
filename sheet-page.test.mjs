@@ -131,3 +131,12 @@ test("miniHtml: both sheets' lines merged by rank with a side tag, capped, the l
   assert.match(defOnly, /MOST/); assert.doesNotMatch(defOnly, /class="side o"/, "an offence tag with no offence sheet");
   assert.equal((defOnly.match(/<li>/g) || []).length, 2, "the cap is not the caller's");
 });
+
+test("listHtml: the bare list both the home card and the board's drawer use; a limit of nothing shows every line, a cap counts the cut", () => {
+  const all = page.listHtml(SHEET, null, GAMES[0]);
+  assert.equal((all.html.match(/<li>/g) || []).length, 7, "not every top-five line of both teams");
+  assert.equal(all.cut, 0);
+  const two = page.listHtml(SHEET, null, GAMES[0], 2);
+  assert.equal((two.html.match(/<li>/g) || []).length, 2); assert.equal(two.cut, 5);
+  assert.deepEqual(page.listHtml(SHEET, null, { id: "g", home: "QQQ", away: "ZZZ" }), { html: "", cut: 0 });
+});

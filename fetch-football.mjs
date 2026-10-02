@@ -771,7 +771,8 @@ export function recentRows(games, n, model) {
       if (!opp) continue;
       // YYMMDD: the log spans two seasons, and a September date comes round again.
       const d = String(g.date).slice(2, 4) + String(g.date).slice(5, 7) + String(g.date).slice(8, 10);
-      list.push([d, opp, n0(p.rec && p.rec.yds), n0(p.rec && p.rec.rec), n0(p.rush && p.rush.yds), n0(p.pass && p.pass.yds), n0(p.rush && p.rush.td) + n0(p.rec && p.rec.td)]);
+      // Column 7 (2026-10-02): the team he played it for, so a page counting his last ten can say how many were elsewhere.
+      list.push([d, opp, n0(p.rec && p.rec.yds), n0(p.rec && p.rec.rec), n0(p.rush && p.rush.yds), n0(p.pass && p.pass.yds), n0(p.rush && p.rush.td) + n0(p.rec && p.rec.td), p.team]);
       by.set(p.id, list);
     }
   }

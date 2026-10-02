@@ -13,7 +13,7 @@ commit you are reading and how old the data on disk is.
 
 ## Where things are
 
-**Eleven pages**, all live and deployed:
+**Twelve pages**, all live and deployed:
 
 | page | what |
 |---|---|
@@ -24,6 +24,7 @@ commit you are reading and how old the data on disk is.
 | `teams.html` | the teams page: every NFL offence and defence from the play-by-play profiles, sortable. Added 2026-10-01 |
 | `defence.html` | the defensive cheat sheet: a card a game, what either defence allows most, ranked out of 32. Added 2026-10-02 |
 | `offence.html` | the offensive cheat sheet, the twin: what either offence does most. Added 2026-10-02 |
+| `consistency.html` | the consistency cards: a prop a card, players ranked by hits in their last ten games. Added 2026-10-02 |
 | `nfl.html` | anytime TD; receiving, rushing, rush + rec and passing yards and receptions, each with a ladder of alternate lines; game matchups from play-by-play. Spreads and totals shown with the board saying they do not beat the close |
 | `cfb.html` | college football, the same props and ladders (no matchups). Added 2026-09-05 |
 | `golf.html` | PGA Tour make-the-cut |
@@ -33,7 +34,47 @@ Zero dependencies, no build step, no server, no API key. `node --test` with
 **named files** — bare discovery pulls in the backtests, which fire live API
 calls. The list lives in seven places and `dom.test.mjs` checks all seven.
 
-## The cheat sheets on the home (2026-10-02, latest)
+## The consistency cards (2026-10-02, latest)
+
+**What.** The user showed a reference (1+ point / 2+ SOG / 3+ SOG
+cards, players ranked by hits in their last ten with a bar) and asked
+for the same on player props, then left for twenty minutes with "handle
+all the work, review, and commit". `consistency-page.js` (UMD
+`BetHouseConsistency`: RUNGS, hits, rows, tier, cardHtml, footHtml,
+render) counts hits over `p.recent` (the ten game lines the data file
+already ships) through `model.recentHits` and the new
+`model.recentTdHits` (the board's card and log use it too); thirteen
+rungs, every one on `LADDERS`; a player needs ten games, an opponent
+this week and no Out status; six hits and up, fifteen a card, most
+hits first then by name; a row says how many of the ten were last
+season and how many for another team (`recentRows` now writes the
+team in column 7) and chips a Questionable listing. Tiers: 80%+ good,
+70% warn, 60% plain. Code review caught the first draft: a streak
+claim pinned on the record page (the finding is the baseball
+replay's), today's team over another team's hits, 75-yard rungs the
+board does not price.
+`consistency.html` is a twelfth page; every board links it; gate lists
+and BOARDS grew. Tests: consistency-page.test.mjs (hits, rows, tiers,
+escaping, render) and dom.test.mjs.
+
+**Not in it.** A per-player "streak" on the board's rows (the why band
+already says "Cleared 50+ in 8 of his last 10" at the line in force);
+college (its file ships recent rows too, so a college page would be
+the same module with cfb-data.js, not built).
+
+## The cheat sheets on the NFL board (2026-10-02)
+
+**What.** `cheatHtml(r)` in football-board.js, appended to a game
+row's drawer after `matchupHtml`: `BetHouseSheetPage.listHtml(D.defence,
+D.offence, r.g)` uncapped (every top-five line of both sides, D/O
+tags), with a `.mufoot` naming the field, the fewest-ranked lines and
+the two pages. nfl.html loads sheet-page.js before the board; cfb.html
+does not and its data has no sheets, so college shows nothing. The
+home's `miniHtml` now wraps the same `listHtml` with a cap. Tests in
+dom.test.mjs (the panel, its absence, the script order) and
+sheet-page.test.mjs (`listHtml`).
+
+## The cheat sheets on the home (2026-10-02)
 
 **What.** `miniHtml(def, off, game, helpers, limit)` in sheet-page.js:
 both sheets' lines for a game, each side's single best line and then

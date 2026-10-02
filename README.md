@@ -228,6 +228,7 @@ should be re-fitted when the run environment shifts.
 |---|---|
 | `index.html` | The home: tonight's slate, one card per game with the two teams' logos, the football boards' projection and pick, a row of tops. |
 | `home.js` | The home's arithmetic: one slate out of the boards' data, which day it shows, the football card, the tops, the tile. Tested in `home.test.mjs`. |
+| `consistency.html` / `consistency-page.js` | The consistency cards: a card a prop at a standard line, players ranked by hits in their last ten games, from the game lines the data file ships; tested in `consistency-page.test.mjs`. |
 | `defence.html` / `offence.html` / `sheet-page.js` | The cheat sheets: a card a game, the lines where either defence ranks in the top five of 32 for what it allows, and the twin for what either offence does, from the sheets the fetcher computes (`teamSheet`); tested in `sheet-page.test.mjs`. |
 | `teams.html` / `teams-page.js` | The teams page: one row per NFL team from the tendencies profiles, sortable, with the family chips; tested in `teams-page.test.mjs`. |
 | `tendencies-core.js` | The ranks, the two legibility thresholds, the play families, a matchup and its sentence: the arithmetic the board's matchup panel, the teams page and `tendencies.mjs` share, one copy. |
@@ -332,6 +333,38 @@ answers one question first and keeps the rest a tab away. So:
   controls row, on every view; the row stays on the game view for it.
 
 Nothing measured was removed. It moved one click from the headline.
+
+**The consistency cards (2026-10-02).** `consistency.html`, after a
+reference the user liked: a card a prop at a line the board prices
+(every rung is on the model's ladder: anytime touchdown; 50, 70 and
+100 receiving yards; 4 and 6 catches; 50, 70 and 100 rushing yards;
+70 and 100 rush + rec; 250 and 300 passing yards), the players ranked
+by hits in their last ten games on file, a bar for the share, 80% and
+up in green, 70% amber, 60% plain. The count is made in the browser
+from the ten game lines the data file already ships for the drawer's
+recent-games tab, through the model's own `recentHits` and a new
+`recentTdHits` the board's card and log share too, so the surfaces
+cannot disagree. A player needs ten games, a game this week and no
+Out status; 60% and up, fifteen a card; a rung nobody clears keeps
+its card and says so. The ten reach into last season at this point of
+the year (at week 4, six or more of them), so each row says how many
+of the ten were last season and how many he played for another team
+(the game line carries his team from this build on), and a
+Questionable listing shows as a chip. The caveat says what the
+reference does not: a hit count is not a chance, a game without a
+touch leaves no line, and the model's chance at this line is in his
+drawer on the board. Code review caught the first draft citing the
+record page for a streak finding that lives in the baseball replay,
+printing today's team over hits earned for another, and three rungs
+the board does not price. `consistency-page.js`, tested in
+`consistency-page.test.mjs`.
+
+**The cheat sheets on the NFL board (2026-10-02).** A game row's
+drawer, under the matchup panel, lists every top-five line for both
+sides of that game from the two sheets, tagged D or O, through the
+sheet pages' own module (`listHtml`, the one list renderer the home's
+strip also uses, capped there and uncapped here). The college board
+has no sheets and shows nothing.
 
 **The offensive cheat sheet (2026-10-02).** `offence.html`, the twin:
 the same twenty-four lines attributed to the offence that did them,

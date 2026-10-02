@@ -1310,9 +1310,10 @@ test("recentRows: each player's last N lines, newest first, from the games on fi
     game("g2", "2026-09-14T17:00Z", "KC", "NYG", [["a", "KC", { tgt: 9, rec: 7, yds: 110, td: 2 }]]),
   ];
   const out = recentRows(games, 2, nfl);
+  for (const rows of out.values()) for (const r of rows) assert.equal(r.length, 8, "a row does not carry the team he played it for in column 7");
   // The date carries the year: the log spans two seasons, and 09/14 comes round again.
-  assert.deepEqual(out.get("a"), [["260921", "DEN", 30, 3, 9, 0, 0], ["260914", "NYG", 110, 7, 0, 0, 2]], "newest first, capped at N, the opponent named");
-  assert.deepEqual(out.get("q"), [["260907", "KC", 0, 0, 0, 250, 0]], "a passer's line; touchdowns are the ones he scores, not throws");
+  assert.deepEqual(out.get("a"), [["260921", "DEN", 30, 3, 9, 0, 0, "KC"], ["260914", "NYG", 110, 7, 0, 0, 2, "KC"]], "newest first, capped at N, the opponent named, his own team last");
+  assert.deepEqual(out.get("q"), [["260907", "KC", 0, 0, 0, 250, 0, "LAC"]], "a passer's line; touchdowns are the ones he scores, not throws");
   assert.equal(out.has("nobody"), false);
   assert.equal(recentRows([], 5, nfl).size, 0);
   // A line for a player on neither side of the game (a bad box score) is no row at all.
@@ -1812,4 +1813,10 @@ test("teamSheet with play-by-play: sacks (the defence's from the fewest, the off
   assert.equal(DEFENCE_STATS.sacks.soft, "fewest"); assert.equal(OFFENCE_STATS.sacks.soft, "most"); assert.equal(OFFENCE_STATS.sacks.label, "Sacks taken"); assert.equal(DEFENCE_STATS.sacks.label, "Sacks");
   assert.equal(DEFENCE_STATS.thirdDownPct.kind, "pct"); assert.equal(DEFENCE_STATS.rzTrips.label, "Red zone trips"); assert.equal(DEFENCE_STATS.thirdDownPct.label, "3rd down %");
   assert.equal(teamSheet(games, null, { season: 2026 }).teams.KC.sacks, undefined, "no plays: no sack line, not a zero");
+});
+
+test("recentTdHits: games with a touchdown in the recent rows, the one count every surface shares", () => {
+  const rows = [["260928", "DEN", 0, 0, 0, 0, 2], ["260921", "NYG", 0, 0, 0, 0, 0], ["260914", "LV", 0, 0, 0, 0, 1], ["260907", "KC", 0, 0, 0, 0, null]];
+  assert.equal(nfl.recentTdHits(rows), 2);
+  assert.equal(nfl.recentTdHits(null), 0); assert.equal(nfl.recentTdHits([]), 0);
 });

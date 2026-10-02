@@ -77,29 +77,42 @@
   }
 
   /**
-   * The home's compact card for one game: the top lines from BOTH sheets
-   * (a defence's and an offence's side by side, each tagged D or O),
-   * capped at `limit`; "" when neither sheet has a line in the top
-   * places. Each side keeps its single best line, so one side's run of
-   * first places cannot push the other off the card, and the rest fill
-   * by rank, the defence first on a tie, so a fifth place never
-   * displaces a first except to keep a side on the card. The lines cut
-   * are counted under the list, since the card shows fewer than the
-   * pages. The line and head markup is the sheet card's own function,
-   * so the home and the pages cannot print a line differently.
+   * The bare list for one game from BOTH sheets (a defence's and an
+   * offence's side by side, each tagged D or O), the home card's and
+   * the board drawer's one renderer. With no `limit` every top-five line
+   * shows; with one, each side keeps its single best line, so one
+   * side's run of first places cannot push the other off, and the rest
+   * fill by rank, the defence first on a tie, so a fifth place never
+   * displaces a first except to keep a side on. A `limit` of 0 or none
+   * is no cap. Returns the markup and how many lines the cap cut; "" and
+   * 0 when neither sheet has a line.
    */
-  function miniHtml(defSheet, offSheet, game, helpers, limit) {
-    const cap = limit || 4;
+  function listHtml(defSheet, offSheet, game, limit) {
     const tag = (sheet, side) => (sheet ? gameLines(sheet, game).map((l, i) => ({ ...l, sideTag: side, order: side === "d" ? 0 : 1, i })) : []);
     const byRank = (a, b) => a.rank - b.rank || a.order - b.order || a.where - b.where || a.i - b.i;
     const d = tag(defSheet, "d"), o = tag(offSheet, "o");
-    const first = d.slice(0, 1).concat(o.slice(0, 1));
-    const rest = d.slice(1).concat(o.slice(1)).sort(byRank);
-    const list = first.concat(rest).slice(0, cap).sort(byRank);
-    if (!list.length) return "";
-    const cut = d.length + o.length - list.length;
-    return '<section class="scard mini">' + stripeOf(game, helpers) + headHtml(game, helpers, "") + '<ul class="slines">' + list.map((l) => lineHtml(l, l.sideTag)).join("") + "</ul>" +
-      (cut > 0 ? '<div class="smore">+' + esc(cut) + " more in the top five on the sheets</div>" : "") + "</section>";
+    const all = d.concat(o);
+    let list;
+    if (limit && limit < all.length) {
+      const first = d.slice(0, 1).concat(o.slice(0, 1));
+      const rest = d.slice(1).concat(o.slice(1)).sort(byRank);
+      list = first.concat(rest).slice(0, limit).sort(byRank);
+    } else list = all.sort(byRank);
+    if (!list.length) return { html: "", cut: 0 };
+    return { html: '<ul class="slines">' + list.map((l) => lineHtml(l, l.sideTag)).join("") + "</ul>", cut: all.length - list.length };
+  }
+
+  /**
+   * The home's compact card for one game: listHtml at `limit` (four by
+   * default) under the card's head, with a count of the lines cut, since
+   * the card shows fewer than the pages; "" when there is nothing.
+   */
+  function miniHtml(defSheet, offSheet, game, helpers, limit) {
+    const cap = limit || 4;
+    const list = listHtml(defSheet, offSheet, game, cap);
+    if (!list.html) return "";
+    return '<section class="scard mini">' + stripeOf(game, helpers) + headHtml(game, helpers, "") + list.html +
+      (list.cut > 0 ? '<div class="smore">+' + esc(list.cut) + " more in the top five on the sheets</div>" : "") + "</section>";
   }
 
   /** The caveat: what the ranks are, what a one-game line is, the window, and what the model takes from this side. */
@@ -131,5 +144,5 @@
     host.innerHTML = cards.length ? cards.join("") : '<div class="empty"><div class="big">Nothing in the top five</div><div>No ' + (sheet.side === "off" ? "offence" : "defence") + ' on this slate ranks in the top five places on any line.</div></div>';
   }
 
-  return { SHOWN, lines, gameLines, cardHtml, miniHtml, footHtml, render };
+  return { SHOWN, lines, gameLines, listHtml, cardHtml, miniHtml, footHtml, render };
 });

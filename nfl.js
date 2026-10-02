@@ -1052,6 +1052,10 @@
   function recentHits(stat, recent, rung) {
     return recentValues(stat, recent).filter((v) => v >= num(rung) - 0.5).length;
   }
+  /** Games with a touchdown in the recent rows (column 6, rushing plus receiving): the one count the board's card, its log and the consistency page share. */
+  function recentTdHits(recent) {
+    return (Array.isArray(recent) ? recent : []).filter((x) => (Number(x[6]) || 0) >= 1).length;
+  }
   /** The row's date, YYMMDD, as a calendar date; an older file's MMDD reads as MM-DD. */
   function recentDate(d) {
     const s = String(d == null ? "" : d);
@@ -1478,6 +1482,7 @@
       recentLine,
       recentValues,
       recentHits,
+      recentTdHits,
       recentDate,
       statOpportunity: (stat, rec, opts) => statOpportunity(stat, rec, merge(opts)),
       expectedStat: (stat, rec, opts) => expectedStat(stat, rec, merge(opts)),
@@ -1531,6 +1536,7 @@
     recentLine,
     recentValues,
     recentHits,
+    recentTdHits,
     recentDate,
     statOpportunity,
     expectedStat,
