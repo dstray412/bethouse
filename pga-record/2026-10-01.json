@@ -389,7 +389,12 @@
    "prob": 0.6639,
    "rounds": 58,
    "firstTee": "2026-10-01T13:35Z",
-   "recordedAt": "2026-09-29T18:59:41.496Z"
+   "recordedAt": "2026-09-29T18:59:41.496Z",
+   "actual": 0,
+   "result": {
+    "status": "STATUS_CUT",
+    "rounds": 1
+   }
   },
   {
    "eventId": "401850915",
@@ -469,7 +474,9 @@
    "prob": 0.6524,
    "rounds": 65,
    "firstTee": "2026-10-01T13:35Z",
-   "recordedAt": "2026-09-29T18:59:41.496Z"
+   "recordedAt": "2026-09-29T18:59:41.496Z",
+   "scratched": true,
+   "scratchReason": "not in the field"
   },
   {
    "eventId": "401850915",
@@ -819,7 +826,9 @@
    "prob": 0.5564,
    "rounds": 2,
    "firstTee": "2026-10-01T13:35Z",
-   "recordedAt": "2026-09-29T18:59:41.496Z"
+   "recordedAt": "2026-09-29T18:59:41.496Z",
+   "scratched": true,
+   "scratchReason": "not in the field"
   },
   {
    "eventId": "401850915",
