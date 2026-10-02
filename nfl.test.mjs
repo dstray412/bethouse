@@ -1676,3 +1676,76 @@ test("boardPlayer: the vacated ratios ride the row only where the fetcher comput
   const c = boardPlayer(rec, { roster: null, injuries: {}, backups: new Set(), opponentOf: {} });
   assert.equal("vac" in c, false);
 });
+
+/* ------------------------------------------------------------------ *
+ * The defensive cheat sheet (2026-10-02). Oracle: the definition. For
+ * each defence, what the offences it faced did, per game (means) or in
+ * all (touchdowns, takeaways), from the box scores on file this season,
+ * with home and road splits for the yardage, and the position splits
+ * from the roster. A rank is the defence's place among those with a
+ * game, 1 the most allowed (for takeaways, the fewest), ties sharing a
+ * place. Nothing is invented for a stat a box score did not carry.
+ * ------------------------------------------------------------------ */
+test("defenceSheet: per-game means, season totals, home and road splits, position splits off the roster, and ranks from the soft end", async () => {
+  const { defenceSheet } = await import("./fetch-football.mjs");
+  const P = (id, team, o) => Object.assign({ id, name: id, team }, o);
+  const g = (id, week, home, away, hs, as, players) => ({ id, season: 2026, week, date: "2026-09-" + (10 + week) + "T17:00Z", home: { team: home, score: 20, stats: hs }, away: { team: away, score: 17, stats: as }, players });
+  const games = [
+    /* Week 1: KC at home allows LAC 300 pass (2 TD, one to a WR, one to a TE), 100 rush, 1 rushing TD; LAC allows KC 200 pass, 50 rush. */
+    g("1", 1, "KC", "LAC", { yards: 250, plays: 50, turnovers: 2, firstDowns: 14 }, { yards: 400, plays: 60, turnovers: 0, firstDowns: 22 }, [
+      P("q1", "LAC", { pass: { att: 30, cmp: 20, yds: 300, td: 2, int: 1 }, rush: { att: 2, yds: 10, td: 0 } }),
+      P("w1", "LAC", { rec: { rec: 8, tgt: 10, yds: 150, td: 1 } }), P("t1", "LAC", { rec: { rec: 6, tgt: 7, yds: 100, td: 1 } }), P("r1", "LAC", { rush: { att: 18, yds: 90, td: 1 }, rec: { rec: 6, tgt: 8, yds: 50, td: 0 } }),
+      P("q2", "KC", { pass: { att: 25, cmp: 15, yds: 200, td: 1, int: 0 } }), P("r2", "KC", { rush: { att: 20, yds: 50, td: 0 }, rec: { rec: 4, tgt: 5, yds: 30, td: 0 } }), P("w2", "KC", { rec: { rec: 11, tgt: 15, yds: 170, td: 1 } }),
+    ]),
+    /* Week 2: KC on the road allows DEN 100 pass, 200 rush. DEN allows KC 400 pass. */
+    g("2", 2, "DEN", "KC", { yards: 300, plays: 55, turnovers: 1, firstDowns: 18 }, { yards: 450, plays: 65, turnovers: 3, firstDowns: 25 }, [
+      P("q3", "DEN", { pass: { att: 20, cmp: 10, yds: 100, td: 0, int: 2 } }), P("r3", "DEN", { rush: { att: 30, yds: 200, td: 2 } }),
+      P("q2", "KC", { pass: { att: 40, cmp: 30, yds: 400, td: 3, int: 1 } }), P("w2", "KC", { rec: { rec: 15, tgt: 20, yds: 250, td: 2 } }), P("u9", "KC", { rec: { rec: 15, tgt: 20, yds: 150, td: 1 } }),
+    ]),
+  ];
+  const roster = new Map([["w1", { pos: "WR" }], ["t1", { pos: "TE" }], ["r1", { pos: "RB" }], ["w2", { pos: "WR" }], ["r2", { pos: "FB" }], ["r3", { pos: "RB" }]]);
+  const sheet = defenceSheet(games, roster, { season: 2026 });
+  assert.deepEqual(sheet.through, { season: 2026, week: 2 });
+  assert.equal(sheet.field, 3, "three defences played");
+  const kc = sheet.teams.KC, lac = sheet.teams.LAC, den = sheet.teams.DEN;
+  /* Means over KC's two games: pass 200, rush 150, total 350, 700 yards over 115 plays → 6.09 a play. Every cell says how many it was ranked among. */
+  assert.deepEqual(kc.passYds, { v: 200, n: 2, rank: 2, of: 3 });
+  assert.deepEqual(kc.rushYds, { v: 150, n: 2, rank: 1, of: 3 });
+  assert.deepEqual(kc.totalYds, { v: 350, n: 2, rank: 2, of: 3 });
+  assert.equal(kc.ydsPerPlay.v, 6.09, "yards a play is the yards over the plays, to two places");
+  /* Splits: at home week 1 (300 pass), on the road week 2 (100 pass); a one-game split is marked by n. */
+  assert.deepEqual(kc.passYdsHome, { v: 300, n: 1, rank: 2, of: 2 }, "a split is ranked among the defences that have one, and says so");
+  assert.deepEqual(kc.passYdsAway, { v: 100, n: 1, rank: 2, of: 2 });
+  assert.equal(lac.passYdsHome, undefined, "LAC never defended at home: no split, not a zero");
+  /* Totals: touchdowns and takeaways over the season, the count printed and the rank a game: KC's 3 rushing TD over two games rank behind DEN's 2 in one. */
+  assert.deepEqual(kc.passTd, { v: 2, n: 2, rank: 2, of: 3 }); assert.deepEqual(den.passTd, { v: 3, n: 1, rank: 1, of: 3 });
+  assert.deepEqual(kc.rushTd, { v: 3, n: 2, rank: 1, of: 3 }, "KC allowed three in two games, 1.5 a game"); assert.deepEqual(den.rushTd, { v: 0, n: 1, rank: 2, of: 3 }, "DEN and LAC allowed none and share second");
+  /* The rank is a game: a defence with one game and one touchdown allowed outranks one with three over four games. */
+  const uneven = defenceSheet(games.concat([{ ...games[1], id: "3", week: 3, home: { team: "KC", score: 10, stats: { yards: 100, plays: 40, turnovers: 0, firstDowns: 5 } }, away: { team: "DEN", score: 7, stats: { yards: 100, plays: 40, turnovers: 0, firstDowns: 5 } }, players: [P("q3", "DEN", { pass: { att: 10, cmp: 5, yds: 100, td: 1, int: 0 } })] }]), roster, { season: 2026 });
+  assert.deepEqual([uneven.teams.KC.passTd.v, uneven.teams.KC.passTd.n, uneven.teams.KC.passTd.rank], [3, 3, 2], "KC's three passing TD over three games (1.0 a game) ranked ahead of DEN's three in one");
+  assert.equal(uneven.teams.DEN.passTd.rank, 1);
+  /* Takeaways: the opponent's turnovers; the soft end is the fewest a game, so KC (one in two games) ranks 1. */
+  assert.deepEqual(kc.takeaways, { v: 1, n: 2, rank: 1, of: 3 }); assert.deepEqual(lac.takeaways, { v: 2, n: 1, rank: 2, of: 3 }); assert.deepEqual(den.takeaways, { v: 3, n: 1, rank: 3, of: 3 });
+  /* Position splits from the roster: KC allowed 150 rec yards to WR in week 1 and nothing in week 2 (DEN's catches went nowhere on the roster). */
+  assert.deepEqual(kc.recYdsWR, { v: 75, n: 2, rank: 3, of: 3 }); assert.deepEqual(kc.recTdTE, { v: 1, n: 2, rank: 1, of: 3 });
+  assert.deepEqual(kc.recsRB, { v: 3, n: 2, rank: 2, of: 3 }, "KC allowed 6 and 0 catches to backs"); assert.deepEqual(lac.recsRB, { v: 4, n: 1, rank: 1, of: 3 }, "a fullback files under RB");
+  assert.equal(den.recYdsWR.v, 250, "KC's 250 to a WR against DEN"); assert.equal(den.recTdWR.v, 2);
+  /* Rates: completion share, yards an attempt, yards a carry. */
+  assert.equal(kc.compPct.v, 60); assert.equal(kc.ydsPerAtt.v, 8); assert.equal(kc.ydsPerCarry.v, 6);
+  /* Ties share a place: nobody is pushed down a rank by an equal. */
+  assert.ok(Object.values(sheet.teams).every((team) => Object.values(team).every((c) => c.rank >= 1 && c.rank <= 3)));
+  /* The stats table carries the words and the direction the page needs, and nothing a box score cannot say. */
+  assert.equal(sheet.stats.takeaways.soft, "fewest"); assert.equal(sheet.stats.passYds.soft, "most");
+  assert.equal(sheet.stats.passYdsAway.label, "Pass yards on the road");
+  assert.deepEqual(defenceSheet([], roster, { season: 2026 }).teams, {}, "no games: no defences");
+  assert.equal(defenceSheet(games, null, { season: 2026 }).teams.KC.recYdsWR, undefined, "no roster: no position split, not a zero");
+  /* A game without the team's stat block leaves the team-block stats out of that game; nothing is built from the player lines instead. */
+  const bare = games.map((x) => (x.id === "2" ? { ...x, home: { ...x.home, stats: undefined }, away: { ...x.away, stats: undefined } } : x));
+  const sb = defenceSheet(bare, roster, { season: 2026 });
+  assert.deepEqual(sb.teams.KC.totalYds, { v: 400, n: 1, rank: 1, of: 2 }, "the total yards came from the one game that carried them");
+  assert.equal(sb.teams.DEN.totalYds, undefined, "a defence with no team block in any game has no total, not a sum of player yards");
+  assert.equal(sb.teams.KC.passYds.n, 2, "the player-line stats still cover both games");
+  /* A game not final is not a game. */
+  const open = games.concat([{ ...games[0], id: "9", week: 3, home: { team: "KC", score: null, stats: null }, away: { team: "LAC", score: null, stats: null } }]);
+  assert.equal(defenceSheet(open, roster, { season: 2026 }).teams.KC.passYds.n, 2, "a game without a score was counted");
+});

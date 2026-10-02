@@ -228,6 +228,7 @@ should be re-fitted when the run environment shifts.
 |---|---|
 | `index.html` | The home: tonight's slate, one card per game with the two teams' logos, the football boards' projection and pick, a row of tops. |
 | `home.js` | The home's arithmetic: one slate out of the boards' data, which day it shows, the football card, the tops, the tile. Tested in `home.test.mjs`. |
+| `defence.html` / `defence-page.js` | The defensive cheat sheet: a card a game, the lines where either defence ranks in the top five of 32 for what it allows, from the sheet the fetcher computes (`defenceSheet`); tested in `defence-page.test.mjs`. |
 | `teams.html` / `teams-page.js` | The teams page: one row per NFL team from the tendencies profiles, sortable, with the family chips; tested in `teams-page.test.mjs`. |
 | `tendencies-core.js` | The ranks, the two legibility thresholds, the play families, a matchup and its sentence: the arithmetic the board's matchup panel, the teams page and `tendencies.mjs` share, one copy. |
 | `teams.js` / `teams-data.js` / `fetch-teams.mjs` | A team's two colours, for the stripe on the home's game cards, the tint behind the drawer's hero and the tray card's edge, and nowhere on text. The table is ESPN's team lists (NFL and MLB by abbreviation, college by ESPN id), fetched by hand and committed. Tested in `teams.test.mjs`. |
@@ -331,6 +332,35 @@ answers one question first and keeps the rest a tab away. So:
   controls row, on every view; the row stays on the game view for it.
 
 Nothing measured was removed. It moved one click from the headline.
+
+**The defensive cheat sheet (2026-10-02).** `defence.html`, the
+user's ask after a reference sheet: for each game this week, what its
+two defences have allowed most this season, one card a game, the lines
+where a defence ranks in the top five of 32 and both sides in one list
+by rank, so the soft spots on either side of a matchup read at a
+glance. Twenty-four lines a defence from the box scores on file
+(`defenceSheet` in `fetch-football.mjs`, shipped on the NFL data file
+as `defence`): pass, rush and total yards a game with the home and
+road splits, first downs, yards a play, an attempt and a carry,
+completion share, passing and rushing touchdowns and takeaways over
+the season (the count printed, the rank taken a game, since the teams
+have not all played the same number; takeaways ranked from the fewest,
+since that is the soft end), and receptions, receiving yards and
+touchdowns split by the catcher's position off the roster (a player on
+no roster is in no split, never guessed; a game without a team stat
+block leaves those stats out of that game, never built from the player
+lines). A rank is a place among the defences that have the stat, ties
+sharing it, and a line ranked among fewer than the field says of how
+many; a line from a single game is marked `1g`. Descriptive, like the
+teams page, and the caveat says what the model actually does with a
+defence: its own fitted allowances, at full strength on the touchdown
+chance and the game line, at half strength on rushing and passing
+yards, and not at all on the other counting props. Tested in
+`defence-page.test.mjs` and the sheet's arithmetic in `nfl.test.mjs`,
+a three-game fixture computed by hand. Code review caught the first
+draft ranking season totals raw (an extra game played read as an extra
+touchdown allowed) and a caveat that scoped the model's defence term
+too narrowly.
 
 **B6, colour beyond the figure (2026-10-01).** The last of the loosened
 taste rules, used. In the drawer's arithmetic a cell is coloured only

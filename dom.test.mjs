@@ -34,7 +34,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const DIR = dirname(fileURLToPath(import.meta.url));
-const BOARDS = ["index.html", "baseball.html", "golf.html", "nfl.html", "cfb.html", "bets.html", "live.html", "record.html", "teams.html"];
+const BOARDS = ["index.html", "baseball.html", "golf.html", "nfl.html", "cfb.html", "bets.html", "live.html", "record.html", "teams.html", "defence.html"];
 const src = (f) => readFileSync(resolve(DIR, f), "utf8");
 
 /*
@@ -2321,6 +2321,15 @@ test("the teams page's panel scrolls sideways inside itself, the team cell stick
   assert.doesNotMatch(css, /\.teams th\{[^}]*position:sticky/, "a sticky column head in a panel that never scrolls vertically");
   for (const f of ["faces.js", "teams-data.js", "teams.js", "tendencies-data.js", "tendencies-core.js", "teams-page.js"]) assert.match(src("teams.html"), new RegExp('<script src="' + f.replace(".", "\\.") + '"></script>'), "teams.html does not load " + f);
   assert.match(markup("teams.html"), /id="teams"[\s\S]*id="tfoot"/);
+  /* The defensive cheat sheet: the NFL data file (the sheet rides it), the marks and colours, the page module; the sheet from the data global. */
+  for (const f of ["faces.js", "teams-data.js", "teams.js", "nfl-data.js", "defence-page.js"]) assert.match(src("defence.html"), new RegExp('<script src="' + f.replace(".", "\\.") + '"></script>'), "defence.html does not load " + f);
+  assert.match(markup("defence.html"), /id="sheet"[\s\S]*id="sfoot"/);
+  assert.match(src("defence.html"), /sheet: D && D\.defence \|\| null/, "the page does not read the sheet off the NFL data file");
+  const sheetCss = src(SHEET);
+  for (const c of [".sheet{", ".scard{", ".slines li{", ".slines .rk.r1{", ".slines .v{"]) assert.ok(sheetCss.includes(c), "no rule for " + c);
+  assert.match(sheetCss, /\.sheet\{columns:2;/, "the sheet is not a two-column flow (a grid leaves a gap beside a tall card)");
+  assert.match(sheetCss, /\.scard\{[^}]*break-inside:avoid/, "a card can split across columns");
+  assert.match(sheetCss, /@media \(max-width:760px\)\{\.sheet\{columns:1\}/, "the sheet does not stack on a phone");
   // A synthetic defence a hair over the soft threshold earns the tag; one a hair under does not: the board reads the numbers against the core's thresholds, not a note string.
   const core = (await import("./tendencies-core.js")).default;
   const lg = TENDENCIES.current.league;
