@@ -40,10 +40,24 @@ calls. The list lives in seven places and `dom.test.mjs` checks all seven.
 different lengths in a column flow). `GROUPS` in consistency-page.js
 (a family a section, its rung ids in order) drives the overview:
 `<section class="cgroup">` with the family as a `.gtitle` and a
-`.cgrid` of its cards, three equal columns stretched to one height
-(two under 1100px, one on a phone); `SHOWN` is 10 on the overview; a
-pick is still one card on its own. The home strip became the same
-grid. CSS columns are gone from `.cons`.
+`.cgrid` of its cards; `SHOWN` is 10 on the overview; a pick is
+still one card on its own. CSS columns are gone from `.cons`.
+
+**After review.** The first cut was three fixed columns stretched to
+one height; the review measured 371px cards at the page's 1180px cap
+cutting a third of the names and every note running under the
+figures, and a 562px panel holding "Nobody at six hits or better".
+Now: `.cgrid` is `repeat(auto-fill,minmax(min(480px,100%),1fr))`
+with `align-items:start` (two across on a desktop, no breakpoint);
+`.who small` ellipsises; a picked card is capped at 700px; `GROUPS`
+is derived from `PROP_ORDER`/`PROP_LABEL`/`RUNGS` (a rung cannot be
+in no family or two, and the test compares the sets); and `cardHtml`
+takes a cap and writes a `.cmore` line under a card that cut anyone
+(`+10 more · 10 tied at 6/10`, linking the uncapped pick), since the
+tiebreak is alphabetical and the Anytime TD card was dropping ten
+players tied with its tenth. The home strip takes the same tracks (the
+review measured three fixed columns clipping 7 of 15 names on the
+home), five a card, no cut line.
 
 ## Picking a prop and a line on the consistency page (2026-10-02)
 

@@ -8,9 +8,9 @@
  * model's own recentHits. A card a rung the board prices (anytime touchdown;
  * 50, 70 and 100 receiving yards; 4 and 6 receptions; 50, 70 and 100
  * rushing yards; 70 and 100 rush + rec; 250 and 300 passing yards), the
- * cards organised a family a section with its rungs side by side at one
- * height: the players ranked by hits, most first, a bar for the share,
- * 60% and up, ten a card. A player needs ten games on file, a game this week and no Out
+ * cards organised a family a section with its rungs side by side: the
+ * players ranked by hits, most first, a bar for the share, 60% and up,
+ * ten a card with the cut said under the list. A player needs ten games on file, a game this week and no Out
  * status. The reader can pick a prop and any line the board prices
  * (the model's ladder) and see everyone at that one rung; the pick
  * rides the URL. Descriptive: a hit count is not a chance; the model's
@@ -46,16 +46,6 @@
     { id: "rushrec100", stat: "rushrec", rung: 100, label: "100+ rush + rec yards" },
     { id: "passyds250", stat: "passyds", rung: 250, label: "250+ passing yards" },
     { id: "passyds300", stat: "passyds", rung: 300, label: "300+ passing yards" },
-  ];
-
-  /* The overview's organisation: a section a prop family, its rungs side by side, in the order a bettor reads them. */
-  const GROUPS = [
-    { label: "Anytime TD", rungs: ["td"] },
-    { label: "Receiving yards", rungs: ["recyds50", "recyds70", "recyds100"] },
-    { label: "Receptions", rungs: ["recs4", "recs6"] },
-    { label: "Rushing yards", rungs: ["rushyds50", "rushyds70", "rushyds100"] },
-    { label: "Rush + rec yards", rungs: ["rushrec70", "rushrec100"] },
-    { label: "Passing yards", rungs: ["passyds250", "passyds300"] },
   ];
 
   /** Hits in the player's last ten games on file, or null without a log. A touchdown is the model's own count. */
@@ -113,6 +103,9 @@
      board prices. "all" is the overview: the thirteen standard cards. */
   const PROP_LABEL = { td: "Anytime TD", recyds: "Receiving yards", recs: "Receptions", rushyds: "Rushing yards", rushrec: "Rush + rec yards", passyds: "Passing yards" };
   const PROP_ORDER = ["td", "recyds", "recs", "rushyds", "rushrec", "passyds"];
+  /* The overview's organisation: a section a prop family, its rungs side by side, in the order the prop control reads them.
+     Derived from the rungs' own stat, so a rung cannot be in no family or in two. */
+  const GROUPS = PROP_ORDER.map((id) => ({ label: PROP_LABEL[id], rungs: RUNGS.filter((r) => r.stat === id).map((r) => r.id) }));
   /* A picked line lists everyone at six hits or better: the pick is the page, so there is no further page to send the cut to. */
   function props(model) {
     const have = PROP_ORDER.filter((id) => id === "td" || (model && model.STATS && model.STATS[id]));
@@ -153,14 +146,22 @@
     return ls.includes(n) ? { prop, line: n } : { prop: "all", line: null }; // a line the model does not price is the overview, not a guess
   }
 
-  /** One rung's card; with nobody on it, the card says so rather than vanishing. */
-  function cardHtml(r, list, helpers) {
+  /**
+   * One rung's card; with nobody on it, the card says so rather than
+   * vanishing. With a cap, the card shows the first `cap` of the list and
+   * says how many it cut, and, when the cut falls inside a tie, how many
+   * of the cut share the last shown count, since the tiebreak is
+   * alphabetical and ten rows would otherwise read as the whole field;
+   * the line links the uncapped pick.
+   */
+  function cardHtml(r, list, helpers, cap) {
     const h = helpers || {}, F = h.faces || null, league = h.league || "NFL";
     const mark = (t) => (F ? F.mark(league, t, 18) : "");
     let html = '<section class="ccard"><header><h3>' + esc(r.label) + "</h3><small>consistency · last " + N + " games on file, this season and last</small></header>";
     if (!list || !list.length) return html + '<p class="cnone">Nobody at six hits or better.</p></section>';
+    const all = list, shown = cap > 0 && all.length > cap ? all.slice(0, cap) : all, cut = all.length - shown.length;
     html += "<ol>";
-    list.forEach((x, i) => {
+    shown.forEach((x, i) => {
       const t = tier(x.pct);
       const notes = [esc(x.team) + " vs " + esc(x.opp)];
       if (x.prev) notes.push(x.prev + " last season");
@@ -168,7 +169,12 @@
       html += '<li><span class="n">' + (i + 1) + '</span><span class="who">' + mark(x.team) + "<b>" + esc(x.name) + (x.q ? '<span class="tag q" title="Questionable on the report">Q</span>' : "") + "</b><small>" + notes.join(" · ") + "</small></span>" +
         '<b class="hits ' + t + '">' + x.hits + "/" + x.n + '</b><span class="bar"><i style="width:' + x.pct + '%"></i></span><span class="pct ' + t + '">' + x.pct + "%</span></li>";
     });
-    return html + "</ol></section>";
+    html += "</ol>";
+    if (cut > 0) {
+      const last = shown[shown.length - 1].hits, tied = all.slice(shown.length).filter((x) => x.hits === last).length;
+      html += '<a class="cmore" href="consistency.html?prop=' + esc(encodeURIComponent(r.stat)) + "&amp;line=" + esc(encodeURIComponent(r.rung)) + '">+' + cut + " more" + (tied ? " · " + tied + " tied at " + last + "/" + N : "") + "</a>";
+    }
+    return html + "</section>";
   }
 
   function footHtml(data, picked) {
@@ -181,7 +187,7 @@
 
   /* Render: the controls into #ccontrols (one listener per host however
      often render runs; the pick lives on the host), the cards into #cons
-     (the overview's thirteen, or the one picked rung at thirty rows),
+     (the overview's thirteen, or the one picked rung with everyone),
      the caveat into #cfoot. `opts.state` sets the pick; `opts.onState`
      hears a change, so the page can write it to the URL. */
   function render(doc, opts) {
@@ -198,7 +204,7 @@
       const s = (ctl && ctl.__state) || state;
       if (ctl) { ctl.innerHTML = controlsHtml(model, s); ctl.hidden = false; }
       if (s.prop === "all") host.innerHTML = GROUPS.map((g) => '<section class="cgroup"><h2 class="gtitle">' + esc(g.label) + '</h2><div class="cgrid">' +
-        g.rungs.map((id) => RUNGS.find((r) => r.id === id)).filter(Boolean).map((r) => cardHtml(r, rows(model, data.players, r, data.season), o)).join("") + "</div></section>").join("");
+        g.rungs.map((id) => RUNGS.find((r) => r.id === id)).filter(Boolean).map((r) => cardHtml(r, rows(model, data.players, r, data.season, Infinity), o, SHOWN)).join("") + "</div></section>").join("");
       else { const r = rungFor(model, s.prop, s.line); host.innerHTML = cardHtml(r, rows(model, data.players, r, data.season, Infinity), o); }
       if (foot) foot.innerHTML = footHtml(data, s.prop !== "all");
     };

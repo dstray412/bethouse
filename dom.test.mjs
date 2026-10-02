@@ -2389,8 +2389,14 @@ test("the teams page's panel scrolls sideways inside itself, the team cell stick
   assert.match(src("consistency.html"), /<div class="controls" id="ccontrols" hidden>/, "the empty controls host paints a rule before the controls exist");
   assert.match(src("consistency.html"), /\} catch \(e\) \{/, "a fault in the renderer leaves the page on Loading… forever");
   assert.doesNotMatch(src(SHEET), /#ccontrols\{/, "the controls carry an id override instead of the board's .controls rule");
-  for (const k of [".cons{", ".ccard{", ".ccard li{", ".ccard .bar{", ".ccard .hits.good", ".cgroup{", ".cgrid{"]) assert.ok(src(SHEET).includes(k), "no rule for " + k);
-  assert.match(src(SHEET), /\.cgrid\{display:grid;grid-template-columns:repeat\(3,minmax\(0,1fr\)\)[^}]*align-items:stretch/, "a family's cards are not a grid of equal widths stretched to one height");
+  for (const k of [".cons{", ".ccard{", ".ccard li{", ".ccard .bar{", ".ccard .hits.good", ".cgroup{", ".cgrid,.cons.strip{"]) assert.ok(src(SHEET).includes(k), "no rule for " + k);
+  /* Width-driven columns: a card never narrower than the width a name and its note fit (measured 2026-10-02: three fixed columns at the
+     page's 1180px cap cut a third of the names and spilled every note), and a short card keeps its own height rather than a stretched blank. */
+  assert.match(src(SHEET), /\.cgrid,\.cons\.strip\{[^}]*repeat\(auto-fill,minmax\(min\(480px,100%\),1fr\)\)/, "the overview grid and the home strip are not the one width-driven grid");
+  assert.doesNotMatch(src(SHEET), /\.cgrid[^{]*\{[^}]*align-items:stretch/, "a short card is stretched to the tallest's height");
+  assert.match(src(SHEET), /\.ccard \.who small\{[^}]*overflow:hidden;text-overflow:ellipsis/, "a long note paints over the figures");
+  assert.match(src(SHEET), /#cons>\.ccard\{max-width:/, "a picked card runs the full page width, the name a page away from its count");
+  assert.ok(src(SHEET).includes(".ccard .cmore"), "no rule for the cut line");
   /* The home carries a strip of the consistency cards: the module loaded, a section to write, the call with the NFL data and model, hidden when there is nothing. */
   assert.ok(src("index.html").indexOf('<script src="consistency-page.js"></script>') > 0, "the home does not load consistency-page.js");
   assert.match(src("index.html"), /<section id="conssec"[\s\S]*id="consstrip"/, "the home has no consistency section");
@@ -2409,7 +2415,7 @@ test("the teams page's panel scrolls sideways inside itself, the team cell stick
   assert.match(home, /catch\(e\)\{ el\('cheatsec'\)\.hidden=true; \}/, "a fault in the strip is not contained to the strip");
   assert.match(src("offence.html"), /side: 'off'/, "the offence page does not name its side"); assert.match(src("defence.html"), /side: 'def'/, "the defence page does not name its side");
   const sheetCss = src(SHEET);
-  for (const c of [".sheet{", ".scard{", ".slines li{", ".slines .rk.r1{", ".slines .v{", ".scard.mini{", ".scard.mini .slines li,.mu.cheat .slines li{", ".slines .side{", ".scard .smore{"]) assert.ok(sheetCss.includes(c), "no rule for " + c);
+  for (const c of [".sheet{", ".scard{", ".slines li{", ".slines .rk.r1{", ".slines .v{", ".scard.mini{", ".scard.mini .slines li,.mu.cheat .slines li{", ".slines .side{", ".ccard .cmore,.scard .smore{"]) assert.ok(sheetCss.includes(c), "no rule for " + c);
   assert.match(sheetCss, /\.sheet\{columns:2;/, "the sheet is not a two-column flow (a grid leaves a gap beside a tall card)");
   assert.match(sheetCss, /\.scard\{[^}]*break-inside:avoid/, "a card can split across columns");
   assert.match(sheetCss, /@media \(max-width:760px\)\{\.sheet\{columns:1\}/, "the sheet does not stack on a phone");

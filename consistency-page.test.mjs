@@ -4,7 +4,8 @@
  * it most often in his last ten games on file. Oracle: the definition
  * (a hit is a game at or over the line; a touchdown is one or more),
  * the model's own recentHits, and the page's stated rules: ten games,
- * a game this week, not ruled out, 60% and up, fifteen a card.
+ * a game this week, not ruled out, 60% and up, ten a card on the overview
+ * with the cut said under the list, everyone at a picked line.
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -36,7 +37,7 @@ test("hits: a game at or over the line counts, a touchdown is one or more, and o
   assert.equal(page.hits(nfl, { recent: null }, page.RUNGS[0]), null, "no log: no count, not zero");
 });
 
-test("rows: ten games, a game this week, not ruled out, at least six hits, most hits first then by name, fifteen a card", () => {
+test("rows: ten games, a game this week, not ruled out, at least six hits, most hits first then by name, ten a card with the cut said", () => {
   const r50 = page.rows(nfl, PLAYERS, page.RUNGS.find((r) => r.id === "recyds50"));
   assert.deepEqual(r50.map((x) => [x.name, x.hits, x.pct]), [["Alpha Wide", 9, 90]], "the ruled-out, the idle, the seven-game and the five-hit players were listed");
   assert.deepEqual([r50[0].prev, r50[0].away, r50[0].q], [0, 0, false]);
@@ -53,10 +54,23 @@ test("rows: ten games, a game this week, not ruled out, at least six hits, most 
   const big = page.rows(nfl, many, page.RUNGS.find((r) => r.id === "recyds50"));
   assert.equal(big.length, 10, "more than ten a card on the overview");
   assert.equal(page.rows(nfl, many, page.RUNGS.find((r) => r.id === "recyds50"), 2026, 5).length, 5, "the home's cap is not the caller's");
+  /* The card says what the cap cut, and when the cut falls inside a tie it says how many share the last shown count, since the
+     tiebreak is alphabetical and a reader would otherwise read ten rows as the whole field. The line links the uncapped pick. */
+  const all = page.rows(nfl, many, page.RUNGS.find((r) => r.id === "recyds50"), 2026, Infinity);
+  assert.equal(all.length, 20, "Infinity is a cap");
+  const capped = page.cardHtml(page.RUNGS.find((r) => r.id === "recyds50"), all, {}, 10);
+  assert.equal((capped.match(/<li>/g) || []).length, 10, "the card's cap is not applied");
+  assert.match(capped, /<a class="cmore" href="consistency\.html\?prop=recyds&amp;line=50">\+10 more · 2 tied at 8\/10<\/a>/, "the cut inside a tie is not said");
+  const clean = page.cardHtml(page.RUNGS.find((r) => r.id === "recyds50"), all, {}, 8);
+  assert.match(clean, /<a class="cmore" href="consistency\.html\?prop=recyds&amp;line=50">\+12 more<\/a>/, "a clean break claims a tie");
+  assert.doesNotMatch(page.cardHtml(page.RUNGS.find((r) => r.id === "recyds50"), all, {}, 20), /cmore/, "nothing cut, a cut line");
+  assert.doesNotMatch(page.cardHtml(page.RUNGS.find((r) => r.id === "recyds50"), all.slice(0, 5), {}), /cmore/, "no cap, a cut line");
+  assert.match(page.cardHtml(page.RUNGS.find((r) => r.id === "td"), all, {}, 10), /href="consistency\.html\?prop=td&amp;line=1"/, "the touchdown's link is not its one line");
   /* The home's strip: three broad rungs, five a card, through the same card markup, with a link to the page; nothing with nobody. */
   const strip = page.stripHtml(nfl, { players: many, season: 2026 }, {});
   assert.equal((strip.match(/class="ccard"/g) || []).length, 1, "the strip shows a card for a rung nobody clears");
   assert.equal((strip.match(/<li>/g) || []).length, 5, "the strip's card is not capped at five");
+  assert.doesNotMatch(strip, /cmore/, "the home strip carries a cut line; its heading says five a card and the page is one link away");
   assert.match(strip, /50\+ receiving yards/);
   assert.equal(page.stripHtml(nfl, { players: [], season: 2026 }, {}), "", "a strip with nobody");
   assert.equal(page.stripHtml(null, { players: many, season: 2026 }, {}), "", "no model, no strip"); assert.equal(page.stripHtml(nfl, null, {}), "", "no data, no strip");
@@ -98,7 +112,7 @@ test("render: a card per rung with rows, the caveat, and empty states that say w
 /* Choosing the prop and the line: the props are the model's stats plus
    the touchdown, the lines the model's own ladder for that stat, the
    state shareable as ?prop=&line=. The picked view is one card, every
-   qualifying player up to thirty; the overview stays the default. */
+   qualifying player, uncapped; the overview stays the default. */
 test("props and lines: the choices are the model's stats and its ladder, a label for every rung, and the touchdown's one rung", () => {
   const props = page.props(nfl);
   assert.deepEqual(props.map((p) => p.id), ["all", "td", "recyds", "recs", "rushyds", "rushrec", "passyds"]);
@@ -128,11 +142,11 @@ test("controlsHtml: two segmented controls, the pressed prop and line, the line 
   assert.match(td, /data-line="1" aria-pressed="true">1\+<\/button>/);
 });
 
-test("render with a picked prop and line: one card at that rung with up to thirty rows, the controls pressed, the overview otherwise, and a bad pick falling back", () => {
+test("render with a picked prop and line: one card at that rung with everyone, the controls pressed, the overview otherwise, and a bad pick falling back", () => {
   const made = (id) => ({ id, innerHTML: "", listeners: {}, addEventListener(type, fn) { (this.listeners[type] = this.listeners[type] || []).push(fn); } });
   const els = { ccontrols: made("ccontrols"), cons: made("cons"), cfoot: made("cfoot") };
   const doc = { getElementById: (id) => els[id] || null };
-  const many = Array.from({ length: 40 }, (_, k) => ({ id: "m" + k, name: "Player " + String(k).padStart(2, "0"), team: "KC", pos: "RB", opp: "LAC", recent: ten((i) => row(0, 0, i < 6 + (k % 5) ? 45 : 10, 0, 0)) }));
+  const many = Array.from({ length: 40 }, (_, k) => ({ id: "m" + k, name: "Player " + String(k).padStart(2, "0"), team: "KC", pos: "RB", opp: "LAC", recent: ten((i) => row(0, 0, i < 6 + (k % 5) ? 55 : 10, 0, 0)) }));
   const changes = [];
   page.render(doc, { data: { players: many, season: 2026, week: 4 }, model: nfl, state: { prop: "rushyds", line: 40 }, onState: (s) => changes.push(s) });
   assert.equal((els.cons.innerHTML.match(/class="ccard"/g) || []).length, 1, "a picked line is not one card");
@@ -157,7 +171,10 @@ test("render with a picked prop and line: one card at that rung with up to thirt
   const groups = [...els.cons.innerHTML.matchAll(/<section class="cgroup"><h2 class="gtitle">([^<]+)<\/h2><div class="cgrid">([\s\S]*?)<\/div><\/section>/g)].map((m) => [m[1], (m[2].match(/class="ccard"/g) || []).length]);
   assert.deepEqual(groups, [["Anytime TD", 1], ["Receiving yards", 3], ["Receptions", 2], ["Rushing yards", 3], ["Rush + rec yards", 2], ["Passing yards", 2]], "the overview is not grouped by family with every rung in its row");
   assert.deepEqual(page.GROUPS.map((g) => g.label), ["Anytime TD", "Receiving yards", "Receptions", "Rushing yards", "Rush + rec yards", "Passing yards"]);
-  assert.equal(page.GROUPS.reduce((n, g) => n + g.rungs.length, 0), page.RUNGS.length, "a rung is in no family, or in two");
+  assert.deepEqual(page.GROUPS.flatMap((g) => g.rungs).sort(), page.RUNGS.map((r) => r.id).sort(), "a rung is in no family, or in two");
+  assert.ok(page.GROUPS.every((g) => g.rungs.every((id) => page.RUNGS.find((r) => r.id === id).stat === page.RUNGS.find((r) => r.id === g.rungs[0]).stat)), "a family mixes stats");
+  /* The overview's cards carry the cut line where ten did not fit; the ten are the first ten of the full list, not a separate query. */
+  assert.match(els.cons.innerHTML, /<h3>50\+ rushing yards<\/h3>[\s\S]*?<a class="cmore" href="consistency\.html\?prop=rushyds&amp;line=50">\+30 more · 6 tied at 9\/10<\/a>/, "the overview card with forty at the rung (eight at each count) does not say its cut of thirty, six of them tied with the tenth at nine");
   assert.equal(els.ccontrols.listeners.click.length, 1, "render added a second listener");
   /* A second render on the same host with new data: the one listener draws from the new payload and reports to the new callback. */
   const later = [];
