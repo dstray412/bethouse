@@ -521,6 +521,10 @@ one card per game, and a row of tops.
   many props the live tracker is following. A card whose number does
   not exist is not shown. The two football tops wear their game's
   two-colour stripe (B6).
+- **The consistency strip** (2026-10-02): three consistency cards
+  (anytime touchdown, 50+ receiving yards, 50+ rushing yards), five
+  rows each, from the consistency page's own module with a link to the
+  full page; hidden when nobody qualifies.
 - **The cheat sheet strip** (2026-10-02): one compact card per NFL game
   on the NFL slate (today's, or the next day that has any, and the
   heading says which) with four lines from both cheat sheets, each side

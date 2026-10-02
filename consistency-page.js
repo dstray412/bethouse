@@ -64,7 +64,7 @@
    * written since 2026-10-02; an older file reads 0), and whether he is
    * Questionable.
    */
-  function rows(model, players, r, season) {
+  function rows(model, players, r, season, limit) {
     const out = [];
     for (const p of players || []) {
       if (!p || !p.opp || !Array.isArray(p.recent) || p.recent.length < N) continue;
@@ -77,7 +77,19 @@
       const away = rec.filter((x) => x[7] != null && x[7] !== p.team).length;
       out.push({ id: p.id, name: p.name, team: p.team, opp: p.opp, hits: h, n: N, pct: Math.round((100 * h) / N), prev, away, q: avail === "questionable" });
     }
-    return out.sort((a, b) => b.hits - a.hits || String(a.name).localeCompare(String(b.name))).slice(0, SHOWN);
+    return out.sort((a, b) => b.hits - a.hits || String(a.name).localeCompare(String(b.name))).slice(0, limit > 0 ? limit : SHOWN);
+  }
+
+  /* The home's strip: one card a scoring family (touchdown, receiving,
+     rushing), each at the family's lowest rung so the three cards do not
+     count the same yards twice; five a card, the same card markup; ""
+     with nobody. */
+  const HOME_RUNGS = ["td", "recyds50", "rushyds50"];
+  function stripHtml(model, data, helpers) {
+    if (!model || !data || !Array.isArray(data.players)) return "";
+    const cards = HOME_RUNGS.map((id) => RUNGS.find((r) => r.id === id)).filter(Boolean)
+      .map((r) => { const list = rows(model, data.players, r, data.season, 5); return list.length ? cardHtml(r, list, helpers) : ""; }).filter(Boolean);
+    return cards.join("");
   }
 
   const tier = (pct) => (pct >= 80 ? "good" : pct >= 70 ? "warn" : "low");
@@ -119,5 +131,5 @@
     host.innerHTML = cards.join("");
   }
 
-  return { RUNGS, N, FLOOR, SHOWN, hits, rows, tier, cardHtml, footHtml, render };
+  return { RUNGS, HOME_RUNGS, N, FLOOR, SHOWN, hits, rows, tier, cardHtml, stripHtml, footHtml, render };
 });

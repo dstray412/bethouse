@@ -52,6 +52,15 @@ test("rows: ten games, a game this week, not ruled out, at least six hits, most 
   const many = Array.from({ length: 20 }, (_, k) => ({ id: "m" + k, name: "Player " + String(k).padStart(2, "0"), team: "KC", pos: "WR", opp: "LAC", recent: ten((i) => row(i < 6 + (k % 5) ? 60 : 0, 0, 0, 0, 0)) }));
   const big = page.rows(nfl, many, page.RUNGS.find((r) => r.id === "recyds50"));
   assert.equal(big.length, 15, "more than fifteen a card");
+  assert.equal(page.rows(nfl, many, page.RUNGS.find((r) => r.id === "recyds50"), 2026, 5).length, 5, "the home's cap is not the caller's");
+  /* The home's strip: three broad rungs, five a card, through the same card markup, with a link to the page; nothing with nobody. */
+  const strip = page.stripHtml(nfl, { players: many, season: 2026 }, {});
+  assert.equal((strip.match(/class="ccard"/g) || []).length, 1, "the strip shows a card for a rung nobody clears");
+  assert.equal((strip.match(/<li>/g) || []).length, 5, "the strip's card is not capped at five");
+  assert.match(strip, /50\+ receiving yards/);
+  assert.equal(page.stripHtml(nfl, { players: [], season: 2026 }, {}), "", "a strip with nobody");
+  assert.equal(page.stripHtml(null, { players: many, season: 2026 }, {}), "", "no model, no strip"); assert.equal(page.stripHtml(nfl, null, {}), "", "no data, no strip");
+  assert.deepEqual(page.HOME_RUNGS, ["td", "recyds50", "rushyds50"]);
   assert.ok(big.every((x, i) => i === 0 || big[i - 1].hits >= x.hits), "not most hits first");
   assert.deepEqual(page.rows(nfl, [], page.RUNGS[0]), []);
 });

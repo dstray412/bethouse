@@ -62,6 +62,11 @@
   <div class="sheet" id="cheat"></div>
 </section>
 
+<section id="conssec" hidden>
+  <div class="shead"><h2 class="gtitle">Consistency</h2><div class="gmeta">NFL · hits in the last ten games on file, this season and last, at a line the board prices · six hits or better, five a card · <b>Q</b> questionable on the report · a count, not a chance: the chance is in his drawer on the <a class="open" href="nfl.html">NFL board →</a> · <a class="open" href="consistency.html">Every line →</a></div></div>
+  <div class="cons strip" id="consstrip"></div>
+</section>
+
 <section id="topsec">
   <div class="shead"><h2 class="gtitle">Top of the boards</h2><div class="gmeta">measured, not picked by hand</div></div>
   <div class="cards tops" id="tops"></div>
@@ -82,6 +87,7 @@
 <script src="watchlist.js"></script>
 <script src="home.js"></script>
 <script src="sheet-page.js"></script>
+<script src="consistency-page.js"></script>
 <!-- TODO(simplify): the two football files are ~1.2 MB before gzip; fine on
      a laptop and a phone on wifi. If the home drags, have the fetchers
      write a small slate-data.js (games + top picks) and load that instead. -->
@@ -232,6 +238,14 @@
     if(field) el('cheatfield').textContent=String(field);
     el('cheatsec').hidden=!strip;
   }catch(e){ el('cheatsec').hidden=true; }
+
+  /* The consistency cards, three of them, from the same module as the page; its own guard too. */
+  try{
+    var CP=window.BetHouseConsistency||null, cnfl=data.nfl||null;
+    var cstrip=CP&&typeof CP.stripHtml==='function'?CP.stripHtml(N, cnfl, {faces:F, league:'NFL'}):'';
+    el('consstrip').innerHTML=cstrip;
+    el('conssec').hidden=!cstrip;
+  }catch(e){ el('conssec').hidden=true; }
 
   /* The footer: when each board's data was built. */
   var built=[];

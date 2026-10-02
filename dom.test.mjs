@@ -2382,6 +2382,13 @@ test("the teams page's panel scrolls sideways inside itself, the team cell stick
   assert.match(markup("consistency.html"), /id="cons"[\s\S]*id="cfoot"/);
   assert.match(src("consistency.html"), /model: window\.BetHouseNFL \|\| null/, "the page does not hand the model to the renderer");
   for (const k of [".cons{", ".ccard{", ".ccard li{", ".ccard .bar{", ".ccard .hits.good"]) assert.ok(src(SHEET).includes(k), "no rule for " + k);
+  /* The home carries a strip of the consistency cards: the module loaded, a section to write, the call with the NFL data and model, hidden when there is nothing. */
+  assert.ok(src("index.html").indexOf('<script src="consistency-page.js"></script>') > 0, "the home does not load consistency-page.js");
+  assert.match(src("index.html"), /<section id="conssec"[\s\S]*id="consstrip"/, "the home has no consistency section");
+  assert.match(src("index.html"), /CP\.stripHtml\(N, cnfl, \{faces:F, league:'NFL'\}\)/, "the home does not build the strip from the module, with its own data variable");
+  assert.match(src("index.html"), /el\('conssec'\)\.hidden=/, "the section is not hidden when there is nothing to show");
+  assert.match(src("index.html"), /catch\(e\)\{ el\('conssec'\)\.hidden=true; \}/, "a fault in the strip is not contained to the strip");
+  assert.match(src("index.html"), /six hits or better, five a card · <b>Q<\/b> questionable/, "the home's heading does not state the floor and the chip");
   /* The home carries a strip of both sheets: the module loaded after the data it reads, a section to write, and the call with both sheets off the NFL data file. */
   const home = src("index.html");
   assert.ok(home.indexOf('<script src="sheet-page.js"></script>') > 0, "the home does not load sheet-page.js");

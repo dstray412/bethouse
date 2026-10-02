@@ -34,7 +34,16 @@ Zero dependencies, no build step, no server, no API key. `node --test` with
 **named files** — bare discovery pulls in the backtests, which fire live API
 calls. The list lives in seven places and `dom.test.mjs` checks all seven.
 
-## The consistency cards (2026-10-02, latest)
+## The consistency cards on the home (2026-10-02, latest)
+
+**What.** `stripHtml(model, data, helpers)` in consistency-page.js:
+one card a scoring family at its lowest rung (`HOME_RUNGS`: td, recyds50, rushyds50; not the broadest, which would be 4+ receptions and 70+ rush + rec, and would count the same yards twice), five
+rows a card through the same `cardHtml`, "" with nobody; `rows` took
+a `limit`. The home (`#conssec`/`#consstrip`) builds it in its own
+guard and hides the section when empty; `.cons.strip` is three
+columns. Tests in consistency-page.test.mjs and dom.test.mjs.
+
+## The consistency cards (2026-10-02)
 
 **What.** The user showed a reference (1+ point / 2+ SOG / 3+ SOG
 cards, players ranked by hits in their last ten with a bar) and asked
