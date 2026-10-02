@@ -488,6 +488,13 @@ one card per game, and a row of tops.
   many props the live tracker is following. A card whose number does
   not exist is not shown. The two football tops wear their game's
   two-colour stripe (B6).
+- **The cheat sheet strip** (2026-10-02): one compact card per NFL game
+  on the NFL slate (today's, or the next day that has any, and the
+  heading says which) with four lines from both cheat sheets, each side
+  its single best line and the rest by rank, each tagged D or O, and a
+  count of the lines cut; built by the sheets' own line renderer, so a
+  line prints as it does on the pages; hidden when there is nothing to
+  show.
 - **The tile** counts games on the slate, players priced across the
   boards (football players plus batters in posted lineups) and
   predictions graded (the sum of the four records).

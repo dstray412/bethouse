@@ -104,3 +104,30 @@ test("the offence's sheet reads the other way: the caveat says what each offence
   assert.match(els.sfoot.innerHTML, /What each defence has allowed most this season/);
   assert.match(els.sfoot.innerHTML, /for takeaways and sacks, the fewest/, "the defence's caveat does not say its sacks rank from the fewest");
 });
+
+/* The home's cheat-sheet strip: one compact card per NFL game on the
+   slate, the top lines from BOTH sheets merged by rank, each tagged
+   with its side, capped at a few lines, with links to the full pages. */
+test("miniHtml: both sheets' lines merged by rank with a side tag, capped, the links to the pages, nothing when neither sheet has a line", () => {
+  const OFF = { ...SHEET, side: "off", stats: { passYds: { label: "Pass yards", soft: "most", kind: "mean" }, turnovers: { label: "Turnovers", soft: "fewest", kind: "total" } }, teams: { IND: { passYds: { v: 290, n: 3, rank: 2, of: 32 }, turnovers: { v: 2, n: 3, rank: 1, of: 32 } }, WSH: { passYds: { v: 210, n: 3, rank: 20, of: 32 } } } };
+  const html = page.miniHtml(SHEET, OFF, GAMES[0], {}, 4);
+  assert.match(html, /class="scard mini"/);
+  const lines = [...html.matchAll(/<li><span class="side ([do])">([DO])<\/span><span class="rk[^"]*">([A-Z0-9]+)<\/span><b class="tm">([A-Z]+)<\/b> <span class="st">([^<]+)</g)].map((m) => m[1] + " " + m[3] + " " + m[4] + " " + m[5].trim());
+  assert.deepEqual(lines, ["d MOST IND Pass yards on the road", "d MOST WSH Passing TD", "d FEWEST WSH Takeaways", "o FEWEST IND Turnovers"], "each side does not keep its best line and the rest fill by rank: a fifth place displaced a first, or a side fell off");
+  assert.match(html, /<div class="smore">\+5 more in the top five on the sheets<\/div>/, "the card does not say how many lines it cut: nine top-five lines across the two sheets, four shown");
+  /* With a wider cap the rest fill by rank. */
+  const six = [...page.miniHtml(SHEET, OFF, GAMES[0], {}, 6).matchAll(/<span class="side ([do])">[DO]<\/span><span class="rk[^"]*">([A-Z0-9]+)<\/span><b class="tm">([A-Z]+)<\/b> <span class="st">([^<]+)</g)].map((m) => m[1] + " " + m[2] + " " + m[3] + " " + m[4].trim());
+  assert.deepEqual(six, ["d MOST IND Pass yards on the road", "d MOST WSH Passing TD", "d FEWEST WSH Takeaways", "o FEWEST IND Turnovers", "d 2ND IND Takeaways", "d 2ND WSH Pass yards"], "the rest do not fill by rank, defence first on a tie and away before home");
+  assert.doesNotMatch(html, /<a /, "a card carries links; the section head carries them once");
+  /* When one side's best is a fifth place and the other has five firsts, the fifth still shows: a side is never off the card. */
+  const lop = page.miniHtml(SHEET, { ...OFF, teams: { IND: { passYds: { v: 1, n: 3, rank: 5, of: 32 } } } }, GAMES[0], {}, 4);
+  assert.match(lop, /class="side o"><\/span>|class="side o">O<\/span><span class="rk">5TH<\/span>/, "the offence's one fifth place was pushed off by the defence's firsts");
+  /* The same line markup as the sheet card: a line prints identically on both, side pill aside. */
+  const full = page.cardHtml(SHEET, GAMES[0], {}) + page.cardHtml(OFF, GAMES[0], {});
+  const strip = (s) => s.replace(/<span class="side [do]">[DO]<\/span>/g, "");
+  for (const li of strip(html).match(/<li>[\s\S]*?<\/li>/g)) assert.ok(full.includes(li), "a home line is not byte-identical to its sheet's: " + li);
+  assert.equal(page.miniHtml(SHEET, OFF, { id: "g", home: "QQQ", away: "ZZZ", date: "2026-10-04T13:30Z" }, {}, 4), "", "a game with no top-five line on either sheet has a card");
+  const defOnly = page.miniHtml(SHEET, null, GAMES[0], {}, 2);
+  assert.match(defOnly, /MOST/); assert.doesNotMatch(defOnly, /class="side o"/, "an offence tag with no offence sheet");
+  assert.equal((defOnly.match(/<li>/g) || []).length, 2, "the cap is not the caller's");
+});

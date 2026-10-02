@@ -33,7 +33,26 @@ Zero dependencies, no build step, no server, no API key. `node --test` with
 **named files** — bare discovery pulls in the backtests, which fire live API
 calls. The list lives in seven places and `dom.test.mjs` checks all seven.
 
-## The offensive cheat sheet (2026-10-02, latest)
+## The cheat sheets on the home (2026-10-02, latest)
+
+**What.** `miniHtml(def, off, game, helpers, limit)` in sheet-page.js:
+both sheets' lines for a game, each side's single best line and then
+the rest by rank (defence first on a tie), each tagged D or O, capped
+at four, with a count of the lines cut; `lineHtml`/`headHtml` are
+shared with `cardHtml`, so a line prints identically on the home and
+the pages (a test holds that byte for byte). The home (index.html,
+`#cheatsec`/`#cheat`) builds one per NFL game on the NFL slate
+(`H.slate` over the NFL games: today's, or the next day that has any,
+named in `#cheatwhen`), writes the field from the sheet into
+`#cheatfield`, carries the two page links once in the heading, and
+hides the section when there is nothing, inside its own try/catch so
+a fault cannot take the slate down. Code review caught the first cut
+(a fixed two-a-side quota let a fifth place displace a first; the
+heading said "most prolific" over FEWEST lines and hardcoded 32).
+CSS `.scard.mini`, `.slines .side`, `.scard .smore`. Tests in
+sheet-page.test.mjs and dom.test.mjs.
+
+## The offensive cheat sheet (2026-10-02)
 
 **What.** The twin of the defensive sheet, asked for next. `teamSheet`
 in fetch-football.mjs takes a `side`: "def" attributes a game's output

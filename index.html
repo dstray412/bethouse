@@ -55,6 +55,11 @@
   <div class="gcards" id="gcards"></div>
 </section>
 
+<section id="cheatsec" hidden>
+  <div class="shead"><h2 class="gtitle">Cheat sheet</h2><div class="gmeta"><span id="cheatwhen"></span>where each defence is softest and each offence strongest this season · the top five of <span id="cheatfield">32</span> · turnovers, takeaways and a defence's sacks rank from the fewest · <b>D</b> the defence, <b>O</b> the offence · <a class="open" href="defence.html">Defences →</a> <a class="open" href="offence.html">Offences →</a></div></div>
+  <div class="sheet" id="cheat"></div>
+</section>
+
 <section id="topsec">
   <div class="shead"><h2 class="gtitle">Top of the boards</h2><div class="gmeta">measured, not picked by hand</div></div>
   <div class="cards tops" id="tops"></div>
@@ -74,6 +79,7 @@
 <script src="cfb.js"></script>
 <script src="watchlist.js"></script>
 <script src="home.js"></script>
+<script src="sheet-page.js"></script>
 <!-- TODO(simplify): the two football files are ~1.2 MB before gzip; fine on
      a laptop and a phone on wifi. If the home drags, have the fetchers
      write a small slate-data.js (games + top picks) and load that instead. -->
@@ -202,6 +208,28 @@
   tops+=top('Tracking live', '<span class="mono">'+tracked+'</span> '+(tracked===1?'prop':'props'), tracked?'counted off the feeds while the games are on':'press Track on a player to follow him here', 'live.html', 'Live');
   if(!hasFb&&!fb.games.length) tops+=top('Football', '<span class="mono">0</span> games on file', 'the football boards rebuild daily; nothing is scheduled in their files', 'nfl.html', 'NFL');
   el('tops').innerHTML=tops;
+
+  /* The cheat sheets, for the NFL slate (today's NFL games, or the next
+     day that has any, the same rule the slate itself uses, and the
+     heading says which day): both sheets' top lines a game, from the
+     same module the two pages use. Hidden when there is no NFL game, no
+     sheet, or nothing in the top five. */
+  /* Its own guard: a fault in the strip hides the strip, never the slate above it. */
+  try{
+    var SP=window.BetHouseSheetPage||null, nflData=data.nfl||{};
+    var nfs=H.slate(all.filter(function(g){ return g.league==='NFL'; }), now);
+    var strip='';
+    if(SP&&(nflData.defence||nflData.offence)){
+      nfs.games.filter(function(g){ return g.state==='pre'; }).forEach(function(g){
+        strip+=SP.miniHtml(nflData.defence||null, nflData.offence||null, g.raw, {faces:F, teams:T, league:'NFL'}, 4);
+      });
+    }
+    var field=(nflData.defence&&nflData.defence.field)||(nflData.offence&&nflData.offence.field)||null;
+    el('cheat').innerHTML=strip;
+    el('cheatwhen').textContent=strip&&nfs.when!=='today'?(nfs.label||'next up')+' · ':'';
+    if(field) el('cheatfield').textContent=String(field);
+    el('cheatsec').hidden=!strip;
+  }catch(e){ el('cheatsec').hidden=true; }
 
   /* The footer: when each board's data was built. */
   var built=[];

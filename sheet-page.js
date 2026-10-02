@@ -51,24 +51,55 @@
     return away.concat(home).sort((a, b) => a.rank - b.rank || a.where - b.where || a.i - b.i);
   }
 
-  const fmt = (l) => (l.kind === "total" ? String(Math.round(l.v)) : l.kind === "pct" ? l.v.toFixed(1) + "%" : l.kind === "rate" ? l.v.toFixed(2) : l.v.toFixed(1));
+  /* A value that is not a number prints as a dash rather than throwing the whole page to "Loading…". */
+  /** One line's markup, shared by the sheet cards and the home's strip: a side pill only when asked for. */
+  function lineHtml(l, sideTag) {
+    return "<li>" + (sideTag ? '<span class="side ' + sideTag + '">' + (sideTag === "d" ? "D" : "O") + "</span>" : "") +
+      '<span class="rk' + (l.rank === 1 ? " r1" : "") + '">' + (l.rank === 1 ? (l.soft === "fewest" ? "FEWEST" : "MOST") : ord(l.rank)) + "</span>" +
+      '<b class="tm">' + esc(l.team) + '</b> <span class="st">' + esc(l.label) + (l.of ? ' <small>of ' + esc(l.of) + "</small>" : "") + '</span><span class="v">' + (l.one ? "<small>1g</small>" : "") + esc(fmt(l)) + "</span></li>";
+  }
+  /** A card's head: the two marks and codes, away at home, and the kickoff when the caller has one. */
+  function headHtml(game, helpers, when) {
+    const h = helpers || {}, F = h.faces || null, league = h.league || "NFL";
+    const mark = (t) => (F ? F.mark(league, t, 22) : "");
+    return '<header class="shead"><span class="sat">' + mark(game.away) + "<b>" + esc(game.away) + '</b><span class="at">@</span>' + mark(game.home) + "<b>" + esc(game.home) + "</b></span>" + (when ? '<span class="gtime">' + esc(when) + "</span>" : "") + "</header>";
+  }
+  const stripeOf = (game, helpers) => { const T = helpers && helpers.teams; const s = T ? T.stripe((helpers && helpers.league) || "NFL", game.away, game.home) : ""; return s ? '<span class="gstripe" style="background:' + esc(s) + '"></span>' : ""; };
+
+  const fmt = (l) => { const v = Number(l.v); if (!isFinite(v)) return "—"; return l.kind === "total" ? String(Math.round(v)) : l.kind === "pct" ? v.toFixed(1) + "%" : l.kind === "rate" ? v.toFixed(2) : v.toFixed(1); };
 
   /** One game's card, or "" when neither team has a line in the top places. `helpers`: faces, teams, league. */
   function cardHtml(sheet, game, helpers) {
-    const h = helpers || {}, F = h.faces || null, T = h.teams || null, league = h.league || "NFL";
     const list = gameLines(sheet, game);
     if (!list.length) return "";
-    const mark = (t) => (F ? F.mark(league, t, 22) : "");
-    const stripe = T ? T.stripe(league, game.away, game.home) : "";
     const when = game.date && isFinite(Date.parse(game.date)) ? new Date(game.date).toLocaleString(undefined, { weekday: "short", hour: "numeric", minute: "2-digit" }) : "";
-    let html = '<section class="scard">' + (stripe ? '<span class="gstripe" style="background:' + esc(stripe) + '"></span>' : "") +
-      '<header class="shead"><span class="sat">' + mark(game.away) + "<b>" + esc(game.away) + '</b><span class="at">@</span>' + mark(game.home) + "<b>" + esc(game.home) + "</b></span>" +
-      (when ? '<span class="gtime">' + esc(when) + "</span>" : "") + "</header><ul class=\"slines\">";
-    for (const l of list) {
-      html += "<li>" + '<span class="rk' + (l.rank === 1 ? " r1" : "") + '">' + (l.rank === 1 ? (l.soft === "fewest" ? "FEWEST" : "MOST") : ord(l.rank)) + "</span>" +
-        '<b class="tm">' + esc(l.team) + '</b> <span class="st">' + esc(l.label) + (l.of ? ' <small>of ' + esc(l.of) + "</small>" : "") + '</span><span class="v">' + (l.one ? "<small>1g</small>" : "") + esc(fmt(l)) + "</span></li>";
-    }
-    return html + "</ul></section>";
+    return '<section class="scard">' + stripeOf(game, helpers) + headHtml(game, helpers, when) + '<ul class="slines">' + list.map((l) => lineHtml(l)).join("") + "</ul></section>";
+  }
+
+  /**
+   * The home's compact card for one game: the top lines from BOTH sheets
+   * (a defence's and an offence's side by side, each tagged D or O),
+   * capped at `limit`; "" when neither sheet has a line in the top
+   * places. Each side keeps its single best line, so one side's run of
+   * first places cannot push the other off the card, and the rest fill
+   * by rank, the defence first on a tie, so a fifth place never
+   * displaces a first except to keep a side on the card. The lines cut
+   * are counted under the list, since the card shows fewer than the
+   * pages. The line and head markup is the sheet card's own function,
+   * so the home and the pages cannot print a line differently.
+   */
+  function miniHtml(defSheet, offSheet, game, helpers, limit) {
+    const cap = limit || 4;
+    const tag = (sheet, side) => (sheet ? gameLines(sheet, game).map((l, i) => ({ ...l, sideTag: side, order: side === "d" ? 0 : 1, i })) : []);
+    const byRank = (a, b) => a.rank - b.rank || a.order - b.order || a.where - b.where || a.i - b.i;
+    const d = tag(defSheet, "d"), o = tag(offSheet, "o");
+    const first = d.slice(0, 1).concat(o.slice(0, 1));
+    const rest = d.slice(1).concat(o.slice(1)).sort(byRank);
+    const list = first.concat(rest).slice(0, cap).sort(byRank);
+    if (!list.length) return "";
+    const cut = d.length + o.length - list.length;
+    return '<section class="scard mini">' + stripeOf(game, helpers) + headHtml(game, helpers, "") + '<ul class="slines">' + list.map((l) => lineHtml(l, l.sideTag)).join("") + "</ul>" +
+      (cut > 0 ? '<div class="smore">+' + esc(cut) + " more in the top five on the sheets</div>" : "") + "</section>";
   }
 
   /** The caveat: what the ranks are, what a one-game line is, the window, and what the model takes from this side. */
@@ -100,5 +131,5 @@
     host.innerHTML = cards.length ? cards.join("") : '<div class="empty"><div class="big">Nothing in the top five</div><div>No ' + (sheet.side === "off" ? "offence" : "defence") + ' on this slate ranks in the top five places on any line.</div></div>';
   }
 
-  return { SHOWN, lines, gameLines, cardHtml, footHtml, render };
+  return { SHOWN, lines, gameLines, cardHtml, miniHtml, footHtml, render };
 });

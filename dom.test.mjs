@@ -2329,9 +2329,18 @@ test("the teams page's panel scrolls sideways inside itself, the team cell stick
   assert.match(src("defence.html"), /sheet: D && D\.defence \|\| null/, "the defence page does not read its sheet off the NFL data file");
   assert.match(src("offence.html"), /sheet: D && D\.offence \|\| null/, "the offence page does not read its sheet off the NFL data file");
   assert.doesNotMatch(src("offence.html"), /D\.defence/, "the offence page reads the defence's sheet");
+  /* The home carries a strip of both sheets: the module loaded after the data it reads, a section to write, and the call with both sheets off the NFL data file. */
+  const home = src("index.html");
+  assert.ok(home.indexOf('<script src="sheet-page.js"></script>') > 0, "the home does not load sheet-page.js");
+  assert.match(home, /<section id="cheatsec"[\s\S]*id="cheat"/, "the home has no cheat-sheet section");
+  assert.match(home, /SP\.miniHtml\(nflData\.defence\|\|null, nflData\.offence\|\|null, g\.raw,/, "the home does not build the strip from both sheets");
+  assert.match(home, /el\('cheatsec'\)\.hidden=/, "the section is not hidden when there is nothing to show");
+  assert.match(home, /id="cheatfield"/, "the heading hardcodes the field"); assert.match(home, /el\('cheatfield'\)\.textContent=String\(field\)/, "the field is not written from the sheet");
+  assert.match(home, /rank from the fewest/, "the heading does not say which lines rank from the fewest");
+  assert.match(home, /catch\(e\)\{ el\('cheatsec'\)\.hidden=true; \}/, "a fault in the strip is not contained to the strip");
   assert.match(src("offence.html"), /side: 'off'/, "the offence page does not name its side"); assert.match(src("defence.html"), /side: 'def'/, "the defence page does not name its side");
   const sheetCss = src(SHEET);
-  for (const c of [".sheet{", ".scard{", ".slines li{", ".slines .rk.r1{", ".slines .v{"]) assert.ok(sheetCss.includes(c), "no rule for " + c);
+  for (const c of [".sheet{", ".scard{", ".slines li{", ".slines .rk.r1{", ".slines .v{", ".scard.mini{", ".scard.mini .slines li{", ".slines .side{", ".scard .smore{"]) assert.ok(sheetCss.includes(c), "no rule for " + c);
   assert.match(sheetCss, /\.sheet\{columns:2;/, "the sheet is not a two-column flow (a grid leaves a gap beside a tall card)");
   assert.match(sheetCss, /\.scard\{[^}]*break-inside:avoid/, "a card can split across columns");
   assert.match(sheetCss, /@media \(max-width:760px\)\{\.sheet\{columns:1\}/, "the sheet does not stack on a phone");
