@@ -80,7 +80,14 @@ six-of-ten (the review's count; an earlier build read 576 and 454); a five-leg s
 one leg from each of the five counting families (2+ receptions, 10+
 rushing yards, 10+ receiving yards, 150+ passing yards, then the second
 receptions leg; rush + rec kept out); raising the floor drops the rung,
-and the floor is how the user steers to "20+ receiving yards". Not wired to the bet log (the football slip is not either).
+and the floor is how the user steers to "20+ receiving yards". Not wired to the bet log (the football slip is not either). The home
+carries the slip (`stripHtml(model, data, record, parlay, {faces,
+league, now, gameIds})`: the defaults, three legs then two whenever
+three cannot be filled, on the cheat strip's slate day only (the
+review caught a Sunday-night leg beside a Monday-night one), `home:
+true` drops the price input; the heading's rule is `ruleText(cleanState
+(null))`; `#parsec` hidden when ""). A leg's `rec` is undefined without
+a record file ("no record on file") and null under fifteen calls.
 
 ## The consistency overview organised by family (2026-10-02)
 

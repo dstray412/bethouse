@@ -68,6 +68,11 @@
   <div class="cons strip" id="consstrip"></div>
 </section>
 
+<section id="parsec" hidden>
+  <div class="shead"><h2 class="gtitle">Suggested parlay</h2><div class="gmeta"><span id="parwhen"></span>NFL · lines sold as a number and up, never the projection's line · <span id="parrule"></span> · ranked by chance within a family, not by price · <a class="open" href="parlays.html">Pick your own legs and floor →</a></div></div>
+  <div id="parstrip"></div>
+</section>
+
 <section id="topsec">
   <div class="shead"><h2 class="gtitle">Top of the boards</h2><div class="gmeta">measured, not picked by hand</div></div>
   <div class="cards tops" id="tops"></div>
@@ -89,6 +94,8 @@
 <script src="home.js"></script>
 <script src="sheet-page.js"></script>
 <script src="consistency-page.js"></script>
+<script src="parlay.js"></script>
+<script src="parlay-page.js"></script>
 <!-- TODO(simplify): the two football files are ~1.2 MB before gzip; fine on
      a laptop and a phone on wifi. If the home drags, have the fetchers
      write a small slate-data.js (games + top picks) and load that instead. -->
@@ -247,6 +254,18 @@
     el('consstrip').innerHTML=cstrip;
     el('conssec').hidden=!cstrip;
   }catch(e){ el('conssec').hidden=true; }
+
+  /* The parlay page's slip at its defaults, from the same module as the page; its own guard too. */
+  try{
+    var PP=window.BetHouseParlayPage||null, pnfl=data.nfl||null;
+    /* The cheat strip's slate day: its games only, so the slip never spans two nights under one heading. */
+    var pids=nfs.games.map(function(g){ return g.raw&&g.raw.id; }).filter(Boolean);
+    var pstrip=PP&&typeof PP.stripHtml==='function'?PP.stripHtml(N, pnfl, window.BETHOUSE_NFL_RECORD||null, window.BetHouseParlay||null, {faces:F, league:'NFL', now:now, gameIds:pids}):'';
+    if(PP&&typeof PP.ruleText==='function') el('parrule').textContent=PP.ruleText(PP.cleanState(null));
+    el('parwhen').textContent=pstrip&&nfs.when!=='today'?(nfs.label||'next up')+' · ':'';
+    el('parstrip').innerHTML=pstrip;
+    el('parsec').hidden=!pstrip;
+  }catch(e){ el('parsec').hidden=true; }
 
   /* The footer: when each board's data was built. */
   var built=[];

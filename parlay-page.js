@@ -127,7 +127,8 @@
         propLabel: propLabel(model, stat, rung),
         hits: rec ? { hits: stat === "td" ? model.recentTdHits(rec) : model.recentHits(stat, rec, rung), n: N10 } : null,
         sheet: sheetLine(data.defence, p.opp, stat, p.pos),
-        rec: recordFor(record, stat, rung, prob),
+        rec: record ? recordFor(record, stat, rung, prob) : undefined, // undefined: no record file at all; null: under 15 calls
+
       });
       const s = model.scoreAnytimeTD(p, { teamFactor: (TF[p.team] || {}).off || 1, oppFactor: (TF[p.opp] && isFinite(TF[p.opp].def)) ? TF[p.opp].def : 1, usagePool, scriptFactor: scriptOf(p.team), vacRec, vacRush });
       if (s && isFinite(s.prob) && s.prob > 0) out.push(leg("td", 1, s.prob));
@@ -183,7 +184,8 @@
     const what = l.prop === "td" ? "scored" : "at " + l.rung + "+";
     out.push(l.hits ? l.hits.hits + " of his last " + l.hits.n + " " + what : "no ten-game log on file");
     out.push(l.sheet ? esc(l.opp) + " allows the " + esc(ord(Number(l.sheet.rank))) + "-most " + esc(l.sheet.label) + (l.sheet.of != null ? " of " + esc(l.sheet.of) : "") + (l.sheet.one ? " (one game)" : "") : esc(l.opp) + " is not a soft spot on the sheets for this");
-    if (l.rec) out.push(l.prop === "td" ? "at " + l.rec.lo + "–" + (l.rec.lo + 10) + "% the record said " + Math.round(l.rec.said) + "% and hit " + Math.round(l.rec.hit) + "% of " + l.rec.n
+    if (l.rec === undefined) out.push("no record on file");
+    else if (l.rec) out.push(l.prop === "td" ? "at " + l.rec.lo + "–" + (l.rec.lo + 10) + "% the record said " + Math.round(l.rec.said) + "% and hit " + Math.round(l.rec.hit) + "% of " + l.rec.n
       : "at " + l.rung + "+ the record said " + Math.round(l.rec.said) + "% and hit " + Math.round(l.rec.hit) + "% of " + l.rec.n);
     else out.push(l.prop === "td" ? "the record has under " + MIN_GRADED + " graded calls at this chance" : "the record has under " + MIN_GRADED + " graded calls at " + l.rung + "+");
     return out;
@@ -240,14 +242,14 @@
     const c = slip.combined;
     let html = '<div class="slip"><h3>Suggested parlay — ' + slip.legs.length + " legs · " + (s.scope === "players" ? "one leg a player, any games" : "from " + c.distinctGames + " different games") + "</h3>";
     html += '<div class="how">The best leg of each prop family in turn, ' + (s.scope === "players" ? "one a player" : "one a game") + ", each the highest line the model gives at least " + Math.round(100 * s.floor) + "% to, ranked by chance within a family, <b>not</b> by price: it cannot see what you are being offered. The count, the sheet and the record under each leg are facts, not the chance." +
-      (slip.skipped && slip.skipped.length ? " " + slip.skipped.map(famLabel).map(esc).join(" and ") + " legs are listed but kept out of the slip: the replay has not measured them in a parlay." : "") + "</div>";
+      (slip.skipped && slip.skipped.length ? " " + slip.skipped.map(famLabel).map(esc).join(" and ") + " legs are " + (h.home ? "" : "listed but ") + "kept out of the slip: the replay has not measured them in a parlay." : "") + "</div>";
     html += slip.legs.map((l) => legLine(l, h)).join("");
     const shown = c.adjusted != null ? c.adjusted : c.prob;
     html += '<div class="slipsum"><div><span class="big">' + pct(c.prob, c.prob < 0.1 ? 2 : 1) + '</span><span class="lbl">the legs multiplied</span></div>';
     if (c.adjusted != null && Math.abs(c.adjusted - c.prob) > 1e-9) html += '<div><span class="big">' + pct(c.adjusted, c.adjusted < 0.1 ? 2 : 1) + '</span><span class="lbl">adjusted: such legs cashed ' + c.lift + "× the product on the replay</span></div>";
     if (h.model && typeof h.model.fairPrice === "function") html += '<div><span class="big">' + sgn(h.model.fairPrice(shown)) + '</span><span class="lbl">fair price</span></div>';
-    html += '<div><input id="slipprice" type="number" step="10" placeholder="offered" aria-label="Parlay price you are offered"' + (h.price != null ? ' value="' + esc(h.price) + '"' : "") + '><span class="lbl">price you are offered</span></div>';
-    if (h.price != null && isFinite(h.price) && h.price !== 0 && h.edge) {
+    if (!h.home) html += '<div><input id="slipprice" type="number" step="10" placeholder="offered" aria-label="Parlay price you are offered"' + (h.price != null ? ' value="' + esc(h.price) + '"' : "") + '><span class="lbl">price you are offered</span></div>';
+    if (!h.home && h.price != null && isFinite(h.price) && h.price !== 0 && h.edge) {
       const ev = h.edge.evPct(shown, h.edge.americanToDecimal(h.price));
       html += '<div><span class="big ' + (ev > 2 ? "good" : ev >= 0 ? "warn" : "bad") + '">' + esc(h.edge.formatPct(ev)) + '</span><span class="lbl">edge at that price</span></div>';
     }
@@ -265,7 +267,35 @@
     return html;
   }
 
-  const recFact = (l) => (l.rec ? (l.prop === "td" ? "at " + l.rec.lo + "–" + (l.rec.lo + 10) + "%" : "at " + l.rung + "+") + " said " + Math.round(l.rec.said) + "% · hit " + Math.round(l.rec.hit) + "%" : "—");
+  /** The rule a state spells, for a heading: written from the state so a changed default cannot leave the copy behind. */
+  function ruleText(state) {
+    const s = cleanState(state), words = { 0: "any count", 6: "six of his last ten", 8: "eight of his last ten" };
+    const all = FAMILIES.map((f) => f.id);
+    const fams = s.fams.length === all.length ? "every prop" : s.fams.join() === DEFAULT_FAMS.join() ? "the counting props" : s.fams.map((id) => famLabel(id).toLowerCase().replace("anytime td", "anytime TD")).join(" and ");
+    return (s.scope === "players" ? "one leg a player" : "one leg a game") + ", each at least " + Math.round(100 * s.floor) + "%, " + words[s.hits] + (s.soft ? ", a soft defence only" : "") + ", " + fams;
+  }
+
+  /* The home's strip: the page's slip at its defaults (three legs, one a game, each at least 70%, six of his last ten, the
+     counting props), two legs whenever three cannot be filled, on the games of the home's slate day only (`helpers.gameIds`)
+     so a Sunday-night leg is never paired with a Monday-night one under one heading, without the price input (the page has
+     it); "" when nothing builds, so the home hides the section rather than carrying a refusal. */
+  function stripHtml(model, data, record, parlay, helpers) {
+    const h = helpers || {};
+    if (!model || !data || !parlay || typeof parlay.combineLegs !== "function" || !Array.isArray(data.players)) return "";
+    const lift = (model.DEFAULTS && model.DEFAULTS.parlayLift) || {}, eligible = model.DEFAULTS && model.DEFAULTS.parlayProps;
+    const base = cleanState(null);
+    const ids = Array.isArray(h.gameIds) ? new Set(h.gameIds.map(String)) : null;
+    const d = ids ? Object.assign({}, data, { games: (data.games || []).filter((g) => g && ids.has(String(g.id))) }) : data;
+    const list = filter(legs(model, d, record, { now: h.now, floor: base.floor }), base);
+    for (const n of [3, 2]) {
+      const s = Object.assign({}, base, { legs: n });
+      const slip = buildSlip(list, s, { parlay, lift, eligible });
+      if (slip) return slipHtml(slip, s, { lift, model, faces: h.faces, league: h.league, home: true });
+    }
+    return "";
+  }
+
+  const recFact = (l) => (l.rec === undefined ? "no record" : l.rec ? (l.prop === "td" ? "at " + l.rec.lo + "–" + (l.rec.lo + 10) + "%" : "at " + l.rung + "+") + " said " + Math.round(l.rec.said) + "% · hit " + Math.round(l.rec.hit) + "%" : "—");
   const sheetFact = (l) => (l.sheet ? esc(ord(Number(l.sheet.rank))) + " " + esc(l.sheet.label) + (l.sheet.of != null ? " of " + esc(l.sheet.of) : "") + (l.sheet.one ? " (one game)" : "") : "—");
   /** Every leg that clears the filters: a section a family on, in the control's order, each ranked by chance, LISTED rows and the cut said. */
   function legsHtml(list, state, helpers) {
@@ -377,5 +407,5 @@
     return false;
   }
 
-  return { LEGS, FLOORS, SCOPES, HITS, FAMILIES, DEFAULT_FAMS, HOSTS, LISTED, MIN_GRADED, SOFT, sheetLine, recordFor, legs, filter, cleanState, controlsHtml, evidence, buildSlip, slipHtml, legsHtml, footHtml, render };
+  return { LEGS, FLOORS, SCOPES, HITS, FAMILIES, DEFAULT_FAMS, HOSTS, LISTED, MIN_GRADED, SOFT, sheetLine, recordFor, legs, filter, cleanState, controlsHtml, evidence, ruleText, buildSlip, slipHtml, stripHtml, legsHtml, footHtml, render };
 });

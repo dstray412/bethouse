@@ -368,7 +368,11 @@ so rush + rec is listed but named as kept out; a refused slip says
 why. Under the slip, a section a family, each ranked by chance within
 it, ten rows and the cut, the record fact framed at its rung. The
 filters ride the URL. `parlay.js` gained a `players` scope (one leg a
-player, any games) for `suggestParlay`. Tests in `parlay-page.test.mjs` (the
+player, any games) for `suggestParlay`. The home carries the slip at
+the page's defaults (`stripHtml`: three legs, then two whenever three
+cannot be filled, on the home's slate day only; without the price
+input; the heading's rule written by `ruleText` from the defaults;
+hidden when none builds). Tests in `parlay-page.test.mjs` (the
 rung choice against the model's own ladder, the gates, the sheet
 mapping by position, the record lookup, the filters, the state
 boundary, the markup, the render and its one listener) and the

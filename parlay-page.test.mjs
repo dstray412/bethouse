@@ -84,6 +84,11 @@ test("legs: the consistency count at the leg's own rung, the opponent's cheat-sh
   assert.deepEqual(page.recordFor(RECORD, "td", 1, 0.25), { lo: 20, said: 24.9, hit: 22.7, n: 247 }, "a touchdown reads the props band for its chance");
   assert.equal(page.recordFor(RECORD, "td", 1, 0.45), null);
   assert.equal(page.recordFor(null, "recyds", 20), null);
+  /* No record file at all: the leg says so, rather than claiming the record has under fifteen calls. */
+  const noRec = page.legs(nfl, data([p]), null, { now: NOW, floor: 0.6 }).find((l) => l.prop === "recyds");
+  assert.equal(noRec.rec, undefined); assert.match(page.evidence(noRec).join(" · "), /no record on file/);
+  assert.match(page.evidence(Object.assign({}, noRec, { rec: null })).join(" · "), /the record has under 15 graded calls at/);
+  assert.match(page.legsHtml([noRec], page.cleanState({ fams: ["recyds"] }), {}), /<span>no record<\/span>/);
   /* No ten-game log: no count, not zero. */
   const bare = page.legs(nfl, data([player({ recent: p.recent.slice(0, 6) })]), RECORD, { now: NOW, floor: 0.6 }).find((l) => l.prop === "recyds");
   assert.equal(bare.hits, null);
@@ -229,6 +234,35 @@ test("slipHtml and legsHtml: the legs with their evidence, the product, the fair
   assert.equal((big.match(/<li>/g) || []).length, page.LISTED, "a family's list is not capped");
   assert.match(big, new RegExp("\\+" + (30 - page.LISTED) + " more under "));
   assert.match(page.legsHtml([], page.cleanState({}), {}), /No leg clears/);
+});
+
+test("stripHtml: the home's slip at the page's defaults, three legs then two, without the price input; nothing when none builds", () => {
+  const p1 = player(), p2 = player({ id: "p2", name: "Bravo Back", team: "DEN", opp: "LV", pos: "RB", carries: 180, targets: 30, recYds: 200, recs: 24, rushYds: 800, tds: 7, recent: ten((i) => row(10, 2, i < 9 ? 70 : 20, 0, i < 5 ? 1 : 0)) });
+  const p3 = player({ id: "p3", name: "Charlie Catch", team: "LV", opp: "DEN", pos: "TE", targets: 60, recYds: 500, recs: 44, recent: ten((i) => row(i < 8 ? 55 : 10, i < 9 ? 4 : 1, 0, 0, 0)) });
+  const two = page.stripHtml(nfl, data([p1, p2, p3]), RECORD, parlay, { now: NOW });
+  assert.match(two, /<h3>Suggested parlay — 2 legs · from 2 different games<\/h3>/, "two games did not fall back to a two-leg slip");
+  assert.doesNotMatch(two, /slipprice|edge at that price/, "the home carries the price input");
+  assert.match(two, /class="leg-line"/); assert.match(two, /fair price/);
+  assert.doesNotMatch(two, /href="parlays\.html"/, "the slip links the page; the home's heading already does, once");
+  assert.match(two, /Rush \+ rec yards legs are kept out of the slip: the replay has not measured them in a parlay/, "the home says legs are listed; the home has no list");
+  const g3 = GAMES.concat([{ id: "g3", date: "2026-10-04T20:00Z", home: "SF", away: "ARI", completed: false }]);
+  const p4 = player({ id: "p4", name: "Delta Deep", team: "SF", opp: "ARI" });
+  const three = page.stripHtml(nfl, data([p1, p2, p3, p4], { games: g3 }), RECORD, parlay, { now: NOW });
+  assert.match(three, /Suggested parlay — 3 legs · from 3 different games/, "three games did not make the default three-leg slip");
+  /* The home's slate day: only the games it names, so a Sunday-night leg is never paired with a Monday-night one under one heading. */
+  const dayOnly = page.stripHtml(nfl, data([p1, p2, p3, p4], { games: g3 }), RECORD, parlay, { now: NOW, gameIds: ["g1", "g2"] });
+  assert.match(dayOnly, /Suggested parlay — 2 legs · from 2 different games/, "a game off the slate day made the slip");
+  assert.doesNotMatch(dayOnly, /Delta Deep/);
+  assert.equal(page.stripHtml(nfl, data([p1, p2, p3, p4], { games: g3 }), RECORD, parlay, { now: NOW, gameIds: [] }), "", "no games on the day made a slip");
+  assert.equal(page.stripHtml(nfl, data([p1]), RECORD, parlay, { now: NOW }), "", "one game made a slip");
+  assert.equal(page.stripHtml(nfl, data([p1, p2, p3]), RECORD, parlay, { now: Date.parse("2026-10-05T00:00Z") }), "", "a played slate made a slip");
+  assert.equal(page.stripHtml(null, data([p1]), RECORD, parlay, { now: NOW }), ""); assert.equal(page.stripHtml(nfl, null, RECORD, parlay, { now: NOW }), ""); assert.equal(page.stripHtml(nfl, data([p1, p2, p3]), RECORD, null, { now: NOW }), "");
+});
+
+test("ruleText: the heading's rule comes from the state, so a changed default cannot leave the home's copy behind", () => {
+  assert.equal(page.ruleText(page.cleanState(null)), "one leg a game, each at least 70%, six of his last ten, the counting props");
+  assert.equal(page.ruleText(page.cleanState({ legs: 4, scope: "players", floor: 0.8, hits: 0, soft: "1", fams: "td,recyds" })), "one leg a player, each at least 80%, any count, a soft defence only, anytime TD and receiving yards");
+  assert.equal(page.ruleText(page.cleanState({ hits: 8, fams: page.FAMILIES.map((f) => f.id) })), "one leg a game, each at least 70%, eight of his last ten, every prop");
 });
 
 test("render: the controls, the slip from the filtered legs, every leg listed, the caveat; one listener; the URL told when the state is cleaned", () => {

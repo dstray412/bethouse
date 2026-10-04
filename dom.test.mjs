@@ -2412,6 +2412,17 @@ test("the teams page's panel scrolls sideways inside itself, the team cell stick
   assert.doesNotMatch(markup("parlays.html"), /\bo\d+\.5\b/, "an over line in the page's own copy");
   for (const k of [".plegs{", ".plegs li{", ".plegs .pe .up{", ".slip.warn{"]) assert.ok(src(SHEET).includes(k), "no rule for " + k);
   assert.match(src(SHEET), /\.ccard \.cmore,#plegs \.cmore,\.scard \.smore\{/, "the parlay list's cut line does not share the cheat strip's style");
+  /* The home carries the parlay page's slip: parlay.js and the page module loaded, a section to write, the call with the NFL data, model, record, parlay module, the slate day's game ids and the clock; the heading's rule written from the module's defaults; hidden when none builds. */
+  for (const f of ["parlay.js", "parlay-page.js"]) assert.ok(src("index.html").indexOf('<script src="' + f + '"></script>') > 0, "the home does not load " + f);
+  assert.match(src("index.html"), /<section id="parsec" hidden>[\s\S]*id="parrule"[\s\S]*id="parstrip"/, "the home has no parlay section with a rule and a strip");
+  assert.match(src("index.html"), /PP\.stripHtml\(N, pnfl, window\.BETHOUSE_NFL_RECORD\|\|null, window\.BetHouseParlay\|\|null, \{faces:F, league:'NFL', now:now, gameIds:pids\}\)/, "the home does not build the strip from the module, on the slate day's games, at the home's clock");
+  assert.match(src("index.html"), /var pids=nfs\.games\.map\(function\(g\)\{ return g\.raw&&g\.raw\.id; \}\)/, "the strip's games are not the cheat strip's slate day");
+  assert.match(src("index.html"), /el\('parrule'\)\.textContent=PP\.ruleText\(PP\.cleanState\(null\)\)/, "the heading's rule is prose, not the module's defaults");
+  assert.match(src("index.html"), /el\('parwhen'\)\.textContent=/, "the heading does not name the day when it is not today");
+  assert.match(src("index.html"), /el\('parsec'\)\.hidden=/, "the section is not hidden when there is nothing to show");
+  assert.match(src("index.html"), /catch\(e\)\{ el\('parsec'\)\.hidden=true; \}/, "a fault in the strip is not contained to the strip");
+  assert.doesNotMatch(src("index.html"), /at least 70%|six of his last ten/, "the heading hardcodes the defaults the module owns");
+  assert.doesNotMatch(markup("index.html"), /over\/under|\bo\d+\.5\b/i, "the home's parlay copy mentions an over");
   /* The home carries a strip of the consistency cards: the module loaded, a section to write, the call with the NFL data and model, hidden when there is nothing. */
   assert.ok(src("index.html").indexOf('<script src="consistency-page.js"></script>') > 0, "the home does not load consistency-page.js");
   assert.match(src("index.html"), /<section id="conssec"[\s\S]*id="consstrip"/, "the home has no consistency section");
