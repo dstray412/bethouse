@@ -34,7 +34,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const DIR = dirname(fileURLToPath(import.meta.url));
-const BOARDS = ["index.html", "baseball.html", "golf.html", "nfl.html", "cfb.html", "bets.html", "live.html", "record.html", "teams.html", "defence.html", "offence.html", "consistency.html"];
+const BOARDS = ["index.html", "baseball.html", "golf.html", "nfl.html", "cfb.html", "bets.html", "live.html", "record.html", "teams.html", "defence.html", "offence.html", "consistency.html", "parlays.html"];
 const src = (f) => readFileSync(resolve(DIR, f), "utf8");
 
 /*
@@ -2397,6 +2397,21 @@ test("the teams page's panel scrolls sideways inside itself, the team cell stick
   assert.match(src(SHEET), /\.ccard \.who small\{[^}]*overflow:hidden;text-overflow:ellipsis/, "a long note paints over the figures");
   assert.match(src(SHEET), /#cons>\.ccard\{max-width:/, "a picked card runs the full page width, the name a page away from its count");
   assert.ok(src(SHEET).includes(".ccard .cmore"), "no rule for the cut line");
+  /* The parlay page: the faces, edge.js (the edge at a typed price), parlay.js (the slip), the model, the data file, the record (optional, so the page stands without it), the page module. */
+  for (const f of ["faces.js", "edge.js", "parlay.js", "nfl.js", "nfl-data.js", "parlay-page.js"]) assert.match(src("parlays.html"), new RegExp('<script src="' + f.replace(".", "\\.") + '"></script>'), "parlays.html does not load " + f);
+  assert.match(src("parlays.html"), /<script src="nfl-record\.js" onerror="void 0"><\/script>/, "the record is not optional on the parlay page");
+  assert.ok(src("parlays.html").indexOf('src="parlay.js"') < src("parlays.html").indexOf('src="parlay-page.js"'), "parlay.js loads after the page that needs it");
+  assert.match(markup("parlays.html"), /id="pcontrols"[\s\S]*id="pslip"[\s\S]*id="plegs"[\s\S]*id="pfoot"/, "the hosts are not in order: controls, slip, legs, caveat");
+  assert.match(src("parlays.html"), /<div class="controls" id="pcontrols" hidden>/, "the empty controls host paints a rule before the controls exist");
+  for (const k of ["model: window.BetHouseNFL || null", "parlay: window.BetHouseParlay || null", "edge: window.BetHouseEdge || null", "record: window.BETHOUSE_NFL_RECORD || null"]) assert.ok(src("parlays.html").includes(k), "the page does not hand over " + k);
+  assert.match(src("parlays.html"), /new URLSearchParams\(location\.search\)/, "the filters are not read off the URL");
+  assert.match(src("parlays.html"), /history\.replaceState\(/, "the filters are not written to the URL");
+  assert.match(src("parlays.html"), /\} catch \(e\) \{/, "a fault in the renderer leaves the page on Loading… forever");
+  /* The note says the one thing the page is for: lines sold as a number and up, never an over/under. */
+  assert.match(markup("parlays.html"), /Never an over\/under/, "the note does not say the page sells no over/under");
+  assert.doesNotMatch(markup("parlays.html"), /\bo\d+\.5\b/, "an over line in the page's own copy");
+  for (const k of [".plegs{", ".plegs li{", ".plegs .pe .up{", ".slip.warn{"]) assert.ok(src(SHEET).includes(k), "no rule for " + k);
+  assert.match(src(SHEET), /\.ccard \.cmore,#plegs \.cmore,\.scard \.smore\{/, "the parlay list's cut line does not share the cheat strip's style");
   /* The home carries a strip of the consistency cards: the module loaded, a section to write, the call with the NFL data and model, hidden when there is nothing. */
   assert.ok(src("index.html").indexOf('<script src="consistency-page.js"></script>') > 0, "the home does not load consistency-page.js");
   assert.match(src("index.html"), /<section id="conssec"[\s\S]*id="consstrip"/, "the home has no consistency section");
@@ -2415,7 +2430,7 @@ test("the teams page's panel scrolls sideways inside itself, the team cell stick
   assert.match(home, /catch\(e\)\{ el\('cheatsec'\)\.hidden=true; \}/, "a fault in the strip is not contained to the strip");
   assert.match(src("offence.html"), /side: 'off'/, "the offence page does not name its side"); assert.match(src("defence.html"), /side: 'def'/, "the defence page does not name its side");
   const sheetCss = src(SHEET);
-  for (const c of [".sheet{", ".scard{", ".slines li{", ".slines .rk.r1{", ".slines .v{", ".scard.mini{", ".scard.mini .slines li,.mu.cheat .slines li{", ".slines .side{", ".ccard .cmore,.scard .smore{"]) assert.ok(sheetCss.includes(c), "no rule for " + c);
+  for (const c of [".sheet{", ".scard{", ".slines li{", ".slines .rk.r1{", ".slines .v{", ".scard.mini{", ".scard.mini .slines li,.mu.cheat .slines li{", ".slines .side{", ".ccard .cmore,#plegs .cmore,.scard .smore{"]) assert.ok(sheetCss.includes(c), "no rule for " + c);
   assert.match(sheetCss, /\.sheet\{columns:2;/, "the sheet is not a two-column flow (a grid leaves a gap beside a tall card)");
   assert.match(sheetCss, /\.scard\{[^}]*break-inside:avoid/, "a card can split across columns");
   assert.match(sheetCss, /@media \(max-width:760px\)\{\.sheet\{columns:1\}/, "the sheet does not stack on a phone");

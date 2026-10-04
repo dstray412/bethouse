@@ -80,3 +80,22 @@ test("suggestParlay, one game: spread and total may both appear; a player still 
   const out = P.suggestParlay(c, { legs: 3, scope: "game", gameId: 1 });
   assert.deepEqual(out.legs.map((l) => l.key), ["1|a|recyds", "1|game|spread", "1|game|total"]);
 });
+
+test("suggestParlay players scope: the best legs from any games, one a player, the correlation classed; refuses with fewer players than legs", () => {
+  const c = [
+    { key: "a1", playerId: "a", gameId: "g1", team: "KC", prob: 0.9, prop: "recyds" },
+    { key: "a2", playerId: "a", gameId: "g1", team: "KC", prob: 0.85, prop: "recs" },
+    { key: "b1", playerId: "b", gameId: "g1", team: "LAC", prob: 0.8, prop: "rushyds" },
+    { key: "c1", playerId: "c", gameId: "g2", team: "DEN", prob: 0.7, prop: "recyds" },
+    { key: "d1", playerId: "d", gameId: "g2", team: "DEN", prob: 0.6, prop: "td" },
+  ];
+  const out = P.suggestParlay(c, { legs: 3, scope: "players", lift: { game: 1, mixed: 1, team: 0.85, player: 1.3 } });
+  assert.deepEqual(out.legs.map((l) => l.key), ["a1", "b1", "c1"], "not the best leg a player, by chance");
+  assert.equal(out.combined.correlation, "game", "two legs in one game on different teams");
+  assert.equal(out.combined.distinctGames, 2);
+  const four = P.suggestParlay(c, { legs: 4, scope: "players", lift: { game: 1, mixed: 1, team: 0.85, player: 1.3 } });
+  assert.deepEqual(four.legs.map((l) => l.key), ["a1", "b1", "c1", "d1"]);
+  assert.equal(four.combined.correlation, "mixed", "a team shared by two of the four legs");
+  assert.equal(P.suggestParlay(c, { legs: 5, scope: "players" }), null, "four players cannot make five legs");
+  assert.equal(P.suggestParlay(c, { legs: 3, scope: "slate" }), null, "the slate scope still wants three games");
+});

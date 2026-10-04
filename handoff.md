@@ -13,7 +13,7 @@ commit you are reading and how old the data on disk is.
 
 ## Where things are
 
-**Twelve pages**, all live and deployed:
+**Thirteen pages**, all live and deployed:
 
 | page | what |
 |---|---|
@@ -29,12 +29,59 @@ commit you are reading and how old the data on disk is.
 | `cfb.html` | college football, the same props and ladders (no matchups). Added 2026-09-05 |
 | `golf.html` | PGA Tour make-the-cut |
 | `bets.html` | the bet log: history, win rate by bet type, closing line value |
+| `parlays.html` | the prop parlay page: N+ legs on the model's ladder, the consistency count and the cheat-sheet rank beside each, the slip |
 
 Zero dependencies, no build step, no server, no API key. `node --test` with
 **named files** — bare discovery pulls in the backtests, which fire live API
 calls. The list lives in seven places and `dom.test.mjs` checks all seven.
 
-## The consistency overview organised by family (2026-10-02, latest)
+## The prop parlay page (2026-10-04, latest)
+
+**What.** The user asked for a parlay generator built on the
+consistency cards and the cheat sheets, lines sold as a number and up
+only ("20+ receiving yards, 4+ receptions"; he never bets a straight
+over/under). `parlays.html` + `parlay-page.js` (UMD
+`BetHouseParlayPage`): `legs(model, data, record, {now, floor})`
+builds every leg (player on an open game, not Out, with an opponent;
+for each stat `statEligible` then `ladder()` and the HIGHEST rung with
+prob ≥ floor; the touchdown from `scoreAnytimeTD` when it clears the
+floor), each with `hits` (recentHits/recentTdHits over the last ten,
+null without ten), `sheet` (`sheetLine`: the defence sheet's line for
+the stat by position, top five only; rush + rec takes the better of
+rushing yards and the receiving line), `rec` (`recordFor`: the
+record's `ladder.stats[stat].rungs` row with 15+ calls; the touchdown
+reads `props.td.bands`). `filter(legs, state)` applies the families,
+the hits floor (0/6/8) and the soft switch; `cleanState` is the URL
+boundary; the slip is `parlay.suggestParlay(list, {legs, scope, lift})`
+with a new `players` scope in parlay.js (one leg a player, any games;
+combineLegs classes the correlation) — kept and tested, though the
+page's own slip is `buildSlip(list, state, {parlay, lift, eligible})`:
+the best leg of each family in turn (families in the order of their
+best leg; a second pass takes each family's next), one a game or one a
+player, only `parlayProps` families (rush + rec is listed, named as
+kept out), the arithmetic `combineLegs`. The review's HIGH: a raw
+chance ranking ranks ladder coarseness (89 of 526 legs were "2+
+receptions" and the top ten rows all were), so the list is a section a
+family (ten rows and the cut, ranked within), the record fact is framed
+at its rung ("at 2+ said 78% · hit 79%"), the touchdown is exempt from
+the floor and off by default (`DEFAULT_FAMS`), the last family on
+cannot be switched off, and the sheet's `of` prints only when ranked
+among fewer than the field. `render(doc, {data, model,
+record, parlay, edge, faces, league, state, onState, now})` writes
+`#pcontrols`, `#pslip`, `#plegs`, `#pfoot`; one click listener on the
+controls and one change listener on the slip (the price input).
+`HOSTS` names the four host ids and the test forbids a control
+carrying one (the Legs control first shipped as `id="plegs"`, and a
+second render wrote the list into it). CSS: `.plegs` rows, `.slip.warn`.
+Nav on all thirteen pages; BOARDS is 13; the seven gate lists carry
+`parlay-page.test.mjs`. On the real slate at a noon clock: 576 legs
+at a 70% floor, 454 after the default six-of-ten; a five-leg slip is
+one leg from each of the five counting families (2+ receptions, 10+
+rushing yards, 10+ receiving yards, 150+ passing yards, then the second
+receptions leg; rush + rec kept out); raising the floor drops the rung,
+and the floor is how the user steers to "20+ receiving yards". Not wired to the bet log (the football slip is not either).
+
+## The consistency overview organised by family (2026-10-02)
 
 **What.** The user found the overview sloppy (thirteen cards of
 different lengths in a column flow). `GROUPS` in consistency-page.js

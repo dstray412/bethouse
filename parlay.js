@@ -81,6 +81,10 @@
    *     most one per player (a game leg is its own "player"). Refuses when
    *     the game has fewer legs than asked. The caller decides whether to
    *     offer this at all: see the measured same-game lift before you do.
+   *   scope "players": the best legs from any games, at most one per
+   *     player, so two legs may share a game or a team; combineLegs says
+   *     which and the lift for that class applies. Refuses when fewer
+   *     players than legs have one.
    */
   function suggestParlay(candidates, opts) {
     const o = opts || {};
@@ -90,11 +94,11 @@
     const usable = candidates.filter((c) => c && typeof c.prob === "number" && isFinite(c.prob) && c.prob > 0 && c.prob <= 1);
     const byProb = (a, b) => b.prob - a.prob || String(a.playerId).localeCompare(String(b.playerId));
     let legs;
-    if (o.scope === "game") {
-      const inGame = usable.filter((c) => String(c.gameId) === String(o.gameId));
+    const who = (c) => String(c.playerId) === "game" ? "game|" + String(c.gameId) + "|" + String(c.prop) : String(c.gameId) + "|" + String(c.playerId);
+    if (o.scope === "game" || o.scope === "players") {
+      const from = o.scope === "game" ? usable.filter((c) => String(c.gameId) === String(o.gameId)) : usable.slice();
       const seen = new Set();
-      const who = (c) => String(c.playerId) === "game" ? "game|" + String(c.prop) : String(c.playerId);
-      legs = inGame.sort(byProb).filter((c) => !seen.has(who(c)) && seen.add(who(c)));
+      legs = from.sort(byProb).filter((c) => !seen.has(who(c)) && seen.add(who(c)));
     } else {
       const best = new Map();
       for (const c of usable) {

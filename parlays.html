@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>BetHouse — Prop parlays</title>
+<link rel="stylesheet" href="fonts/fonts.css">
+<link rel="stylesheet" href="board.css">
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="brand">
+    <h1 class="logo">BETHOUSE</h1>
+    <div class="tagline">NFL prop parlays</div>
+  <nav class="boards" aria-label="Other boards">
+  <a class="navlink" href="index.html">Home →</a>
+  <a class="navlink" href="bets.html">Bets →</a>
+  <a class="navlink" href="nfl.html">NFL →</a>
+  <a class="navlink" href="cfb.html">CFB →</a>
+  <a class="navlink" href="baseball.html">Baseball →</a>
+  <a class="navlink" href="golf.html">PGA →</a>
+  <a class="navlink" href="live.html">Live →</a>
+  <a class="navlink" href="record.html">Record →</a>
+  <a class="navlink" href="teams.html">Teams →</a>
+  <a class="navlink" href="offence.html">Offences →</a>
+  <a class="navlink" href="defence.html">Defences →</a>
+  <a class="navlink" href="consistency.html">Consistency →</a>
+  </nav>
+  </div>
+</header>
+
+<div class="note">A parlay of lines the book sells as a number and up: 20+ receiving yards, 4+ receptions, 50+ rushing yards, an
+anytime touchdown. Never an over/under. For each player and stat the leg is the highest line the model gives at least the
+floor you pick; beside it, how many of his last ten games cleared it, whether the opponent is a soft spot on the cheat
+sheet for that stat, and what the record did at that line. The slip is the legs most likely to cash under your filters,
+ranked by chance, not by price: compare the fair price with the book's.</div>
+
+<div class="controls" id="pcontrols" hidden></div>
+<div id="pslip"></div>
+<div class="cons" id="plegs"><div class="empty"><div class="big">Loading…</div></div></div>
+<footer id="pfoot"></footer>
+</div>
+
+<script src="faces.js"></script>
+<script src="edge.js"></script>
+<script src="parlay.js"></script>
+<script src="nfl.js"></script>
+<script src="nfl-data.js"></script>
+<script src="nfl-record.js" onerror="void 0"></script>
+<script src="parlay-page.js"></script>
+<script>
+(function () {
+  var D = window.BetHouseNFLData || null;
+  /* The filters ride the URL (?legs=4&floor=0.8&hits=8&soft=1&fams=recyds,recs&scope=players), so a slip can be shared; a bad value falls to its default. */
+  var q = new URLSearchParams(location.search);
+  var state = { legs: q.get('legs'), scope: q.get('scope'), floor: q.get('floor'), hits: q.get('hits'), soft: q.get('soft'), fams: q.get('fams') };
+  try {
+    BetHouseParlayPage.render(document, {
+      data: D,
+      model: window.BetHouseNFL || null,
+      record: window.BETHOUSE_NFL_RECORD || null,
+      parlay: window.BetHouseParlay || null,
+      edge: window.BetHouseEdge || null,
+      faces: window.BetHouseFaces || null,
+      league: 'NFL',
+      state: state,
+      onState: function (s) {
+        var u = new URL(location.href), d = BetHouseParlayPage.cleanState(null);
+        var set = function (k, v, def) { if (String(v) === String(def)) u.searchParams.delete(k); else u.searchParams.set(k, String(v)); };
+        set('legs', s.legs, d.legs); set('scope', s.scope, d.scope); set('floor', s.floor, d.floor); set('hits', s.hits, d.hits);
+        set('soft', s.soft ? '1' : '0', '0'); set('fams', s.fams.join(','), d.fams.join(','));
+        history.replaceState(null, '', u.pathname + (u.search || '') + u.hash);
+      }
+    });
+  } catch (e) {
+    /* A fault leaves a plain message, never "Loading…" forever. */
+    document.getElementById('plegs').innerHTML = '<div class="empty"><div class="big">The page could not read the board</div><div>' + String(e && e.message || e).replace(/[&<>]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]; }) + '</div></div>';
+  }
+})();
+</script>
+</body>
+</html>

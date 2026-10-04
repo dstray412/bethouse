@@ -228,6 +228,7 @@ should be re-fitted when the run environment shifts.
 |---|---|
 | `index.html` | The home: tonight's slate, one card per game with the two teams' logos, the football boards' projection and pick, a row of tops. |
 | `home.js` | The home's arithmetic: one slate out of the boards' data, which day it shows, the football card, the tops, the tile. Tested in `home.test.mjs`. |
+| `parlays.html` / `parlay-page.js` | The prop parlay page: every leg a rung on the model's ladder or an anytime touchdown, never an over/under, the highest rung at a chosen floor for each player and stat, with the consistency count, the cheat-sheet rank and the record's word beside it; the slip from `parlay.js`. Tested in `parlay-page.test.mjs`. |
 | `consistency.html` / `consistency-page.js` | The consistency cards: a card a prop at a standard line, players ranked by hits in their last ten games, from the game lines the data file ships; tested in `consistency-page.test.mjs`. |
 | `defence.html` / `offence.html` / `sheet-page.js` | The cheat sheets: a card a game, the lines where either defence ranks in the top five of 32 for what it allows, and the twin for what either offence does, from the sheets the fetcher computes (`teamSheet`); tested in `sheet-page.test.mjs`. |
 | `teams.html` / `teams-page.js` | The teams page: one row per NFL team from the tendencies profiles, sortable, with the family chips; tested in `teams-page.test.mjs`. |
@@ -333,6 +334,45 @@ answers one question first and keeps the rest a tab away. So:
   controls row, on every view; the row stays on the game view for it.
 
 Nothing measured was removed. It moved one click from the headline.
+
+**The prop parlay page (2026-10-04).** `parlays.html`, `parlay-page.js`:
+the user asked for a parlay generator built on the consistency cards
+and the cheat sheets, and never bets a straight over/under, only lines
+sold as a number and up (20+ receiving yards, 4+ receptions). So every
+leg is a rung on the model's ladder, priced by `ladder()` off the same
+pool as the drawer's alternate lines, or an anytime touchdown from
+`scoreAnytimeTD`; never the projection's over. For each player on a
+game still to kick off and each stat he is in the business of, the leg
+is the highest rung the model gives at least a floor the user picks
+(60–90%). Beside each leg, three measured facts that are not the
+chance: how many of his last ten games on file cleared that rung (the
+consistency page's own `recentHits`), whether the opponent ranks in
+the top five of the field on the defensive cheat sheet for that stat
+at his position (receiving yards to WRs for a receiver, rushing yards
+for a back, the better of the two for rush + rec), and what the
+record's rung table says the model said and hit at that rung with 15+
+graded calls (the touchdown reads the props band for its chance). The
+consistency count (any, 6 or 8 of 10) and the soft-defence switch are
+filters; the prop families toggle (the five counting props on by
+default; the touchdown has one rung at 20–45%, so it is off until
+switched on, and is exempt from the floor). The slip takes the best
+leg of each family in turn, one leg a game from the slate or one a
+player from any games, since a chance is only comparable within a
+family: the rungs step by one catch and by ten yards, so a list ranked
+by raw chance is a list of whichever ladder's step lands highest (at a
+70% floor, "2+ receptions" at 86% for every receiver); the arithmetic
+is `parlay.js`'s `combineLegs` with the replay's measured lift for
+correlated legs, the fair price printed and the edge at a typed price;
+only props the replay has measured in a parlay (`parlayProps`) go in,
+so rush + rec is listed but named as kept out; a refused slip says
+why. Under the slip, a section a family, each ranked by chance within
+it, ten rows and the cut, the record fact framed at its rung. The
+filters ride the URL. `parlay.js` gained a `players` scope (one leg a
+player, any games) for `suggestParlay`. Tests in `parlay-page.test.mjs` (the
+rung choice against the model's own ladder, the gates, the sheet
+mapping by position, the record lookup, the filters, the state
+boundary, the markup, the render and its one listener) and the
+`players` scope in `parlay.test.mjs`.
 
 **The consistency cards (2026-10-02).** `consistency.html`, after a
 reference the user liked: a card a prop at a line the board prices
