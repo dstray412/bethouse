@@ -621,7 +621,7 @@ button.rung:hover{border-color:var(--rule)}
 .plegs .pl{font-weight:600;min-width:0}
 .plegs .pp{font-family:var(--mono);font-variant-numeric:tabular-nums;text-align:right}
 .plegs .pe{display:flex;gap:4px 12px;flex-wrap:wrap;font-family:var(--label);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);min-width:0}
-.plegs .pe .up{color:var(--good)}
+.plegs .pe .up{color:var(--good)} .plegs .pe .one{color:var(--warn)}
 @media (max-width:760px){.plegs li{grid-template-columns:18px minmax(0,1fr) 48px;font-size:13px}.plegs .pl{grid-column:2}.plegs .pe{grid-column:2/4}}
 @media (max-width:760px){.ccard li{grid-template-columns:18px minmax(0,1fr) auto 56px 40px;font-size:13px}}
 .mu.cheat{border:1px solid var(--line);border-radius:var(--r-panel);background:var(--surface);padding:12px 14px 6px}

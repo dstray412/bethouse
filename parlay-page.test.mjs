@@ -92,10 +92,12 @@ test("legs: the consistency count at the leg's own rung, the opponent's cheat-sh
 test("legs: the sheet line by stat and position, and the stronger of two for rush + rec", () => {
   const sheet = page.sheetLine(DEFENCE, "LAC", "rushyds", "RB"); assert.equal(sheet.key, "rushYds"); assert.equal(sheet.rank, 1);
   assert.equal(page.sheetLine(DEFENCE, "LAC", "recyds", "TE"), null, "no TE line on the sheet");
-  assert.equal(page.sheetLine(DEFENCE, "LAC", "recyds", "QB").key, "passYds", "a position without its own line reads pass yards");
+  assert.equal(page.sheetLine(DEFENCE, "LAC", "recyds", "QB"), null, "a position without its own receiving line read a different stat");
   assert.equal(page.sheetLine(DEFENCE, "LAC", "rushrec", "WR").key, "rushYds", "rush + rec did not take the better-ranked of the two lines");
   assert.equal(page.sheetLine(DEFENCE, "LAC", "td", "WR").key, "recTdWR");
   assert.equal(page.sheetLine(DEFENCE, "LAC", "td", "RB"), null, "rushTd is not on this team's sheet");
+  const rbTd = { side: "defence", field: 32, stats: stats(["rushTd", "recTdRB"]), teams: { LAC: { rushTd: { v: 3, n: 3, rank: 4, of: 32 }, recTdRB: { v: 2, n: 3, rank: 2, of: 32 } } } };
+  assert.equal(page.sheetLine(rbTd, "LAC", "td", "RB").key, "recTdRB", "a back's touchdown reads the rushing line only; the sheet also ranks touchdowns caught by backs");
   assert.equal(page.sheetLine(DEFENCE, "KC", "recyds", "WR"), null, "30th is not soft");
   assert.equal(page.sheetLine(null, "LAC", "recyds", "WR"), null);
 });
@@ -219,7 +221,8 @@ test("slipHtml and legsHtml: the legs with their evidence, the product, the fair
   assert.match(list, new RegExp((100 * 0.805).toFixed(0) + "%<\\/b>")); assert.match(list, /20\+ receiving yards/); assert.match(list, /7\/10/); assert.match(list, /2nd Rec yards to WR/);
   assert.match(list, /at 20\+ said 64% · hit 66%/, "the record fact is not framed at its rung; a reader compares it with this leg's chance");
   assert.match(list, /at 30–40% said 34% · hit 24%/, "the touchdown's record fact is not framed at its band");
-  assert.match(list, /1st Rushing TD of 20 \(one game\)/, "a partial field and a one-game line are not said");
+  assert.match(list, /<span class="one">1st Rushing TD of 20 \(one game\)<\/span>/, "a one-game line is painted as a soft spot rather than the sample-size caution");
+  assert.match(list, /<span class="up">2nd Rec yards to WR<\/span>/);
   assert.match(page.legsHtml([leg], page.cleanState({ fams: ["recyds", "recs"] }), {}), /<h2 class="gtitle">Receptions<\/h2><p class="cnone">Nobody clears the filters at this floor\.<\/p>/, "an empty family does not say so");
   const many = Array.from({ length: 30 }, (_, i) => Object.assign({}, leg2, { key: "k" + i, name: "P" + i, prob: 0.9 - i / 1000 }));
   const big = page.legsHtml(many, page.cleanState({ fams: ["rushyds"] }), {});
@@ -279,6 +282,15 @@ test("render: the controls, the slip from the filtered legs, every leg listed, t
   const norm = [];
   page.render(doc, { data: d, model: nfl, record: RECORD, parlay, now: NOW, state: { legs: 42 }, onState: (s) => norm.push(s) });
   assert.equal(norm.length, 1); assert.equal(norm[0].legs, 3);
+  /* The price typed on the slip: the change listener keeps it on the host, redraws with the edge, and survives a control click. */
+  page.render(doc, { data: d, model: nfl, record: RECORD, parlay, edge: { evPct: (p, dec) => 100 * (p * dec - 1), americanToDecimal: (a) => (a > 0 ? 1 + a / 100 : 1 + 100 / -a), formatPct: (x) => (x >= 0 ? "+" : "") + x.toFixed(1) + "%" }, now: NOW, state: { legs: 2, floor: 0.6, hits: 0 } });
+  assert.equal(els.pslip.listeners.change.length, 1, "render added a second price listener");
+  els.pslip.listeners.change[0]({ target: { id: "slipprice", value: "150" } });
+  assert.match(els.pslip.innerHTML, /value="150"/); assert.match(els.pslip.innerHTML, /edge at that price/);
+  click({ target: { closest: (sel) => (sel === "[data-legs]" ? { getAttribute: () => "2" } : null) } });
+  assert.match(els.pslip.innerHTML, /value="150"/, "a control click lost the typed price");
+  els.pslip.listeners.change[0]({ target: { id: "slipprice", value: "" } });
+  assert.doesNotMatch(els.pslip.innerHTML, /edge at that price/, "a cleared price keeps an edge");
   /* No board: the controls hide and the page says so. */
   page.render(doc, { data: null, model: nfl, parlay });
   assert.equal(els.pcontrols.hidden, true); assert.match(els.plegs.innerHTML, /No board/); assert.equal(els.pslip.innerHTML, "");

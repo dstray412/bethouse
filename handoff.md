@@ -74,8 +74,9 @@ controls and one change listener on the slip (the price input).
 carrying one (the Legs control first shipped as `id="plegs"`, and a
 second render wrote the list into it). CSS: `.plegs` rows, `.slip.warn`.
 Nav on all thirteen pages; BOARDS is 13; the seven gate lists carry
-`parlay-page.test.mjs`. On the real slate at a noon clock: 576 legs
-at a 70% floor, 454 after the default six-of-ten; a five-leg slip is
+`parlay-page.test.mjs`. On the real slate at a noon clock
+(the 2026-10-02 file): 526 legs at a 70% floor, 413 after the default
+six-of-ten (the review's count; an earlier build read 576 and 454); a five-leg slip is
 one leg from each of the five counting families (2+ receptions, 10+
 rushing yards, 10+ receiving yards, 150+ passing yards, then the second
 receptions leg; rush + rec kept out); raising the floor drops the rung,

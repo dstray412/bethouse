@@ -47,12 +47,12 @@
   const famLabel = (id) => (FAMILIES.find((f) => f.id === id) || { label: id }).label;
   /* The cheat-sheet line a stat reads, by the player's position: what the opponent's defence allows to players like him. */
   const SHEET_KEYS = {
-    recyds: { WR: ["recYdsWR"], TE: ["recYdsTE"], RB: ["recYdsRB"], "*": ["passYds"] },
+    recyds: { WR: ["recYdsWR"], TE: ["recYdsTE"], RB: ["recYdsRB"], "*": [] },
     recs: { WR: ["recsWR"], TE: ["recsTE"], RB: ["recsRB"], "*": [] },
     rushyds: { "*": ["rushYds"] },
     passyds: { "*": ["passYds"] },
     rushrec: { WR: ["rushYds", "recYdsWR"], TE: ["rushYds", "recYdsTE"], RB: ["rushYds", "recYdsRB"], "*": ["rushYds"] },
-    td: { RB: ["rushTd"], WR: ["recTdWR"], TE: ["recTdTE"], QB: ["rushTd"], "*": [] },
+    td: { RB: ["rushTd", "recTdRB"], WR: ["recTdWR"], TE: ["recTdTE"], QB: ["rushTd"], "*": [] },
   };
 
   /** The opponent's soft spot for this stat and position: the best-ranked of the lines the stat reads, top five only; null otherwise. */
@@ -102,7 +102,12 @@
     for (const g of data.games || []) { if (g) { gameOf[g.home] = g; gameOf[g.away] = g; } }
     const open = (team) => { const g = gameOf[team]; return g && !g.completed && Date.parse(g.date) > now ? g : null; };
     const TF = data.teamFactors || {}, pools = data.pools || {}, usagePool = data.usagePool && data.usagePool.length ? data.usagePool : null;
+    const scriptCache = {};
     const scriptOf = (team) => {
+      if (scriptCache[team] != null) return scriptCache[team];
+      scriptCache[team] = scriptRaw(team); return scriptCache[team];
+    };
+    const scriptRaw = (team) => {
       const g = gameOf[team];
       if (!g || !data.ratings || !(data.ratings.league > 0) || typeof model.projectGame !== "function") return 1;
       const pr = model.projectGame(data.ratings, g.home, g.away, { neutral: !!g.neutral, wind: g.wind, indoor: !!g.indoor });
@@ -276,7 +281,7 @@
       shown.forEach((l, i) => {
         html += '<li><span class="n">' + (i + 1) + '</span><span class="who">' + (F ? F.face(league, l.playerId, 24) : "") + "<b>" + esc(l.name) + "</b><small>" + esc(l.team) + " vs " + esc(l.opp) + "</small></span>" +
           '<span class="pl">' + esc(l.propLabel) + '</span><b class="pp">' + pct(l.prob, 0) + "</b>" +
-          '<span class="pe"><span' + (l.hits && l.hits.hits >= 8 ? ' class="up"' : "") + ">" + (l.hits ? l.hits.hits + "/" + l.hits.n : "—") + "</span><span" + (l.sheet ? ' class="up"' : "") + ">" + sheetFact(l) + "</span><span>" + recFact(l) + "</span></span></li>";
+          '<span class="pe"><span' + (l.hits && l.hits.hits >= 8 ? ' class="up"' : "") + ">" + (l.hits ? l.hits.hits + "/" + l.hits.n : "—") + "</span><span" + (l.sheet ? (l.sheet.one ? ' class="one"' : ' class="up"') : "") + ">" + sheetFact(l) + "</span><span>" + recFact(l) + "</span></span></li>";
       });
       html += "</ol>";
       if (cut > 0) html += '<div class="cmore">+' + cut + " more under " + pct(shown[shown.length - 1].prob, 0) + "</div>";
