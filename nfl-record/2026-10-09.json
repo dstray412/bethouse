@@ -34137,6 +34137,102 @@
     "recsVac": 0.5,
     "rushrecVac": 0.75
    }
+  },
+  {
+   "gameId": "401872992",
+   "playerId": "4386544",
+   "name": "Xavier Smith",
+   "team": "SF",
+   "opp": "SEA",
+   "prop": "td",
+   "prob": 0.0842,
+   "kickoff": "2026-10-11T20:25Z",
+   "recordedAt": "2026-10-08T18:51:28.000Z",
+   "model": {
+    "tdDecay": 0.97,
+    "tdRz": 0,
+    "tdScript": 0,
+    "yardDecay": 0.88,
+    "rushDecay": 0.97,
+    "rushrecDecay": 0.9,
+    "tdVac": 0.75,
+    "yardVac": 0.5,
+    "rushVac": 0,
+    "recsVac": 0.5,
+    "rushrecVac": 0.75
+   }
+  },
+  {
+   "gameId": "401872992",
+   "playerId": "4386544",
+   "name": "Xavier Smith",
+   "team": "SF",
+   "opp": "SEA",
+   "prop": "recyds",
+   "line": 27.5,
+   "prob": 0.3966,
+   "ladder": {
+    "10": 0.7468,
+    "20": 0.5347,
+    "25": 0.4419,
+    "30": 0.369,
+    "40": 0.2382,
+    "50": 0.1523,
+    "60": 0.102,
+    "70": 0.0595,
+    "80": 0.0315
+   },
+   "kickoff": "2026-10-11T20:25Z",
+   "recordedAt": "2026-10-08T18:51:28.001Z",
+   "model": {
+    "tdDecay": 0.97,
+    "tdRz": 0,
+    "tdScript": 0,
+    "yardDecay": 0.88,
+    "rushDecay": 0.97,
+    "rushrecDecay": 0.9,
+    "tdVac": 0.75,
+    "yardVac": 0.5,
+    "rushVac": 0,
+    "recsVac": 0.5,
+    "rushrecVac": 0.75
+   }
+  },
+  {
+   "gameId": "401872992",
+   "playerId": "4386544",
+   "name": "Xavier Smith",
+   "team": "SF",
+   "opp": "SEA",
+   "prop": "rushrec",
+   "line": 29.5,
+   "prob": 0.3647,
+   "ladder": {
+    "10": 0.734,
+    "20": 0.5323,
+    "25": 0.438,
+    "30": 0.3647,
+    "40": 0.2337,
+    "50": 0.1463,
+    "60": 0.0903,
+    "70": 0.049,
+    "80": 0.028
+   },
+   "kickoff": "2026-10-11T20:25Z",
+   "recordedAt": "2026-10-08T18:51:28.001Z",
+   "model": {
+    "tdDecay": 0.97,
+    "tdRz": 0,
+    "tdScript": 0,
+    "yardDecay": 0.88,
+    "rushDecay": 0.97,
+    "rushrecDecay": 0.9,
+    "tdVac": 0.75,
+    "yardVac": 0.5,
+    "rushVac": 0,
+    "recsVac": 0.5,
+    "rushrecVac": 0.75
+   }
   }
  ],
  "graded": false,
