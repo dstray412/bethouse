@@ -220,6 +220,10 @@ header>.ctl{order:2;flex:1 1 100%}
 .settled.win,.bet .out.win,.leg-line .out.win{color:var(--good)}
 .settled.lost,.bet .out.lost,.leg-line .out.lost{color:var(--bad)}
 .bet .out.open,.leg-line .out.open{color:var(--muted)}
+/* A void bet or leg (a scratched player): settled with nothing to grade, so neither green nor red. */
+.bet .out.void,.leg-line .out.void{color:var(--muted);text-decoration:line-through}
+/* The parlay page: a press the browser refused, said under the button. */
+.slip .beterr{margin:8px 0 0;font-size:13px;color:var(--warn)}
 .retro{color:var(--warn);margin-left:7px}
 /* A bet in the log and a parlay's legs under it. */
 .bet{display:flex;justify-content:space-between;gap:12px;align-items:baseline;padding:8px 0;border-top:1px solid var(--line);font-size:15px}

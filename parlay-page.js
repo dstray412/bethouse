@@ -31,6 +31,8 @@
   const pct = (p, d) => (100 * p).toFixed(d == null ? 0 : d) + "%";
   const sgn = (n) => (n > 0 ? "+" : "") + n;
   const ord = (n) => n + (n % 100 >= 11 && n % 100 <= 13 ? "th" : ["th", "st", "nd", "rd"][n % 10] || "th");
+  /** A clock's local calendar day, YYYY-MM-DD: the day a bettor would file the bet under. */
+  const localDay = (ms) => { const d = new Date(ms); const z = (n) => String(n).padStart(2, "0"); return d.getFullYear() + "-" + z(d.getMonth() + 1) + "-" + z(d.getDate()); };
 
   const N10 = 10, MIN_GRADED = 15, LISTED = 10, SOFT = 5;
   const LEGS = [2, 3, 4, 5, 6];
@@ -235,7 +237,32 @@
     return { legs, combined: P.combineLegs(legs, o.lift), skipped };
   }
 
-  /** The slip's markup, or why there is none. `helpers.lift` is the replay's lifts; `helpers.price` what the user typed; `helpers.edge` edge.js. */
+  /**
+   * The slip as a bet-log parlay (bets.js): a leg a line, with its rung,
+   * league, kickoff and the record day, which is the tracker's name for
+   * the week's file (its first kickoff, track-football.mjs), so the log
+   * can find the box line that grades it. The bet carries the number the
+   * slip showed and the earliest kickoff's local day; a bet after a
+   * kickoff is marked retro, as the baseball slip does it. Null without a
+   * slip or the module.
+   */
+  function betOf(slip, data, bets, opts) {
+    const o = opts || {}, now = o.now != null ? o.now : Date.now();
+    if (!slip || !slip.legs || !slip.legs.length || !bets || typeof bets.parlay !== "function" || !data) return null;
+    const games = {};
+    for (const g of data.games || []) if (g && g.id != null) games[String(g.id)] = g;
+    const kickoffs = (data.games || []).map((g) => g && g.date).filter(Boolean).sort();
+    const recordDay = kickoffs.length ? String(kickoffs[0]).slice(0, 10) : undefined;
+    const legs = slip.legs.map((l) => { const g = games[String(l.gameId)]; return { gamePk: String(l.gameId), playerId: String(l.playerId), prop: l.prop, rung: l.rung, propLabel: l.propLabel, name: l.name, team: l.team, prob: l.prob, league: "NFL", kickoff: g && g.date ? String(g.date) : undefined, recordDay }; });
+    const starts = legs.map((l) => (l.kickoff ? Date.parse(l.kickoff) : NaN)).filter(isFinite);
+    const c = slip.combined, shown = c && c.adjusted != null ? c.adjusted : c ? c.prob : null;
+    const date = starts.length ? localDay(Math.min.apply(null, starts)) : localDay(now);
+    const stale = starts.filter((t) => t <= now).length;
+    return bets.parlay(legs, shown, date, stale > 0 ? { retro: true } : {});
+  }
+
+  /** The slip's markup, or why there is none. `helpers.lift` is the replay's lifts; `helpers.price` what the user typed; `helpers.edge` edge.js;
+      `helpers.bets` the log module with `helpers.betState` {held, stale} for the bet button, which the home (`helpers.home`) does not carry. */
   function slipHtml(slip, state, helpers) {
     const h = helpers || {}, s = cleanState(state), lift = h.lift || {};
     if (!slip) return '<div class="slip warn"><h3>Cannot build that slip</h3><div>' + esc(h.reason || "Nothing clears the filters.") + "</div></div>";
@@ -263,8 +290,15 @@
       player: "The same player on more than one prop. His legs rise and fall together: on the replay these cashed well above the product." + applied("player"),
       severe: "The same player twice: the number is meaningless.",
     }[c.correlation];
-    html += '<div class="slipwarn ' + esc(c.correlation) + '">' + note + " Shade the top of the board: the legs it likes most run a little hot.</div></div>";
-    return html;
+    html += '<div class="slipwarn ' + esc(c.correlation) + '">' + note + " Shade the top of the board: the legs it likes most run a little hot.</div>";
+    /* "I bet this parlay": the slip is a calculator until the user says otherwise; the press is the moment it becomes a wager. */
+    if (!h.home && h.bets && h.betState) {
+      const st = h.betState;
+      html += '<div class="actions">' + (st.held ? '<button type="button" data-betslip disabled title="Already recorded. Remove it on the bet log.">✓ In your bet log</button>'
+        : '<button type="button" data-betslip' + (st.stale > 0 ? ' title="' + st.stale + " of these " + slip.legs.length + " games " + (st.stale === 1 ? "has" : "have") + ' started, so this will be marked as entered after the result."' : "") + ">I bet this parlay</button>") + "</div>" +
+        (st.err ? '<p class="beterr">' + esc(st.err) + "</p>" : "");
+    }
+    return html + "</div>";
   }
 
   /** The rule a state spells, for a heading: written from the state so a changed default cannot leave the copy behind. */
@@ -333,8 +367,26 @@
   function render(doc, opts) {
     const o = opts || {}, ctl = doc.getElementById("pcontrols"), slipEl = doc.getElementById("pslip"), host = doc.getElementById("plegs"), foot = doc.getElementById("pfoot");
     if (!host) return;
-    const data = o.data || null, model = o.model || null, P = o.parlay || null;
+    const data = o.data || null, model = o.model || null, P = o.parlay || null, B = o.bets && typeof o.bets.parlay === "function" ? o.bets : null;
     const ok = !!(data && model && P && typeof P.combineLegs === "function" && Array.isArray(data.players));
+    /* The bet log in the browser's storage (bets.js's key); a store that refuses (a private window) reads as empty and keeps nothing. */
+    const store = o.store !== undefined ? o.store : (typeof localStorage !== "undefined" ? localStorage : null);
+    /* Reading migrates a legacy v1 log first (as the bet log page does), so a press here never leaves v1 entries stranded behind a non-empty v2. */
+    const readLog = () => {
+      if (!B || !store) return [];
+      try {
+        const held = B.parse(store.getItem(B.STORAGE_KEY));
+        if (held.length || !B.LEGACY_KEY) return held;
+        const legacy = store.getItem(B.LEGACY_KEY);
+        if (!legacy) return held;
+        const moved = B.migrate(JSON.parse(legacy));
+        store.setItem(B.STORAGE_KEY, B.serialise(moved));
+        if (typeof store.removeItem === "function") store.removeItem(B.LEGACY_KEY);
+        return moved;
+      } catch (e) { return []; }
+    };
+    const writeLog = (list) => { if (!B || !store) return false; try { store.setItem(B.STORAGE_KEY, B.serialise(list)); return true; } catch (e) { return false; } };
+    const now = () => (o.now != null ? o.now : Date.now());
     if (!ok) { if (ctl) { ctl.innerHTML = ""; ctl.hidden = true; } if (slipEl) slipEl.innerHTML = ""; if (foot) foot.innerHTML = ""; host.innerHTML = '<div class="empty"><div class="big">No board</div><div>The NFL data file did not load.</div></div>'; return; }
     const given = o.state || (ctl && ctl.__state) || null;
     const state = cleanState(given);
@@ -354,7 +406,12 @@
           : s.scope === "players" ? "Only " + who.size + " player" + (who.size === 1 ? "" : "s") + " with a leg under these filters — a " + s.legs + "-leg slip needs " + s.legs + ", one a player."
           : "Only " + games.size + " game" + (games.size === 1 ? "" : "s") + " with a leg under these filters — a " + s.legs + "-leg slip from the slate needs " + s.legs + ", one a game. Try any games.";
       }
-      if (slipEl) slipEl.innerHTML = slipHtml(slip, s, { lift, model, faces: o.faces, league: o.league, edge: o.edge, price, reason });
+      let betState = null;
+      if (B && slip) {
+        const bet = betOf(slip, data, B, { now: now() });
+        betState = { held: !!(bet && B.has(readLog(), bet.key)), stale: bet && bet.retro ? slip.legs.filter((l) => { const g = (data.games || []).find((x) => x && String(x.id) === String(l.gameId)); return g && Date.parse(g.date) <= now(); }).length : 0, err: slipEl && slipEl.__err || null };
+      }
+      if (slipEl) { slipEl.__slip = slip; slipEl.innerHTML = slipHtml(slip, s, { lift, model, faces: o.faces, league: o.league, edge: o.edge, price, reason, bets: B, betState }); }
       host.innerHTML = legsHtml(list, s, { faces: o.faces, league: o.league });
       if (foot) foot.innerHTML = footHtml(data);
     };
@@ -385,12 +442,28 @@
         if (ctl.__on) ctl.__on(ctl.__state);
       });
     }
+    /* The press: record the slip unless the log (re-read, another tab may have written it) already holds it; say so when the store refuses; always redraw. */
+    if (slipEl) {
+      slipEl.__bet = () => {
+        const slip = slipEl.__slip; if (!B || !slip) return;
+        const bet = betOf(slip, data, B, { now: now() }); if (!bet) return;
+        const log = readLog();
+        slipEl.__err = B.has(log, bet.key) || writeLog(B.add(log, bet)) ? null : "This browser refused to keep the bet log (a private window?), so the slip was not recorded.";
+        if (ctl && ctl.__draw) ctl.__draw();
+      };
+    }
     if (slipEl && slipEl.addEventListener && !slipEl.__pricing) {
       slipEl.__pricing = true;
       slipEl.addEventListener("change", (e) => {
         const t = e.target; if (!t || t.id !== "slipprice" || !ctl) return;
         const v = Number(t.value); ctl.__price = t.value === "" || !isFinite(v) ? null : v;
         if (ctl.__draw) ctl.__draw();
+      });
+      /* One listener a host; the latest render's bet closure lives on the host, so the press never records a stale slip. */
+      slipEl.addEventListener("click", (e) => {
+        const t = e.target, b = t && t.closest ? t.closest("[data-betslip]") : null;
+        if (!b || !slipEl.__bet) return;
+        slipEl.__bet();
       });
     }
   }
@@ -407,5 +480,5 @@
     return false;
   }
 
-  return { LEGS, FLOORS, SCOPES, HITS, FAMILIES, DEFAULT_FAMS, HOSTS, LISTED, MIN_GRADED, SOFT, sheetLine, recordFor, legs, filter, cleanState, controlsHtml, evidence, ruleText, buildSlip, slipHtml, stripHtml, legsHtml, footHtml, render };
+  return { LEGS, FLOORS, SCOPES, HITS, FAMILIES, DEFAULT_FAMS, HOSTS, LISTED, MIN_GRADED, SOFT, sheetLine, recordFor, legs, filter, cleanState, controlsHtml, evidence, ruleText, buildSlip, betOf, localDay, slipHtml, stripHtml, legsHtml, footHtml, render };
 });

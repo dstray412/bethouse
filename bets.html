@@ -162,22 +162,25 @@ function seg(host, items, current, onPick){
   });
 }
 
-/* Grades come from history/<date>.json, exactly as on the board: track.mjs
-   writes it on every refresh with the real outcome for every player it
-   snapshotted. This page decides nothing, it only reads. A date is fetched
-   only while it still holds something unsettled. */
+/* Grades come from the trackers' files, exactly as on the boards: track.mjs
+   writes history/<date>.json on every refresh with the real outcome for
+   every player it snapshotted; track-football.mjs writes
+   nfl-record/<first kickoff>.json a week with each player's box line once
+   his game is final, and a football leg grades off that line at its own
+   rung. This page decides nothing, it only reads. A file is fetched only
+   while it still holds something unsettled (bets.js recordPaths). */
 function gradeBets(){
-  var dates = T.ungradedDates(BETS);
-  if(!dates.length || typeof fetch !== 'function') return;
-  var left = dates.length, changed = false;
+  var paths = T.recordPaths(BETS);
+  if(!paths.length || typeof fetch !== 'function') return;
+  var left = paths.length, changed = false;
   var before = T.summarise(BETS).graded;
-  dates.forEach(function(d){
-    fetch('history/' + d + '.json')
+  paths.forEach(function(path){
+    fetch(path)
       .then(function(res){ return res.ok ? res.json() : null; })
       .catch(function(){ return null; })
       .then(function(day){
         if(day){
-          BETS = T.applyResults(BETS, T.resultsFrom(day));
+          BETS = T.applyResults(BETS, T.resultsFrom(day, BETS));
           if(T.summarise(BETS).graded !== before) changed = true;
         }
         /* Only write and redraw when a grade actually landed — an
@@ -234,7 +237,7 @@ function matches(b){
   if(state.kind === 'parlay'   && b.legs.length < 2)   return false;
   if(state.out === 'won'  && b.actual !== 1) return false;
   if(state.out === 'lost' && b.actual !== 0) return false;
-  if(state.out === 'open' && b.actual != null) return false;
+  if(state.out === 'open' && (b.actual != null || b.void)) return false;
   return true;
 }
 
@@ -273,6 +276,7 @@ function renderRecord(){
   stat(String(s.graded ? s.hits : 0), 'won');
   stat(String(s.graded ? s.graded - s.hits : 0), 'lost');
   if(s.pending) stat(String(s.pending), 'open');
+  if(s.void) stat(String(s.void), 'void');
   if(s.graded){
     stat(pct(s.hitRate, 0), 'win rate');
     stat(s.expected.toFixed(1), 'model expected');
@@ -296,7 +300,7 @@ function clvBlock(s){
     if(!s.tracked) return box;
     box.appendChild(el('div','bnote',
       'No closing line value yet. It needs a price on the board when you tap, and the '+
-      'feed only covers 1+ H/R/RBI and total bases \u2014 and only players a book has priced.'));
+      'feed only covers baseball\u2019s 1+ H/R/RBI and total bases \u2014 and only players a book has priced; a football leg carries no market.'));
     return box;
   }
   var c = s.clv, pp = 100*c.mean;
@@ -325,7 +329,7 @@ function clvBlock(s){
 }
 
 function verdict(s){
-  if(!s.graded) return 'Nothing has settled yet. Grades arrive within about half an hour of a game ending.';
+  if(!s.graded) return 'Nothing has settled yet. Baseball grades arrive within about half an hour of a game ending; football grades the morning after, when the NFL board refreshes (12:20 UTC).';
   var diff = s.hits - s.expected;
   var head = 'You are ' + s.hits + '–' + (s.graded - s.hits) + '. The model expected ' +
     s.expected.toFixed(1) + ' wins from those same ' + s.graded + ' bets.';
@@ -348,7 +352,9 @@ function verdict(s){
 }
 
 var PROP_LABELS = {hrr:'1+ H/R/RBI', hr:'1+ home run', tb2:'2+ total bases',
-                   tb3:'3+ total bases', tb4:'4+ total bases'};
+                   tb3:'3+ total bases', tb4:'4+ total bases',
+                   /* The parlay page's legs, a bucket a stat whatever the rung. */
+                   td:'Anytime TD', recyds:'Receiving yards', recs:'Receptions', rushyds:'Rushing yards', rushrec:'Rush + rec yards', passyds:'Passing yards'};
 
 /*
  * Win rate by kind of bet.
@@ -412,7 +418,7 @@ function renderHistory(){
     var e = el('div','empty');
     e.appendChild(el('div','big','No bets recorded yet.'));
     e.appendChild(document.createTextNode(
-      'Tap the circle beside any player on the baseball board, or press "I bet this parlay" on a slip. ' +
+      'Tap the circle beside any player on the baseball board, or press "I bet this parlay" on a slip, on the baseball board or the <a href="parlays.html">prop parlay page</a>. ' +
       'Pick an earlier date from Day to record something you placed then.'));
     host.appendChild(e);
     return;
@@ -474,8 +480,9 @@ function betLine(b){
       (clv>=0?'+':'')+(100*clv).toFixed(1)));
   }
   if(isFinite(b.prob)) right.appendChild(el('span','lp', pct(b.prob, 0)));
-  right.appendChild(el('span','out ' + (b.actual == null ? 'open' : b.actual ? 'win' : 'lost'),
-    b.actual == null ? 'OPEN' : b.actual ? 'WON' : 'LOST'));
+  /* A void bet (a scratched player, the book's own rule) is settled with nothing to grade. */
+  right.appendChild(el('span','out ' + (b.void ? 'void' : b.actual == null ? 'open' : b.actual ? 'win' : 'lost'),
+    b.void ? 'VOID' : b.actual == null ? 'OPEN' : b.actual ? 'WON' : 'LOST'));
   var x = el('button', null, '✕');
   x.type = 'button';
   x.title = 'Remove';
@@ -492,15 +499,16 @@ function betLine(b){
   if(multi){
     b.legs.forEach(function(l){
       var sub = el('div','leg-line');
-      /* The log holds baseball legs (MLB person ids); the mark only when the team is an abbreviation, the replay's full names carry none. */
-      var fc = el('span','face'); if(F) fc.innerHTML = F.img(F.headshotUrl('MLB', l.playerId, 'row'), '', 24); sub.appendChild(fc);
+      /* A leg carries its league since the parlay page's slips (NFL); a baseball leg carries none and is MLB. The mark only when the team is an abbreviation, the replay's full names carry none. */
+      var lg = l.league || 'MLB';
+      var fc = el('span','face'); if(F) fc.innerHTML = F.img(F.headshotUrl(lg, l.playerId, 'row'), '', 24); sub.appendChild(fc);
       sub.appendChild(el('span','nm', l.name));
       var meta = el('span','meta');
-      if(F && /^[A-Z]{2,3}$/.test(String(l.team||''))) meta.innerHTML = F.mark('MLB', l.team, 18);
+      if(F && /^[A-Z]{2,3}$/.test(String(l.team||''))) meta.innerHTML = F.mark(lg, l.team, 18);
       meta.appendChild(document.createTextNode([l.team, l.propLabel].filter(Boolean).join(' · ')));
       sub.appendChild(meta);
-      sub.appendChild(el('span','out ' + (l.actual == null ? 'open' : l.actual ? 'win' : 'lost'),
-        l.actual == null ? '–' : l.actual ? 'WON' : 'LOST'));
+      sub.appendChild(el('span','out ' + (l.void ? 'void' : l.actual == null ? 'open' : l.actual ? 'win' : 'lost'),
+        l.void ? 'VOID' : l.actual == null ? '–' : l.actual ? 'WON' : 'LOST'));
       wrap.appendChild(sub);
     });
   }

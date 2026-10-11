@@ -14,6 +14,7 @@ import assert from "node:assert/strict";
 import page from "./parlay-page.js";
 import parlay from "./parlay.js";
 import nfl from "./nfl.js";
+import bets from "./bets.js";
 
 const NOW = Date.parse("2026-10-04T12:00Z");
 /* A flat ratio pool: 400 ratios from 0.005 to 2.0, so P(actual > line) is the share of ratios above line/exp. */
@@ -263,6 +264,81 @@ test("ruleText: the heading's rule comes from the state, so a changed default ca
   assert.equal(page.ruleText(page.cleanState(null)), "one leg a game, each at least 70%, six of his last ten, the counting props");
   assert.equal(page.ruleText(page.cleanState({ legs: 4, scope: "players", floor: 0.8, hits: 0, soft: "1", fams: "td,recyds" })), "one leg a player, each at least 80%, any count, a soft defence only, anytime TD and receiving yards");
   assert.equal(page.ruleText(page.cleanState({ hits: 8, fams: page.FAMILIES.map((f) => f.id) })), "one leg a game, each at least 70%, eight of his last ten, every prop");
+});
+
+test("betOf: a slip becomes a bet-log parlay, each leg with its rung, league, kickoff and the record day the tracker names the week's file for", () => {
+  const p1 = player(), p2 = player({ id: "p2", name: "Bravo Back", team: "DEN", opp: "LV", pos: "RB", carries: 180, targets: 30, recYds: 200, recs: 24, rushYds: 800, tds: 7, recent: ten((i) => row(10, 2, i < 9 ? 70 : 20, 0, i < 5 ? 1 : 0)) });
+  const d = data([p1, p2]), state = page.cleanState({ legs: 2, floor: 0.6, hits: 0 });
+  const list = page.filter(page.legs(nfl, d, RECORD, { now: NOW, floor: 0.6 }), state);
+  const slip = page.buildSlip(list, state, { parlay, lift: nfl.DEFAULTS.parlayLift, eligible: nfl.DEFAULTS.parlayProps });
+  const bet = page.betOf(slip, d, bets, { now: NOW });
+  assert.equal(bet.legs.length, 2); assert.equal(bet.prob, slip.combined.adjusted != null ? slip.combined.adjusted : slip.combined.prob, "the bet carries the number the slip showed");
+  const l = bet.legs.find((x) => x.playerId === "p1");
+  assert.deepEqual([l.gamePk, l.prop, l.rung, l.league, l.kickoff, l.recordDay, l.team, l.name], ["g1", slip.legs.find((x) => x.playerId === "p1").prop, slip.legs.find((x) => x.playerId === "p1").rung, "NFL", "2026-10-04T17:00Z", "2026-10-02", "KC", "Alpha Wide"]);
+  assert.match(l.propLabel, /^\d+\+ /); assert.equal(l.prob, slip.legs.find((x) => x.playerId === "p1").prob);
+  assert.equal(bet.date, page.localDay(Date.parse("2026-10-04T17:00Z")), "the bet's day is the earliest kickoff's local day");
+  assert.equal(bet.retro, undefined, "a bet before kickoff is marked retro");
+  const late = page.betOf(slip, d, bets, { now: Date.parse("2026-10-04T17:00:01Z") });
+  assert.equal(late.retro, true, "a bet after a kickoff is not marked retro");
+  assert.equal(page.betOf(null, d, bets, { now: NOW }), null); assert.equal(page.betOf(slip, d, null, { now: NOW }), null);
+  assert.equal(bets.keyOf(bet), bet.key); assert.ok(bet.key.split("+").every((k) => /\|\d+$/.test(k)), "a leg key does not end in its rung: " + bet.key);
+});
+
+test("slipHtml: the bet button on the page, its states; none on the home", () => {
+  const leg = { key: "g1|p1|recyds", playerId: "p1", gameId: "g1", team: "KC", opp: "LAC", name: "A", pos: "WR", prop: "recyds", rung: 20, prob: 0.8, propLabel: "20+ receiving yards", hits: null, sheet: null, rec: null };
+  const leg2 = Object.assign({}, leg, { key: "g2|p9|rushyds", playerId: "p9", gameId: "g2", team: "DEN", opp: "LV", name: "B", prop: "rushyds", rung: 50, prob: 0.7, propLabel: "50+ rushing yards" });
+  const state = page.cleanState({ legs: 2, fams: ["recyds", "rushyds"] });
+  const slip = page.buildSlip([leg, leg2], state, { parlay, lift: nfl.DEFAULTS.parlayLift });
+  assert.match(page.slipHtml(slip, state, { model: nfl, bets, betState: { held: false, stale: 0 } }), /<div class="actions"><button type="button" data-betslip>I bet this parlay<\/button><\/div>/);
+  assert.match(page.slipHtml(slip, state, { model: nfl, bets, betState: { held: true, stale: 0 } }), /<button type="button" data-betslip disabled title="Already recorded\. Remove it on the bet log\.">✓ In your bet log<\/button>/);
+  assert.match(page.slipHtml(slip, state, { model: nfl, bets, betState: { held: false, stale: 1 } }), /title="1 of these 2 games has started, so this will be marked as entered after the result\."/);
+  assert.doesNotMatch(page.slipHtml(slip, state, { model: nfl }), /data-betslip/, "no bet module, a bet button");
+  assert.doesNotMatch(page.slipHtml(slip, state, { model: nfl, bets, home: true, betState: { held: false, stale: 0 } }), /data-betslip/, "the home carries the bet button");
+});
+
+test("render: the bet button records the slip into the store once, says so, and marks a bet after kickoff as entered later", () => {
+  const made = (id) => ({ id, innerHTML: "", listeners: {}, addEventListener(type, fn) { (this.listeners[type] = this.listeners[type] || []).push(fn); } });
+  const els = { pcontrols: made("pcontrols"), pslip: made("pslip"), plegs: made("plegs"), pfoot: made("pfoot") };
+  const doc = { getElementById: (id) => els[id] || null };
+  const p1 = player(), p2 = player({ id: "p2", name: "Bravo Back", team: "DEN", opp: "LV", pos: "RB", carries: 180, targets: 30, recYds: 200, recs: 24, rushYds: 800, tds: 7, recent: ten((i) => row(10, 2, i < 9 ? 70 : 20, 0, i < 5 ? 1 : 0)) });
+  const d = data([p1, p2]);
+  const held = {}; const store = { getItem: (k) => (k in held ? held[k] : null), setItem: (k, v) => { held[k] = v; } };
+  page.render(doc, { data: d, model: nfl, record: RECORD, parlay, bets, store, now: NOW, state: { legs: 2, floor: 0.6, hits: 0 } });
+  assert.match(els.pslip.innerHTML, /data-betslip>I bet this parlay</);
+  assert.equal(els.pslip.listeners.click.length, 1);
+  const click = els.pslip.listeners.click[0];
+  click({ target: { closest: (sel) => (sel === "[data-betslip]" ? {} : null) } });
+  const log = bets.parse(held[bets.STORAGE_KEY]);
+  assert.equal(log.length, 1, "the slip was not stored"); assert.equal(log[0].legs.length, 2); assert.equal(log[0].retro, undefined);
+  assert.match(els.pslip.innerHTML, /✓ In your bet log/, "the button does not say the slip is held");
+  click({ target: { closest: (sel) => (sel === "[data-betslip]" ? {} : null) } });
+  assert.equal(bets.parse(held[bets.STORAGE_KEY]).length, 1, "a second press stored the slip twice");
+  /* The same slip on a fresh render is still held; a different slip is not. */
+  page.render(doc, { data: d, model: nfl, record: RECORD, parlay, bets, store, now: NOW, state: { legs: 2, floor: 0.6, hits: 0 } });
+  assert.match(els.pslip.innerHTML, /✓ In your bet log/);
+  page.render(doc, { data: d, model: nfl, record: RECORD, parlay, bets, store, now: NOW, state: { legs: 2, floor: 0.6, hits: 0, scope: "players" } });
+  assert.equal(els.pslip.listeners.click.length, 1, "render added a second slip listener");
+  /* A store that throws (a private window) leaves the page standing, the button present, and the press says why nothing was kept. */
+  const bad = { getItem: () => { throw new Error("no"); }, setItem: () => { throw new Error("no"); } };
+  page.render(doc, { data: d, model: nfl, record: RECORD, parlay, bets, store: bad, now: NOW, state: { legs: 2, floor: 0.6, hits: 0 } });
+  assert.match(els.pslip.innerHTML, /data-betslip>I bet this parlay</);
+  click({ target: { closest: (sel) => (sel === "[data-betslip]" ? {} : null) } });
+  assert.match(els.pslip.innerHTML, /Suggested parlay/, "a store that refuses took the slip down");
+  assert.match(els.pslip.innerHTML, /<p class="beterr">This browser refused to keep the bet log \(a private window\?\), so the slip was not recorded\.<\/p>/, "a refused press said nothing");
+  /* A slip recorded in another tab: the press finds it held and the button says so on the redraw. */
+  const other = {}; const store2 = { getItem: (k) => (k in other ? other[k] : null), setItem: (k, v) => { other[k] = v; } };
+  page.render(doc, { data: d, model: nfl, record: RECORD, parlay, bets, store: store2, now: NOW, state: { legs: 2, floor: 0.6, hits: 0 } });
+  other[bets.STORAGE_KEY] = bets.serialise([page.betOf(els.pslip.__slip, d, bets, { now: NOW })]);
+  click({ target: { closest: (sel) => (sel === "[data-betslip]" ? {} : null) } });
+  assert.match(els.pslip.innerHTML, /✓ In your bet log/, "a slip held by another tab left the button pressable");
+  assert.equal(bets.parse(other[bets.STORAGE_KEY]).length, 1);
+  /* A legacy v1 log is migrated before the page writes v2, so a press never strands it. */
+  const old = { [bets.LEGACY_KEY]: JSON.stringify([{ gamePk: 1, playerId: 2, prop: "hrr", propLabel: "1+ H/R/RBI", name: "Old Hitter", team: "DET", prob: 0.7, date: "2026-08-20" }]) };
+  const store3 = { getItem: (k) => (k in old ? old[k] : null), setItem: (k, v) => { old[k] = v; }, removeItem: (k) => { delete old[k]; } };
+  page.render(doc, { data: d, model: nfl, record: RECORD, parlay, bets, store: store3, now: NOW, state: { legs: 2, floor: 0.6, hits: 0 } });
+  click({ target: { closest: (sel) => (sel === "[data-betslip]" ? {} : null) } });
+  const merged = bets.parse(old[bets.STORAGE_KEY]);
+  assert.equal(merged.length, 2, "the v1 bet was stranded"); assert.ok(merged.some((b) => b.legs[0].name === "Old Hitter")); assert.equal(old[bets.LEGACY_KEY], undefined, "the legacy key was left to be migrated again");
 });
 
 test("render: the controls, the slip from the filtered legs, every leg listed, the caveat; one listener; the URL told when the state is cleaned", () => {

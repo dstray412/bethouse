@@ -35,7 +35,46 @@ Zero dependencies, no build step, no server, no API key. `node --test` with
 **named files** — bare discovery pulls in the backtests, which fire live API
 calls. The list lives in seven places and `dom.test.mjs` checks all seven.
 
-## The prop parlay page (2026-10-04, latest)
+## The prop parlay in the bet log (2026-10-10, latest)
+
+**What.** "I bet this parlay" on parlays.html's slip records it in
+the bet log. bets.js: `legKey` appends `|rung` when a leg has one;
+`normLeg` keeps `rung`, `league`, `kickoff`, `recordDay`;
+`resultsFrom(day, held)` grades a football row off its `result` box
+line at each held rung (`boxHit`: td ≥ 1, recyds/rushyds/passyds/recs
+at or over, rushrec the sum), the baseball path unchanged;
+`recordPaths(list)` → `nfl-record/<recordDay>.json` for football legs,
+`history/<date>.json` for baseball, open bets only. parlay-page.js:
+`betOf(slip, data, bets, {now})` (recordDay = the data file's earliest
+game date, which is how track-football.mjs names the week's file;
+`localDay` for the bet's date; retro when a kickoff has passed at the
+press), `render` takes `bets` and `store` (localStorage by default,
+guarded), the slip's `data-betslip` button with held/stale states,
+one click listener on `#pslip` with the latest render's closure on the
+host. bets.html: `gradeBets` iterates `recordPaths` and passes BETS to
+`resultsFrom`; a leg's face and mark by `l.league || 'MLB'`;
+PROP_LABELS gains the six football stats. The home strip carries no
+button. After review: a scratched row (`p.scratched`, the tracker's
+"not a loss") yields `"void"` from `resultsFrom`; `applyResults` sets
+`void: true` on the leg (actual stays unset), `settle` drops void legs
+and returns `"void"` when none stood, a void bet gets `void: true` +
+`gradedAt`, `summarise` counts `void` apart from graded and pending,
+`recordPaths` skips it, bets.html shows VOID (struck, muted); the
+press re-reads the log (another tab) and says under the button when
+the store refuses (`.beterr`); the page migrates a v1 log before it
+writes v2; `recordDay` must match `YYYY-MM-DD` and `league` the record
+directories, checked in `normLeg` and again in `recordPaths`; the bet
+log's copy says football grades arrive the morning after (the NFL cron
+at 12:20 UTC), not within half an hour. Known and accepted: a parlay
+reduced by a void leg keeps the probability it was shown (the log's
+rule 3 reads "the number you were shown", never a recomputation), so
+its expectation is understated by the voided leg's share; a
+TODO(simplify) if voids turn out common. Verified end to end locally: the button stored a three-leg slip
+with recordDay 2026-10-09 (the week's file), and a crafted two-leg bet
+on Dak Prescott for that file graded off his box line, 250+ passing
+yards WON on 316 and Anytime TD LOST on 0, the parlay LOST.
+
+## The prop parlay page (2026-10-04)
 
 **What.** The user asked for a parlay generator built on the
 consistency cards and the cheat sheets, lines sold as a number and up

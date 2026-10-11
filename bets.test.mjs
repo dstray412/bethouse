@@ -577,3 +577,115 @@ test("clv does not care whether the bet won", () => {
   let lose = bets.applyResults(bets.add([], priced({ playerId: 1 })), { "823342|1|hrr": 0 });
   assert.equal(bets.clvOf(win[0]), bets.clvOf(lose[0]));
 });
+
+/* ---------------------------------------------------------------- *
+ * Football legs: a line sold as a number and up, graded off the box
+ * ---------------------------------------------------------------- */
+
+const fleg = (over = {}) => ({
+  gamePk: "401872980", playerId: "2577417", prop: "recyds", rung: 20, propLabel: "20+ receiving yards",
+  name: "Dak Prescott", team: "DAL", prob: 0.64, league: "NFL", kickoff: "2026-10-09T00:15Z", recordDay: "2026-10-09", ...over,
+});
+
+test("legKey: a football leg's rung is part of its identity, so two rungs on one player are two legs; a baseball key is unchanged", () => {
+  assert.equal(bets.legKey(fleg()), "401872980|2577417|recyds|20");
+  assert.notEqual(bets.legKey(fleg()), bets.legKey(fleg({ rung: 30 })));
+  assert.equal(bets.legKey(leg()), "823342|690993|hrr");
+});
+
+test("normLeg: a football leg keeps its rung, league, kickoff and record day through build, storage and migrate", () => {
+  const b = bets.parlay([fleg(), fleg({ playerId: "1", prop: "td", rung: 1, propLabel: "Anytime TD", prob: 0.3 })], 0.192, "2026-10-08");
+  assert.deepEqual([b.legs[0].rung, b.legs[0].league, b.legs[0].kickoff, b.legs[0].recordDay], [20, "NFL", "2026-10-09T00:15Z", "2026-10-09"]);
+  const back = bets.migrate(JSON.parse(bets.serialise([b])))[0];
+  assert.deepEqual(back, b);
+  assert.equal(bets.parse(bets.serialise([b]))[0].key, b.key);
+});
+
+test("resultsFrom: a football record day grades a held leg off the row's box line at the leg's own rung", () => {
+  const day = { date: "2026-10-09", predictions: [
+    { gameId: "401872980", playerId: "2577417", prop: "recyds", line: 55.5, prob: 0.5, actual: 0, result: { td: 1, recYds: 24, rushYds: 10, passYds: 0, recs: 3 } },
+    { gameId: "401872980", playerId: "2577417", prop: "rushrec", line: 60.5, prob: 0.5, actual: 0, result: { td: 1, recYds: 24, rushYds: 10, passYds: 0, recs: 3 } },
+    { gameId: "401872980", playerId: "2577417", prop: "td", prob: 0.2, actual: 1, result: { td: 1, recYds: 24, rushYds: 10, passYds: 0, recs: 3 } },
+    { gameId: "401872980", playerId: "9", prop: "recyds", line: 40.5, prob: 0.5 }, // not yet graded: no box
+  ] };
+  const held = [bets.parlay([
+    fleg(), fleg({ rung: 25 }), fleg({ prop: "rushrec", rung: 30, propLabel: "30+ rush + rec yards" }), fleg({ prop: "rushrec", rung: 40 }),
+    fleg({ prop: "td", rung: 1 }), fleg({ prop: "recs", rung: 3 }), fleg({ playerId: "9", rung: 40 }),
+  ], 0.01, "2026-10-08")];
+  const r = bets.resultsFrom(day, held);
+  assert.deepEqual(r, {
+    "401872980|2577417|recyds|20": 1, "401872980|2577417|recyds|25": 0, "401872980|2577417|rushrec|30": 1, "401872980|2577417|rushrec|40": 0,
+    "401872980|2577417|td|1": 1,
+  }, "the rung is not read off the box; receptions has no row so it waits; the ungraded row grades nothing");
+  /* The row's own line is not a held leg: its actual is never keyed to a rung it was not about. */
+  assert.equal(r["401872980|2577417|recyds"], undefined);
+  /* Without the held legs, a football day grades nothing: the rung is the leg's, not the row's. */
+  assert.deepEqual(bets.resultsFrom(day), {});
+  const graded = bets.applyResults(held, r)[0];
+  assert.equal(graded.actual, 0, "a parlay with a missed leg is not lost");
+  assert.equal(graded.legs.find((l) => l.rung === 20 && l.prop === "recyds").actual, 1);
+});
+
+test("recordPaths: where the grades live, a file a day for baseball and a file a record day for football, only while something is open", () => {
+  const list = [
+    bets.single(leg(), "2026-08-19"),
+    bets.parlay([fleg(), fleg({ playerId: "1" })], 0.4, "2026-10-08"),
+    bets.parlay([fleg({ league: "CFB", recordDay: "2026-10-10", gamePk: "7" })], 0.6, "2026-10-10"),
+    Object.assign(bets.single(leg({ gamePk: 5 }), "2026-08-18"), { actual: 1 }),
+  ];
+  assert.deepEqual(bets.recordPaths(list), ["nfl-record/2026-10-09.json", "cfb-record/2026-10-10.json", "history/2026-08-19.json"], "newest first, football before baseball, a settled bet's file not fetched");
+  assert.deepEqual(bets.recordPaths([]), []);
+  assert.deepEqual(bets.recordPaths([bets.parlay([fleg({ recordDay: undefined })], 0.5, "2026-10-08")]), [], "a football leg without a record day has nowhere to be graded; it is not fetched as baseball");
+});
+
+test("recordDay and league are validated: a record day is a calendar date and a league one the log grades, so a tampered or imported log cannot widen the fetch path", () => {
+  const bad = bets.parlay([fleg({ recordDay: "../somefile" }), fleg({ playerId: "1", recordDay: "2026-10-09T00:15Z" }), fleg({ playerId: "2", league: "../x" })], 0.1, "2026-10-08");
+  assert.equal(bad.legs[0].recordDay, undefined, "a traversal string was stored as a record day");
+  assert.equal(bad.legs[1].recordDay, undefined, "a timestamp was stored as a record day");
+  assert.equal(bad.legs[2].league, undefined, "an unknown league was stored");
+  assert.deepEqual(bets.recordPaths([bad]), [], "a leg with no valid record day was fetched");
+  /* A stored entry that skipped normLeg (hand-edited storage) is checked again at the path. */
+  const forged = Object.assign({}, bets.parlay([fleg()], 0.5, "2026-10-08"));
+  forged.legs = forged.legs.map((l) => Object.assign({}, l, { recordDay: "../x" }));
+  assert.deepEqual(bets.recordPaths([forged]), []);
+  assert.deepEqual(bets.recordPaths([bets.parlay([fleg()], 0.5, "2026-10-08")]), ["nfl-record/2026-10-09.json"]);
+});
+
+test("boxHit: the stat the prop counts, at or over the rung; rush + rec the two yards summed; a stat the box lacks grades nothing", () => {
+  const box = { td: 1, recYds: 24, rushYds: 10, passYds: 316, recs: 3 };
+  assert.deepEqual([bets.boxHit("td", box, 1), bets.boxHit("recyds", box, 24), bets.boxHit("recyds", box, 25), bets.boxHit("rushrec", box, 34), bets.boxHit("rushrec", box, 35), bets.boxHit("passyds", box, 300), bets.boxHit("recs", box, 4)], [1, 1, 0, 1, 0, 1, 0]);
+  assert.equal(bets.boxHit("hrr", box, 1), null); assert.equal(bets.boxHit("recyds", null, 20), null); assert.equal(bets.boxHit("recyds", { recYds: "x" }, 20), null);
+});
+
+test("a scratched player voids his leg: a book would void it, so the parlay settles on the legs that stood, and a single is void", () => {
+  const day = { date: "2026-10-09", predictions: [
+    { gameId: "401872980", playerId: "4429676", prop: "td", prob: 0.09, scratched: true },
+    { gameId: "401872980", playerId: "2577417", prop: "passyds", line: 256.5, prob: 0.5, actual: 1, result: { td: 0, recYds: 0, rushYds: 0, passYds: 316, recs: 0 } },
+  ] };
+  const scratched = fleg({ playerId: "4429676", prop: "td", rung: 1, propLabel: "Anytime TD", prob: 0.09 });
+  const stood = fleg({ prop: "passyds", rung: 250, propLabel: "250+ passing yards" });
+  const held = [bets.parlay([scratched, stood], 0.05, "2026-10-08"), bets.single(scratched, "2026-10-08")];
+  const r = bets.resultsFrom(day, held);
+  assert.deepEqual(r, { "401872980|4429676|td|1": "void", "401872980|2577417|passyds|250": 1 });
+  const out = bets.applyResults(held, r);
+  assert.equal(out[0].legs[0].void, true); assert.equal(out[0].legs[0].actual == null, true, "a void leg has an outcome");
+  assert.equal(out[0].actual, 1, "the parlay did not settle on the leg that stood");
+  assert.equal(out[1].void, true); assert.equal(out[1].actual == null, true, "a void single has an outcome"); assert.ok(out[1].gradedAt);
+  /* A void bet is tracked, neither graded nor pending, and expectation covers only the graded; it is never fetched again. */
+  const sum = bets.summarise(out);
+  assert.deepEqual([sum.tracked, sum.graded, sum.void, sum.pending, sum.hits], [2, 1, 1, 0, 1]);
+  assert.deepEqual(bets.recordPaths(out), []);
+  /* First grade wins for a void too, and a void leg is not re-read. */
+  assert.deepEqual(bets.applyResults(out, { "401872980|4429676|td|1": 1 }), out);
+  /* A void leg survives storage and migrate. */
+  const back = bets.migrate(JSON.parse(bets.serialise(out)));
+  assert.deepEqual(back, out);
+  /* A parlay whose every leg is void is void. */
+  const all = bets.applyResults([bets.parlay([scratched, fleg({ playerId: "4429676", prop: "recs", rung: 2 })], 0.05, "2026-10-08")], { "401872980|4429676|td|1": "void", "401872980|4429676|recs|2": "void" })[0];
+  assert.equal(all.void, true); assert.equal(all.actual == null, true);
+  /* A parlay with a void leg and a missed one is lost; with a void leg and an open one is open. */
+  const mixed = bets.parlay([scratched, stood], 0.05, "2026-10-08");
+  assert.equal(bets.applyResults([mixed], { "401872980|4429676|td|1": "void", "401872980|2577417|passyds|250": 0 })[0].actual, 0);
+  const half = bets.applyResults([mixed], { "401872980|4429676|td|1": "void" })[0];
+  assert.equal(half.actual == null, true); assert.equal(half.void, undefined); assert.equal(half.legs[0].void, true);
+});

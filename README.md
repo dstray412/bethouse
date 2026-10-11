@@ -372,7 +372,12 @@ player, any games) for `suggestParlay`. The home carries the slip at
 the page's defaults (`stripHtml`: three legs, then two whenever three
 cannot be filled, on the home's slate day only; without the price
 input; the heading's rule written by `ruleText` from the defaults;
-hidden when none builds). Tests in `parlay-page.test.mjs` (the
+hidden when none builds). **I bet this parlay** on the page's slip
+records it in the bet log (`betOf`: a leg a line with its rung, the
+league, the kickoff and the record day; the bet at the number the slip
+showed, under the earliest kickoff's local day; retro after a kickoff),
+and the log grades each leg off the tracker's box line at that rung
+(below). Tests in `parlay-page.test.mjs` (the
 rung choice against the model's own ladder, the gates, the sheet
 mapping by position, the record lookup, the filters, the state
 boundary, the markup, the render and its one listener) and the
@@ -858,6 +863,27 @@ happen.
 ---
 
 ## The running record
+
+**Football legs (2026-10-10).** A parlay from the prop parlay page enters
+the log as a parlay of rung legs (`20+ receiving yards`): `legKey`
+carries the rung, so 20+ and 30+ on one receiver are two legs, and a
+leg keeps its `league`, `kickoff` and `recordDay` (the week's record
+file, named by `track-football.mjs` for its first kickoff). The grade
+is read off that file's row for the player and stat, which carries his
+box line (`result`) once the game is final: at or over the rung is a
+hit, rush + rec the two yards summed, the touchdown one or more
+(`resultsFrom(day, held)`; without the held legs a football day grades
+nothing, since the row's own line is not a held leg). A player the
+tracker marked scratched (inactive, or never touched the ball) voids
+the leg, as a book would: the parlay settles on the legs that stood, a
+single is void, and a void bet is tracked but neither graded nor
+pending. `recordPaths` says which files to fetch, `history/<date>.json`
+for baseball and `nfl-record/<record day>.json` for football, only
+while a bet is open; a record day must be a calendar date and a league
+one the log grades, checked when stored and again at the path, so an
+imported log cannot widen it.
+The log's row shows the leg's league's face and mark, and the record's
+prop table buckets the football legs by stat.
 
 `backtest.mjs` answers "does the model work on history." `track.mjs` answers a
 harder question: does the board you actually look at, with the lineups posted

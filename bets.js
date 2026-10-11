@@ -59,7 +59,9 @@
    *
    * One LEG is one player, in one game, on one prop. The same hitter on
    * 1+ H/R/RBI and on 2+ total bases is two legs that can settle in
-   * opposite directions, and a doubleheader is two games.
+   * opposite directions, and a doubleheader is two games. A football leg
+   * is a line sold as a number and up (20+ receiving yards), so its rung
+   * is part of its identity too: 20+ and 30+ on one receiver are two legs.
    *
    * One BET is the set of its legs. Sorted, so reordering the slip is not
    * a different wager — otherwise the same three legs dragged into a
@@ -68,9 +70,9 @@
 
   function legKey(leg) {
     if (!leg) return null;
-    const { gamePk, playerId, prop } = leg;
+    const { gamePk, playerId, prop, rung } = leg;
     if (gamePk == null || playerId == null || !prop) return null;
-    return `${gamePk}|${playerId}|${prop}`;
+    return `${gamePk}|${playerId}|${prop}` + (rung != null ? `|${rung}` : "");
   }
 
   function keyOf(bet) {
@@ -83,6 +85,9 @@
   /* ------------------------------------------------------------------ *
    * Building
    * ------------------------------------------------------------------ */
+
+  const RECORD_DIR = { NFL: "nfl-record", CFB: "cfb-record" };
+  const isDay = (d) => typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d);
 
   function normLeg(l) {
     const out = {
@@ -97,6 +102,17 @@
     /* The market as the board saw it when this leg went in, kept only when
        there was one. Absent on most legs -- the feed covers 1+ H/R/RBI and
        total bases, and only the players a book has priced. */
+    /* A football leg: the rung it is sold at, the league (for the headshot
+       and the record directory), the kickoff (a bet after it is retro) and
+       the record day (the tracker names a week's file for its first
+       kickoff), so the log can find the box line that grades it. */
+    /* The league and the record day become a fetch path on the bet log, so
+       only a league the log grades and a calendar date are kept: an
+       imported or hand-edited log cannot widen the path. */
+    if (l.rung != null && isFinite(l.rung)) out.rung = Number(l.rung);
+    if (l.league && RECORD_DIR[String(l.league).toUpperCase()]) out.league = String(l.league).toUpperCase();
+    if (l.kickoff) out.kickoff = String(l.kickoff);
+    if (isDay(l.recordDay)) out.recordDay = String(l.recordDay);
     if (l.marketKey) out.marketKey = l.marketKey;
     if (l.priceAtBet != null) out.priceAtBet = l.priceAtBet;
     if (isFinite(l.noVigAtBet)) out.noVigAtBet = Number(l.noVigAtBet);
@@ -106,6 +122,8 @@
     // the game has not started — but an import or a migration does, and
     // rebuilding without it would erase a settled record.
     if (l.actual != null) out.actual = Number(l.actual);
+    // A scratched player's leg: the book would void it. Carried like a grade.
+    if (l.void === true) out.void = true;
     return out;
   }
 
@@ -126,7 +144,9 @@
       extra && extra.retro ? { retro: true } : {},
       extra && extra.actual != null
         ? { actual: Number(extra.actual), gradedAt: extra.gradedAt || new Date().toISOString() }
-        : {},
+        : extra && extra.void === true
+          ? { void: true, gradedAt: extra.gradedAt || new Date().toISOString() }
+          : {},
     );
     const key = keyOf(bet);
     if (!key) return null;
@@ -177,13 +197,50 @@
    * decides an outcome; it only reads one.
    * ------------------------------------------------------------------ */
 
-  function resultsFrom(historyDay) {
+  /* A football row's box line, read at a rung: the stat the prop counts, at or over the rung is a hit. */
+  const BOX = { td: (b) => b.td, recyds: (b) => b.recYds, rushyds: (b) => b.rushYds, passyds: (b) => b.passYds, recs: (b) => b.recs, rushrec: (b) => Number(b.rushYds) + Number(b.recYds) };
+  function boxHit(prop, box, rung) {
+    const f = BOX[prop];
+    if (!f || !box) return null;
+    const v = f(box);
+    return v == null || !isFinite(v) ? null : Number(v) >= Number(rung) ? 1 : 0;
+  }
+
+  /*
+   * A history day read into leg key -> outcome. A baseball row carries
+   * `actual` for the prop it was about, and that is the leg. A football
+   * row (the tracker's record day) carries the box line (`result`) once
+   * the game is final, and the leg is a rung of the caller's choosing,
+   * so `held` (the log) says which rungs to read; without it a football
+   * day grades nothing, since the row's own line is not a held leg.
+   */
+  function resultsFrom(historyDay, held) {
     const out = {};
     const rows = historyDay && historyDay.predictions;
     if (!Array.isArray(rows)) return out;
+    const want = {};
+    for (const b of Array.isArray(held) ? held : []) {
+      if (!b || b.actual != null || !Array.isArray(b.legs)) continue;
+      for (const l of b.legs) {
+        if (!l || l.rung == null || l.actual != null) continue;
+        const base = `${l.gamePk}|${l.playerId}|${l.prop}`;
+        (want[base] = want[base] || new Set()).add(Number(l.rung));
+      }
+    }
     for (const r of rows) {
+      if (!r) continue;
+      const id = r.gamePk != null ? r.gamePk : r.gameId;
+      const base = id != null && r.playerId != null && r.prop ? `${id}|${r.playerId}|${r.prop}` : null;
+      if (base && want[base] && (r.result || r.scratched)) {
+        for (const rung of want[base]) {
+          /* Inactive, or never touched the ball: the tracker marks him scratched and counts no miss; the book voids the leg. */
+          const hit = r.scratched ? "void" : boxHit(r.prop, r.result, rung);
+          if (hit != null) out[`${base}|${rung}`] = hit;
+        }
+        continue;
+      }
       // `actual` is 0 for a miss, so test for absence rather than falsiness.
-      if (!r || r.actual == null) continue;
+      if (r.actual == null) continue;
       const key = legKey(r);
       if (key) out[key] = Number(r.actual);
     }
@@ -201,36 +258,42 @@
    * It only pays when every leg is in and every leg hit.
    */
   function settle(legs) {
-    let allIn = true;
+    let allIn = true, stood = 0;
     for (const l of legs) {
+      if (l.void) continue; // a voided leg comes off the slip; the rest settle as a shorter parlay, as a book does it
+      stood++;
       if (l.actual == null) {
         allIn = false;
         continue;
       }
       if (Number(l.actual) === 0) return 0;
     }
+    if (!stood) return "void";
     return allIn ? 1 : null;
   }
 
   function applyResults(list, results) {
     if (!results) return list.slice();
     return list.map((b) => {
-      // Rule 2: first grade wins, for the bet as a whole.
-      if (b.actual != null) return b;
+      // Rule 2: first grade wins, for the bet as a whole; a void is a grade.
+      if (b.actual != null || b.void) return b;
 
       let touched = false;
       const legs = b.legs.map((l) => {
-        if (l.actual != null) return l;
+        if (l.actual != null || l.void) return l;
         const got = results[legKey(l)];
         if (got == null) return l;
         touched = true;
-        return Object.assign({}, l, { actual: Number(got) });
+        return got === "void" ? Object.assign({}, l, { void: true }) : Object.assign({}, l, { actual: Number(got) });
       });
       if (!touched) return b;
 
       const out = Object.assign({}, b, { legs: legs });
       const verdict = settle(legs);
-      if (verdict != null) {
+      if (verdict === "void") {
+        out.void = true;
+        out.gradedAt = new Date().toISOString();
+      } else if (verdict != null) {
         out.actual = verdict;
         out.gradedAt = new Date().toISOString();
       }
@@ -243,8 +306,28 @@
      most likely to answer. */
   function ungradedDates(list) {
     const dates = new Set();
-    for (const b of list) if (b.actual == null && b.date) dates.add(b.date);
+    for (const b of list) if (b.actual == null && !b.void && b.date) dates.add(b.date);
     return Array.from(dates).sort().reverse();
+  }
+
+  /* Where the grades live, for every bet still open: a baseball bet in
+     history/<its date>.json (what track.mjs writes), a football leg in
+     <league>-record/<its record day>.json (what track-football.mjs
+     writes, a file a week named for its first kickoff). Newest first,
+     football before baseball; a football leg without a record day has
+     nowhere to be graded and is not sent to the baseball file. */
+  function recordPaths(list) {
+    const ball = new Set(), foot = new Set();
+    for (const b of list || []) {
+      if (!b || b.actual != null || b.void || !Array.isArray(b.legs)) continue;
+      for (const l of b.legs) {
+        if (!l || l.actual != null || l.void) continue;
+        const dir = l.league && RECORD_DIR[String(l.league).toUpperCase()];
+        if (dir) { if (isDay(l.recordDay)) foot.add(dir + "/" + l.recordDay + ".json"); } // checked again here: storage can be hand-edited
+        else if (l.rung == null && isDay(b.date)) ball.add("history/" + b.date + ".json"); // a rung is a football leg: without a league it has nowhere to grade
+      }
+    }
+    return Array.from(foot).sort().reverse().concat(Array.from(ball).sort().reverse());
   }
 
   /* ------------------------------------------------------------------ *
@@ -290,11 +373,12 @@
    * ------------------------------------------------------------------ */
 
   function blankTally() {
-    return { tracked: 0, graded: 0, hits: 0, expected: 0, variance: 0 };
+    return { tracked: 0, graded: 0, void: 0, hits: 0, expected: 0, variance: 0 };
   }
 
   function count(t, b) {
     t.tracked++;
+    if (b.void) { t.void++; return; } // settled, with nothing to grade
     if (b.actual == null) return;
     t.graded++;
     t.hits += b.actual ? 1 : 0;
@@ -319,7 +403,7 @@
     // page has to be able to tell them apart before it writes a sentence.
     t.hitRate = t.graded > 0 ? t.hits / t.graded : null;
     t.expectedRate = t.graded > 0 ? t.expected / t.graded : null;
-    t.pending = t.tracked - t.graded;
+    t.pending = t.tracked - t.graded - t.void;
     return t;
   }
 
@@ -441,6 +525,8 @@
     add,
     remove,
     has,
+    recordPaths,
+    boxHit,
     resultsFrom,
     settle,
     applyResults,

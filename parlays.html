@@ -34,7 +34,8 @@
 anytime touchdown. Never an over/under. For each player and stat the leg is the highest line the model gives at least the
 floor you pick; beside it, how many of his last ten games cleared it, whether the opponent is a soft spot on the cheat
 sheet for that stat, and what the record did at that line. The slip is the legs most likely to cash under your filters,
-ranked by chance, not by price: compare the fair price with the book's.</div>
+ranked by chance, not by price: compare the fair price with the book's. Press <b>I bet this parlay</b> to record it in
+the <a href="bets.html">bet log</a>, where each leg grades off the box score.</div>
 
 <div class="controls" id="pcontrols" hidden></div>
 <div id="pslip"></div>
@@ -45,6 +46,7 @@ ranked by chance, not by price: compare the fair price with the book's.</div>
 <script src="faces.js"></script>
 <script src="edge.js"></script>
 <script src="parlay.js"></script>
+<script src="bets.js"></script>
 <script src="nfl.js"></script>
 <script src="nfl-data.js"></script>
 <script src="nfl-record.js" onerror="void 0"></script>
@@ -61,6 +63,7 @@ ranked by chance, not by price: compare the fair price with the book's.</div>
       model: window.BetHouseNFL || null,
       record: window.BETHOUSE_NFL_RECORD || null,
       parlay: window.BetHouseParlay || null,
+      bets: window.BetHouseBets || null,
       edge: window.BetHouseEdge || null,
       faces: window.BetHouseFaces || null,
       league: 'NFL',

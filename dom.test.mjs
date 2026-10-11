@@ -2398,7 +2398,18 @@ test("the teams page's panel scrolls sideways inside itself, the team cell stick
   assert.match(src(SHEET), /#cons>\.ccard\{max-width:/, "a picked card runs the full page width, the name a page away from its count");
   assert.ok(src(SHEET).includes(".ccard .cmore"), "no rule for the cut line");
   /* The parlay page: the faces, edge.js (the edge at a typed price), parlay.js (the slip), the model, the data file, the record (optional, so the page stands without it), the page module. */
-  for (const f of ["faces.js", "edge.js", "parlay.js", "nfl.js", "nfl-data.js", "parlay-page.js"]) assert.match(src("parlays.html"), new RegExp('<script src="' + f.replace(".", "\\.") + '"></script>'), "parlays.html does not load " + f);
+  for (const f of ["faces.js", "edge.js", "parlay.js", "bets.js", "nfl.js", "nfl-data.js", "parlay-page.js"]) assert.match(src("parlays.html"), new RegExp('<script src="' + f.replace(".", "\\.") + '"></script>'), "parlays.html does not load " + f);
+  assert.ok(src("parlays.html").includes("bets: window.BetHouseBets || null"), "the page does not hand the bet log module to the renderer");
+  /* The bet log grades a football leg off the tracker's record file at the leg's rung, and shows the leg's own league's face and mark. */
+  assert.match(src("bets.html"), /T\.recordPaths\(BETS\)/, "the bet log fetches by date, not by the file each open bet needs");
+  assert.match(src("bets.html"), /T\.resultsFrom\(day, BETS\)/, "the bet log grades a football day without the held rungs");
+  assert.doesNotMatch(src("bets.html"), /fetch\('history\/' \+ d/, "the bet log still fetches the baseball file by date");
+  assert.match(src("bets.html"), /var lg = l\.league \|\| 'MLB';/, "a football leg's face is fetched as a baseball id");
+  assert.match(src("bets.html"), /recyds:'Receiving yards'/, "the record's prop table has no label for a football leg");
+  assert.match(src("bets.html"), /Baseball grades arrive within about half an hour of a game ending; football grades the morning after/, "the bet log promises football grades it cannot deliver");
+  assert.doesNotMatch(src("bets.html"), /'Nothing has settled yet\. Grades arrive within about half an hour/, "the settled-nothing sentence still claims half an hour for every sport");
+  assert.match(src("bets.html"), /b\.void \? 'void'/, "a void bet is not shown as void");
+  assert.match(src("bets.html"), /state\.out === 'open' && \(b\.actual != null \|\| b\.void\)/, "a void bet shows under Open");
   assert.match(src("parlays.html"), /<script src="nfl-record\.js" onerror="void 0"><\/script>/, "the record is not optional on the parlay page");
   assert.ok(src("parlays.html").indexOf('src="parlay.js"') < src("parlays.html").indexOf('src="parlay-page.js"'), "parlay.js loads after the page that needs it");
   assert.match(markup("parlays.html"), /id="pcontrols"[\s\S]*id="pslip"[\s\S]*id="plegs"[\s\S]*id="pfoot"/, "the hosts are not in order: controls, slip, legs, caveat");
