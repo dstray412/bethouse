@@ -10,7 +10,16 @@
    "prop": "hrr",
    "prob": 0.7225,
    "pa": 618,
-   "recordedAt": "2026-10-15T20:49:09.622Z"
+   "recordedAt": "2026-10-15T20:49:09.622Z",
+   "result": {
+    "pa": 4,
+    "hits": 1,
+    "runs": 1,
+    "rbi": 3,
+    "tb": 4,
+    "hr": 1
+   },
+   "actual": 1
   },
   {
    "gamePk": 849810,
@@ -21,7 +30,16 @@
    "prop": "tb2",
    "prob": 0.3624,
    "pa": 618,
-   "recordedAt": "2026-10-15T20:49:09.623Z"
+   "recordedAt": "2026-10-15T20:49:09.623Z",
+   "result": {
+    "pa": 4,
+    "hits": 1,
+    "runs": 1,
+    "rbi": 3,
+    "tb": 4,
+    "hr": 1
+   },
+   "actual": 1
   },
   {
    "gamePk": 849810,
@@ -32,7 +50,16 @@
    "prop": "tb3",
    "prob": 0.2273,
    "pa": 618,
-   "recordedAt": "2026-10-15T20:49:09.623Z"
+   "recordedAt": "2026-10-15T20:49:09.623Z",
+   "result": {
+    "pa": 4,
+    "hits": 1,
+    "runs": 1,
+    "rbi": 3,
+    "tb": 4,
+    "hr": 1
+   },
+   "actual": 1
   },
   {
    "gamePk": 849810,
@@ -43,7 +70,16 @@
    "prop": "tb4",
    "prob": 0.1561,
    "pa": 618,
-   "recordedAt": "2026-10-15T20:49:09.623Z"
+   "recordedAt": "2026-10-15T20:49:09.623Z",
+   "result": {
+    "pa": 4,
+    "hits": 1,
+    "runs": 1,
+    "rbi": 3,
+    "tb": 4,
+    "hr": 1
+   },
+   "actual": 1
   },
   {
    "gamePk": 849810,
@@ -54,7 +90,16 @@
    "prop": "hr",
    "prob": 0.1347,
    "pa": 618,
-   "recordedAt": "2026-10-15T20:49:09.623Z"
+   "recordedAt": "2026-10-15T20:49:09.623Z",
+   "result": {
+    "pa": 4,
+    "hits": 1,
+    "runs": 1,
+    "rbi": 3,
+    "tb": 4,
+    "hr": 1
+   },
+   "actual": 1
   },
   {
    "gamePk": 849810,
@@ -65,7 +110,16 @@
    "prop": "hrr",
    "prob": 0.7338,
    "pa": 528,
-   "recordedAt": "2026-10-15T20:49:09.623Z"
+   "recordedAt": "2026-10-15T20:49:09.623Z",
+   "result": {
+    "pa": 4,
+    "hits": 0,
+    "runs": 0,
+    "rbi": 0,
+    "tb": 0,
+    "hr": 0
+   },
+   "actual": 0
   },
   {
    "gamePk": 849810,
@@ -76,7 +130,16 @@
    "prop": "tb2",
    "prob": 0.4019,
    "pa": 528,
-   "recordedAt": "2026-10-15T20:49:09.623Z"
+   "recordedAt": "2026-10-15T20:49:09.623Z",
+   "result": {
+    "pa": 4,
+    "hits": 0,
+    "runs": 0,
+    "rbi": 0,
+    "tb": 0,
+    "hr": 0
+   },
+   "actual": 0
   },
   {
    "gamePk": 849810,
@@ -87,7 +150,16 @@
    "prop": "tb3",
    "prob": 0.2572,
    "pa": 528,
-   "recordedAt": "2026-10-15T20:49:09.623Z"
+   "recordedAt": "2026-10-15T20:49:09.623Z",
+   "result": {
+    "pa": 4,
+    "hits": 0,
+    "runs": 0,
+    "rbi": 0,
+    "tb": 0,
+    "hr": 0
+   },
+   "actual": 0
   },
   {
    "gamePk": 849810,
@@ -98,7 +170,16 @@
    "prop": "tb4",
    "prob": 0.1839,
    "pa": 528,
-   "recordedAt": "2026-10-15T20:49:09.624Z"
+   "recordedAt": "2026-10-15T20:49:09.624Z",
+   "result": {
+    "pa": 4,
+    "hits": 0,
+    "runs": 0,
+    "rbi": 0,
+    "tb": 0,
+    "hr": 0
+   },
+   "actual": 0
   },
   {
    "gamePk": 849810,
@@ -109,7 +190,16 @@
    "prop": "hr",
    "prob": 0.1419,
    "pa": 528,
-   "recordedAt": "2026-10-15T20:49:09.624Z"
+   "recordedAt": "2026-10-15T20:49:09.624Z",
+   "result": {
+    "pa": 4,
+    "hits": 0,
+    "runs": 0,
+    "rbi": 0,
+    "tb": 0,
+    "hr": 0
+   },
+   "actual": 0
   },
   {
    "gamePk": 849810,
@@ -120,7 +210,16 @@
    "prop": "hrr",
    "prob": 0.7045,
    "pa": 657,
-   "recordedAt": "2026-10-15T20:49:09.624Z"
+   "recordedAt": "2026-10-15T20:49:09.624Z",
+   "result": {
+    "pa": 4,
+    "hits": 0,
+    "runs": 0,
+    "rbi": 0,
+    "tb": 0,
+    "hr": 0
+   },
+   "actual": 0
   },
   {
    "gamePk": 849810,
@@ -131,7 +230,16 @@
    "prop": "tb2",
    "prob": 0.3368,
    "pa": 657,
-   "recordedAt": "2026-10-15T20:49:09.624Z"
+   "recordedAt": "2026-10-15T20:49:09.624Z",
+   "result": {
+    "pa": 4,
+    "hits": 0,
+    "runs": 0,
+    "rbi": 0,
+    "tb": 0,
+    "hr": 0
+   },
+   "actual": 0
   },
   {
    "gamePk": 849810,
@@ -142,7 +250,16 @@
    "prop": "tb3",
    "prob": 0.1808,
    "pa": 657,
-   "recordedAt": "2026-10-15T20:49:09.625Z"
+   "recordedAt": "2026-10-15T20:49:09.625Z",
+   "result": {
+    "pa": 4,
+    "hits": 0,
+    "runs": 0,
+    "rbi": 0,
+    "tb": 0,
+    "hr": 0
+   },
+   "actual": 0
   },
   {
    "gamePk": 849810,
@@ -153,7 +270,16 @@
    "prop": "tb4",
    "prob": 0.1065,
    "pa": 657,
-   "recordedAt": "2026-10-15T20:49:09.625Z"
+   "recordedAt": "2026-10-15T20:49:09.625Z",
+   "result": {
+    "pa": 4,
+    "hits": 0,
+    "runs": 0,
+    "rbi": 0,
+    "tb": 0,
+    "hr": 0
+   },
+   "actual": 0
   },
   {
    "gamePk": 849810,
@@ -164,7 +290,16 @@
    "prop": "hr",
    "prob": 0.0712,
    "pa": 657,
-   "recordedAt": "2026-10-15T20:49:09.625Z"
+   "recordedAt": "2026-10-15T20:49:09.625Z",
+   "result": {
+    "pa": 4,
+    "hits": 0,
+    "runs": 0,
+    "rbi": 0,
+    "tb": 0,
+    "hr": 0
+   },
+   "actual": 0
   },
   {
    "gamePk": 849810,
@@ -175,7 +310,16 @@
    "prop": "hrr",
    "prob": 0.6854,
    "pa": 276,
-   "recordedAt": "2026-10-15T20:49:09.625Z"
+   "recordedAt": "2026-10-15T20:49:09.625Z",
+   "result": {
+    "pa": 4,
+    "hits": 1,
+    "runs": 0,
+    "rbi": 0,
+    "tb": 2,
+    "hr": 0
+   },
+   "actual": 1
   },
   {
    "gamePk": 849810,
@@ -186,7 +330,16 @@
    "prop": "tb2",
    "prob": 0.3576,
    "pa": 276,
-   "recordedAt": "2026-10-15T20:49:09.625Z"
+   "recordedAt": "2026-10-15T20:49:09.625Z",
+   "result": {
+    "pa": 4,
+    "hits": 1,
+    "runs": 0,
+    "rbi": 0,
+    "tb": 2,
+    "hr": 0
+   },
+   "actual": 1
   },
   {
    "gamePk": 849810,
@@ -197,7 +350,16 @@
    "prop": "tb3",
    "prob": 0.2194,
    "pa": 276,
-   "recordedAt": "2026-10-15T20:49:09.625Z"
+   "recordedAt": "2026-10-15T20:49:09.625Z",
+   "result": {
+    "pa": 4,
+    "hits": 1,
+    "runs": 0,
+    "rbi": 0,
+    "tb": 2,
+    "hr": 0
+   },
+   "actual": 0
   },
   {
    "gamePk": 849810,
@@ -208,7 +370,16 @@
    "prop": "tb4",
    "prob": 0.1538,
    "pa": 276,
-   "recordedAt": "2026-10-15T20:49:09.625Z"
+   "recordedAt": "2026-10-15T20:49:09.625Z",
+   "result": {
+    "pa": 4,
+    "hits": 1,
+    "runs": 0,
+    "rbi": 0,
+    "tb": 2,
+    "hr": 0
+   },
+   "actual": 0
   },
   {
    "gamePk": 849810,
@@ -219,7 +390,16 @@
    "prop": "hr",
    "prob": 0.1204,
    "pa": 276,
-   "recordedAt": "2026-10-15T20:49:09.625Z"
+   "recordedAt": "2026-10-15T20:49:09.625Z",
+   "result": {
+    "pa": 4,
+    "hits": 1,
+    "runs": 0,
+    "rbi": 0,
+    "tb": 2,
+    "hr": 0
+   },
+   "actual": 0
   },
   {
    "gamePk": 849810,
@@ -230,7 +410,16 @@
    "prop": "hrr",
    "prob": 0.6371,
    "pa": 627,
-   "recordedAt": "2026-10-15T20:49:09.625Z"
+   "recordedAt": "2026-10-15T20:49:09.625Z",
+   "result": {
+    "pa": 4,
+    "hits": 2,
+    "runs": 1,
+    "rbi": 0,
+    "tb": 3,
+    "hr": 0
+   },
+   "actual": 1
   },
   {
    "gamePk": 849810,
@@ -241,7 +430,16 @@
    "prop": "tb2",
    "prob": 0.2784,
    "pa": 627,
-   "recordedAt": "2026-10-15T20:49:09.625Z"
+   "recordedAt": "2026-10-15T20:49:09.625Z",
+   "result": {
+    "pa": 4,
+    "hits": 2,
+    "runs": 1,
+    "rbi": 0,
+    "tb": 3,
+    "hr": 0
+   },
+   "actual": 1
   },
   {
    "gamePk": 849810,
@@ -252,7 +450,16 @@
    "prop": "tb3",
    "prob": 0.1558,
    "pa": 627,
-   "recordedAt": "2026-10-15T20:49:09.625Z"
+   "recordedAt": "2026-10-15T20:49:09.625Z",
+   "result": {
+    "pa": 4,
+    "hits": 2,
+    "runs": 1,
+    "rbi": 0,
+    "tb": 3,
+    "hr": 0
+   },
+   "actual": 1
   },
   {
    "gamePk": 849810,
@@ -263,7 +470,16 @@
    "prop": "tb4",
    "prob": 0.0993,
    "pa": 627,
-   "recordedAt": "2026-10-15T20:49:09.625Z"
+   "recordedAt": "2026-10-15T20:49:09.625Z",
+   "result": {
+    "pa": 4,
+    "hits": 2,
+    "runs": 1,
+    "rbi": 0,
+    "tb": 3,
+    "hr": 0
+   },
+   "actual": 0
   },
   {
    "gamePk": 849810,
@@ -274,7 +490,16 @@
    "prop": "hr",
    "prob": 0.0669,
    "pa": 627,
-   "recordedAt": "2026-10-15T20:49:09.625Z"
+   "recordedAt": "2026-10-15T20:49:09.625Z",
+   "result": {
+    "pa": 4,
+    "hits": 2,
+    "runs": 1,
+    "rbi": 0,
+    "tb": 3,
+    "hr": 0
+   },
+   "actual": 0
   },
   {
    "gamePk": 849810,
@@ -285,7 +510,16 @@
    "prop": "hrr",
    "prob": 0.7169,
    "pa": 491,
-   "recordedAt": "2026-10-15T20:49:09.625Z"
+   "recordedAt": "2026-10-15T20:49:09.625Z",
+   "result": {
+    "pa": 4,
+    "hits": 1,
+    "runs": 1,
+    "rbi": 0,
+    "tb": 1,
+    "hr": 0
+   },
+   "actual": 1
   },
   {
    "gamePk": 849810,
@@ -296,7 +530,16 @@
    "prop": "tb2",
    "prob": 0.3526,
    "pa": 491,
-   "recordedAt": "2026-10-15T20:49:09.625Z"
+   "recordedAt": "2026-10-15T20:49:09.625Z",
+   "result": {
+    "pa": 4,
+    "hits": 1,
+    "runs": 1,
+    "rbi": 0,
+    "tb": 1,
+    "hr": 0
+   },
+   "actual": 0
   },
   {
    "gamePk": 849810,
@@ -307,7 +550,16 @@
    "prop": "tb3",
    "prob": 0.2123,
    "pa": 491,
-   "recordedAt": "2026-10-15T20:49:09.625Z"
+   "recordedAt": "2026-10-15T20:49:09.625Z",
+   "result": {
+    "pa": 4,
+    "hits": 1,
+    "runs": 1,
+    "rbi": 0,
+    "tb": 1,
+    "hr": 0
+   },
+   "actual": 0
   },
   {
    "gamePk": 849810,
@@ -318,7 +570,16 @@
    "prop": "tb4",
    "prob": 0.144,
    "pa": 491,
-   "recordedAt": "2026-10-15T20:49:09.625Z"
+   "recordedAt": "2026-10-15T20:49:09.625Z",
+   "result": {
+    "pa": 4,
+    "hits": 1,
+    "runs": 1,
+    "rbi": 0,
+    "tb": 1,
+    "hr": 0
+   },
+   "actual": 0
   },
   {
    "gamePk": 849810,
@@ -329,7 +590,16 @@
    "prop": "hr",
    "prob": 0.1041,
    "pa": 491,
-   "recordedAt": "2026-10-15T20:49:09.625Z"
+   "recordedAt": "2026-10-15T20:49:09.625Z",
+   "result": {
+    "pa": 4,
+    "hits": 1,
+    "runs": 1,
+    "rbi": 0,
+    "tb": 1,
+    "hr": 0
+   },
+   "actual": 0
   },
   {
    "gamePk": 849810,
@@ -340,7 +610,16 @@
    "prop": "hrr",
    "prob": 0.6936,
    "pa": 252,
-   "recordedAt": "2026-10-15T20:49:09.625Z"
+   "recordedAt": "2026-10-15T20:49:09.625Z",
+   "result": {
+    "pa": 0,
+    "hits": 0,
+    "runs": 0,
+    "rbi": 0,
+    "tb": 0,
+    "hr": 0
+   },
+   "actual": 0
   },
   {
    "gamePk": 849810,
@@ -351,7 +630,16 @@
    "prop": "tb2",
    "prob": 0.3327,
    "pa": 252,
-   "recordedAt": "2026-10-15T20:49:09.625Z"
+   "recordedAt": "2026-10-15T20:49:09.625Z",
+   "result": {
+    "pa": 0,
+    "hits": 0,
+    "runs": 0,
+    "rbi": 0,
+    "tb": 0,
+    "hr": 0
+   },
+   "actual": 0
   },
   {
    "gamePk": 849810,
@@ -362,7 +650,16 @@
    "prop": "tb3",
    "prob": 0.1807,
    "pa": 252,
-   "recordedAt": "2026-10-15T20:49:09.625Z"
+   "recordedAt": "2026-10-15T20:49:09.625Z",
+   "result": {
+    "pa": 0,
+    "hits": 0,
+    "runs": 0,
+    "rbi": 0,
+    "tb": 0,
+    "hr": 0
+   },
+   "actual": 0
   },
   {
    "gamePk": 849810,
@@ -373,7 +670,16 @@
    "prop": "tb4",
    "prob": 0.1114,
    "pa": 252,
-   "recordedAt": "2026-10-15T20:49:09.625Z"
+   "recordedAt": "2026-10-15T20:49:09.625Z",
+   "result": {
+    "pa": 0,
+    "hits": 0,
+    "runs": 0,
+    "rbi": 0,
+    "tb": 0,
+    "hr": 0
+   },
+   "actual": 0
   },
   {
    "gamePk": 849810,
@@ -384,7 +690,16 @@
    "prop": "hr",
    "prob": 0.076,
    "pa": 252,
-   "recordedAt": "2026-10-15T20:49:09.625Z"
+   "recordedAt": "2026-10-15T20:49:09.625Z",
+   "result": {
+    "pa": 0,
+    "hits": 0,
+    "runs": 0,
+    "rbi": 0,
+    "tb": 0,
+    "hr": 0
+   },
+   "actual": 0
   },
   {
    "gamePk": 849810,
@@ -395,7 +710,16 @@
    "prop": "hrr",
    "prob": 0.6985,
    "pa": 574,
-   "recordedAt": "2026-10-15T20:49:09.625Z"
+   "recordedAt": "2026-10-15T20:49:09.625Z",
+   "result": {
+    "pa": 4,
+    "hits": 2,
+    "runs": 1,
+    "rbi": 1,
+    "tb": 3,
+    "hr": 0
+   },
+   "actual": 1
   },
   {
    "gamePk": 849810,
@@ -406,7 +730,16 @@
    "prop": "tb2",
    "prob": 0.347,
    "pa": 574,
-   "recordedAt": "2026-10-15T20:49:09.626Z"
+   "recordedAt": "2026-10-15T20:49:09.626Z",
+   "result": {
+    "pa": 4,
+    "hits": 2,
+    "runs": 1,
+    "rbi": 1,
+    "tb": 3,
+    "hr": 0
+   },
+   "actual": 1
   },
   {
    "gamePk": 849810,
@@ -417,7 +750,16 @@
    "prop": "tb3",
    "prob": 0.2133,
    "pa": 574,
-   "recordedAt": "2026-10-15T20:49:09.626Z"
+   "recordedAt": "2026-10-15T20:49:09.626Z",
+   "result": {
+    "pa": 4,
+    "hits": 2,
+    "runs": 1,
+    "rbi": 1,
+    "tb": 3,
+    "hr": 0
+   },
+   "actual": 1
   },
   {
    "gamePk": 849810,
@@ -428,7 +770,16 @@
    "prop": "tb4",
    "prob": 0.15,
    "pa": 574,
-   "recordedAt": "2026-10-15T20:49:09.626Z"
+   "recordedAt": "2026-10-15T20:49:09.626Z",
+   "result": {
+    "pa": 4,
+    "hits": 2,
+    "runs": 1,
+    "rbi": 1,
+    "tb": 3,
+    "hr": 0
+   },
+   "actual": 0
   },
   {
    "gamePk": 849810,
@@ -439,7 +790,16 @@
    "prop": "hr",
    "prob": 0.1168,
    "pa": 574,
-   "recordedAt": "2026-10-15T20:49:09.626Z"
+   "recordedAt": "2026-10-15T20:49:09.626Z",
+   "result": {
+    "pa": 4,
+    "hits": 2,
+    "runs": 1,
+    "rbi": 1,
+    "tb": 3,
+    "hr": 0
+   },
+   "actual": 0
   },
   {
    "gamePk": 849810,
@@ -450,7 +810,16 @@
    "prop": "hrr",
    "prob": 0.6264,
    "pa": 96,
-   "recordedAt": "2026-10-15T20:49:09.626Z"
+   "recordedAt": "2026-10-15T20:49:09.626Z",
+   "result": {
+    "pa": 4,
+    "hits": 0,
+    "runs": 0,
+    "rbi": 0,
+    "tb": 0,
+    "hr": 0
+   },
+   "actual": 0
   },
   {
    "gamePk": 849810,
@@ -461,7 +830,16 @@
    "prop": "tb2",
    "prob": 0.3138,
    "pa": 96,
-   "recordedAt": "2026-10-15T20:49:09.626Z"
+   "recordedAt": "2026-10-15T20:49:09.626Z",
+   "result": {
+    "pa": 4,
+    "hits": 0,
+    "runs": 0,
+    "rbi": 0,
+    "tb": 0,
+    "hr": 0
+   },
+   "actual": 0
   },
   {
    "gamePk": 849810,
@@ -472,7 +850,16 @@
    "prop": "tb3",
    "prob": 0.1885,
    "pa": 96,
-   "recordedAt": "2026-10-15T20:49:09.626Z"
+   "recordedAt": "2026-10-15T20:49:09.626Z",
+   "result": {
+    "pa": 4,
+    "hits": 0,
+    "runs": 0,
+    "rbi": 0,
+    "tb": 0,
+    "hr": 0
+   },
+   "actual": 0
   },
   {
    "gamePk": 849810,
@@ -483,7 +870,16 @@
    "prop": "tb4",
    "prob": 0.1345,
    "pa": 96,
-   "recordedAt": "2026-10-15T20:49:09.626Z"
+   "recordedAt": "2026-10-15T20:49:09.626Z",
+   "result": {
+    "pa": 4,
+    "hits": 0,
+    "runs": 0,
+    "rbi": 0,
+    "tb": 0,
+    "hr": 0
+   },
+   "actual": 0
   },
   {
    "gamePk": 849810,
@@ -494,7 +890,16 @@
    "prop": "hr",
    "prob": 0.1001,
    "pa": 96,
-   "recordedAt": "2026-10-15T20:49:09.626Z"
+   "recordedAt": "2026-10-15T20:49:09.626Z",
+   "result": {
+    "pa": 4,
+    "hits": 0,
+    "runs": 0,
+    "rbi": 0,
+    "tb": 0,
+    "hr": 0
+   },
+   "actual": 0
   },
   {
    "gamePk": 849810,
@@ -505,7 +910,16 @@
    "prop": "hrr",
    "prob": 0.7127,
    "pa": 573,
-   "recordedAt": "2026-10-15T23:26:58.607Z"
+   "recordedAt": "2026-10-15T23:26:58.607Z",
+   "result": {
+    "pa": 5,
+    "hits": 0,
+    "runs": 0,
+    "rbi": 0,
+    "tb": 0,
+    "hr": 0
+   },
+   "actual": 0
   },
   {
    "gamePk": 849810,
@@ -516,7 +930,16 @@
    "prop": "tb2",
    "prob": 0.3647,
    "pa": 573,
-   "recordedAt": "2026-10-15T23:26:58.608Z"
+   "recordedAt": "2026-10-15T23:26:58.608Z",
+   "result": {
+    "pa": 5,
+    "hits": 0,
+    "runs": 0,
+    "rbi": 0,
+    "tb": 0,
+    "hr": 0
+   },
+   "actual": 0
   },
   {
    "gamePk": 849810,
@@ -527,7 +950,16 @@
    "prop": "tb3",
    "prob": 0.224,
    "pa": 573,
-   "recordedAt": "2026-10-15T23:26:58.608Z"
+   "recordedAt": "2026-10-15T23:26:58.608Z",
+   "result": {
+    "pa": 5,
+    "hits": 0,
+    "runs": 0,
+    "rbi": 0,
+    "tb": 0,
+    "hr": 0
+   },
+   "actual": 0
   },
   {
    "gamePk": 849810,
@@ -538,7 +970,16 @@
    "prop": "tb4",
    "prob": 0.1566,
    "pa": 573,
-   "recordedAt": "2026-10-15T23:26:58.608Z"
+   "recordedAt": "2026-10-15T23:26:58.608Z",
+   "result": {
+    "pa": 5,
+    "hits": 0,
+    "runs": 0,
+    "rbi": 0,
+    "tb": 0,
+    "hr": 0
+   },
+   "actual": 0
   },
   {
    "gamePk": 849810,
@@ -549,7 +990,16 @@
    "prop": "hr",
    "prob": 0.1123,
    "pa": 573,
-   "recordedAt": "2026-10-15T23:26:58.608Z"
+   "recordedAt": "2026-10-15T23:26:58.608Z",
+   "result": {
+    "pa": 5,
+    "hits": 0,
+    "runs": 0,
+    "rbi": 0,
+    "tb": 0,
+    "hr": 0
+   },
+   "actual": 0
   },
   {
    "gamePk": 849810,
@@ -560,7 +1010,16 @@
    "prop": "hrr",
    "prob": 0.6824,
    "pa": 680,
-   "recordedAt": "2026-10-15T23:26:58.608Z"
+   "recordedAt": "2026-10-15T23:26:58.608Z",
+   "result": {
+    "pa": 4,
+    "hits": 0,
+    "runs": 1,
+    "rbi": 0,
+    "tb": 0,
+    "hr": 0
+   },
+   "actual": 1
   },
   {
    "gamePk": 849810,
@@ -571,7 +1030,16 @@
    "prop": "tb2",
    "prob": 0.3544,
    "pa": 680,
-   "recordedAt": "2026-10-15T23:26:58.609Z"
+   "recordedAt": "2026-10-15T23:26:58.609Z",
+   "result": {
+    "pa": 4,
+    "hits": 0,
+    "runs": 1,
+    "rbi": 0,
+    "tb": 0,
+    "hr": 0
+   },
+   "actual": 0
   },
   {
    "gamePk": 849810,
@@ -582,7 +1050,16 @@
    "prop": "tb3",
    "prob": 0.2156,
    "pa": 680,
-   "recordedAt": "2026-10-15T23:26:58.609Z"
+   "recordedAt": "2026-10-15T23:26:58.609Z",
+   "result": {
+    "pa": 4,
+    "hits": 0,
+    "runs": 1,
+    "rbi": 0,
+    "tb": 0,
+    "hr": 0
+   },
+   "actual": 0
   },
   {
    "gamePk": 849810,
@@ -593,7 +1070,16 @@
    "prop": "tb4",
    "prob": 0.1464,
    "pa": 680,
-   "recordedAt": "2026-10-15T23:26:58.609Z"
+   "recordedAt": "2026-10-15T23:26:58.609Z",
+   "result": {
+    "pa": 4,
+    "hits": 0,
+    "runs": 1,
+    "rbi": 0,
+    "tb": 0,
+    "hr": 0
+   },
+   "actual": 0
   },
   {
    "gamePk": 849810,
@@ -604,7 +1090,16 @@
    "prop": "hr",
    "prob": 0.1074,
    "pa": 680,
-   "recordedAt": "2026-10-15T23:26:58.609Z"
+   "recordedAt": "2026-10-15T23:26:58.609Z",
+   "result": {
+    "pa": 4,
+    "hits": 0,
+    "runs": 1,
+    "rbi": 0,
+    "tb": 0,
+    "hr": 0
+   },
+   "actual": 0
   },
   {
    "gamePk": 849810,
@@ -615,7 +1110,16 @@
    "prop": "hrr",
    "prob": 0.6727,
    "pa": 640,
-   "recordedAt": "2026-10-15T23:26:58.609Z"
+   "recordedAt": "2026-10-15T23:26:58.609Z",
+   "result": {
+    "pa": 4,
+    "hits": 1,
+    "runs": 1,
+    "rbi": 0,
+    "tb": 2,
+    "hr": 0
+   },
+   "actual": 1
   },
   {
    "gamePk": 849810,
@@ -626,7 +1130,16 @@
    "prop": "tb2",
    "prob": 0.3104,
    "pa": 640,
-   "recordedAt": "2026-10-15T23:26:58.609Z"
+   "recordedAt": "2026-10-15T23:26:58.609Z",
+   "result": {
+    "pa": 4,
+    "hits": 1,
+    "runs": 1,
+    "rbi": 0,
+    "tb": 2,
+    "hr": 0
+   },
+   "actual": 1
   },
   {
    "gamePk": 849810,
@@ -637,7 +1150,16 @@
    "prop": "tb3",
    "prob": 0.1766,
    "pa": 640,
-   "recordedAt": "2026-10-15T23:26:58.610Z"
+   "recordedAt": "2026-10-15T23:26:58.610Z",
+   "result": {
+    "pa": 4,
+    "hits": 1,
+    "runs": 1,
+    "rbi": 0,
+    "tb": 2,
+    "hr": 0
+   },
+   "actual": 0
   },
   {
    "gamePk": 849810,
@@ -648,7 +1170,16 @@
    "prop": "tb4",
    "prob": 0.1171,
    "pa": 640,
-   "recordedAt": "2026-10-15T23:26:58.610Z"
+   "recordedAt": "2026-10-15T23:26:58.610Z",
+   "result": {
+    "pa": 4,
+    "hits": 1,
+    "runs": 1,
+    "rbi": 0,
+    "tb": 2,
+    "hr": 0
+   },
+   "actual": 0
   },
   {
    "gamePk": 849810,
@@ -659,7 +1190,16 @@
    "prop": "hr",
    "prob": 0.083,
    "pa": 640,
-   "recordedAt": "2026-10-15T23:26:58.610Z"
+   "recordedAt": "2026-10-15T23:26:58.610Z",
+   "result": {
+    "pa": 4,
+    "hits": 1,
+    "runs": 1,
+    "rbi": 0,
+    "tb": 2,
+    "hr": 0
+   },
+   "actual": 0
   },
   {
    "gamePk": 849810,
@@ -670,7 +1210,16 @@
    "prop": "hrr",
    "prob": 0.655,
    "pa": 578,
-   "recordedAt": "2026-10-15T23:26:58.610Z"
+   "recordedAt": "2026-10-15T23:26:58.610Z",
+   "result": {
+    "pa": 4,
+    "hits": 1,
+    "runs": 0,
+    "rbi": 3,
+    "tb": 2,
+    "hr": 0
+   },
+   "actual": 1
   },
   {
    "gamePk": 849810,
@@ -681,7 +1230,16 @@
    "prop": "tb2",
    "prob": 0.3337,
    "pa": 578,
-   "recordedAt": "2026-10-15T23:26:58.610Z"
+   "recordedAt": "2026-10-15T23:26:58.610Z",
+   "result": {
+    "pa": 4,
+    "hits": 1,
+    "runs": 0,
+    "rbi": 3,
+    "tb": 2,
+    "hr": 0
+   },
+   "actual": 1
   },
   {
    "gamePk": 849810,
@@ -692,7 +1250,16 @@
    "prop": "tb3",
    "prob": 0.2161,
    "pa": 578,
-   "recordedAt": "2026-10-15T23:26:58.610Z"
+   "recordedAt": "2026-10-15T23:26:58.610Z",
+   "result": {
+    "pa": 4,
+    "hits": 1,
+    "runs": 0,
+    "rbi": 3,
+    "tb": 2,
+    "hr": 0
+   },
+   "actual": 0
   },
   {
    "gamePk": 849810,
@@ -703,7 +1270,16 @@
    "prop": "tb4",
    "prob": 0.1606,
    "pa": 578,
-   "recordedAt": "2026-10-15T23:26:58.610Z"
+   "recordedAt": "2026-10-15T23:26:58.610Z",
+   "result": {
+    "pa": 4,
+    "hits": 1,
+    "runs": 0,
+    "rbi": 3,
+    "tb": 2,
+    "hr": 0
+   },
+   "actual": 0
   },
   {
    "gamePk": 849810,
@@ -714,7 +1290,16 @@
    "prop": "hr",
    "prob": 0.1177,
    "pa": 578,
-   "recordedAt": "2026-10-15T23:26:58.610Z"
+   "recordedAt": "2026-10-15T23:26:58.610Z",
+   "result": {
+    "pa": 4,
+    "hits": 1,
+    "runs": 0,
+    "rbi": 3,
+    "tb": 2,
+    "hr": 0
+   },
+   "actual": 0
   },
   {
    "gamePk": 849810,
@@ -725,7 +1310,16 @@
    "prop": "hrr",
    "prob": 0.6169,
    "pa": 500,
-   "recordedAt": "2026-10-15T23:26:58.610Z"
+   "recordedAt": "2026-10-15T23:26:58.610Z",
+   "result": {
+    "pa": 4,
+    "hits": 0,
+    "runs": 0,
+    "rbi": 0,
+    "tb": 0,
+    "hr": 0
+   },
+   "actual": 0
   },
   {
    "gamePk": 849810,
@@ -736,7 +1330,16 @@
    "prop": "tb2",
    "prob": 0.3016,
    "pa": 500,
-   "recordedAt": "2026-10-15T23:26:58.610Z"
+   "recordedAt": "2026-10-15T23:26:58.610Z",
+   "result": {
+    "pa": 4,
+    "hits": 0,
+    "runs": 0,
+    "rbi": 0,
+    "tb": 0,
+    "hr": 0
+   },
+   "actual": 0
   },
   {
    "gamePk": 849810,
@@ -747,7 +1350,16 @@
    "prop": "tb3",
    "prob": 0.1735,
    "pa": 500,
-   "recordedAt": "2026-10-15T23:26:58.610Z"
+   "recordedAt": "2026-10-15T23:26:58.610Z",
+   "result": {
+    "pa": 4,
+    "hits": 0,
+    "runs": 0,
+    "rbi": 0,
+    "tb": 0,
+    "hr": 0
+   },
+   "actual": 0
   },
   {
    "gamePk": 849810,
@@ -758,7 +1370,16 @@
    "prop": "tb4",
    "prob": 0.116,
    "pa": 500,
-   "recordedAt": "2026-10-15T23:26:58.610Z"
+   "recordedAt": "2026-10-15T23:26:58.610Z",
+   "result": {
+    "pa": 4,
+    "hits": 0,
+    "runs": 0,
+    "rbi": 0,
+    "tb": 0,
+    "hr": 0
+   },
+   "actual": 0
   },
   {
    "gamePk": 849810,
@@ -769,7 +1390,16 @@
    "prop": "hr",
    "prob": 0.0805,
    "pa": 500,
-   "recordedAt": "2026-10-15T23:26:58.610Z"
+   "recordedAt": "2026-10-15T23:26:58.610Z",
+   "result": {
+    "pa": 4,
+    "hits": 0,
+    "runs": 0,
+    "rbi": 0,
+    "tb": 0,
+    "hr": 0
+   },
+   "actual": 0
   },
   {
    "gamePk": 849810,
@@ -780,7 +1410,16 @@
    "prop": "hrr",
    "prob": 0.6355,
    "pa": 531,
-   "recordedAt": "2026-10-15T23:26:58.610Z"
+   "recordedAt": "2026-10-15T23:26:58.610Z",
+   "result": {
+    "pa": 4,
+    "hits": 1,
+    "runs": 1,
+    "rbi": 1,
+    "tb": 4,
+    "hr": 1
+   },
+   "actual": 1
   },
   {
    "gamePk": 849810,
@@ -791,7 +1430,16 @@
    "prop": "tb2",
    "prob": 0.3083,
    "pa": 531,
-   "recordedAt": "2026-10-15T23:26:58.610Z"
+   "recordedAt": "2026-10-15T23:26:58.610Z",
+   "result": {
+    "pa": 4,
+    "hits": 1,
+    "runs": 1,
+    "rbi": 1,
+    "tb": 4,
+    "hr": 1
+   },
+   "actual": 1
   },
   {
    "gamePk": 849810,
@@ -802,7 +1450,16 @@
    "prop": "tb3",
    "prob": 0.1747,
    "pa": 531,
-   "recordedAt": "2026-10-15T23:26:58.610Z"
+   "recordedAt": "2026-10-15T23:26:58.610Z",
+   "result": {
+    "pa": 4,
+    "hits": 1,
+    "runs": 1,
+    "rbi": 1,
+    "tb": 4,
+    "hr": 1
+   },
+   "actual": 1
   },
   {
    "gamePk": 849810,
@@ -813,7 +1470,16 @@
    "prop": "tb4",
    "prob": 0.1111,
    "pa": 531,
-   "recordedAt": "2026-10-15T23:26:58.610Z"
+   "recordedAt": "2026-10-15T23:26:58.610Z",
+   "result": {
+    "pa": 4,
+    "hits": 1,
+    "runs": 1,
+    "rbi": 1,
+    "tb": 4,
+    "hr": 1
+   },
+   "actual": 1
   },
   {
    "gamePk": 849810,
@@ -824,7 +1490,16 @@
    "prop": "hr",
    "prob": 0.0672,
    "pa": 531,
-   "recordedAt": "2026-10-15T23:26:58.610Z"
+   "recordedAt": "2026-10-15T23:26:58.610Z",
+   "result": {
+    "pa": 4,
+    "hits": 1,
+    "runs": 1,
+    "rbi": 1,
+    "tb": 4,
+    "hr": 1
+   },
+   "actual": 1
   },
   {
    "gamePk": 849810,
@@ -835,7 +1510,16 @@
    "prop": "hrr",
    "prob": 0.644,
    "pa": 266,
-   "recordedAt": "2026-10-15T23:26:58.610Z"
+   "recordedAt": "2026-10-15T23:26:58.610Z",
+   "result": {
+    "pa": 4,
+    "hits": 0,
+    "runs": 0,
+    "rbi": 0,
+    "tb": 0,
+    "hr": 0
+   },
+   "actual": 0
   },
   {
    "gamePk": 849810,
@@ -846,7 +1530,16 @@
    "prop": "tb2",
    "prob": 0.2541,
    "pa": 266,
-   "recordedAt": "2026-10-15T23:26:58.610Z"
+   "recordedAt": "2026-10-15T23:26:58.610Z",
+   "result": {
+    "pa": 4,
+    "hits": 0,
+    "runs": 0,
+    "rbi": 0,
+    "tb": 0,
+    "hr": 0
+   },
+   "actual": 0
   },
   {
    "gamePk": 849810,
@@ -857,7 +1550,16 @@
    "prop": "tb3",
    "prob": 0.1334,
    "pa": 266,
-   "recordedAt": "2026-10-15T23:26:58.610Z"
+   "recordedAt": "2026-10-15T23:26:58.610Z",
+   "result": {
+    "pa": 4,
+    "hits": 0,
+    "runs": 0,
+    "rbi": 0,
+    "tb": 0,
+    "hr": 0
+   },
+   "actual": 0
   },
   {
    "gamePk": 849810,
@@ -868,7 +1570,16 @@
    "prop": "tb4",
    "prob": 0.081,
    "pa": 266,
-   "recordedAt": "2026-10-15T23:26:58.611Z"
+   "recordedAt": "2026-10-15T23:26:58.611Z",
+   "result": {
+    "pa": 4,
+    "hits": 0,
+    "runs": 0,
+    "rbi": 0,
+    "tb": 0,
+    "hr": 0
+   },
+   "actual": 0
   },
   {
    "gamePk": 849810,
@@ -879,7 +1590,16 @@
    "prop": "hr",
    "prob": 0.0505,
    "pa": 266,
-   "recordedAt": "2026-10-15T23:26:58.611Z"
+   "recordedAt": "2026-10-15T23:26:58.611Z",
+   "result": {
+    "pa": 4,
+    "hits": 0,
+    "runs": 0,
+    "rbi": 0,
+    "tb": 0,
+    "hr": 0
+   },
+   "actual": 0
   },
   {
    "gamePk": 849810,
@@ -890,7 +1610,16 @@
    "prop": "hrr",
    "prob": 0.589,
    "pa": 384,
-   "recordedAt": "2026-10-15T23:26:58.611Z"
+   "recordedAt": "2026-10-15T23:26:58.611Z",
+   "result": {
+    "pa": 4,
+    "hits": 0,
+    "runs": 1,
+    "rbi": 0,
+    "tb": 0,
+    "hr": 0
+   },
+   "actual": 1
   },
   {
    "gamePk": 849810,
@@ -901,7 +1630,16 @@
    "prop": "tb2",
    "prob": 0.2452,
    "pa": 384,
-   "recordedAt": "2026-10-15T23:26:58.611Z"
+   "recordedAt": "2026-10-15T23:26:58.611Z",
+   "result": {
+    "pa": 4,
+    "hits": 0,
+    "runs": 1,
+    "rbi": 0,
+    "tb": 0,
+    "hr": 0
+   },
+   "actual": 0
   },
   {
    "gamePk": 849810,
@@ -912,7 +1650,16 @@
    "prop": "tb3",
    "prob": 0.1214,
    "pa": 384,
-   "recordedAt": "2026-10-15T23:26:58.611Z"
+   "recordedAt": "2026-10-15T23:26:58.611Z",
+   "result": {
+    "pa": 4,
+    "hits": 0,
+    "runs": 1,
+    "rbi": 0,
+    "tb": 0,
+    "hr": 0
+   },
+   "actual": 0
   },
   {
    "gamePk": 849810,
@@ -923,7 +1670,16 @@
    "prop": "tb4",
    "prob": 0.0758,
    "pa": 384,
-   "recordedAt": "2026-10-15T23:26:58.611Z"
+   "recordedAt": "2026-10-15T23:26:58.611Z",
+   "result": {
+    "pa": 4,
+    "hits": 0,
+    "runs": 1,
+    "rbi": 0,
+    "tb": 0,
+    "hr": 0
+   },
+   "actual": 0
   },
   {
    "gamePk": 849810,
@@ -934,7 +1690,16 @@
    "prop": "hr",
    "prob": 0.0485,
    "pa": 384,
-   "recordedAt": "2026-10-15T23:26:58.611Z"
+   "recordedAt": "2026-10-15T23:26:58.611Z",
+   "result": {
+    "pa": 4,
+    "hits": 0,
+    "runs": 1,
+    "rbi": 0,
+    "tb": 0,
+    "hr": 0
+   },
+   "actual": 0
   },
   {
    "gamePk": 849810,
@@ -945,7 +1710,16 @@
    "prop": "hrr",
    "prob": 0.5872,
    "pa": 387,
-   "recordedAt": "2026-10-15T23:26:58.611Z"
+   "recordedAt": "2026-10-15T23:26:58.611Z",
+   "result": {
+    "pa": 4,
+    "hits": 2,
+    "runs": 2,
+    "rbi": 2,
+    "tb": 5,
+    "hr": 1
+   },
+   "actual": 1
   },
   {
    "gamePk": 849810,
@@ -956,7 +1730,16 @@
    "prop": "tb2",
    "prob": 0.2413,
    "pa": 387,
-   "recordedAt": "2026-10-15T23:26:58.611Z"
+   "recordedAt": "2026-10-15T23:26:58.611Z",
+   "result": {
+    "pa": 4,
+    "hits": 2,
+    "runs": 2,
+    "rbi": 2,
+    "tb": 5,
+    "hr": 1
+   },
+   "actual": 1
   },
   {
    "gamePk": 849810,
@@ -967,7 +1750,16 @@
    "prop": "tb3",
    "prob": 0.1276,
    "pa": 387,
-   "recordedAt": "2026-10-15T23:26:58.611Z"
+   "recordedAt": "2026-10-15T23:26:58.611Z",
+   "result": {
+    "pa": 4,
+    "hits": 2,
+    "runs": 2,
+    "rbi": 2,
+    "tb": 5,
+    "hr": 1
+   },
+   "actual": 1
   },
   {
    "gamePk": 849810,
@@ -978,7 +1770,16 @@
    "prop": "tb4",
    "prob": 0.0775,
    "pa": 387,
-   "recordedAt": "2026-10-15T23:26:58.611Z"
+   "recordedAt": "2026-10-15T23:26:58.611Z",
+   "result": {
+    "pa": 4,
+    "hits": 2,
+    "runs": 2,
+    "rbi": 2,
+    "tb": 5,
+    "hr": 1
+   },
+   "actual": 1
   },
   {
    "gamePk": 849810,
@@ -989,8 +1790,17 @@
    "prop": "hr",
    "prob": 0.0434,
    "pa": 387,
-   "recordedAt": "2026-10-15T23:26:58.611Z"
+   "recordedAt": "2026-10-15T23:26:58.611Z",
+   "result": {
+    "pa": 4,
+    "hits": 2,
+    "runs": 2,
+    "rbi": 2,
+    "tb": 5,
+    "hr": 1
+   },
+   "actual": 1
   }
  ],
- "graded": false
+ "graded": true
 }
