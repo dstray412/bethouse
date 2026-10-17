@@ -23,15 +23,14 @@
   const HEX = /^[0-9a-f]{6}$/;
   const keyOf = (v) => { const k = String(v == null ? "" : v).toLowerCase(); return /^[a-z0-9]{1,8}$/.test(k) ? k : null; };
   const hex = (v) => { const h = String(v == null ? "" : v).toLowerCase(); return HEX.test(h) ? "#" + h : null; };
-  /* DESIGN.md: the tint is faint; the text over it stays ink on paper. */
+  /* DESIGN.md: the tint is faint; the text over it stays paper on graphite. */
   const TINT = 0.16;
-  /* A primary this light is invisible on the site's paper surfaces (white
-     is 1, the ground #F5F6F8 is 0.93, a silver like #c4ced4 is 0.6), so
-     such a team paints with its secondary. Until 2026-10-16 the board was
-     black and the guard ran the other way (a black primary gave way to
-     the secondary); on paper black is the most visible colour there is.
-     Relative luminance, sRGB. */
-  const LIGHT = 0.8;
+  /* A primary this dark is invisible on the site's graphite surfaces (the
+     ground #0A0B0F is 0.003, the panel #13151B is 0.006, a navy is 0.04),
+     so such a team paints with its secondary: the Steelers' gold, not
+     their black. The board was paper for one day (2026-10-16) and the
+     guard ran the other way then. Relative luminance, sRGB. */
+  const DARK = 0.02;
   const lum = (h) => {
     const n = parseInt(h.slice(1), 16);
     const ch = (v) => { const c = v / 255; return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); };
@@ -52,13 +51,13 @@
   }
 
   /** The colour to paint for a team: its primary, or its secondary when the primary would vanish on
-      paper; null when unknown, and null when both would vanish, so a miss reads as a miss and never
-      as a white bar. */
+      graphite; null when unknown, and null when both would vanish (313 FBS rows were black with no
+      usable secondary on ESPN's list), so a miss reads as a miss and never as a black bar. */
   function paint(league, key) {
     const c = colour(league, key);
     if (!c) return null;
-    if (lum(c.primary) <= LIGHT) return c.primary;
-    return c.secondary && lum(c.secondary) <= LIGHT ? c.secondary : null;
+    if (lum(c.primary) >= DARK) return c.primary;
+    return c.secondary && lum(c.secondary) >= DARK ? c.secondary : null;
   }
 
   /** The two teams' colours as two solid halves (away, home); a known side beside a transparent one, so a miss reads as a miss; "" when neither. */
@@ -77,6 +76,6 @@
     return "rgba(" + (n >> 16) + "," + ((n >> 8) & 255) + "," + (n & 255) + "," + a + ")";
   }
 
-  const api = { use, colour, paint, stripe, tint, TINT, LIGHT };
+  const api = { use, colour, paint, stripe, tint, TINT, DARK };
   return api;
 });

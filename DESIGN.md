@@ -1,22 +1,22 @@
 ---
 # gstack: design-md-format=spec
 name: BetHouse
-description: A paper-white board on a cool grey ground, soft rounded panels, indigo figures, and solid green or red pills where the model found something.
+description: A graphite board, near-black with a hint of blue, soft rounded panels a shade lighter, electric-blue figures, and solid green or red pills where the model found something.
 colors:
-  primary: "#0F172A"
-  on-primary: "#FFFFFF"
-  surface: "#FFFFFF"
-  surface-2: "#EEF0F3"
-  background: "#F5F6F8"
-  line: "rgba(15,23,42,0.10)"
-  rule: "rgba(15,23,42,0.22)"
-  text: "#0F172A"
-  text-muted: "#55607A"
-  accent: "#3B5BDB"
-  on-accent: "#FFFFFF"
-  success: "#15803D"
-  warning: "#B45309"
-  error: "#BE123C"
+  primary: "#F4F5F7"
+  on-primary: "#0A0B0F"
+  surface: "#13151B"
+  surface-2: "#1B1E26"
+  background: "#0A0B0F"
+  line: "rgba(255,255,255,0.08)"
+  rule: "rgba(255,255,255,0.18)"
+  text: "#F4F5F7"
+  text-muted: "#9AA0AC"
+  accent: "#5B8CFF"
+  on-accent: "#0A0B0F"
+  success: "#34D399"
+  warning: "#F5B942"
+  error: "#FB6B7E"
 typography:
   display:
     fontFamily: Bricolage Grotesque
@@ -67,22 +67,22 @@ components:
 
 ## Overview
 
-**Creative North Star:** a clean, modern board, paper on a cool grey ground, rounded panels and pills, figures in indigo, colour where the model found something, because the one thing to remember is that it tells you the truth about the price, and the truth should be easy to spot.
+**Creative North Star:** a clean, modern board, graphite with a hint of blue, rounded panels a shade lighter than the ground, figures in electric blue, colour where the model found something, because the one thing to remember is that it tells you the truth about the price, and the truth should be easy to spot.
 **Product context:** a personal, zero-dependency sports-props board: a dozen static pages (a home, baseball, NFL, a bet log, a live tracker, the record, the teams, the cheat sheets, the consistency cards, the parlays) where every number is a measured probability with a fair price beside it. Used daily, on a laptop and a phone, before kickoff, by the owner and the friends he sends links to. Peers: nhlpropking.com and the props sites it resembles.
 **Mode per surface:** the boards and the drawer Operate; the notes, footers and README prose Read; nothing Persuades and nothing is an Experience.
 **Reference sites:** nhlpropking.com/projections (the user's reference for density, the headed table, the stat tile and the drawer); linemate.io/nfl (the reference for the light ground, the matchup cards and the receipt cards, 2026-10-16).
 **Key characteristics:**
-- Paper, not black: white panels on a cool grey ground (#F5F6F8), ink text, and indigo as the one brand colour. Since 2026-10-16; the dark board it replaced is in the decisions log.
+- Graphite, not black and not paper: a near-black ground with a hint of blue (#0A0B0F), panels a shade lighter (#13151B), soft hairlines, and electric blue as the one brand colour. Since 2026-10-17; the paper board it replaced lasted a day and sits in the decisions log with the pitch-black one before it.
 - Every figure on the site is set in one monospace face, larger than the words around it: numbers are machine output.
-- Colour marks what matters: the chance or projection figure is indigo, a pressed control is indigo, and a solid green, amber or red pill with white text says an edge or a projection well above or below his own rate. Prose, labels and chrome stay ink and muted.
+- Colour marks what matters: the chance or projection figure is electric blue, a pressed control is electric blue, and a solid green, amber or red pill with ink text says an edge or a projection well above or below his own rate. Prose, labels and chrome stay paper-white and muted.
 - Soft shapes: panels at 14px, buttons and inputs at 10px, pills fully round; hairlines inside panels, no glow.
 - A real stat tile in the header: players priced, build time, predictions graded. Never a decorative number.
 
 ## Colors
 
-**Strategy:** Loud where it counts. Indigo (`accent`) for the brand, pressed controls, stars, a tracked bet, the headline figure in a row (chance or projection) and the stat tile; deep green (`success`) for a good edge, so the big number and the verdict beside it are never the same colour; amber and hot red for a warning and a bad edge, and for any measured delta the board prints (a pill, a chip's outline, a band's figure). Pills are solid fills with ink text, never tints. **Team colours** (B2, `teams.js` from `teams-data.js`, ESPN's team lists): a 4px stripe along the top of a home game card (away then home), a faint tint (alpha 0.16) of the team's primary behind the drawer's hero, and a 4px left edge on a tray card. A team colour is a background or a border and never a text colour, so ink on paper keeps its contrast whatever the team. A team whose primary is white or near it paints with its secondary, and with no usable secondary paints nothing (on the black board it was the black primaries that gave way; on paper black is the most visible colour and paints as itself); a team with no colour on file gets no stripe, and a card with one side unknown shows the known half beside a transparent one, so a miss reads as a miss and never as a white bar. A game row's drawer tints with the home side. Everything else is ink on paper.
-**Light or dark:** light, since 2026-10-16 (the user chose paper and indigo over two dark palettes, on mockups of the new home built from the live data). `color-scheme: light`; no dark theme is shipped.
-The ground is a cool grey (#F5F6F8); panels are white and the second surface a shade darker (#EEF0F3); hierarchy on them comes from the two rule weights (a hairline at 10% ink, a rule at 22%) and from type weight, never from glow or shadow. Every tint is a `color-mix` of a token with transparent, so no colour is written twice. `accent` is the brand, the headline figure and the pressed state; it is not an edge colour, so a verdict is never indigo. `success`, `warning`, `error` are the edge colours the baseball board already taught: over 2% good, at or above zero a warning, below zero bad. They appear on the edge cell, the slip's edge, the tray's edge line and the bet log's won/lost; since 2026-10-02 `success` also marks first place on the cheat sheet (a measured rank, the softest of the field) and `warning` its one-game mark (a sample-size caution), and on the consistency card `success` marks a share of 80% and up and `warning` 70% (a measured count), and on the parlay page's list `success` marks a count of eight of ten and a top-five cheat-sheet rank (the two measured facts beside a leg), and nowhere else.
+**Strategy:** Loud where it counts. Electric blue (`accent`) for the brand, pressed controls, stars, a tracked bet, the headline figure in a row (chance or projection) and the stat tile; mint (`success`) for a good edge, so the big number and the verdict beside it are never the same colour; amber and hot red for a warning and a bad edge, and for any measured delta the board prints (a pill, a chip's outline, a band's figure). Pills are solid fills with ink text, never tints. **Team colours** (B2, `teams.js` from `teams-data.js`, ESPN's team lists): a 4px stripe along the top of a home game card (away then home), a faint tint (alpha 0.16) of the team's primary behind the drawer's hero, and a 4px left edge on a tray card. A team colour is a background or a border and never a text colour, so paper on graphite keeps its contrast whatever the team. A team whose primary is black or near it paints with its secondary (the Steelers' gold), and with no usable secondary paints nothing (for the one paper day it was the white primaries that gave way); a team with no colour on file gets no stripe, and a card with one side unknown shows the known half beside a transparent one, so a miss reads as a miss and never as a black bar. A game row's drawer tints with the home side. Everything else is paper-white on graphite.
+**Light or dark:** dark, since 2026-10-17: the user tried paper and indigo for a day and preferred a darker ground; of two dark previews on the live home he was shown graphite with electric blue and graphite with indigo, and the blue shipped (the indigo differs by the accent alone, one token). `color-scheme: dark`; no light theme is shipped.
+The ground is graphite (#0A0B0F, a near-black with a hint of blue); panels lift to #13151B and the second surface to #1B1E26; hierarchy on them comes from the two rule weights (a hairline at 8% white, a rule at 18%) and from type weight, never from glow (the drawer, the tray and the Research panel carry one soft shadow each). Every tint is a `color-mix` of a token with transparent, so no colour is written twice. `accent` is the brand, the headline figure and the pressed state; it is not an edge colour, so a verdict is never indigo. `success`, `warning`, `error` are the edge colours the baseball board already taught: over 2% good, at or above zero a warning, below zero bad. They appear on the edge cell, the slip's edge, the tray's edge line and the bet log's won/lost; since 2026-10-02 `success` also marks first place on the cheat sheet (a measured rank, the softest of the field) and `warning` its one-game mark (a sample-size caution), and on the consistency card `success` marks a share of 80% and up and `warning` 70% (a measured count), and on the parlay page's list `success` marks a count of eight of ten and a top-five cheat-sheet rank (the two measured facts beside a leg), and nowhere else.
 
 ## Typography
 
@@ -109,7 +109,7 @@ Panels (the table, the slip, the tile, the record, a day in the log) at 14px; bu
 
 - **Row** (`.row`): grid, hairline top border, hover tints to `surface`, focus-visible a 2px `accent` outline, `aria-haspopup="dialog"`. The star beside it is its own button, gold when pressed, muted when not.
 - **Segmented control** (`.seg button`): muted text on `surface` with a hairline, 10px radius; pressed is gold with ink text, weight 600; hover lifts the text to paper.
-- **Pill** (`.pill`): 10px caps in a fully round capsule, solid: `up` a green fill with ink text and `down` a red fill with white text for a projection ten percent above or below his rate, an outlined grey "steady" between; an edge in the price cell wears the same solid capsule in good, warn or bad.
+- **Pill** (`.pill`): 10px caps in a fully round capsule, solid: `up` a green fill with ink text and `down` a red fill with ink text for a projection ten percent above or below his rate, an outlined grey "steady" between; an edge in the price cell wears the same solid capsule in good, warn or bad.
 - **Price input** (`.pxin`): mono, 16px, on `surface` with a hairline; focus border `accent`.
 - **Edge** (`.edge`): mono, coloured good, warn or bad; the only coloured text in a row, the slip and the tray, and the arithmetic's edge cell once a price is typed.
 - **Drawer** (`.drawer`, 640px on desktop, a bottom sheet on a phone): a player card. The Compare and close buttons sit in a bar (`.dbar`) stuck to the top of the scrolling drawer, so they stay in reach however far the card is scrolled; on a phone (the 760px breakpoint) a downward swipe that starts with the card at its top closes the sheet, as do the scrim and Escape; the side panel on a wider screen keeps its buttons and does not dismiss on a drag. The head is a hero: the matchup as a caps label in `accent` (`.dkick`), the name in display 28px, `position · Model rank #n of N · prop` muted beneath, and the large headshot as a 150px cutout on the right with the team mark under it (110px under 960px). Then the bands (`.dbands`, one surface panel), the first screen as three claims: the headline figure in mono accent 32px with its fair price (`.head`); **why** (`.why`, a `.dwhy` list of at most three sentences with their figures in mono and an accent dot each: his line, then only the terms that moved the number five percent or more: the opponent, the offence, a teammate ruled out whose share the model gave him); the projection against his own rate (`.rate`, up in `success`, down in `error`, steady in text) with the difference in mono; the receipt (`.receipt`, a 3px `success` left border) saying this call was recorded before kickoff, built at HH:MM UTC and graded once the game is final, with a caps link to the record page. The record's aggregate for the prop is not on the card. Then the tabs as a segmented control: **Overview** (the price input and Track button, then `.how`: "How he gets there", the chips with their notes as a `.hows` list and one sentence from the game log), **Alternate lines** (square rungs with the pressed one outlined in `accent`), **Recent games** (square bars, the ones that clear the threshold in `success`, the threshold a dashed `warning` line), **The arithmetic** (the cells, `.dcells`, three columns, two on a phone: caps label, mono value, a muted note; a value that is a measured delta takes `success` above or `error` below, the offence and opponent factors, the regression, and the edge at a typed price in the edge rule's colour, which is a cell only once a price is typed; a factor of one and every count stay in text). A game row's drawer keeps the two marks and no bands; under its matchup panel, on the NFL board, a **Cheat sheet** panel (`.mu.cheat`, a surface panel with the hairline and the panel radius) lists every top-five line for both sides of the game from the two sheets, each tagged D or O, in the sheet cards' own line markup and five-column grid, with the window, the field, which lines rank from the fewest, the one-game mark, and what the model already takes from a defence and an offence in its foot, since unlike the matchup panel these numbers do reach a price; nothing on a game with nothing in the top five, and nothing on the college board, which has no sheets.
@@ -139,7 +139,7 @@ Panels (the table, the slip, the tile, the record, a day in the log) at 14px; bu
 ## Do's and Don'ts
 
 - Do set every number in Martian Mono with tabular figures, including inside prose.
-- Do keep colour to indigo on the headline figure, pressed controls and stars, and a solid green, amber or red pill that reports a measurement.
+- Do keep colour to electric blue on the headline figure, pressed controls and stars, and a solid green, amber or red pill that reports a measurement.
 - Do put tables, the slip and the record in rounded panels; hairlines only inside them.
 - Do keep rows at 60px on desktop and 56px on a phone with names at 16px and the headline figure at 24px.
 - Do show only measured numbers in the stat tile: players priced, build time, predictions graded.
@@ -159,6 +159,7 @@ Panels (the table, the slip, the tile, the record, a day in the log) at 14px; bu
 ## Decisions Log
 | Date | Decision | Rationale |
 |------|----------|-----------|
+| 2026-10-17 | Graphite and electric blue | The user lived with paper and indigo for a day and preferred a darker ground. Two dark previews of the live home (graphite with electric blue, graphite with indigo) were screenshotted; the blue shipped, the first of the three palettes offered on 2026-10-16. The tokens changed in one line, `teams.js` guards against a near-black primary again, and the shadows went back to black. |
 | 2026-10-17 | Table stakes are not suggestions | The user saw "10+ rushing yards" and "2+ receptions" at the top of the home's plays: of course a back runs for ten. `parlay-page.js` has `MIN_RUNG` (30+ receiving, 30+ rushing, 30+ rush + rec, 4+ receptions, 200+ passing), the lowest rung the page suggests per stat; a player whose highest rung at the floor sits under it has no leg on that stat. The plays, the slip and the parlay page all read it; the drawer's ladder still prices every rung. |
 | 2026-10-17 | The Teams page as two tables | The user found the one wide table poorly organised and hard to read: thirteen columns, a rank stacked under every figure, a chip column that wrapped every row to three lines. It is an Offence table and a Defence table under a segmented control now, one line a team, ranks inline, chips on one row. |
 | 2026-10-16 | The NFL board's one sticky control bar (Direction B) | Of the three directions mocked up, the user chose A for the home and B's two edits for the board followed: the three control rows became one bar that sticks while the table scrolls, and the six-line method paragraph folded under the table. On a phone the merged bar was 350px tall, too much to pin, so only the bet type and the search pin there and the rest sits behind Filters. |

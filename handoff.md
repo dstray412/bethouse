@@ -34,7 +34,23 @@ Zero dependencies, no build step, no server, no API key. `node --test` with
 **named files** — bare discovery pulls in the backtests, which fire live API
 calls. The list lives in six places and `dom.test.mjs` checks all six.
 
-## Table stakes and the Teams page (2026-10-17, latest)
+## Graphite and electric blue (2026-10-17, latest)
+
+**What.** The user lived with paper and indigo for a day and preferred
+a darker ground. Two dark previews of the live home (graphite with
+electric blue, graphite with indigo) were screenshotted; the blue
+shipped (the first of the three palettes offered on 2026-10-16). One
+token line in `board.css` (`--bg:#0A0B0F`, panels #13151B/#1B1E26,
+hairlines at 8% and 18% white, text #F4F5F7, accent #5B8CFF, success
+#34D399, warning #F5B942, error #FB6B7E, `--ink` the ground),
+`color-scheme: dark`, the three shadows back to black; `teams.js`
+guards against a near-black primary again (`DARK` 0.02; the Steelers
+paint gold) with its tests and the colours-file assertion restored;
+`DESIGN.md` tokens, prose and a decisions-log row. The indigo variant
+differs by the accent alone: `--accent:#7C8CFF` if he changes his
+mind. Every page screenshotted dark through the no-cache server.
+
+## Table stakes and the Teams page (2026-10-17)
 
 **What.** Two user complaints. (1) "10+ rushing yards is table
 stakes": `parlay-page.js` gained `MIN_RUNG = { recyds: 30, rushyds:

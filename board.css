@@ -16,8 +16,8 @@
  * .note, optional .controls, then .game tables of .row buttons that open
  * the drawer. Mobile at 760px; touch targets under (pointer:coarse).
  */
-html{color-scheme:light}
-:root{--bg:#F5F6F8; --surface:#FFFFFF; --surface2:#EEF0F3; --line:rgba(15,23,42,0.10); --rule:rgba(15,23,42,0.22); --text:#0F172A; --muted:#55607A; --muted-dim:#67708A; --accent:#3B5BDB; --ink:#FFFFFF; --warn:#B45309; --bad:#BE123C; --good:#15803D; --display:'Bricolage Grotesque',ui-sans-serif,system-ui,sans-serif; --label:'Archivo','Archivo Narrow',ui-sans-serif,system-ui,sans-serif; --mono:'Martian Mono',ui-monospace,'SF Mono',Menlo,monospace; --body:'Source Sans 3',ui-sans-serif,system-ui,-apple-system,sans-serif; --r-btn:10px; --r-panel:14px;}
+html{color-scheme:dark}
+:root{--bg:#0A0B0F; --surface:#13151B; --surface2:#1B1E26; --line:rgba(255,255,255,0.08); --rule:rgba(255,255,255,0.18); --text:#F4F5F7; --muted:#9AA0AC; --muted-dim:#7C8594; --accent:#5B8CFF; --ink:#0A0B0F; --warn:#F5B942; --bad:#FB6B7E; --good:#34D399; --display:'Bricolage Grotesque',ui-sans-serif,system-ui,sans-serif; --label:'Archivo','Archivo Narrow',ui-sans-serif,system-ui,sans-serif; --mono:'Martian Mono',ui-monospace,'SF Mono',Menlo,monospace; --body:'Source Sans 3',ui-sans-serif,system-ui,-apple-system,sans-serif; --r-btn:10px; --r-panel:14px;}
 *{box-sizing:border-box}
 /* The `hidden` attribute must actually hide. A class that sets
    `display` (.ctl and .controls both set display:flex) beats the UA
@@ -107,7 +107,7 @@ header>.ctl{order:2;flex:1 1 100%}
    pill (past ten percent either way); good, warn and bad are an edge. */
 .pill{display:inline-block;font-family:var(--label);font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;padding:3px 9px;border-radius:999px;border:1px solid var(--line);color:var(--muted);white-space:nowrap;line-height:1.3;font-stretch:100%}
 .pill.up,.pill.good{color:var(--ink);border-color:var(--good);background:var(--good);font-weight:700}
-.pill.down,.pill.bad{color:#fff;border-color:var(--bad);background:var(--bad);font-weight:700}
+.pill.down,.pill.bad{color:var(--ink);border-color:var(--bad);background:var(--bad);font-weight:700}
 .pill.warn{color:var(--ink);border-color:var(--warn);background:var(--warn);font-weight:700}
 .caret{color:var(--muted);text-align:center;font-size:15px;transition:transform .16s}
 .row[aria-expanded=true] .caret{transform:rotate(90deg)}
@@ -348,7 +348,7 @@ footer td{padding:1px 14px 1px 0}
 .px{font-family:var(--mono);text-align:right;font-variant-numeric:tabular-nums;font-size:15px;font-weight:600;line-height:1.2}
 .px small.edge{display:inline-block;font-family:var(--label);font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;padding:3px 9px;border-radius:999px;border:1px solid var(--line);margin-top:3px;line-height:1.3;font-stretch:100%}
 .px small.edge.good{color:var(--ink);border-color:var(--good);background:var(--good);font-weight:700}
-.px small.edge.bad{color:#fff;border-color:var(--bad);background:var(--bad);font-weight:700}
+.px small.edge.bad{color:var(--ink);border-color:var(--bad);background:var(--bad);font-weight:700}
 .px small.edge.warn{color:var(--ink);border-color:var(--warn);background:var(--warn);font-weight:700}
 .px .none{font-family:var(--body);color:var(--muted-dim);font-weight:400;font-size:13px}
 /* One colour rule for an edge wherever it is shown: the slip, the row, the panel. */
@@ -366,7 +366,7 @@ footer td{padding:1px 14px 1px 0}
    Escape and the back button. Its body reuses the .why styles. */
 .scrim{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:40}
 .drawer{position:fixed;top:0;right:0;bottom:0;width:min(640px,100%);background:var(--bg);border-left:1px solid var(--line);
-  z-index:41;overflow-y:auto;padding:18px 20px 28px;box-shadow:-8px 0 24px rgba(15,23,42,.18);transition:transform .25s ease-out}
+  z-index:41;overflow-y:auto;padding:18px 20px 28px;box-shadow:-8px 0 24px rgba(0,0,0,.45);transition:transform .25s ease-out}
 /* The card's hero: matchup label, name and rank on the left, the photo
    on the right, the buttons in the corner; then the bands, one line
    each, then the tabs and the cells. */
@@ -470,7 +470,7 @@ button.rung:hover{border-color:var(--rule)}
 .dcompare:hover{color:var(--text);border-color:var(--rule)}
 .dcompare[disabled]{opacity:.5;cursor:default}
 .tray{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--bg);border-top:1px solid var(--rule);padding:10px 14px;
-  display:flex;gap:10px;align-items:stretch;box-shadow:0 -6px 20px rgba(15,23,42,.18)}
+  display:flex;gap:10px;align-items:stretch;box-shadow:0 -6px 20px rgba(0,0,0,.45)}
 .tray:not([hidden])~footer{margin-bottom:150px}
 .tcards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;flex:1;min-width:0}
 .tcard{position:relative;border:1px solid var(--line);border-left:4px solid var(--line);border-radius:var(--r-btn);padding:10px 34px 10px 14px;background:var(--surface);font-size:14px;color:var(--muted)}
@@ -696,7 +696,7 @@ button.rung:hover{border-color:var(--rule)}
 .mnav .research summary::-webkit-details-marker{display:none}
 .mnav .research summary::after{content:" ▾";font-size:11px}
 .mnav .research summary:hover,.mnav .research[open] summary{color:var(--text)}
-.mnav .research div{position:absolute;top:calc(100% + 6px);left:0;z-index:20;display:flex;flex-direction:column;min-width:170px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-btn);padding:6px;box-shadow:0 6px 20px rgba(15,23,42,.12)}
+.mnav .research div{position:absolute;top:calc(100% + 6px);left:0;z-index:20;display:flex;flex-direction:column;min-width:170px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-btn);padding:6px;box-shadow:0 6px 20px rgba(0,0,0,.45)}
 .mnav .research div a{font-family:var(--label);font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);text-decoration:none;padding:8px 10px;border-radius:7px}
 .mnav .research div a:hover{color:var(--text);background:var(--surface2)}
 .mnav .research div a[aria-current]{color:var(--text);background:var(--surface2)}

@@ -10,7 +10,9 @@ Open `index.html` for the home (tonight's slate across the boards),
 live tracker and `bets.html` for the bet log. No build step, no server, no
 API key. (A college football board and a PGA Tour make-the-cut board shipped
 here from 2026-08 and 2026-09 until 2026-10-16, when both were removed to
-make room for a reworked layout; their write-ups live in the git history.)
+make room for a reworked layout; their write-ups live in the git history.
+The look is graphite and electric blue since 2026-10-17, after a day of
+paper and indigo; `DESIGN.md` has the tokens and the decisions.)
 
 ---
 
