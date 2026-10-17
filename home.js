@@ -157,43 +157,6 @@
     return team + " " + (pts > 0 ? "+" : "") + pts;
   }
 
-  /** The best anytime-touchdown chance among players in the slate's open football games. */
-  function topTD(model, data, games) {
-    if (!model || typeof model.scoreAnytimeTD !== "function") return null;
-    let best = null;
-    for (const g of games || []) {
-      if (g.sport !== "football" || g.state !== "pre") continue;
-      const D = data && data.nfl;
-      if (!D || !D.players) continue;
-      const pool = D.usagePool && D.usagePool.length ? D.usagePool : null;
-      const tf = D.teamFactors || {};
-      for (const p of D.players) {
-        if (p.team !== g.home && p.team !== g.away) continue;
-        if (typeof model.availability === "function" && model.availability(p.status) === "out") continue;
-        const opp = p.opp || (p.team === g.home ? g.away : g.home);
-        const s = model.scoreAnytimeTD(p, { teamFactor: (tf[p.team] || {}).off || 1, oppFactor: (tf[opp] && isFinite(tf[opp].def)) ? tf[opp].def : 1, usagePool: pool });
-        if (!s || !isFinite(s.prob)) continue;
-        if (!best || s.prob > best.prob) best = { name: p.name, team: p.team, opp, prob: s.prob, league: g.league, board: g.board, gameId: g.id };
-      }
-    }
-    return best;
-  }
-
-  /** The pick with the most model EV among games not yet started, or null. A pick that loses
-      money at its price is not one, and neither is anything under `floor` (default 1%): the
-      replay found the lines do not beat the close, so a rounding error must not headline. */
-  function topEdge(cards, floor) {
-    const min = isFinite(floor) ? floor : 0.01;
-    let best = null;
-    for (const c of cards || []) {
-      const pick = c && c.card && c.card.pick;
-      if (!c.game || c.game.state !== "pre") continue;
-      if (!pick || !isFinite(pick.ev) || pick.ev <= 0 || pick.ev < min) continue;
-      if (!best || pick.ev > best.card.pick.ev) best = c;
-    }
-    return best;
-  }
-
   /** The tile: games on the slate, players priced across the boards, predictions graded. */
   function counts(data, games) {
     const d = data || {};
@@ -231,5 +194,5 @@
     return last + (f.era ? " " + f.era : "");
   }
 
-  return { normalise, localDay, slate, dayLabel, sentence, clock, logoUrl, footballCard, topTD, topEdge, counts, evLabel, favLabel, pitcherLabel };
+  return { normalise, localDay, slate, dayLabel, sentence, clock, logoUrl, footballCard, counts, evLabel, favLabel, pitcherLabel };
 });

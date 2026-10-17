@@ -34,7 +34,56 @@ Zero dependencies, no build step, no server, no API key. `node --test` with
 **named files** — bare discovery pulls in the backtests, which fire live API
 calls. The list lives in six places and `dom.test.mjs` checks all six.
 
-## Paper and indigo (2026-10-16, latest)
+## The home as Direction A (2026-10-16, latest)
+
+**What.** The layout rework's first page. `index.html` is the research
+dashboard the user chose from the mockups: `.mnav` (NFL | Baseball as a
+switch; Bets, Live, Record with a count badge each when the log has
+open bets or the tracker has props; the research pages linked from
+their sections), the `.week` line (the NFL week when football is on
+the slate, the long date, the slate heading and sentence), `#gscroll`
+(one compact `.gcard.mini` a game, the stripe, logos, projected score
+and favourite or pitchers and lineups, the whole card a link), the
+`#caveat` note under it on a football day, then `.two`: `#playsec`
+(six `.play` receipt cards) beside `#parsec` (the parlay strip as
+before), then `#research` with `#tabs` over the existing `#conssec`
+and `#cheatsec` strips (one shown at a time; a tab with nothing behind
+it disabled; the section hidden when both are empty). `parlay-page.js`
+gained `topPlays(list, {parlay, n, lift})` (buildSlip with every family
+on and the players scope, n down to 2 until a slip builds; [] without
+parlay.js) and `playCardHtml(leg, {fair, faces, league})`; the home
+builds the legs on the slate day's games at the page's defaults with
+every family on (`filter` with `fams` = all), so the touchdown is in.
+`home.js` lost `topTD` and `topEdge` with the tops. `board.css` lost
+`.hero`, `.bstrip`, `.btn`, `.tops`, the old `.gcards`/`.gteams`/
+`.team`/`.gfoot` card rules and gained `.mnav`, `.week`, `.gscroll`,
+the mini card internals, `.two`, `.plays`/`.play`, `.tabs` (the first
+cut of the sed that removed `.team` also took the teams page's
+`.teams` rules; the file was rebuilt from HEAD dropping only the
+intended lines). `dom.test.mjs`: the home test rewritten for the new
+structure (the tops-stripe test gone; the home exempt from the
+navlink-row and tagline checks since it has its own nav; the strip
+tests unchanged because the section ids and the module calls are).
+`mock-a.html` (gitignored) is the visual spec and is now itself light.
+Verified: 679 tests, 0 skipped; the home at three widths and the cheat
+tab through the no-cache server (one MLB game today, six plays, the
+slip, three consistency cards, twelve sheet cards). After
+`/code-review` (10 findings) and `/security-review` (none): the home
+builds the leg list once (`rawLegs`, on the slate day's games as a
+string id set) and `stripHtml` takes it through `helpers.legs`;
+`buildSlip` has a `partial` option so `topPlays` is one call; a play
+card lowers only the first letter of a sheet label (`rec yards to WR`);
+the tile says `games on Sunday`, not `games sunday`; the ONE-name nav
+test scans the home's `.mnav` too; the tab-disabling statement is
+pinned, not the word; `.two` hides when both its sections are; the
+stale home comment and an empty media block left the stylesheet; the
+card's league and state are escaped like everything else. **Next**: Direction
+B's two edits on the NFL board (one sticky control bar; the method
+paragraph folded under the table; on a phone pin only the bet-type
+strip and put the other controls behind a Filters button), then the
+other pages' nav to match the home's.
+
+## Paper and indigo (2026-10-16)
 
 **What.** The user wants the layout reworked and a modern, sleek feel.
 He reviewed nhlpropking.com and linemate.io/nfl, picked Direction A

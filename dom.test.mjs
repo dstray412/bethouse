@@ -165,7 +165,8 @@ test("the design tokens exist once, in the shared stylesheet", () => {
  * ------------------------------------------------------------------ */
 
 test("every board links to every other board, and nowhere broken", () => {
-  for (const f of BOARDS) {
+  /* The home has its own nav since 2026-10-16 (the two-board switch, Bets, Live, Record; the research pages from their sections), pinned in its own test. */
+  for (const f of BOARDS.filter((b) => b !== "index.html")) {
     const hrefs = [...src(f).matchAll(/class="navlink"\s+href="([^"]+)"/g)].map((m) => m[1]);
     const others = BOARDS.filter((b) => b !== f);
     assert.equal(
@@ -183,6 +184,11 @@ test("every board links to every other board, and nowhere broken", () => {
 
 test("a destination has ONE name everywhere it is linked", () => {
   const names = new Map(); // href -> Set of link texts
+  const home = (markup("index.html").match(/<nav class="mnav"[\s\S]*?<\/nav>/) || [""])[0];
+  for (const m of home.matchAll(/<a href="([^"]+)">([^<]+)</g)) {
+    if (!names.has(m[1])) names.set(m[1], new Set());
+    names.get(m[1]).add(m[2].trim());
+  }
   for (const f of BOARDS) {
     for (const m of src(f).matchAll(/class="navlink"\s+href="([^"]+)">([^<]+)</g)) {
       const href = m[1];
@@ -202,7 +208,8 @@ test("a destination has ONE name everywhere it is linked", () => {
 });
 
 test("every board states which board it is", () => {
-  for (const f of BOARDS) {
+  /* The home is the one page with no tagline: the root is the home, and no "Home" link is missing from its nav. */
+  for (const f of BOARDS.filter((b) => b !== "index.html")) {
     const s = src(f);
     const hasStatic = /class="tagline"[^>]*>[^<]*\S[^<]*</.test(s);
     const hasDynamic = /tagline'\)\.textContent\s*=\s*'[A-Z]/.test(s);
@@ -1578,22 +1585,35 @@ test("live.html is a board: shared stylesheet, the scripts it needs, a card list
  * every <img> points there and nothing else loads off-origin.
  * ------------------------------------------------------------------ */
 
-test("index.html is the home: the shared models and every board's data, the slate's ids, logos only from ESPN's CDN", () => {
-  const html = src("index.html");
-  for (const s of ["edge.js", "nfl.js", "watchlist.js", "home.js", "mlb-data.js", "nfl-data.js", "teams-data.js", "teams.js"]) {
+test("index.html is the home: the two-board switch, the week line, the game scroller, the top plays by the slip's rule, the research tabs, logos only from ESPN's CDN", () => {
+  const html = src("index.html"), m = markup("index.html");
+  for (const s of ["edge.js", "faces.js", "teams-data.js", "teams.js", "nfl.js", "watchlist.js", "bets.js", "home.js", "sheet-page.js", "consistency-page.js", "parlay.js", "parlay-page.js", "mlb-data.js", "nfl-data.js", "record.js", "nfl-record.js"]) {
     assert.match(html, new RegExp('<script src="' + s.replace(".", "\\.") + '"'), "index.html loads " + s);
   }
-  for (const id of ["tile", "hero", "slate", "gcards", "tops"]) assert.match(html, new RegExp('id="' + id + '"'), "index.html has #" + id);
+  for (const id of ["tile", "week", "caveat", "gscroll", "playsec", "plays", "parsec", "research", "tabs", "conssec", "cheatsec", "foot"]) assert.match(m, new RegExp('id="' + id + '"'), "index.html has #" + id);
+  for (const gone of ["hero", "bstrip", "tops", "topsec", "gcards", "slate"]) assert.doesNotMatch(m, new RegExp('id="' + gone + '"'), "the old home's #" + gone + " is still on the page");
+  // The nav: the two boards as a switch, then the three pages a bettor keeps open, with a count where there is one; the research pages are linked from their sections, not the nav.
+  assert.match(m, /<nav class="mnav"[\s\S]*class="prim"[\s\S]*href="nfl\.html"[\s\S]*href="baseball\.html"[\s\S]*class="sec"[\s\S]*href="bets\.html"[\s\S]*id="betsn"[\s\S]*href="live\.html"[\s\S]*id="liven"[\s\S]*href="record\.html"/, "the nav is not the two-board switch with Bets, Live and Record");
+  assert.doesNotMatch(m, /class="navlink"/, "the home still carries the boards' link row");
+  for (const f of ["teams.html", "defence.html", "offence.html", "consistency.html", "parlays.html"]) assert.match(m, new RegExp('href="' + f.replace(".", "\\.") + '"'), "the home no longer links " + f);
   assert.doesNotMatch(html, /fonts\.googleapis|https?:\/\/[^"]*\.(js|css)"/, "an off-origin script or sheet");
-  // The img markup is built in the script; its src is whatever home.js's logoUrl returns (pinned to
-  // ESPN's CDN in home.test.mjs), escaped, with no referrer and hidden when it does not load.
-  // The logo img is faces.js's markup (pinned in faces.test.mjs) around home.js's url (pinned in home.test.mjs).
   assert.doesNotMatch(html, /<img/, "the home hand-rolls an <img> instead of asking faces.js");
-  assert.match(html, /F\.img\(u,'tlogo',44\)/, "the logo is not built by faces.js");
+  assert.match(html, /F\.img\(u,'tlogo',36\)/, "the logo is not built by faces.js");
   assert.match(html, /H\.logoUrl\(/, "the src comes from home.js");
   // The boards' verdict travels with the numbers: the replay found the favourite and the lines do not beat the market.
   assert.match(html, /id="caveat"[^>]*>[^<]*replay found neither beats the market/, "the home shows the football numbers without the boards' warning");
   for (const gone of ["cfb", "pga", "golf", "CFB", "PGA"]) assert.doesNotMatch(html, new RegExp(gone), "the home still carries the removed " + gone + " board");
+  // The top plays are the parlay page's rule and markup (one a family in turn, one a player), on the slate day's games, with their own guard; never a raw chance ranking.
+  assert.match(html, /PP\.topPlays\(/, "the top plays are not the module's rule");
+  assert.match(html, /PP\.playCardHtml\(/, "the play cards are not the module's markup");
+  assert.match(html, /catch\(e\)\{ el\('playsec'\)\.hidden=true; \}/, "a fault in the plays is not contained to the section");
+  assert.doesNotMatch(html, /sort\(function\([a-z],[a-z]\)\{ return [a-z]\.prob-[a-z]\.prob/, "the home ranks plays by raw chance");
+  // The research tabs show one section at a time and a tab with nothing behind it cannot be pressed.
+  assert.match(m, /<div class="tabs" id="tabs"[\s\S]*data-tab="cons"[\s\S]*data-tab="cheat"/, "the tabs do not name the two sections");
+  assert.match(html, /b\.disabled=live\.indexOf\(b\.getAttribute\('data-tab'\)\)<0/, "a tab with nothing behind it is not disabled");
+  // The legs are built once, on the slate day's games, and both the plays and the slip read that list.
+  assert.equal((html.match(/PP\.legs\(/g) || []).length, 1, "the home builds the leg list more than once");
+  assert.match(html, /gameIds:pids, legs:rawLegs\}/, "the slip does not take the prebuilt leg list");
 });
 
 test("the baseball board kept its page under its new name, and every board calls the home Home", () => {
@@ -1930,14 +1950,6 @@ test("the arithmetic colours a cell only where the model moved the number, and c
   assert.match(css, /\.dcell b\.down\{color:var\(--bad\)\}/, "no rule for a down cell");
 });
 
-test("the home's tops wear the game's two-colour stripe, as its game cards do", () => {
-  const html = src("index.html");
-  assert.match(html, /var top=function\(label,val,meta,href,link,stripe\)/, "the top card takes no stripe");
-  assert.match(html, /<div class="card">'\+\(stripe\?'<span class="gstripe" style="background:'\+esc\(stripe\)\+'"><\/span>':''\)/, "the stripe is not an escaped background on its own element");
-  assert.match(html, /T\.stripe\(edge\.game\.league,edge\.game\.awayKey,edge\.game\.homeKey\)/, "the EV top does not take its game's stripe");
-  assert.match(html, /T\.stripe\(tdGame\.league,tdGame\.awayKey,tdGame\.homeKey\)/, "the touchdown top does not take its game's stripe");
-  assert.match(src(SHEET), /\.tops \.card\{[^}]*overflow:hidden/, "the top card does not clip its stripe to its corners");
-});
 
 /* ------------------------------------------------------------------ *
  * The vacated share on the page. The fetcher writes `vac` {r, c, o} on a
@@ -2125,7 +2137,8 @@ test("record.html: a section for the football league with its replay table and a
   }
   for (const f of ["nfl.html"]) assert.match(src(f), new RegExp("league: '(" + ["NFL"].join("|") + ")'"), f + " names a league the anchor map does not know");
   // Every other board offers the Record link (the nav test above checks the record page links every board).
-  for (const f of BOARDS.filter((b) => b !== "record.html")) assert.match(src(f), /<a class="navlink" href="record\.html">Record →<\/a>/, f + " has no Record link");
+  for (const f of BOARDS.filter((b) => b !== "record.html" && b !== "index.html")) assert.match(src(f), /<a class="navlink" href="record\.html">Record →<\/a>/, f + " has no Record link");
+  assert.match(markup("index.html"), /<a href="record\.html">Record<\/a>/, "the home's nav has no Record link");
 });
 
 test("the stylesheet carries the chips line, the why list, the how list and the record panels", () => {
@@ -2424,7 +2437,7 @@ test("the teams page's panel scrolls sideways inside itself, the team cell stick
   /* The home carries the parlay page's slip: parlay.js and the page module loaded, a section to write, the call with the NFL data, model, record, parlay module, the slate day's game ids and the clock; the heading's rule written from the module's defaults; hidden when none builds. */
   for (const f of ["parlay.js", "parlay-page.js"]) assert.ok(src("index.html").indexOf('<script src="' + f + '"></script>') > 0, "the home does not load " + f);
   assert.match(src("index.html"), /<section id="parsec" hidden>[\s\S]*id="parrule"[\s\S]*id="parstrip"/, "the home has no parlay section with a rule and a strip");
-  assert.match(src("index.html"), /PP\.stripHtml\(N, pnfl, window\.BETHOUSE_NFL_RECORD\|\|null, window\.BetHouseParlay\|\|null, \{faces:F, league:'NFL', now:now, gameIds:pids\}\)/, "the home does not build the strip from the module, on the slate day's games, at the home's clock");
+  assert.match(src("index.html"), /PP\.stripHtml\(N, pnfl, window\.BETHOUSE_NFL_RECORD\|\|null, window\.BetHouseParlay\|\|null, \{faces:F, league:'NFL', now:now, gameIds:pids, legs:rawLegs\}\)/, "the home does not build the strip from the module, on the slate day's games, at the home's clock");
   assert.match(src("index.html"), /var pids=nfs\.games\.map\(function\(g\)\{ return g\.raw&&g\.raw\.id; \}\)/, "the strip's games are not the cheat strip's slate day");
   assert.match(src("index.html"), /el\('parrule'\)\.textContent=PP\.ruleText\(PP\.cleanState\(null\)\)/, "the heading's rule is prose, not the module's defaults");
   assert.match(src("index.html"), /el\('parwhen'\)\.textContent=/, "the heading does not name the day when it is not today");

@@ -119,34 +119,6 @@ test("footballCard: the projection, favourite and pick the NFL board's game view
   assert.equal(H.footballCard(N, E, { ratings: null }, g), null, "no ratings, no card");
 });
 
-test("topTD: the best touchdown chance among players in the slate's open football games, nobody ruled out", () => {
-  const all = H.normalise({ nfl: NFL, mlb: MLB }, NOW);
-  const s = H.slate(all, NOW, TZ);
-  const top = H.topTD(N, { nfl: NFL }, s.games);
-  assert.ok(top && top.prob > 0 && top.prob < 1);
-  assert.notEqual(top.name, "Out Guy");
-  assert.notEqual(top.name, "Travis Kelce", "Sunday's game is not on today's slate");
-  assert.equal(top.board, "nfl.html");
-  assert.equal(H.topTD(N, { nfl: NFL }, []), null, "no games, no card");
-});
-
-test("topEdge: the game pick with the most positive EV on the slate, or nothing", () => {
-  const all = H.normalise({ nfl: NFL, mlb: MLB }, NOW);
-  const cards = H.slate(all, NOW, TZ).games.map((g) => ({ game: g, card: g.sport === "football" ? H.footballCard(N, E, NFL, g) : null }));
-  // The model shrinks a cover chance toward a coin flip (the replay found no edge on the lines), so at -110 nothing here is an edge.
-  assert.ok(cards.every((c) => !c.card || !c.card.pick || c.card.pick.ev < 0));
-  assert.equal(H.topEdge(cards), null, "a pick that loses money at its price is not an edge, however it ranks");
-  assert.equal(H.topEdge([]), null);
-  const g = cards[0].game;
-  const some = [{ game: g, card: { pick: { text: "a", ev: 0.012, prob: 0.55, price: -110 } } }, { game: g, card: { pick: { text: "b", ev: 0.031, prob: 0.56, price: -105 } } }, { game: g, card: null }];
-  assert.equal(H.topEdge(some).card.pick.text, "b", "the most EV among the positive ones");
-  const tiny = [{ game: g, card: { pick: { text: "t", ev: 0.001, prob: 0.51, price: -102 } } }];
-  assert.equal(H.topEdge(tiny), null, "a tenth of a percent is a rounding error, not a headline");
-  assert.equal(H.topEdge(tiny, 0).card.pick.text, "t", "an explicit floor of zero allows any positive EV");
-  const over = [{ game: Object.assign({}, g, { state: "post" }), card: { pick: { text: "z", ev: 0.05, prob: 0.6, price: -110 } } }];
-  assert.equal(H.topEdge(over), null, "a game that has started or finished is not a bet");
-});
-
 test("evLabel, favLabel, pitcherLabel: the card's words say only what the number says", () => {
   assert.equal(H.evLabel(0.031), "+3.1% EV"); assert.equal(H.evLabel(-0.029), "−2.9% EV");
   assert.equal(H.evLabel(0), ""); assert.equal(H.evLabel(0.0004), "", "rounds to nothing: no sign, no claim");

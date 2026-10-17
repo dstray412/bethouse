@@ -12,65 +12,49 @@
 <header>
   <div class="brand">
     <h1 class="logo">BETHOUSE</h1>
-    <div class="tagline" id="tagline">Home — tonight's slate</div>
-  <nav class="boards" aria-label="Boards">
-    <a class="navlink" href="baseball.html">Baseball →</a>
-    <a class="navlink" href="nfl.html">NFL →</a>
-    <a class="navlink" href="bets.html">Bets →</a>
-    <a class="navlink" href="live.html">Live →</a>
-    <a class="navlink" href="record.html">Record →</a>
-    <a class="navlink" href="teams.html">Teams →</a>
-    <a class="navlink" href="defence.html">Defences →</a>
-    <a class="navlink" href="offence.html">Offences →</a>
-    <a class="navlink" href="consistency.html">Consistency →</a>
-  <a class="navlink" href="parlays.html">Parlays →</a>
-  </nav>
+    <!-- The two boards as a switch, then the three pages a bettor keeps open, each with a count when it has one.
+         The research pages are linked from their own sections below, not from here. -->
+    <nav class="mnav" aria-label="Boards">
+      <span class="prim"><a href="nfl.html">NFL</a><a href="baseball.html">Baseball</a></span>
+      <span class="sec"><a href="bets.html">Bets<b id="betsn" hidden></b></a><a href="live.html">Live<b id="liven" hidden></b></a><a href="record.html">Record</a></span>
+    </nav>
   </div>
   <div class="tile" id="tile"></div>
 </header>
 
-<section class="hero" id="hero">
-  <div class="hdate"><span class="pill today" id="hwhen">Today</span><span id="hday"></span></div>
-  <h2 id="htitle">Tonight's slate</h2>
-  <p id="hsent">Reading the boards…</p>
-</section>
+<div class="week" id="week"><span class="kick" id="wkick"></span><h2 id="htitle">Tonight's slate</h2><p id="hsent">Reading the boards…</p></div>
+<div class="gscroll" id="gscroll"></div>
+<div class="note" id="caveat" hidden>The projected score and the favourite on a football card are the board's own numbers, shown because you asked which side. The replay found neither beats the market: the win chance is worse than the moneyline's and the lines do not beat the close.</div>
 
-<nav class="bstrip" aria-label="Boards">
-  <span class="blab">Boards</span>
-  <a class="btn" href="nfl.html">NFL</a>
-  <a class="btn" href="baseball.html">Baseball</a>
-  <a class="btn" href="live.html">Live tracker</a>
-  <a class="btn" href="teams.html">Teams</a>
-  <a class="btn" href="defence.html">Defences</a>
-  <a class="btn" href="offence.html">Offences</a>
-  <a class="btn" href="consistency.html">Consistency</a>
-  <a class="btn" href="bets.html">Bet log</a>
-</nav>
+<div class="two">
+  <section id="playsec" hidden>
+    <div class="shead"><h2 class="gtitle">Top plays</h2><div class="gmeta"><span id="playwhen"></span>the best leg of each family in turn, one a player, as the slip picks them · <a class="open" href="parlays.html">Every line →</a></div></div>
+    <div class="plays" id="plays"></div>
+  </section>
+  <section id="parsec" hidden>
+    <div class="shead"><h2 class="gtitle">Parlay of the day</h2><div class="gmeta"><span id="parwhen"></span>NFL · lines sold as a number and up, never the projection's line · <span id="parrule"></span> · ranked by chance within a family, not by price · <a class="open" href="parlays.html">Pick your own legs and floor →</a></div></div>
+    <div id="parstrip"></div>
+  </section>
+</div>
 
-<section id="slate">
-  <div class="shead"><h2 class="gtitle" id="stitle">Tonight's games</h2><div class="gmeta" id="smeta"></div></div>
-  <div class="note" id="caveat">The favourite and the pick on a football card are the boards' own numbers, shown because you asked which side. The replay found neither beats the market: the win chance is worse than the moneyline's, and the sides cover under the rate a −110 price needs. Read the boards' warning before betting a side.</div>
-  <div class="gcards" id="gcards"></div>
-</section>
-
-<section id="cheatsec" hidden>
-  <div class="shead"><h2 class="gtitle">Cheat sheet</h2><div class="gmeta"><span id="cheatwhen"></span>where each defence is softest and each offence strongest this season · the top five of <span id="cheatfield">32</span> · turnovers, takeaways and a defence's sacks rank from the fewest · <b>D</b> the defence, <b>O</b> the offence · <a class="open" href="defence.html">Defences →</a> <a class="open" href="offence.html">Offences →</a></div></div>
-  <div class="sheet" id="cheat"></div>
-</section>
-
+<section id="research" hidden>
+  <div class="shead"><h2 class="gtitle">Research</h2><div class="gmeta"><a class="open" href="teams.html">Teams →</a> <a class="open" href="defence.html">Defences →</a> <a class="open" href="offence.html">Offences →</a> <a class="open" href="consistency.html">Consistency →</a></div></div>
+  <div class="tabs" id="tabs" role="group" aria-label="Research">
+    <button type="button" data-tab="cons" aria-pressed="true">Consistency</button>
+    <button type="button" data-tab="cheat" aria-pressed="false">Cheat sheets</button>
+  </div>
+  <div id="tab-cons">
 <section id="conssec" hidden>
   <div class="shead"><h2 class="gtitle">Consistency</h2><div class="gmeta">NFL · hits in the last ten games on file, this season and last, at a line the board prices · six hits or better, five a card · <b>Q</b> questionable on the report · a count, not a chance: the chance is in his drawer on the <a class="open" href="nfl.html">NFL board →</a> · <a class="open" href="consistency.html">Every line →</a></div></div>
   <div class="cons strip" id="consstrip"></div>
 </section>
-
-<section id="parsec" hidden>
-  <div class="shead"><h2 class="gtitle">Suggested parlay</h2><div class="gmeta"><span id="parwhen"></span>NFL · lines sold as a number and up, never the projection's line · <span id="parrule"></span> · ranked by chance within a family, not by price · <a class="open" href="parlays.html">Pick your own legs and floor →</a></div></div>
-  <div id="parstrip"></div>
+  </div>
+  <div id="tab-cheat" hidden>
+<section id="cheatsec" hidden>
+  <div class="shead"><h2 class="gtitle">Cheat sheet</h2><div class="gmeta"><span id="cheatwhen"></span>where each defence is softest and each offence strongest this season · the top five of <span id="cheatfield">32</span> · turnovers, takeaways and a defence's sacks rank from the fewest · <b>D</b> the defence, <b>O</b> the offence · <a class="open" href="defence.html">Defences →</a> <a class="open" href="offence.html">Offences →</a></div></div>
+  <div class="sheet" id="cheat"></div>
 </section>
-
-<section id="topsec">
-  <div class="shead"><h2 class="gtitle">Top of the boards</h2><div class="gmeta">measured, not picked by hand</div></div>
-  <div class="cards tops" id="tops"></div>
+  </div>
 </section>
 
 <footer id="foot"></footer>
@@ -85,6 +69,7 @@
 <script src="teams.js"></script>
 <script src="nfl.js"></script>
 <script src="watchlist.js"></script>
+<script src="bets.js"></script>
 <script src="home.js"></script>
 <script src="sheet-page.js"></script>
 <script src="consistency-page.js"></script>
@@ -102,7 +87,7 @@
   'use strict';
   try { render(); } catch (e) {
     /* One bad file must not leave the placeholder at the site root. */
-    var app=document.getElementById('gcards'); if(app) app.innerHTML='<div class="empty" style="grid-column:1/-1"><div class="big">The home could not read a board</div>Reload this page; if it keeps happening the data file is a build behind the code.</div>';
+    var app=document.getElementById('gscroll'); if(app) app.innerHTML='<div class="empty" style="flex:1 1 100%"><div class="big">The home could not read a board</div>Reload this page; if it keeps happening the data file is a build behind the code.</div>';
     var hs=document.getElementById('hsent'); if(hs) hs.textContent='A board did not load.';
     if(window.console&&console.error) console.error(e);
   }
@@ -116,109 +101,120 @@
   var now=Date.now();
   var all=H.normalise(data, now);
   var s=H.slate(all, now);
-  var pct=function(p){ return (100*p).toFixed(0)+'%'; };
   var longDay=function(day){ return new Intl.DateTimeFormat('en-US',{weekday:'long',month:'long',day:'numeric',timeZone:'UTC'}).format(new Date(day+'T12:00:00Z')); };
 
   /* The tile: numbers the page has, and only those. */
   var c=H.counts(data, s.games.length);
   var cell=function(v,l){ return '<div><b>'+esc(v)+'</b><span>'+l+'</span></div>'; };
-  el('tile').innerHTML=cell(c.games, s.when==='today'?'games today':s.when==='next'?'games next up':'games')+
+  el('tile').innerHTML=cell(c.games, s.when==='today'?'games today':s.when==='next'?(s.label==='Tomorrow'?'games tomorrow':s.label?'games on '+esc(s.label):'games next up'):'games')+
     cell(c.players.toLocaleString('en-US'),'players priced')+(c.graded?cell(c.graded.toLocaleString('en-US'),'predictions graded'):'');
 
-  /* The hero: which day the slate is, in one measured sentence. */
-  el('hwhen').textContent=s.day?H.dayLabel(s.day, now):'No slate';
-  el('hwhen').classList.toggle('today', s.when==='today');
-  el('hday').textContent=s.day?longDay(s.day):'';
-  el('htitle').textContent=s.when==='today'?'Tonight\'s slate':s.when==='next'?'Next up':'Nothing on the boards';
-  el('hsent').textContent=H.sentence(s);
+  /* The nav's counts: open bets in the log, props tracked live. Each in its own guard: a bad store is a missing count, never a missing home. */
+  try{
+    var B=window.BetHouseBets, raw=window.localStorage.getItem(B.STORAGE_KEY);
+    var open=raw?B.summarise(B.migrate(B.parse(raw))).pending:0;
+    if(open>0){ el('betsn').textContent=String(open); el('betsn').hidden=false; }
+  }catch(e){ el('betsn').hidden=true; }
+  try{
+    var tracked=W&&W.parseTracks?W.parseTracks(window.localStorage.getItem(W.TRACK_KEY)).length:0;
+    if(tracked>0){ el('liven').textContent=String(tracked); el('liven').hidden=false; }
+  }catch(e){ el('liven').hidden=true; }
 
-  /* One card per game. The logo is the one image the site ships: ESPN's,
-     by a key the module has already reduced to letters and digits, sent
-     without a referrer, and hidden if it does not load. */
+  /* The week line: which day the slate is, the NFL week when football is on it, one measured sentence. */
+  var hasFb=s.games.some(function(g){ return g.sport==='football'; }), hasBb=s.games.some(function(g){ return g.sport==='baseball'; });
+  var week=hasFb&&data.nfl&&data.nfl.week!=null?'Week '+data.nfl.week+' · ':'';
+  el('wkick').textContent=s.day?week+longDay(s.day):'';
+  el('htitle').textContent=s.when==='today'?'Tonight\'s slate':s.when==='next'?'Next up':'Nothing on the boards';
+  el('hsent').textContent=H.sentence(s)+(hasFb?' · projected score and the model favourite on each football card':'')+(hasBb?' · probable pitchers and whether lineups are posted on each baseball card':'');
+  el('caveat').hidden=!hasFb; // the warning is about football numbers; a baseball day has none to warn about
+
+  /* One card per game, in a strip that scrolls. The logo is the one image the site ships: ESPN's,
+     by a key the module has already reduced to letters and digits, sent without a referrer, and
+     hidden if it does not load. */
   var logo=function(g,side){
     var u=H.logoUrl(g.league, side==='home'?g.homeKey:g.awayKey);
-    return u&&F?F.img(u,'tlogo',44):'';
+    return u&&F?F.img(u,'tlogo',36):'';
   };
-  var chipFor=function(g){
-    if(g.state==='in') return '<span class="chip livegame">'+(g.sport==='baseball'?'Live':'Started')+'</span>';
-    if(g.state==='post') return '<span class="chip done">Final</span>';
-    return '';
-  };
-  var cards=[];
-  var teamHtml=function(g,side,card){
+  var sideHtml=function(g,side,card){
     var abbr=side==='home'?g.home:g.away;
-    var pts=card?(side==='home'?card.homePts:card.awayPts):null;
-    return '<div class="team '+side+'">'+logo(g,side)+'<b title="'+esc(side==='home'?g.homeName:g.awayName)+'">'+esc(abbr)+'</b>'+(pts!=null?'<span class="gpts">'+esc(pts)+'</span>':'')+'</div>';
+    var line='';
+    if(g.sport==='football'){ var pts=card?(side==='home'?card.homePts:card.awayPts):null; if(pts!=null) line='<span class="pts">'+esc(pts)+'</span>'; }
+    else { var f=side==='home'?g.raw.homeFaces:g.raw.awayFaces; line='<span class="pit" title="'+esc(f&&f.name||'')+'">'+esc(H.pitcherLabel(f))+'</span>'; }
+    return '<span class="side">'+logo(g,side)+'<b title="'+esc(side==='home'?g.homeName:g.awayName)+'">'+esc(abbr)+'</b>'+line+'</span>';
   };
   var lineupWord=function(g){
     var a=g.raw.away&&g.raw.away.confirmed, h=g.raw.home&&g.raw.home.confirmed;
-    return a&&h?'Both posted':a?'Away posted':h?'Home posted':'Not yet';
+    return a&&h?'Lineups posted':a?'Away posted':h?'Home posted':'No lineups yet';
   };
+  var stateWord=function(g){ return g.state==='in'?(g.sport==='baseball'?'Live':'Started'):g.state==='post'?'Final':null; };
   var h='';
   s.games.forEach(function(g){
     var card=g.sport==='football'?H.footballCard(N,E,data.nfl,g):null;
-    cards.push({game:g, card:card});
-    var foot;
-    if(g.sport==='football'){
-      /* A pick is a bet only before kickoff; a started or finished game keeps its projection and loses the cell. */
-      var fav=card?H.favLabel(card.fav):null, open=g.state==='pre';
-      var pickCell=!open?'<div><small>Line</small><b>closed</b></div>':
-        card&&card.pick?'<div><small>'+(card.pick.ev>0?'Pick':'Lean, no value')+'</small><b>'+esc(card.pick.text)+(H.evLabel(card.pick.ev)?' · '+H.evLabel(card.pick.ev):'')+'</b></div>':
-        '<div><small>Line</small><b>'+(g.raw.line?'no edge':'none yet')+'</b></div>';
-      foot='<div><small>Model favourite</small><b>'+(fav?esc(fav):'—')+'</b></div>'+pickCell;
-    } else {
-      foot='<div><small>Pitchers · ERA</small><b>'+esc(H.pitcherLabel(g.raw.awayFaces))+'<br>'+esc(H.pitcherLabel(g.raw.homeFaces))+'</b></div>'+
-           '<div><small>Lineups</small><b>'+lineupWord(g)+'</b></div>';
-    }
+    var fav=card?H.favLabel(card.fav):null;
+    var left=stateWord(g)||(g.sport==='football'?(fav?esc(fav):(card?'pick \'em':esc(g.league))):lineupWord(g));
     /* The two teams' colours as a stripe along the top (teams.js): a background, never a text colour. */
     var stripe=T?T.stripe(g.league,g.awayKey,g.homeKey):'';
-    h+='<div class="gcard '+g.state+'">'+(stripe?'<span class="gstripe" style="background:'+esc(stripe)+'"></span>':'')+
-      '<div class="gtop"><span>'+esc(g.league)+chipFor(g)+'</span><span class="gtime">'+esc(H.clock(g.start))+'</span></div>'+
-      '<div class="gteams">'+teamHtml(g,'away',card)+'<span class="at">at</span>'+teamHtml(g,'home',card)+'</div>'+
-      '<div class="gfoot">'+foot+'<a class="open" href="'+esc(g.board)+'" aria-label="Open the '+esc(g.league)+' board: '+esc(g.away)+' at '+esc(g.home)+'">Open →</a></div>'+
-      '</div>';
+    h+='<a class="gcard mini '+esc(g.state)+'" href="'+esc(g.board)+'" aria-label="Open the '+esc(g.league)+' board: '+esc(g.away)+' at '+esc(g.home)+'">'+(stripe?'<span class="gstripe" style="background:'+esc(stripe)+'"></span>':'')+
+      '<span class="t">'+sideHtml(g,'away',card)+'<span class="at">at</span>'+sideHtml(g,'home',card)+'</span>'+
+      '<span class="m"><span>'+left+'</span><span class="gtime">'+esc(H.clock(g.start))+'</span></span></a>';
   });
-  if(!s.games.length) h='<div class="empty" style="grid-column:1/-1"><div class="big">No games on the boards</div>The boards rebuild on their own schedule; the NFL file daily, baseball every half hour in season.</div>';
-  el('gcards').innerHTML=h;
-  el('stitle').textContent=s.when==='today'?'Tonight\'s games':s.when==='next'?(s.label||'Next up')+'\'s games':'Games';
-  var hasFb=s.games.some(function(g){ return g.sport==='football'; }), hasBb=s.games.some(function(g){ return g.sport==='baseball'; });
-  el('caveat').hidden=!hasFb; // the warning is about football numbers; a baseball day has none to warn about
-  var linesAt=data.nfl&&data.nfl.linesFetched;
-  el('smeta').textContent=s.games.length?s.games.length+(s.games.length===1?' game':' games')+' · times where you are'+
-    (hasFb?' · projected score, the favourite and the better of spread and total by EV'+(linesAt?' · lines as of '+String(linesAt).slice(11,16)+' UTC':''):'')+
-    (hasBb?' · probable pitchers and whether lineups are posted':''):'';
+  if(!s.games.length) h='<div class="empty" style="flex:1 1 100%"><div class="big">No games on the boards</div>The boards rebuild on their own schedule; the NFL file daily, baseball every half hour in season.</div>';
+  el('gscroll').innerHTML=h;
 
-  /* The top of the boards: each card only when its number exists. */
-  var tops='';
-  /* `val` is markup the caller built (a name beside a mono figure); everything else is text and escaped here. */
-  /* `stripe` is the game's two colours from teams.js, a background on its own element, as on a game card. */
-  var top=function(label,val,meta,href,link,stripe){ return '<div class="card">'+(stripe?'<span class="gstripe" style="background:'+esc(stripe)+'"></span>':'')+'<div class="cprop">'+esc(label)+'</div><div class="cval">'+val+'</div><div class="cmeta">'+esc(meta)+'</div><a class="open" href="'+esc(href)+'" aria-label="'+esc(link)+' board">'+esc(link)+' →</a></div>'; };
-  /* The football tops come from tonight's football games, or, on a day
-     without any, from the next day that has some, and say which. */
-  var fb=s.games.some(function(g){ return g.sport==='football'; })?s:H.slate(all.filter(function(g){ return g.sport==='football'; }), now);
-  var fbCards=fb===s?cards:fb.games.map(function(g){ return {game:g, card:H.footballCard(N, E, data.nfl, g)}; });
-  var whenWord=fb===s?'':' · '+(fb.label||'next up');
-  var td=H.topTD(N,{nfl:data.nfl},fb.games);
-  var tdGame=td?fb.games.find(function(g){ return g.id===td.gameId; }):null;
-  if(td) tops+=top('Top touchdown chance'+whenWord, esc(td.name)+' <span class="mono">'+pct(td.prob)+'</span>', td.team+' vs '+td.opp+' · '+td.league, td.board, 'NFL', T&&tdGame?T.stripe(tdGame.league,tdGame.awayKey,tdGame.homeKey):'');
-  /* Model EV, not "edge": the replay found the game lines do not beat the close, so this is the
-     model's best number on the slate, shown with that caveat, and only from one percent up. */
-  var edge=H.topEdge(fbCards);
-  if(edge) tops+=top('Top model EV on a line'+whenWord, esc(edge.card.pick.text)+' <span class="mono">'+H.evLabel(edge.card.pick.ev)+'</span>', edge.game.away+' at '+edge.game.home+' · '+pct(edge.card.pick.prob)+' to cover at '+edge.card.pick.price+' · the replay found no proven edge in the lines', edge.game.board, 'NFL', T?T.stripe(edge.game.league,edge.game.awayKey,edge.game.homeKey):'');
-  var tracked=0; try{ if(W&&W.parseTracks) tracked=W.parseTracks(window.localStorage.getItem(W.TRACK_KEY)).length; }catch(e){ tracked=0; }
-  tops+=top('Tracking live', '<span class="mono">'+tracked+'</span> '+(tracked===1?'prop':'props'), tracked?'counted off the feeds while the games are on':'press Track on a player to follow him here', 'live.html', 'Live');
-  if(!hasFb&&!fb.games.length) tops+=top('Football', '<span class="mono">0</span> games on file', 'the NFL board rebuilds daily; nothing is scheduled in its file', 'nfl.html', 'NFL');
-  el('tops').innerHTML=tops;
+  /* The NFL slate day: today's NFL games, or the next day that has any, the same rule the slate itself uses.
+     The plays, the slip and the cheat sheets all read this day, so a Sunday leg is never paired with a
+     Monday one under one heading. */
+  var nfs=H.slate(all.filter(function(g){ return g.league==='NFL'; }), now);
+  var dayWord=function(){ return nfs.when!=='today'?(nfs.label||'next up')+' · ':''; };
+  /* The slate day's game ids, as strings (the fetcher writes strings; a number would otherwise miss), and the
+     parlay page's legs on those games, built ONCE: the plays and the slip both read this list. Walking every
+     player and stat over the NFL file is the one expensive step on the page, so it runs one time. */
+  var PP=window.BetHouseParlayPage||null, P=window.BetHouseParlay||null, pnfl=data.nfl||null;
+  var pids=nfs.games.map(function(g){ return g.raw&&g.raw.id; }).filter(Boolean).map(String);
+  var rawLegs=[];
+  try{
+    if(PP&&pnfl&&pids.length){
+      var pd=Object.assign({}, pnfl, {games:(pnfl.games||[]).filter(function(g){ return g&&pids.indexOf(String(g.id))>=0; })});
+      rawLegs=PP.legs(N, pd, window.BETHOUSE_NFL_RECORD||null, {now:now, floor:PP.cleanState(null).floor});
+    }
+  }catch(e){ rawLegs=[]; }
 
-  /* The cheat sheets, for the NFL slate (today's NFL games, or the next
-     day that has any, the same rule the slate itself uses, and the
-     heading says which day): both sheets' top lines a game, from the
-     same module the two pages use. Hidden when there is no NFL game, no
-     sheet, or nothing in the top five. */
-  /* Its own guard: a fault in the strip hides the strip, never the slate above it. */
+  /* The top plays: the legs filtered at the page's own defaults with every family on (so the touchdown is in),
+     then the slip's rule (the best leg of each family in turn, one a player), so the strip is never six
+     "2+ receptions". Its own guard: a fault here hides the section, never the slate. */
+  try{
+    var ph='';
+    if(PP&&P&&rawLegs.length){
+      var list=PP.filter(rawLegs, Object.assign({}, PP.cleanState(null), {fams:PP.FAMILIES.map(function(f){ return f.id; })}));
+      var plays=PP.topPlays(list, {parlay:P, n:6, lift:N.DEFAULTS.parlayLift});
+      plays.forEach(function(l){ ph+=PP.playCardHtml(l, {fair:N.fairPrice, faces:F, league:'NFL'}); });
+    }
+    el('playwhen').textContent=ph?dayWord():'';
+    el('plays').innerHTML=ph;
+    el('playsec').hidden=!ph;
+  }catch(e){ el('playsec').hidden=true; }
+
+  /* The parlay page's slip at its defaults, from the same module as the page, on the one leg list; its own guard too. */
+  try{
+    var pstrip=PP&&typeof PP.stripHtml==='function'?PP.stripHtml(N, pnfl, window.BETHOUSE_NFL_RECORD||null, window.BetHouseParlay||null, {faces:F, league:'NFL', now:now, gameIds:pids, legs:rawLegs}):'';
+    if(PP&&typeof PP.ruleText==='function') el('parrule').textContent=PP.ruleText(PP.cleanState(null));
+    el('parwhen').textContent=pstrip&&nfs.when!=='today'?(nfs.label||'next up')+' · ':'';
+    el('parstrip').innerHTML=pstrip;
+    el('parsec').hidden=!pstrip;
+  }catch(e){ el('parsec').hidden=true; }
+
+  /* The consistency cards, three of them, from the same module as the page; its own guard too. */
+  try{
+    var CP=window.BetHouseConsistency||null, cnfl=data.nfl||null;
+    var cstrip=CP&&typeof CP.stripHtml==='function'?CP.stripHtml(N, cnfl, {faces:F, league:'NFL'}):'';
+    el('consstrip').innerHTML=cstrip;
+    el('conssec').hidden=!cstrip;
+  }catch(e){ el('conssec').hidden=true; }
+
+  /* The cheat sheets, one compact card per NFL game on the slate day, from the same module as the two pages.
+     Its own guard: a fault in the strip hides the strip, never the slate above it. */
   try{
     var SP=window.BetHouseSheetPage||null, nflData=data.nfl||{};
-    var nfs=H.slate(all.filter(function(g){ return g.league==='NFL'; }), now);
     var strip='';
     if(SP&&(nflData.defence||nflData.offence)){
       nfs.games.filter(function(g){ return g.state==='pre'; }).forEach(function(g){
@@ -232,31 +228,23 @@
     el('cheatsec').hidden=!strip;
   }catch(e){ el('cheatsec').hidden=true; }
 
-  /* The consistency cards, three of them, from the same module as the page; its own guard too. */
-  try{
-    var CP=window.BetHouseConsistency||null, cnfl=data.nfl||null;
-    var cstrip=CP&&typeof CP.stripHtml==='function'?CP.stripHtml(N, cnfl, {faces:F, league:'NFL'}):'';
-    el('consstrip').innerHTML=cstrip;
-    el('conssec').hidden=!cstrip;
-  }catch(e){ el('conssec').hidden=true; }
-
-  /* The parlay page's slip at its defaults, from the same module as the page; its own guard too. */
-  try{
-    var PP=window.BetHouseParlayPage||null, pnfl=data.nfl||null;
-    /* The cheat strip's slate day: its games only, so the slip never spans two nights under one heading. */
-    var pids=nfs.games.map(function(g){ return g.raw&&g.raw.id; }).filter(Boolean);
-    var pstrip=PP&&typeof PP.stripHtml==='function'?PP.stripHtml(N, pnfl, window.BETHOUSE_NFL_RECORD||null, window.BetHouseParlay||null, {faces:F, league:'NFL', now:now, gameIds:pids}):'';
-    if(PP&&typeof PP.ruleText==='function') el('parrule').textContent=PP.ruleText(PP.cleanState(null));
-    el('parwhen').textContent=pstrip&&nfs.when!=='today'?(nfs.label||'next up')+' · ':'';
-    el('parstrip').innerHTML=pstrip;
-    el('parsec').hidden=!pstrip;
-  }catch(e){ el('parsec').hidden=true; }
+  /* The research tabs: one section at a time; a tab with nothing behind it cannot be pressed, and the
+     section shows only when one of them has something. */
+  var tabs=el('tabs'), panels={cons:'conssec', cheat:'cheatsec'};
+  var show=function(id){
+    tabs.querySelectorAll('button[data-tab]').forEach(function(b){ var on=b.getAttribute('data-tab')===id; b.setAttribute('aria-pressed', on?'true':'false'); el('tab-'+b.getAttribute('data-tab')).hidden=!on; });
+  };
+  var live=Object.keys(panels).filter(function(id){ return !el(panels[id]).hidden; });
+  tabs.querySelectorAll('button[data-tab]').forEach(function(b){ b.disabled=live.indexOf(b.getAttribute('data-tab'))<0; });
+  el('research').hidden=!live.length;
+  if(live.length) show(live.indexOf('cons')>=0?'cons':live[0]);
+  tabs.addEventListener('click',function(e){ var b=e.target.closest('button[data-tab]'); if(b&&!b.disabled) show(b.getAttribute('data-tab')); });
 
   /* The footer: when each board's data was built. */
   var built=[];
   if(data.nfl&&data.nfl.generated) built.push('NFL '+String(data.nfl.generated).slice(0,16).replace('T',' '));
   if(data.mlb&&data.mlb.fetchedAt) built.push('baseball '+String(data.mlb.fetchedAt).slice(0,16).replace('T',' '));
-  el('foot').innerHTML='<p>Built from the boards\' own data files'+(built.length?' ('+esc(built.join(' · '))+' UTC)':'')+'. Every number on this page is one a board measured; the projected score, favourite and pick are the NFL board\'s game view, with the board\'s verdict on them above. Team logos are ESPN\'s.</p>';
+  el('foot').innerHTML='<p>Built from the boards\' own data files'+(built.length?' ('+esc(built.join(' · '))+' UTC)':'')+'. Every number on this page is one a board measured; the projected score and favourite are the NFL board\'s game view, with the board\'s verdict on them above. Team logos are ESPN\'s.</p>';
   }
 })();
 </script>

@@ -224,8 +224,8 @@ should be re-fitted when the run environment shifts.
 
 | File | What it does |
 |---|---|
-| `index.html` | The home: tonight's slate, one card per game with the two teams' logos, the football boards' projection and pick, a row of tops. |
-| `home.js` | The home's arithmetic: one slate out of the boards' data, which day it shows, the football card, the tops, the tile. Tested in `home.test.mjs`. |
+| `index.html` | The home (Direction A, 2026-10-16): the two-board switch, the week line, a scroller of game cards, the top plays beside the parlay of the day, and the research tabs. |
+| `home.js` | The home's arithmetic: one slate out of the boards' data, which day it shows, the football card, the tile. Tested in `home.test.mjs`. |
 | `parlays.html` / `parlay-page.js` | The prop parlay page: every leg a rung on the model's ladder or an anytime touchdown, never an over/under, the highest rung at a chosen floor for each player and stat, with the consistency count, the cheat-sheet rank and the record's word beside it; the slip from `parlay.js`. Tested in `parlay-page.test.mjs`. |
 | `consistency.html` / `consistency-page.js` | The consistency cards: a card a prop at a standard line, players ranked by hits in their last ten games, from the game lines the data file ships; tested in `consistency-page.test.mjs`. |
 | `defence.html` / `offence.html` / `sheet-page.js` | The cheat sheets: a card a game, the lines where either defence ranks in the top five of 32 for what it allows, and the twin for what either offence does, from the sheets the fetcher computes (`teamSheet`); tested in `sheet-page.test.mjs`. |
@@ -474,8 +474,7 @@ is kept, and the touchdown note gains one, the 3% recent-form weight
 it was already applying. A test now holds each note's words to its
 own model: the receiving word (targets, or receptions for a league
 that records none), yards not
-touches on rush + rec, each decay, the league pull. The home's two football tops wear their game's
-two-colour stripe, as the game cards do. Nothing coloured reports
+touches on rush + rec, each decay, the league pull. Nothing coloured reports
 nothing measured.
 
 **B5, the teams page (2026-10-01).** `teams.html`: every NFL offence and
@@ -546,51 +545,60 @@ on every `<img>` any page writes and the two hosts.
 
 **2026-09-29.** `index.html` is a home now; the baseball board moved to
 `baseball.html`. The home reads the boards' own data files in the
-browser and shows the day's slate the way the user's reference
-(nhlpropking.com) does: a hero naming the day and counting the games,
-one card per game, and a row of tops.
+browser. **2026-10-16**, Direction A of the layout rework (the user
+reviewed nhlpropking.com and linemate.io/nfl, picked a research
+dashboard over a table-first board, from mockups built on the live
+data): the two boards as a switch in the nav with Bets, Live and Record
+beside them (a count on Bets for open bets in the log, on Live for
+props tracked), a week line, a scroller of game cards, the top plays
+beside the parlay of the day, and the research pages as tabs.
 
 - **The slate** is today's games across the NFL and baseball, ordered
   by start time, in the reader's own time zone. A day
   with no games shows the next day that has some, with that day in the
   heading, and never a past day. Games already started or finished stay
-  on the list with a chip.
-- **A football card** shows the projected score, the model's favourite
-  with its win chance, and the better of the spread and total picks by
-  EV at the line's price. These are the same calls the football boards'
-  game view makes (`projectGame`, `winProbability`, `pickGame`,
-  `evPct`), so the home says what the board says; the moneyline is not
-  a candidate, for the reason the board gives. A baseball card shows
-  the probable pitchers with ERA and whether lineups are posted: there
-  is no game model for baseball and the page does not invent one.
-- **Tops**: the best anytime-touchdown chance and the game pick with
-  the most EV on tonight's football slate (or, on a day without
-  football, the next day that has it, and the card says which), and how
-  many props the live tracker is following. A card whose number does
-  not exist is not shown. The two football tops wear their game's
-  two-colour stripe (B6).
-- **The consistency strip** (2026-10-02): three consistency cards
-  (anytime touchdown, 50+ receiving yards, 50+ rushing yards), five
-  rows each, from the consistency page's own module with a link to the
-  full page; hidden when nobody qualifies.
-- **The cheat sheet strip** (2026-10-02): one compact card per NFL game
-  on the NFL slate (today's, or the next day that has any, and the
-  heading says which) with four lines from both cheat sheets, each side
-  its single best line and the rest by rank, each tagged D or O, and a
-  count of the lines cut; built by the sheets' own line renderer, so a
-  line prints as it does on the pages; hidden when there is nothing to
-  show.
+  on the list, marked. The week line names the NFL week when football
+  is on the slate.
+- **A game card** is one compact card in a strip that scrolls sideways:
+  the two logos and abbreviations and, for football, the projected
+  score in accent with the model's favourite and its win chance under
+  it (the same `projectGame` and `winProbability` the board's game view
+  calls, so the home says what the board says); for baseball the
+  probable pitchers with ERA and whether lineups are posted: there is
+  no game model for baseball and the page does not invent one. The
+  card links the board. The spread and total picks left the home with
+  the tops: the replay found no edge in them and the card is not a bet.
+- **Top plays**: six receipt cards, each a leg from the parlay page's
+  own leg builder on the slate day's games, at the page's defaults with
+  every family on (six of his last ten, the touchdown included), picked
+  by the slip's rule widened to the players scope (`topPlays`: the best
+  leg of each family in turn, one a player), so the strip is never six
+  "2+ receptions" (a raw ranking by chance ranks ladder steps). A card
+  says the chance and the fair price, the line, and only the facts the
+  leg carries: the count of his last ten, the opponent's cheat-sheet
+  rank, and what the record said and hit at that line.
+- **The parlay of the day** is the parlay page's slip at its defaults,
+  beside the plays (under them on a phone); as before, hidden when no
+  slip builds.
+- **Research**: the consistency cards and the cheat-sheet cards as two
+  tabs (one shown at a time; a tab with nothing behind it is disabled;
+  the section hides when both are empty), with the four research pages
+  linked from the heading. The cards are the same strips as before:
+  three consistency cards (anytime touchdown, 50+ receiving yards, 50+
+  rushing yards, five rows each) and one compact cheat-sheet card per
+  NFL game on the slate day, four lines from both sheets, each tagged D
+  or O, with a count of the lines cut.
 - **The tile** counts games on the slate, players priced across the
   boards (football players plus batters in posted lineups) and
-  predictions graded (the sum of the four records).
+  predictions graded (the sum of the records).
 - **Logos** are the one image the site ships. They load from ESPN's logo
   CDN (`a.espncdn.com/i/teamlogos/{nfl|mlb}/500/`), keyed by the
   NFL and MLB abbreviations (the fetcher also writes `homeId`/`awayId`
   and `venue` into each game), sent without a referrer, and hidden when they do not load. The user
   chose this over committing the files.
-- The two football data files are about 1.2 MB before gzip; the page
-  carries a `TODO(simplify)` to have the fetchers write a small slate
-  file if that ever drags.
+- The NFL data file is about 780 KB before gzip; the page carries a
+  `TODO(simplify)` to have the fetcher write a small slate file if that
+  ever drags.
 
 ## Live
 

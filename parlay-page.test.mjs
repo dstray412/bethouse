@@ -405,3 +405,70 @@ test("render: the controls, the slip from the filtered legs, every leg listed, t
   page.render(doc, { data: null, model: nfl, parlay });
   assert.equal(els.pcontrols.hidden, true); assert.match(els.plegs.innerHTML, /No board/); assert.equal(els.pslip.innerHTML, "");
 });
+
+/* ------------------------------------------------------------------ *
+ * The home's top plays (2026-10-16): the slip's own rule, widened.
+ *
+ * Oracle: buildSlip. A raw ranking by chance lists the shortest rungs
+ * (the review of 2026-10-04 found 89 of 526 legs were "2+ receptions"
+ * and the top ten rows all were), so the home takes the best leg of
+ * each family in turn, one a player, the touchdown included, exactly as
+ * the slip does with every family switched on and the players scope.
+ * ------------------------------------------------------------------ */
+
+test("topPlays: the best leg of each family in turn, one a player, the touchdown included, never two of one family before every family has one", () => {
+  const a = player(), b = player({ id: "p2", name: "Beta Back", pos: "RB", team: "DEN", opp: "LV", carries: 180, rushYds: 900, targets: 30, recs: 24, recYds: 200, tds: 8,
+    recent: ten((i) => row(20, 2, 70, 0, i < 6 ? 1 : 0, undefined, "DEN")) });
+  const q = player({ id: "p3", name: "Gamma Arm", pos: "QB", team: "LAC", opp: "KC", carries: 20, rushYds: 60, targets: 0, recs: 0, recYds: 0, passAtt: 400, passYds: 3200, tds: 1,
+    recent: ten(() => row(0, 0, 5, 280, 0, undefined, "LAC")) });
+  const list = page.legs(nfl, data([a, b, q]), RECORD, { now: NOW, floor: 0.7 });
+  const plays = page.topPlays(list, { parlay, n: 6 });
+  assert.ok(plays.length >= 3 && plays.length <= 6, "between three and six plays: " + plays.length);
+  const fams = plays.map((l) => l.prop);
+  assert.equal(new Set(fams).size, fams.length, "a family appears twice before every family has a play: " + fams.join(","));
+  const who = plays.map((l) => l.playerId);
+  assert.equal(new Set(who).size, who.length, "a player appears twice: " + who.join(","));
+  for (const l of plays) {
+    const best = list.filter((x) => x.prop === l.prop && !who.slice(0, who.indexOf(l.playerId)).includes(x.playerId)).sort((x, y) => y.prob - x.prob)[0];
+    assert.equal(l.key, best.key, "the " + l.prop + " play is not the best leg of its family among players not already shown");
+  }
+  assert.deepEqual(page.topPlays([], { parlay, n: 6 }), [], "no legs, no plays");
+  assert.deepEqual(page.topPlays(list, { n: 6 }), [], "without parlay.js there is no slip rule to follow");
+});
+
+test("playCardHtml: a receipt card says the chance, the fair price and only the facts the leg carries, every string escaped", () => {
+  const leg = { key: "k", playerId: "7", gameId: "g1", team: "KC", opp: "LAC", name: "A <b>Wide</b>", pos: "WR", prop: "recyds", rung: 50, prob: 0.8, propLabel: "50+ receiving yards",
+    hits: { hits: 9, n: 10 }, sheet: { key: "recYdsWR", label: "Rec yards to WR", rank: 2, of: null }, rec: { said: 78, hit: 76, n: 305 } };
+  const h = page.playCardHtml(leg, { fair: (p) => -400, faces: null, league: "NFL" });
+  assert.match(h, /^<div class="play">/);
+  assert.match(h, /A &lt;b&gt;Wide&lt;\/b&gt;/, "the name is not escaped");
+  assert.doesNotMatch(h, /<b>Wide<\/b>/);
+  assert.match(h, /80%/); assert.match(h, /-400/); assert.match(h, /50\+ receiving yards/);
+  assert.match(h, /9 of his last 10/); assert.match(h, /LAC ranks 2nd/i); assert.match(h, /said 78%/); assert.match(h, /hit 76%/);
+  const bare = page.playCardHtml(Object.assign({}, leg, { hits: null, sheet: null, rec: null }), { fair: () => 100, league: "NFL" });
+  assert.doesNotMatch(bare, /last 10|ranks|said/, "a fact the leg does not carry is printed");
+  assert.match(bare, /\+100/, "a positive fair price carries its sign");
+});
+
+test("buildSlip with partial: the legs gathered when fewer than asked fill, so a caller can ask for six and take what there is", () => {
+  const list = page.legs(nfl, data([player()]), RECORD, { now: NOW, floor: 0.7 });
+  assert.equal(page.buildSlip(list, { legs: 6, scope: "players" }, { parlay }), null, "one player cannot fill six legs");
+  const part = page.buildSlip(list, { legs: 6, scope: "players" }, { parlay, partial: true });
+  assert.ok(part && part.legs.length === 1, "partial: the one leg there is");
+  assert.equal(page.buildSlip([], { legs: 3 }, { parlay, partial: true }), null, "nothing to gather is still no slip");
+});
+
+test("stripHtml takes a prebuilt leg list, so the home builds the legs once for the plays and the slip", () => {
+  const two = [player(), player({ id: "p2", name: "Beta Wide", team: "DEN", opp: "LV" })]; // two games, so a two-leg slip builds
+  const list = page.legs(nfl, data(two), RECORD, { now: NOW, floor: 0.7 });
+  const fromList = page.stripHtml(nfl, { players: [], games: GAMES }, RECORD, parlay, { now: NOW, legs: list });
+  const fromData = page.stripHtml(nfl, data(two), RECORD, parlay, { now: NOW });
+  assert.equal(fromList, fromData, "the prebuilt list and the data build the same strip");
+  assert.ok(fromList.length > 0 && !/No leg/.test(fromList), "a data file with no players still builds the strip from the list it was handed");
+});
+
+test("playCardHtml keeps the sheet label's abbreviations: only the first letter is lowered", () => {
+  const leg = { key: "k", playerId: "7", gameId: "g1", team: "KC", opp: "LAC", name: "A", pos: "WR", prop: "recyds", rung: 50, prob: 0.8, propLabel: "50+ receiving yards", hits: null, rec: null,
+    sheet: { key: "recYdsWR", label: "Rec yards to WR", rank: 2, of: null } };
+  assert.match(page.playCardHtml(leg, { fair: () => -400 }), /LAC ranks 2nd for rec yards to WR allowed/, "the position abbreviation was lowercased");
+});

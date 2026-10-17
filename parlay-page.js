@@ -233,7 +233,8 @@
         seen.add(who(l)); legs.push(l); took = true;
       }
     }
-    if (legs.length < s.legs) return null;
+    /* `opts.partial`: the legs gathered when fewer than asked fill, for a caller that takes what there is (the home's plays). */
+    if (!legs.length || (legs.length < s.legs && !o.partial)) return null;
     return { legs, combined: P.combineLegs(legs, o.lift), skipped };
   }
 
@@ -320,7 +321,8 @@
     const base = cleanState(null);
     const ids = Array.isArray(h.gameIds) ? new Set(h.gameIds.map(String)) : null;
     const d = ids ? Object.assign({}, data, { games: (data.games || []).filter((g) => g && ids.has(String(g.id))) }) : data;
-    const list = filter(legs(model, d, record, { now: h.now, floor: base.floor }), base);
+    /* `helpers.legs`: a leg list the caller already built on these games (the home builds one for the plays and the slip). */
+    const list = filter(Array.isArray(h.legs) ? h.legs : legs(model, d, record, { now: h.now, floor: base.floor }), base);
     for (const n of [3, 2]) {
       const s = Object.assign({}, base, { legs: n });
       const slip = buildSlip(list, s, { parlay, lift, eligible });
@@ -359,6 +361,34 @@
       "For each player and stat the leg is the highest rung the model gives at least the floor to; the slip is the legs most likely to cash under the filters, one a game from the slate or one a player from any games, with the replay's measured lift for legs that rise together. " +
       "Under each leg: how many of his last ten games on file" + (s != null && w != null ? ", before week " + esc(w) + " of " + esc(s) + "," : "") + " cleared that rung (a count, not a chance); whether the opponent ranks in the top five of the field on the defensive cheat sheet for that stat at his position; and what the record did at that rung, what the model said and what hit, where it has " + MIN_GRADED + " graded calls. " +
       "A player needs a game still to kick off and no Out status. Nothing here sees a price: compare the fair price with the book's, type what you are offered for the edge, and shade the top of the board.</p>";
+  }
+
+  /* The home's top plays (2026-10-16): the slip's own rule, widened to every family and the players scope.
+     A raw ranking by chance fills a strip with the shortest rungs (the review of 2026-10-04 found 89 of 526
+     legs were "2+ receptions" and the top ten rows all were), so the home shows the best leg of each family
+     in turn, one a player, the touchdown included: `n` plays, fewer when the legs run out, [] without
+     parlay.js (no slip rule to follow). */
+  function topPlays(list, opts) {
+    const o = opts || {}, P = o.parlay;
+    if (!P || typeof P.combineLegs !== "function") return [];
+    const fams = FAMILIES.map((f) => f.id), lift = o.lift || { game: 1, mixed: 1, team: 1, player: 1 };
+    const slip = buildSlip(list, { legs: Math.min(6, Math.max(2, Number(o.n) || 6)), scope: "players", fams, hits: 0 }, { parlay: P, lift, partial: true });
+    return slip ? slip.legs : [];
+  }
+
+  /** A receipt card for one play: who, the line, the chance and the fair price, then only the facts the leg carries (the count, the soft spot, the record at this line). `helpers.fair(prob)` prices it. */
+  function playCardHtml(l, helpers) {
+    const h = helpers || {}, F = h.faces || null, league = h.league || "NFL";
+    const fair = typeof h.fair === "function" ? h.fair(l.prob) : null;
+    const rows = [];
+    if (l.hits) rows.push("<li><span>Hit in " + l.hits.hits + " of his last " + l.hits.n + "</span><b" + (l.hits.hits >= 8 ? ' class="up"' : "") + ">" + l.hits.hits + "/" + l.hits.n + "</b></li>");
+    const label = String(l.sheet && l.sheet.label || ""); // only the first letter lowered: the labels carry position and stat abbreviations (Rec yards to WR)
+    if (l.sheet) rows.push("<li><span>" + esc(l.opp) + " ranks " + esc(ord(Number(l.sheet.rank))) + " for " + esc(label.charAt(0).toLowerCase() + label.slice(1)) + " allowed" + (l.sheet.of != null ? " of " + esc(l.sheet.of) : "") + (l.sheet.one ? " (one game)" : "") + '</span><b class="up">soft</b></li>');
+    if (l.rec) rows.push("<li><span>The record at this line said " + Math.round(l.rec.said) + '%</span><b class="' + (l.rec.hit >= l.rec.said ? "up" : "warn") + '">hit ' + Math.round(l.rec.hit) + "%</b></li>");
+    return '<div class="play"><div class="top">' + (F ? F.face(league, l.playerId, 44) : "") +
+      '<span><b class="nm">' + esc(l.name) + "</b><small>" + esc(l.pos) + " · " + esc(l.team) + " vs " + esc(l.opp) + "</small></span>" +
+      '<span class="num"><b>' + pct(l.prob, 0) + "</b>" + (fair != null && isFinite(fair) ? "<small>" + (fair > 0 ? "+" : "") + esc(fair) + " fair</small>" : "") + "</span></div>" +
+      '<div class="line">' + esc(l.propLabel) + "</div>" + (rows.length ? "<ul>" + rows.join("") + "</ul>" : "") + "</div>";
   }
 
   const HOSTS = ["pcontrols", "pslip", "plegs", "pfoot"];
@@ -480,5 +510,5 @@
     return false;
   }
 
-  return { LEGS, FLOORS, SCOPES, HITS, FAMILIES, DEFAULT_FAMS, HOSTS, LISTED, MIN_GRADED, SOFT, sheetLine, recordFor, legs, filter, cleanState, controlsHtml, evidence, ruleText, buildSlip, betOf, localDay, slipHtml, stripHtml, legsHtml, footHtml, render };
+  return { LEGS, FLOORS, SCOPES, HITS, FAMILIES, DEFAULT_FAMS, HOSTS, LISTED, MIN_GRADED, SOFT, sheetLine, recordFor, legs, filter, cleanState, controlsHtml, evidence, ruleText, buildSlip, betOf, localDay, slipHtml, stripHtml, legsHtml, footHtml, topPlays, playCardHtml, render };
 });
