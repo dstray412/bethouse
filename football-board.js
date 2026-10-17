@@ -1226,7 +1226,7 @@
     }
     function slipHtml(){
       var h='';
-      if(state.slipError) h+='<div class="slip" style="border-color:rgba(224,163,63,.45);background:rgba(224,163,63,.09)"><h3 style="color:var(--warn)">Cannot build that slip</h3><div>'+esc(state.slipError)+'</div></div>';
+      if(state.slipError) h+='<div class="slip warn"><h3>Cannot build that slip</h3><div>'+esc(state.slipError)+'</div></div>';
       var s=state.slip; if(!s) return h;
       var c=s.combined, g=state.slipScope==='game'&&gameOf[s.legs[0].team];
       h+='<div class="slip"><h3>Suggested parlay — '+s.legs.length+' legs · '+(g?esc(g.away+' at '+g.home):'from '+c.distinctGames+' different games')+'</h3>';

@@ -16,8 +16,8 @@
  * .note, optional .controls, then .game tables of .row buttons that open
  * the drawer. Mobile at 760px; touch targets under (pointer:coarse).
  */
-html{color-scheme:dark}
-:root{--bg:#000000; --surface:#111111; --surface2:#1A1A1A; --line:rgba(255,255,255,0.16); --rule:rgba(255,255,255,0.32); --text:#FFFFFF; --muted:#C9C9C9; --muted-dim:#8E8E8E; --accent:#3DFF5C; --ink:#000000; --warn:#FFD23F; --bad:#FF3366; --good:#3DFF5C; --display:'Bricolage Grotesque',ui-sans-serif,system-ui,sans-serif; --label:'Archivo','Archivo Narrow',ui-sans-serif,system-ui,sans-serif; --mono:'Martian Mono',ui-monospace,'SF Mono',Menlo,monospace; --body:'Source Sans 3',ui-sans-serif,system-ui,-apple-system,sans-serif; --r-btn:10px; --r-panel:14px;}
+html{color-scheme:light}
+:root{--bg:#F5F6F8; --surface:#FFFFFF; --surface2:#EEF0F3; --line:rgba(15,23,42,0.10); --rule:rgba(15,23,42,0.22); --text:#0F172A; --muted:#55607A; --muted-dim:#67708A; --accent:#3B5BDB; --ink:#FFFFFF; --warn:#B45309; --bad:#BE123C; --good:#15803D; --display:'Bricolage Grotesque',ui-sans-serif,system-ui,sans-serif; --label:'Archivo','Archivo Narrow',ui-sans-serif,system-ui,sans-serif; --mono:'Martian Mono',ui-monospace,'SF Mono',Menlo,monospace; --body:'Source Sans 3',ui-sans-serif,system-ui,-apple-system,sans-serif; --r-btn:10px; --r-panel:14px;}
 *{box-sizing:border-box}
 /* The `hidden` attribute must actually hide. A class that sets
    `display` (.ctl and .controls both set display:flex) beats the UA
@@ -83,7 +83,7 @@ header>.ctl{order:2;flex:1 1 100%}
 .gtitle{font-family:var(--display);font-size:18px;font-weight:700;margin:0;font-variation-settings:'opsz' 40}
 .gmeta{font-size:14px;color:var(--muted);font-variant-numeric:tabular-nums}
 .thead{display:grid;grid-template-columns:var(--cols) 30px;gap:10px;align-items:baseline;padding:10px 8px 9px 18px;
-  background:rgba(255,255,255,.03);border-bottom:1px solid var(--line)}
+  background:color-mix(in srgb,var(--text) 3%,transparent);border-bottom:1px solid var(--line)}
 .game.nostar .thead{grid-template-columns:var(--cols)}
 /* The football views' column sets: rank, player, matchup, the figures,
    the price cell, the caret; nopx drops the price cell. */
@@ -98,7 +98,7 @@ header>.ctl{order:2;flex:1 1 100%}
   width:100%;min-height:60px;text-align:left;font:inherit;color:inherit;background:none;border:0;
   padding:6px 8px 6px 18px;cursor:pointer;border-top:1px solid var(--line);transition:background .15s}
 .thead+.rowline .row,.thead+.row{border-top:0}
-.row:hover{background:rgba(255,255,255,.04)}
+.row:hover{background:color-mix(in srgb,var(--text) 4%,transparent)}
 .slot{font-family:var(--mono);font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
 .who{font-family:var(--display);font-weight:600;font-size:17px;font-variation-settings:'opsz' 20;min-width:0}
 .pos{font-family:var(--body);color:var(--muted);font-weight:400;font-size:14px;margin-left:6px}
@@ -162,7 +162,7 @@ header>.ctl{order:2;flex:1 1 100%}
 .slip .actions{margin-top:10px}
 .slip .actions button{font:inherit;font-size:14px;color:var(--muted);background:none;border:1px solid var(--line);border-radius:var(--r-btn);padding:7px 13px;cursor:pointer}
 .slip .actions button:hover{color:var(--text);border-color:var(--rule)}
-.more{display:block;width:100%;padding:14px;background:rgba(255,255,255,.02);border:0;border-top:1px solid var(--line);color:var(--text);font:inherit;font-family:var(--label);font-size:13px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;cursor:pointer}
+.more{display:block;width:100%;padding:14px;background:color-mix(in srgb,var(--text) 2%,transparent);border:0;border-top:1px solid var(--line);color:var(--text);font:inherit;font-family:var(--label);font-size:13px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;cursor:pointer}
 .more:hover{background:var(--surface)}
 /* The ladder: every alternate line the book might offer, priced off the
    same pool the row is. A strip that wraps into as many columns as fit,
@@ -175,7 +175,7 @@ header>.ctl{order:2;flex:1 1 100%}
 .rung b{font-family:var(--mono);font-size:14px;font-weight:600}
 .rung .rp{font-family:var(--mono);font-size:14px;text-align:right;font-weight:600;color:var(--text)}
 .rung .rf{grid-column:1/-1;font-family:var(--mono);font-size:13px;color:var(--muted)}
-.rung.near{border-color:var(--accent);background:rgba(61,255,92,.12)}
+.rung.near{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,transparent)}
 /* The matchup panel on a game: descriptive, so it reads quietly under
    the table. The family table's first column flexes and the two number
    columns are fixed, which is what keeps it inside a 390px phone. */
@@ -205,12 +205,12 @@ header>.ctl{order:2;flex:1 1 100%}
    wraps so a row keeps its height. */
 .who .chips{display:block;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:400}
 .who .chips .chip{margin:0 5px 0 0;font-size:11px;padding:2px 7px;vertical-align:0}
-.chip.up{color:var(--good);border-color:rgba(61,255,92,.5)}
-.chip.down{color:var(--bad);border-color:rgba(255,51,102,.5)}
+.chip.up{color:var(--good);border-color:color-mix(in srgb,var(--good) 50%,transparent)}
+.chip.down{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 50%,transparent)}
 .tag.lean{color:var(--text);border-color:var(--rule)}
-.tag.soft,.chip.live{color:var(--good);border-color:rgba(61,255,92,.5)}
-.tag.tough{color:var(--bad);border-color:rgba(255,51,102,.5)}
-.tag.q,.chip.proj,.chip.delayed{color:var(--warn);border-color:rgba(255,210,63,.5)}
+.tag.soft,.chip.live{color:var(--good);border-color:color-mix(in srgb,var(--good) 50%,transparent)}
+.tag.tough{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 50%,transparent)}
+.tag.q,.chip.proj,.chip.delayed{color:var(--warn);border-color:color-mix(in srgb,var(--warn) 50%,transparent)}
 .chip.mkt{font-family:var(--mono);letter-spacing:.02em;text-transform:none;font-size:13px;color:var(--text)}
 .chip.livegame{color:var(--text);border-color:var(--rule)}
 .chip.done{color:var(--muted-dim)}
@@ -239,7 +239,7 @@ header>.ctl{order:2;flex:1 1 100%}
 .priceinp{display:inline-flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--line);border-radius:var(--r-btn);padding:7px 12px}
 .priceinp input{font:inherit;font-family:var(--mono);font-size:15px;color:var(--text);background:transparent;border:0;width:70px;font-variant-numeric:tabular-nums}
 .priceinp input:focus{outline:none}
-.banner{border:1px solid rgba(255,210,63,.4);border-radius:var(--r-panel);background:rgba(255,210,63,.07);padding:14px 18px;margin-bottom:16px}
+.banner{border:1px solid color-mix(in srgb,var(--warn) 40%,transparent);border-radius:var(--r-panel);background:color-mix(in srgb,var(--warn) 7%,transparent);padding:14px 18px;margin-bottom:16px}
 .banner h3{font-family:var(--label);font-size:13px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--warn);margin:0 0 8px}
 .banner p{margin:0 0 7px;font-size:15px;line-height:1.65;color:var(--text)}
 .banner b{color:var(--text)}
@@ -373,7 +373,7 @@ footer td{padding:1px 14px 1px 0}
    Escape and the back button. Its body reuses the .why styles. */
 .scrim{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:40}
 .drawer{position:fixed;top:0;right:0;bottom:0;width:min(640px,100%);background:var(--bg);border-left:1px solid var(--line);
-  z-index:41;overflow-y:auto;padding:18px 20px 28px;box-shadow:-8px 0 24px rgba(0,0,0,.4);transition:transform .25s ease-out}
+  z-index:41;overflow-y:auto;padding:18px 20px 28px;box-shadow:-8px 0 24px rgba(15,23,42,.18);transition:transform .25s ease-out}
 /* The card's hero: matchup label, name and rank on the left, the photo
    on the right, the buttons in the corner; then the bands, one line
    each, then the tabs and the cells. */
@@ -446,8 +446,8 @@ button.rung:hover{border-color:var(--rule)}
 /* Recent games: a bar a game, newest on the right, the dashed line the
    threshold, the bars that clear it in green. */
 .bars{display:block;width:100%;max-width:520px;height:auto;margin:8px 0 4px}
-.bars .bar{fill:rgba(255,255,255,.14)} .bars .bar.hit{fill:var(--good)}
-.bars .bv{fill:var(--text);font-family:var(--mono);font-size:13px;font-variant-numeric:tabular-nums} .bars .bv.in{fill:var(--ink);font-weight:700} .bars .bl{fill:var(--muted);font-family:var(--label);font-size:12px}
+.bars .bar{fill:color-mix(in srgb,var(--text) 14%,transparent)} .bars .bar.hit{fill:var(--good)}
+.bars .bv{fill:var(--text);font-family:var(--mono);font-size:13px;font-variant-numeric:tabular-nums} .bars .bv.in{font-weight:700} .bars .bar.hit+.bv.in{fill:var(--ink)} .bars .bl{fill:var(--muted);font-family:var(--label);font-size:12px}
 .bars .thr{stroke:var(--warn);stroke-width:1;stroke-dasharray:4 3}
 .glog td{padding:1px 14px 1px 0;font-family:var(--mono);font-size:13px;font-variant-numeric:tabular-nums}
 .glog tr:first-child td{font-family:var(--label);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
@@ -477,7 +477,7 @@ button.rung:hover{border-color:var(--rule)}
 .dcompare:hover{color:var(--text);border-color:var(--rule)}
 .dcompare[disabled]{opacity:.5;cursor:default}
 .tray{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--bg);border-top:1px solid var(--rule);padding:10px 14px;
-  display:flex;gap:10px;align-items:stretch;box-shadow:0 -6px 20px rgba(0,0,0,.4)}
+  display:flex;gap:10px;align-items:stretch;box-shadow:0 -6px 20px rgba(15,23,42,.18)}
 .tray:not([hidden])~footer{margin-bottom:150px}
 .tcards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;flex:1;min-width:0}
 .tcard{position:relative;border:1px solid var(--line);border-left:4px solid var(--line);border-radius:var(--r-btn);padding:10px 34px 10px 14px;background:var(--surface);font-size:14px;color:var(--muted)}
@@ -499,8 +499,8 @@ button.rung:hover{border-color:var(--rule)}
    counts the cards by state. */
 .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
 .card{border:1px solid var(--line);border-radius:var(--r-panel);background:var(--surface);padding:14px 16px 12px;position:relative}
-.card.reached,.card.cashed{border-color:rgba(61,255,92,.6)}
-.card.oneaway{border-color:rgba(255,210,63,.6)}
+.card.reached,.card.cashed{border-color:color-mix(in srgb,var(--good) 60%,transparent)}
+.card.oneaway{border-color:color-mix(in srgb,var(--warn) 60%,transparent)}
 .card .ctop{display:flex;justify-content:flex-start;align-items:flex-start;gap:10px}
 .card .ctop>div:not(.face){min-width:0}
 .card .ctop .cprop{margin-left:auto;text-align:right}
@@ -509,7 +509,7 @@ button.rung:hover{border-color:var(--rule)}
 .card .cname{font-family:var(--display);font-size:17px;font-weight:600;color:var(--text)}
 .card .cmeta{font-size:14px;color:var(--muted);margin-top:2px}
 .card .cprop{font-family:var(--label);font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-stretch:100%}
-.bar{height:8px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden;margin:12px 0 8px}
+.bar{height:8px;border-radius:999px;background:color-mix(in srgb,var(--text) 8%,transparent);overflow:hidden;margin:12px 0 8px}
 .bar i{display:block;height:100%;background:var(--accent);border-radius:999px;transition:width .4s ease-out}
 .card.reached .bar i,.card.cashed .bar i{background:var(--good)}
 .card.missed .bar i,.card.void .bar i{background:var(--muted-dim)}
@@ -554,7 +554,7 @@ button.rung:hover{border-color:var(--rule)}
 .slines li{display:grid;grid-template-columns:auto auto 1fr auto;align-items:baseline;gap:0 8px;padding:7px 0;border-bottom:1px solid var(--line);font-size:14px}
 .slines li:last-child{border-bottom:0}
 .slines .rk{font-family:var(--label);font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:2px 7px;min-width:44px;text-align:center}
-.slines .rk.r1{color:var(--good);border-color:rgba(61,255,92,.5)}
+.slines .rk.r1{color:var(--good);border-color:color-mix(in srgb,var(--good) 50%,transparent)}
 .slines .tm{font-family:var(--display);font-weight:600;color:var(--text)}
 .slines .st{color:var(--muted);min-width:0}
 .slines .v{font-family:var(--mono);font-weight:600;color:var(--text);font-variant-numeric:tabular-nums;text-align:right}
@@ -608,7 +608,7 @@ button.rung:hover{border-color:var(--rule)}
    ranked list, a row the rank, the face and name with the matchup under it, the line as "N+", the chance in mono, and
    the three facts beside it in muted caps (the count of his last ten, the sheet rank, the record's said and hit);
    success marks a count of eight or more and a soft spot, the two measured facts a bettor stacks. */
-.slip.warn{border-color:rgba(224,163,63,.45);background:rgba(224,163,63,.09)} .slip.warn h3{color:var(--warn)}
+.slip.warn{border-color:color-mix(in srgb,var(--warn) 45%,transparent);background:color-mix(in srgb,var(--warn) 9%,transparent)} .slip.warn h3{color:var(--warn)}
 .slip .face{width:24px;height:24px;margin-right:8px}
 .plegs{list-style:none;margin:0 0 14px;padding:4px 14px;border:1px solid var(--line);border-radius:var(--r-panel);background:var(--surface)}
 .plegs li{display:grid;grid-template-columns:22px minmax(0,1.3fr) minmax(0,1fr) 52px minmax(0,1.7fr);align-items:center;gap:0 10px;padding:7px 0;border-bottom:1px solid var(--line);font-size:14px}

@@ -11,7 +11,7 @@ import T from "./teams.js";
 
 const DATA = {
   NFL: { cle: { p: "311d00", s: "ff3c00" }, kc: { p: "e31837", s: "ffb81c" }, bad: { p: "zzz", s: "ffffff" }, one: { p: "123456" },
-    pit: { p: "000000", s: "ffb612" }, nite: { p: "000000", s: "0a0a0a" }, dark: { p: "000000" } },
+    pit: { p: "000000", s: "ffb612" }, lite: { p: "ffffff", s: "1a3a6b" }, glare: { p: "ffffff", s: "f4f4f4" }, pale: { p: "f7f7f7" } },
   MLB: { phi: { p: "e81828", s: "002d72" } },
 };
 
@@ -30,26 +30,27 @@ test("colour: a team's primary and secondary as #hex, by league and the key face
 
 test("stripe: two solid halves for the two teams; a known side beside a transparent one so a miss reads as a miss; nothing when neither is known", () => {
   T.use(DATA);
-  // The fixture's seal brown (#311d00, luminance 0.015) is under DARK, so Cleveland paints with its orange.
-  assert.equal(T.stripe("NFL", "kc", "cle"), "linear-gradient(90deg,#e31837 0 50%,#ff3c00 50% 100%)");
+  // The fixture's seal brown (#311d00) is dark, which on paper is visible: Cleveland paints with it, not the orange.
+  assert.equal(T.stripe("NFL", "kc", "cle"), "linear-gradient(90deg,#e31837 0 50%,#311d00 50% 100%)");
   assert.equal(T.stripe("NFL", "kc", "xxx"), "linear-gradient(90deg,#e31837 0 50%,transparent 50% 100%)");
-  assert.equal(T.stripe("NFL", "xxx", "cle"), "linear-gradient(90deg,transparent 0 50%,#ff3c00 50% 100%)");
+  assert.equal(T.stripe("NFL", "xxx", "cle"), "linear-gradient(90deg,transparent 0 50%,#311d00 50% 100%)");
   assert.equal(T.stripe("NFL", "xxx", "yyy"), "");
   T.use(null);
 });
 
-test("paint: a primary too dark for the site's black surfaces gives way to the secondary; with no usable secondary the team paints nothing, never black", () => {
+test("paint: a primary too light for the site's paper surfaces gives way to the secondary; with no usable secondary the team paints nothing, never white; black is the most visible colour on paper and paints as itself", () => {
   T.use(DATA);
-  assert.equal(T.paint("NFL", "pit"), "#ffb612", "the Steelers paint gold, not black");
+  assert.equal(T.paint("NFL", "pit"), "#000000", "the Steelers paint black on paper (they painted gold on the black board, until 2026-10-16)");
   assert.equal(T.paint("NFL", "kc"), "#e31837");
-  assert.equal(T.paint("NFL", "nite"), null, "a near-black secondary is no better than a black primary");
-  assert.equal(T.paint("NFL", "dark"), null);
-  assert.equal(T.tint("NFL", "dark"), "", "a black team gets no tint rather than an invisible one");
-  assert.equal(T.stripe("NFL", "dark", "kc"), "linear-gradient(90deg,transparent 0 50%,#e31837 50% 100%)", "a black team's half is transparent, not black");
+  assert.equal(T.paint("NFL", "lite"), "#1a3a6b", "a white primary gives way to the secondary");
+  assert.equal(T.paint("NFL", "glare"), null, "a near-white secondary is no better than a white primary");
+  assert.equal(T.paint("NFL", "pale"), null);
+  assert.equal(T.tint("NFL", "pale"), "", "a white team gets no tint rather than an invisible one");
+  assert.equal(T.stripe("NFL", "pale", "kc"), "linear-gradient(90deg,transparent 0 50%,#e31837 50% 100%)", "a white team's half is transparent, not white");
   assert.equal(T.paint("NFL", "xxx"), null);
-  assert.equal(T.stripe("NFL", "pit", "kc"), "linear-gradient(90deg,#ffb612 0 50%,#e31837 50% 100%)");
-  assert.equal(T.tint("NFL", "pit"), "rgba(255,182,18,0.16)");
-  assert.ok(T.DARK > 0 && T.DARK < 0.03, "the dark threshold must sit below a navy (0.04) and above the surface (0.006)");
+  assert.equal(T.stripe("NFL", "pit", "kc"), "linear-gradient(90deg,#000000 0 50%,#e31837 50% 100%)");
+  assert.equal(T.tint("NFL", "pit"), "rgba(0,0,0,0.16)");
+  assert.ok(T.LIGHT > 0.6 && T.LIGHT < 0.93, "the light threshold must sit above a silver like #c4ced4 (0.6) and below the ground (0.93)");
   T.use(null);
 });
 

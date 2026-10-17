@@ -34,7 +34,40 @@ Zero dependencies, no build step, no server, no API key. `node --test` with
 **named files** — bare discovery pulls in the backtests, which fire live API
 calls. The list lives in six places and `dom.test.mjs` checks all six.
 
-## College football and the PGA Tour removed (2026-10-16, latest)
+## Paper and indigo (2026-10-16, latest)
+
+**What.** The user wants the layout reworked and a modern, sleek feel.
+He reviewed nhlpropking.com and linemate.io/nfl, picked Direction A
+(a research dashboard home: a game scroller, receipt cards for the
+top plays, the parlay of the day beside them, a tabbed Research
+section) over B (a table-first board with one sticky control bar),
+then chose the paper-and-indigo palette over graphite-and-blue and
+charcoal-and-mint, all three applied to the A mockup on the live data
+(`mock-a.html` and `mock-b.html` sit untracked in the repo root; the
+throwaway palette variants were deleted once chosen). This commit is
+the palette only: `board.css` `:root` tokens (ground #F5F6F8, panels
+white, ink #0F172A, accent #3B5BDB, success #15803D, warning #B45309,
+error #BE123C, `--ink` white), `color-scheme: light`, and the eleven
+hard-coded tints (white-alpha hover and bar fills, the green, red and
+amber chip outlines, the banner, the live cards, the slip warning)
+rewritten as `color-mix(in srgb, var(--token) N%, transparent)` so
+no colour is written twice. No page carries a colour literal, so
+nothing else changed; `DESIGN.md` carries the new tokens, prose and a
+decisions-log row. Verified by screenshotting all eleven pages, the
+drawer and the NFL board at three widths through a no-cache server
+(the headless browser had cached the old stylesheet on the first
+pass). After `/code-review`: the bar label inside a recent-games bar
+is ink only on a hit bar (it was white on a near-white bar); `teams.js`
+guards against a near-white primary now (`LIGHT` 0.8), not a black one,
+so the Steelers paint black on paper and the White Sox no longer paint
+their silver; the slip's error box uses `.slip.warn` instead of the
+old inline amber; `--muted-dim` is #67708A (4.5:1 on paper); and
+`mock-*.html` is gitignored so the mockups can never publish. **Next**: build Direction A as the home (`mock-a.html` is the
+visual spec; the top-plays ranking should use the record's hit rate
+or edge, not raw chance, which favours the shortest rungs; the slip
+needs the full width or shorter leg sentences).
+
+## College football and the PGA Tour removed (2026-10-16)
 
 **What.** The user is reworking the layout and asked to start by
 trimming the fat: the college football board and the PGA Tour
