@@ -1079,6 +1079,13 @@ test("baseball.html: the same sticky control bar (bet type, the controls row, Fi
   assert.match(after, /<details class="method" id="how"><summary>[^<]*How this number is made[^<]*<\/summary><div class="note" id="note"><\/div><\/details>/, "the method paragraph is not folded under the board");
   assert.match(html, /bar\.classList\.toggle\('open'\)/, "Filters does not toggle the bar");
   assert.match(html, /setAttribute\('aria-expanded'/, "Filters does not report its state");
+  // The live warnings (a replay day, games under way, prices withheld) stay in view above the board; only the method folds.
+  assert.ok(m.indexOf('id="warn"') > m.indexOf('id="bar"') && m.indexOf('id="warn"') < m.indexOf('id="board"'), "#warn is not between the bar and the board");
+  assert.match(html, /warnings\.push\('This day is over\./, "the replay warning is not a warning");
+  assert.match(html, /warnings\.push\('<b>'\+liveN\+' game'/, "the games-under-way line is not a warning");
+  assert.match(html, /warnings\.push\('<b class="hot">Prices are '/, "the withheld-prices line is not a warning");
+  assert.match(html, /warn\.innerHTML = warnings\.join\(' '\);\s*warn\.hidden = !warnings\.length;/, "the warnings are not written to #warn, hidden when there are none");
+  assert.doesNotMatch(html, /note\.innerHTML \+=/, "something still appends to the folded note");
 });
 
 test("the tendencies file is loaded by the board that has play-by-play", () => {

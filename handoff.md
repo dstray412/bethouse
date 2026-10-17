@@ -43,8 +43,15 @@ stuck while the board scrolls; the view's note folded under `#board`
 in `details.method#how`; the phone's Filters button wired by the same
 few lines at the end of the page's script. The page script is
 untouched (it writes `#note`, hides `#tbwrap` and `#sugwrap` by id).
-`dom.test.mjs` pins it like the NFL's. Verified at three widths and
-scrolled. 683 tests, 0 skipped.
+`dom.test.mjs` pins it like the NFL's. After `/code-review`: the
+baseball note also carried live warnings (a replay day's "marked as
+entered after the result", games under way, prices withheld), which
+the fold hid; they now go to `#warn`, a visible `.note` between the
+bar and the board, hidden when there are none, and only the method
+folds; and on a phone the page's own `.ctl{flex:0 0 100%}` rule gave
+the bet-type group its own row, so `.cbar>.ctl` shares the row with
+Filters as on the NFL board. Verified on a replay day in the browser.
+684 tests, 0 skipped.
 
 ## The NFL board's sticky control bar (2026-10-16)
 

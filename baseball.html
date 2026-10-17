@@ -107,6 +107,8 @@ table.waterfall tr.wtot td.wl{color:var(--muted);font-size:10px;letter-spacing:.
      worse problem than the height it saved. */
   .ctl{flex:0 0 100%;flex-direction:row;align-items:center;gap:9px}
   .ctl>label{flex:0 0 58px;font-size:9.5px;letter-spacing:.10em}
+  /* The bar's own bet-type group shares its row with Filters, as on the NFL board. */
+  .cbar>.ctl{flex:1 1 auto}
   .ctl .seg{flex:1 1 auto}
   .ctl .seg button{flex:1 1 0;min-height:40px;padding:6px}
   /* Five columns now, the last for the caret: hover cannot say "tap me"
@@ -184,6 +186,8 @@ table.waterfall tr.wtot td.wl{color:var(--muted);font-size:10px;letter-spacing:.
 <button type="button" class="filters" id="filters" aria-expanded="false" aria-controls="controls">Filters</button>
 </div>
 
+<!-- Live warnings stay in view (a replay day, games under way, prices withheld); only the method folds under the board. -->
+<div class="note" id="warn" hidden></div>
 <div id="betlog"></div>
 <div id="slip"></div>
 <main id="board"></main>
@@ -1288,19 +1292,21 @@ function render(){
       'because homers are rare. Tap a player for detail.';
   }
 
+  /* The warnings a reader must see go above the board, not into the fold with the method. */
+  var warn=document.getElementById('warn'), warnings=[];
   if(isReplay()){
-    note.innerHTML = 'This day is over. The board is redrawn from what it '+
+    warnings.push('This day is over. The board is redrawn from what it '+
       'predicted at the time, with the results attached, so you can write down '+
       'a bet you placed then. <b class="hot">Anything recorded here is marked as '+
       'entered after the result was known</b> and counted separately — not '+
       'because you are suspected of anything, but because a record that mixes '+
-      'the two stops meaning anything.';
+      'the two stops meaning anything.');
   }
 
   var liveN=(D.games||[]).filter(function(g){return g.live;}).length;
   if(isReplay()) liveN = 0;
   if(liveN){
-    note.innerHTML += ' <b>'+liveN+' game'+(liveN===1?' is':'s are')+' underway</b> \u2014 those numbers count only the plate appearances a hitter has left.';
+    warnings.push('<b>'+liveN+' game'+(liveN===1?' is':'s are')+' underway</b> \u2014 those numbers count only the plate appearances a hitter has left.');
   }
 
   /* Only when this prop actually has prices in the feed. The home run board
@@ -1310,10 +1316,12 @@ function render(){
     var ageH = ODDS_AGE.ageH;
     var how = ageH===null ? 'of unknown age'
             : Math.round(ageH)+' hour'+(Math.round(ageH)===1?'':'s')+' old';
-    note.innerHTML += ' <b class="hot">Prices are '+how+' and hidden</b> \u2014 '+
+    warnings.push('<b class="hot">Prices are '+how+' and hidden</b> \u2014 '+
       'a stale price sitting next to tonight\'s lineup looks current and is not. '+
-      'They return when the hourly refresh lands.';
+      'They return when the hourly refresh lands.');
   }
+  warn.innerHTML = warnings.join(' ');
+  warn.hidden = !warnings.length;
 
   renderSlip();
   renderBetLog();
