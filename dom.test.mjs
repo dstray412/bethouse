@@ -1067,6 +1067,20 @@ test("nfl.html: one sticky control bar (bet type, find, the controls row, a Filt
   assert.match(html, /setAttribute\('aria-expanded'/, "Filters does not report its state");
 });
 
+test("baseball.html: the same sticky control bar (bet type, the controls row, Filters), the method folded under the board", () => {
+  const html = src("baseball.html"), m = markup("baseball.html");
+  const bar = (m.match(/<div class="cbar" id="bar">[\s\S]*?<\/div>\s*<div id="betlog">/) || [])[0];
+  assert.ok(bar, "no #bar before the bet log");
+  for (const id of ["lab-view", "view", "controls", "tbwrap", "lu", "top", "daywrap", "sugwrap", "filters"]) assert.match(bar, new RegExp('id="' + id + '"'), "#bar has no #" + id);
+  assert.ok(bar.indexOf('id="view"') < bar.indexOf('id="controls"') && bar.indexOf('id="controls"') < bar.indexOf('id="filters"'), "the bar's order is not bet type, controls, Filters");
+  assert.doesNotMatch(m.match(/<header>[\s\S]*?<\/header>/)[0], /class="ctl"/, "a control is still in the header");
+  assert.match(bar, /<button type="button" class="filters" id="filters" aria-expanded="false" aria-controls="controls">Filters<\/button>/, "the Filters button is not a toggle for the controls row");
+  const after = m.slice(m.indexOf('id="board"'));
+  assert.match(after, /<details class="method" id="how"><summary>[^<]*How this number is made[^<]*<\/summary><div class="note" id="note"><\/div><\/details>/, "the method paragraph is not folded under the board");
+  assert.match(html, /bar\.classList\.toggle\('open'\)/, "Filters does not toggle the bar");
+  assert.match(html, /setAttribute\('aria-expanded'/, "Filters does not report its state");
+});
+
 test("the tendencies file is loaded by the board that has play-by-play", () => {
   assert.match(src("nfl.html"), /<script src="tendencies-data\.js"><\/script>/, "nfl.html does not load tendencies-data.js");
 });

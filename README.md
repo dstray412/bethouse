@@ -239,7 +239,7 @@ should be re-fitted when the run environment shifts.
 | `chips.js` | The chips a football row and its card wear: each a measured number past a threshold that lives here and nowhere else (volume, red zone, snaps, deep, soft or tough defence). Plain data; the board escapes. Tested in `chips.test.mjs`. |
 | `record.html` / `record-page.js` | The record page: the replay tables (static) and the live records and parlay records for both football boards, from the files the trackers write. Tested in `record-page.test.mjs`. |
 | `faces.js` | A player's photo and a team's mark for every page: the urls by league and size, and the one `<img>` markup (lazy, no referrer, fixed box, hidden on error). Tested in `faces.test.mjs`. |
-| `baseball.html` | The baseball board. |
+| `baseball.html` | The baseball board (since 2026-10-16 its controls sit in the same sticky bar as the NFL board's, the method folded under the board). |
 | `board.css` | The one stylesheet every board loads: tokens, header, controls, rows, panels, the phone and touch rules. A page's own components sit in a short `<style>` after the link. |
 | `score.js` | The model. Loads in both browser and Node so the app, tests and backtest run identical code. |
 | `score.test.mjs` | 43 tests on model shape, clamping, regression, handedness and the total-bases distribution. |

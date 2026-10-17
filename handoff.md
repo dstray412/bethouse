@@ -34,7 +34,19 @@ Zero dependencies, no build step, no server, no API key. `node --test` with
 **named files** — bare discovery pulls in the backtests, which fire live API
 calls. The list lives in six places and `dom.test.mjs` checks all six.
 
-## The NFL board's sticky control bar (2026-10-16, latest)
+## The baseball board's sticky control bar (2026-10-16, latest)
+
+**What.** The same bar on `baseball.html`: the bet-type strip and the
+controls row (now `id="controls"`: bases, lineups, per team, day,
+suggest a parlay) in `.cbar#bar` between the header and the bet log,
+stuck while the board scrolls; the view's note folded under `#board`
+in `details.method#how`; the phone's Filters button wired by the same
+few lines at the end of the page's script. The page script is
+untouched (it writes `#note`, hides `#tbwrap` and `#sugwrap` by id).
+`dom.test.mjs` pins it like the NFL's. Verified at three widths and
+scrolled. 683 tests, 0 skipped.
+
+## The NFL board's sticky control bar (2026-10-16)
 
 **What.** Direction B's two edits on `nfl.html`. The bet-type strip,
 the search and the view's controls row (`#controls`) now sit in one

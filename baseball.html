@@ -143,15 +143,16 @@ table.waterfall tr.wtot td.wl{color:var(--muted);font-size:10px;letter-spacing:.
     </nav>
   </div>
   <div class="tile" id="summary"></div>
+</header>
+
+<!-- One control bar, stuck to the top while the board scrolls under it: the bet type, then the view's own
+     controls. On a phone only the bet-type strip pins and the rest sits behind Filters. -->
+<div class="cbar" id="bar">
   <div class="ctl">
     <label id="lab-view">Bet type</label>
     <div class="seg" id="view" role="group" aria-labelledby="lab-view"></div>
   </div>
-</header>
-
-<div class="note" id="note"></div>
-
-<div class="controls">
+<div class="controls" id="controls">
   <div class="ctl" id="tbwrap" hidden>
     <label id="lab-tbn">Bases</label>
     <div class="seg" id="tbn" role="group" aria-labelledby="lab-tbn"></div>
@@ -180,10 +181,14 @@ table.waterfall tr.wtot td.wl{color:var(--muted);font-size:10px;letter-spacing:.
     <div class="seg" id="sug" role="group" aria-labelledby="lab-sug"></div>
   </div>
 </div>
+<button type="button" class="filters" id="filters" aria-expanded="false" aria-controls="controls">Filters</button>
+</div>
 
 <div id="betlog"></div>
 <div id="slip"></div>
 <main id="board"></main>
+<!-- The method, folded under the board: the page writes the view's note into #note as before. -->
+<details class="method" id="how"><summary>How this number is made · how it was checked</summary><div class="note" id="note"></div></details>
 
 <footer id="footer"></footer>
 </div>
@@ -1596,6 +1601,12 @@ function render(){
 
 render();
 gradeBets();
+})();
+/* The phone's Filters button: the controls row shows while the bar is open; the button says so. */
+(function(){
+  var bar=document.getElementById('bar'), btn=document.getElementById('filters');
+  if(!bar||!btn) return;
+  btn.addEventListener('click',function(){ var open=bar.classList.toggle('open'); btn.setAttribute('aria-expanded', open?'true':'false'); });
 })();
 </script>
 <script src="nav.js"></script>
