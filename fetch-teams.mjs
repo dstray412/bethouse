@@ -6,12 +6,11 @@
  * the tray cards' left edge (teams.js reads it; DESIGN.md says where a
  * team colour may go and where it may not).
  *
- * Keyless, like every other fetcher here. Three requests, one per league
+ * Keyless, like every other fetcher here. Two requests, one per league
  * the boards show, keyed the way faces.js keys a team: the NFL and MLB by
- * abbreviation, college by ESPN's numeric team id (the one the game rows
- * carry). A team without a six-hex colour is left out, so a missing
- * colour is a missing stripe; a team whose primary IS black (the
- * Steelers, the Raiders, a third of the FBS) keeps both colours and
+ * abbreviation (the one the game rows carry). A team without a six-hex
+ * colour is left out, so a missing colour is a missing stripe; a team
+ * whose primary IS black (the Steelers, the Raiders) keeps both colours and
  * teams.js paints with the secondary. The MLB rows are written under
  * ESPN's abbreviation and, where statsapi's differs (mlb-data.js keys by
  * statsapi's), under that too.
@@ -29,7 +28,6 @@ const ESPN = "https://site.api.espn.com/apis/site/v2/sports";
    is left alone rather than overwritten with a stub. */
 const LEAGUES = [
   { league: "NFL", path: "football/nfl", limit: 40, min: 32, key: (t) => t.abbreviation },
-  { league: "College football", path: "football/college-football", limit: 1000, min: 100, key: (t) => t.id },
   { league: "MLB", path: "baseball/mlb", limit: 40, min: 30, key: (t) => t.abbreviation, alias: { chw: "cws", ari: "az" } },
 ];
 const HEX = /^[0-9a-f]{6}$/;

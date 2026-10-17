@@ -9,7 +9,7 @@
  *
  * The table is teams-data.js, written by fetch-teams.mjs from ESPN's
  * team lists and keyed the way faces.js keys a team: the NFL and MLB by
- * abbreviation, college by ESPN's numeric id. Without the table every
+ * abbreviation. Without the table every
  * call is empty and the pages keep their shape.
  */
 (function (root, factory) {

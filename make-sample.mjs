@@ -84,31 +84,6 @@ function twoWay(pTrue, names, opts = {}) {
   });
 }
 
-/** Outright field (golf): many outcomes, big hold, longshot bias. */
-function outrights(field, opts = {}) {
-  const baseHold = opts.hold ?? 0.28;
-  return BOOKS.map((book, i) => {
-    const hold = baseHold + jitter(0.04);
-    return {
-      book,
-      updated: new Date(Date.UTC(2026, 7, 1, 22, 30 + i)).toISOString(),
-      outcomes: field.map((f, j) => {
-        // ±10% relative. Tuning this is a two-sided problem: ±14% against a
-        // thin field manufactured double-digit EV across half the board, but
-        // ±5% against a realistic 24% hold produced no golf edges at all.
-        // Books really do differ this much on outrights — +2000 at one shop
-        // and +2500 at another is an ordinary Tuesday — which is exactly why
-        // outrights are the softest market on the wall.
-        let p = f.p * (1 + jitter(0.10));
-        if (opts.rogue === i && j === (opts.rogueIdx ?? 0)) p *= 1 + (opts.rogueShift ?? 0.3);
-        // Longshot bias: books shade long prices harder than short ones.
-        const shade = 1 + hold * (1 + 0.7 * (1 - Math.min(1, f.p * 8)));
-        return { name: f.name, price: quoteAmerican(Math.min(0.9, p * shade)) };
-      }),
-    };
-  });
-}
-
 const iso = (h, m = 0) => new Date(Date.UTC(2026, 7, 1, h, m)).toISOString();
 const markets = [];
 const add = (m) => markets.push(m);
@@ -187,49 +162,6 @@ nbaGames.forEach((g, i) => {
 });
 
 /* ---------------------------------------------------------------- *
- * PGA Tour — outright winner, the market where de-vig method matters most
- * ---------------------------------------------------------------- */
-const pgaField = [
-  ["Scottie Scheffler", 0.155], ["Rory McIlroy", 0.085], ["Xander Schauffele", 0.06],
-  ["Ludvig Åberg", 0.05], ["Collin Morikawa", 0.045], ["Viktor Hovland", 0.04],
-  ["Jon Rahm", 0.038], ["Tommy Fleetwood", 0.03], ["Patrick Cantlay", 0.028],
-  ["Justin Thomas", 0.026], ["Hideki Matsuyama", 0.024], ["Sahith Theegala", 0.02],
-  ["Wyndham Clark", 0.018], ["Russell Henley", 0.017], ["Sungjae Im", 0.016],
-  ["Tony Finau", 0.015], ["Jordan Spieth", 0.014], ["Sepp Straka", 0.013],
-  ["Cameron Young", 0.012], ["Will Zalatoris", 0.011], ["Corey Conners", 0.010],
-  ["Matt Fitzpatrick", 0.010], ["Sam Burns", 0.009], ["Akshay Bhatia", 0.008],
-  ["Max Homa", 0.008], ["Ben Griffin", 0.007], ["Harris English", 0.007],
-  ["Tom Kim", 0.006], ["Keegan Bradley", 0.006], ["Brian Harman", 0.005],
-  // The rest of the field. Without it the listed probabilities sum to ~0.79,
-  // which produced a 7.8% hold — a third of what an outright board really
-  // charges, and it made the app's own "outrights carry the heaviest vig"
-  // note read as wrong.
-  ["Aaron Rai", 0.0095], ["Robert MacIntyre", 0.0092], ["Nick Taylor", 0.0088],
-  ["Si Woo Kim", 0.0085], ["Taylor Pendrith", 0.0082], ["Adam Scott", 0.0080],
-  ["J.T. Poston", 0.0078], ["Davis Thompson", 0.0075], ["Cam Davis", 0.0072],
-  ["Denny McCarthy", 0.0070], ["Alex Noren", 0.0068], ["Chris Kirk", 0.0065],
-  ["Mackenzie Hughes", 0.0062], ["Thomas Detry", 0.0060], ["Byeong Hun An", 0.0058],
-  ["Kurt Kitayama", 0.0055], ["Max Greyserman", 0.0052], ["Rickie Fowler", 0.0050],
-  ["Lucas Glover", 0.0048], ["Beau Hossler", 0.0045], ["Seamus Power", 0.0042],
-  ["Andrew Putnam", 0.0040], ["Adam Hadwin", 0.0038], ["Eric Cole", 0.0035],
-  ["Nate Lashley", 0.0032],
-].map(([name, p]) => ({ name, p }));
-
-add({
-  sport: "pga", sportLabel: "PGA Tour", eventId: "pga-0",
-  home: null, away: null, commence: iso(15, 0),
-  eventName: "FedEx St. Jude Championship",
-  market: "outrights",
-  /* The stale price has to be LONGER than the field by more than the board's
-     own hold (~24%) to survive de-vigging — otherwise the vig eats it and the
-     row is correctly −EV. That is the honest reason outright boards seldom
-     produce a bet: you are not beating one book's opinion, you are beating a
-     24% margin. Modelled here as a book that hasn't shortened a player after
-     he opened 64. */
-  books: outrights(pgaField, { hold: 0.26, rogue: 3, rogueIdx: 6, rogueShift: -0.14 }),
-});
-
-/* ---------------------------------------------------------------- *
  * Write + self-check
  * ---------------------------------------------------------------- */
 
@@ -256,13 +188,13 @@ let edgeCount = 0,
 for (const m of markets) {
   const q = m.books[0].outcomes.map((o) => edge.americanToProb(o.price));
   holds.push(edge.holdPct(q));
-  const rows = edge.marketEdges(m.books, { method: m.market === "outrights" ? "shin" : "multiplicative" });
+  const rows = edge.marketEdges(m.books, { method: "multiplicative" });
   for (const r of rows) {
     if (r.ev > 0.015) edgeCount++;
     if (!best || r.ev > best.ev) best = { ...r, market: m.market, sport: m.sportLabel };
   }
 }
-console.log(`Wrote sample-odds.js — ${markets.length} markets across 4 sports.`);
+console.log(`Wrote sample-odds.js — ${markets.length} markets across 3 sports.`);
 console.log(`Typical book hold: ${(edge.median(holds) * 100).toFixed(1)}%`);
 console.log(`Findable edges (>1.5% EV): ${edgeCount}`);
 console.log(

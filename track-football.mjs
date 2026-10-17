@@ -3,11 +3,11 @@
  * What a football board predicted, and whether it was any good.
  *
  *   node track-nfl.mjs snapshot     record this week's PREGAME predictions
- *   node track-cfb.mjs grade        grade any recorded week whose games are final
+ *   node track-nfl.mjs grade        grade any recorded week whose games are final
  *   node track-nfl.mjs report       print the running record
- *   node track-cfb.mjs report --write-record   also emit the record the page loads
+ *   node track-nfl.mjs report --write-record   also emit the record the page loads
  *
- * Shared between the NFL and college boards for the same reason
+ * Written for the NFL and college boards together, for the same reason
  * track-core.mjs is shared between football and baseball: the rules that
  * keep a forward record honest are not sport-shaped, and this repo has been
  * bitten repeatedly by one rule living in two files. Everything that IS

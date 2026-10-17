@@ -8,10 +8,8 @@
  * lines, and the pool of real outcomes the yardage model reads its shape
  * from. Nothing about a game is visible to the thing predicting it.
  *
- * One backtest, two leagues. `--league cfb` replays the college cache with
- * the college model; the default is the NFL. The models are the same code
- * bound to different constants (cfb.js), so anything this finds about the
- * shape of a model it finds for both.
+ * One backtest, one league since 2026-10-16 (it replayed college football
+ * too, the same code bound to other constants, until that board went).
  *
  * WHAT EACH ANSWER MEANS
  * ----------------------
@@ -24,7 +22,6 @@
  *                that is a losing model no matter how pretty the Brier is.
  *
  *   node backtest-nfl.mjs
- *   node backtest-nfl.mjs --league cfb
  *   node backtest-nfl.mjs --from 2025           # only grade 2025
  *   node backtest-nfl.mjs --to 2024             # only grade 2024
  *   node backtest-nfl.mjs --measure             # the constants, read straight off the data
@@ -116,10 +113,9 @@ const ALL = (history.games || [])
    ids through the players crosswalk and read through the model's own
    availability(), the rule the board applies to ESPN's report. The
    vacated-share terms (tdVac and the per-prop keys) read this; at 0 they change nothing, and a
-   replay without the files is the same replay with a warning. NFL only:
-   college has no report. */
+   replay without the files is the same replay with a warning. */
 const outByWeek = new Map();
-if (league.id === "nfl" && !args.includes("--measure")) {
+if (!args.includes("--measure")) {
   try {
     const seasons = [...new Set(ALL.map((g) => g.season))];
     const [inj, xw] = await Promise.all([loadInjuries(seasons), loadCrosswalk()]);
@@ -185,9 +181,9 @@ console.log(`${league.label}: loaded ${ALL.length} games (${JSON.stringify(histo
 if (args.includes("--measure")) {
   const games = ALL.filter(inWindow);
 
-  /* Points and home field. Home field is NOT the raw home margin: in
-     college the home team is usually the better team (the buy game), so
-     the raw margin overstates it. Solve the ratings with a trial home
+  /* Points and home field. Home field is NOT the raw home margin: where
+     the home team is usually the better team (college's buy games), the
+     raw margin overstates it. Solve the ratings with a trial home
      field, read the mean residual on genuine home games, and iterate. */
   const teamGames = games.flatMap((g) => [g.home.score, g.away.score]);
   console.log(`\nSCORING — ${games.length} games`);

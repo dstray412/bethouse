@@ -49,10 +49,10 @@ test("the parlays: each kind with its count, what it said and what cashed", () =
 test("render fills each league's slot from its global, and leaves a league with no record file saying so", () => {
   const slots = {};
   const doc = { getElementById: (id) => (slots[id] = slots[id] || { innerHTML: "" }) };
-  page.render(doc, { nfl: R, cfb: null });
+  page.render(doc, { nfl: R, xfl: null });
   assert.match(slots["nfl-live"].innerHTML, /<b>2,360<\/b> graded/);
   assert.match(slots["nfl-live"].innerHTML, /Suggested parlays/);
-  assert.match(slots["cfb-live"].innerHTML, /nothing graded yet/);
+  assert.match(slots["xfl-live"].innerHTML, /nothing graded yet/);
 });
 
 test("every label the record carries is escaped before it is printed", () => {

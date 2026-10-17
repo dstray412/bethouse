@@ -5,7 +5,6 @@
  * spread or the total that the closing line does not already carry?
  *
  *   node experiment-lines.mjs                 # NFL
- *   node experiment-lines.mjs --league cfb
  *
  * WHY THIS EXISTS
  * ---------------
@@ -142,7 +141,7 @@ for (let i = 1; i < weeks.length; i++) {
   const withStats = prior.filter(hasStats);
   const schemes = {
     points: solve(prior, pts),
-    capped: solve(prior, pts, { cap: league.id === "cfb" ? 28 : 21 }),
+    capped: solve(prior, pts, { cap: 21 }),
     recent90: solve(prior, pts, { weight: (g) => Math.exp(-age(g) / 90) }),
     recent180: solve(prior, pts, { weight: (g) => Math.exp(-age(g) / 180) }),
     seasonPrior: ps && inSeason.length ? solve(inSeason, pts, { prior: { off: Object.fromEntries(Object.entries(ps.off).map(([t, v]) => [t, v / 2])), def: Object.fromEntries(Object.entries(ps.def).map(([t, v]) => [t, v / 2])) }, priorK: 6 }) : null,

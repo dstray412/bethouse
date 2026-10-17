@@ -77,8 +77,7 @@ header>.ctl{order:2;flex:1 1 100%}
 /* The ledger: a titled table with caps column heads over the thick-thin
    rule, hairline rows, the rank dimmed in the margin, figures right-
    aligned in the mono face. The column set is a variable on .game so a
-   view's head and its rows share one grid; the default is the six-cell
-   row the golf board builds. */
+   view's head and its rows share one grid. */
 .game{--cols:34px 44px 1fr 84px 76px 18px;margin-bottom:22px;border:1px solid var(--line);border-radius:var(--r-panel);background:var(--surface);overflow:hidden}
 .ghead{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;padding:14px 18px 10px}
 .gtitle{font-family:var(--display);font-size:18px;font-weight:700;margin:0;font-variation-settings:'opsz' 40}
@@ -535,8 +534,6 @@ button.rung:hover{border-color:var(--rule)}
 .hero .today{color:var(--ink);background:var(--accent);border-color:var(--accent);font-weight:700}
 .hero h2{font-family:var(--display);font-size:34px;font-weight:700;line-height:1.1;margin:12px 0 6px;font-variation-settings:'opsz' 96;letter-spacing:-.01em}
 .hero p{margin:0 0 6px;color:var(--muted);font-size:17px;line-height:1.5}
-.hero p.golf{font-size:15px}
-.hero .golf a{color:var(--accent);text-decoration:none;font-family:var(--label);font-size:12px;letter-spacing:.1em;text-transform:uppercase;font-weight:600}
 .bstrip{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:-10px 2px 26px}
 .bstrip .blab{font-family:var(--label);font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-right:6px}
 .btn{font-family:var(--body);font-size:15px;color:var(--text);background:var(--surface2);border:1px solid var(--line);border-radius:var(--r-btn);padding:9px 16px;text-decoration:none;transition:background .15s,color .15s}

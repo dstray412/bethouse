@@ -1,9 +1,8 @@
 /* faces.js — a player's photo and a team's mark, for every page.
  *
- * The leagues publish these themselves: ESPN's image service for NFL,
- * college and golf headshots and for every team's logo, MLB's photo
- * service for batters. A page asks here for a url by league and id and
- * gets one sized for the spot (a row's 44px disc, the drawer's cutout),
+ * The leagues publish these themselves: ESPN's image service for NFL
+ * headshots and for every team's logo, MLB's photo service for batters.
+ * A page asks here for a url by league and id and gets one sized for the spot (a row's 44px disc, the drawer's cutout),
  * or null when the id is not an id. The img markup is built here too,
  * once, so every image on the site carries the same rules: no referrer,
  * lazy, a fixed box so nothing shifts, and hidden when it does not
@@ -17,8 +16,8 @@
   "use strict";
 
   const ESPN = "https://a.espncdn.com";
-  const HEADS = { NFL: "nfl", "College football": "college-football", PGA: "golf" };
-  const LOGOS = { NFL: "nfl", MLB: "mlb", "College football": "ncaa" };
+  const HEADS = { NFL: "nfl" };
+  const LOGOS = { NFL: "nfl", MLB: "mlb" };
   const HEAD_SIZE = { row: "w=96&h=70", large: "w=200&h=145" };
   const MLB_SIZE = { row: "w_120", large: "w_240" };
 
@@ -37,24 +36,18 @@
     return path ? ESPN + "/combiner/i?img=/i/headshots/" + path + "/players/full/" + pid + ".png&" + HEAD_SIZE[sz] : null;
   }
 
-  /** A team logo url: "small" (default, 80px through the combiner) or "full" (the 500px file). College by ESPN's numeric id. */
+  /** A team logo url: "small" (default, 80px through the combiner) or "full" (the 500px file). */
   function logoUrl(league, key, size) {
     const path = own(LOGOS, league);
     const k = keyOf(key);
     if (!path || !k) return null;
-    if (league === "College football" && !/^[0-9]+$/.test(k)) return null;
     const file = "/i/teamlogos/" + path + "/500/" + k + ".png";
     return size === "full" ? ESPN + file : ESPN + "/combiner/i?img=" + file + "&w=80&h=80";
   }
 
-  /** The logo key for a player's team: the abbreviation, or for college the id the game carries. */
-  function teamKey(league, team, game) {
-    if (!team) return null;
-    if (league !== "College football") return keyOf(team);
-    if (!game) return null;
-    if (game.home === team && game.homeId) return keyOf(game.homeId);
-    if (game.away === team && game.awayId) return keyOf(game.awayId);
-    return null;
+  /** The logo key for a player's team: the abbreviation. */
+  function teamKey(league, team) {
+    return team ? keyOf(team) : null;
   }
 
   /** The one img markup: fixed box, lazy, no referrer, hidden on error; "" without a url. */

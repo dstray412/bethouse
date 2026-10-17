@@ -16,8 +16,6 @@
   <nav class="boards" aria-label="Boards">
     <a class="navlink" href="baseball.html">Baseball →</a>
     <a class="navlink" href="nfl.html">NFL →</a>
-    <a class="navlink" href="cfb.html">CFB →</a>
-    <a class="navlink" href="golf.html">PGA →</a>
     <a class="navlink" href="bets.html">Bets →</a>
     <a class="navlink" href="live.html">Live →</a>
     <a class="navlink" href="record.html">Record →</a>
@@ -35,15 +33,12 @@
   <div class="hdate"><span class="pill today" id="hwhen">Today</span><span id="hday"></span></div>
   <h2 id="htitle">Tonight's slate</h2>
   <p id="hsent">Reading the boards…</p>
-  <p class="golf" id="hgolf" hidden></p>
 </section>
 
 <nav class="bstrip" aria-label="Boards">
   <span class="blab">Boards</span>
   <a class="btn" href="nfl.html">NFL</a>
-  <a class="btn" href="cfb.html">College football</a>
   <a class="btn" href="baseball.html">Baseball</a>
-  <a class="btn" href="golf.html">PGA</a>
   <a class="btn" href="live.html">Live tracker</a>
   <a class="btn" href="teams.html">Teams</a>
   <a class="btn" href="defence.html">Defences</a>
@@ -89,24 +84,19 @@
 <script src="teams-data.js"></script>
 <script src="teams.js"></script>
 <script src="nfl.js"></script>
-<script src="cfb.js"></script>
 <script src="watchlist.js"></script>
 <script src="home.js"></script>
 <script src="sheet-page.js"></script>
 <script src="consistency-page.js"></script>
 <script src="parlay.js"></script>
 <script src="parlay-page.js"></script>
-<!-- TODO(simplify): the two football files are ~1.2 MB before gzip; fine on
-     a laptop and a phone on wifi. If the home drags, have the fetchers
-     write a small slate-data.js (games + top picks) and load that instead. -->
+<!-- TODO(simplify): the NFL file is ~780 KB before gzip; fine on a laptop
+     and a phone on wifi. If the home drags, have the fetcher write a small
+     slate-data.js (games + top picks) and load that instead. -->
 <script src="mlb-data.js" onerror="void 0"></script>
-<script src="pga-data.js" onerror="void 0"></script>
 <script src="nfl-data.js" onerror="void 0"></script>
-<script src="cfb-data.js" onerror="void 0"></script>
 <script src="record.js" onerror="void 0"></script>
 <script src="nfl-record.js" onerror="void 0"></script>
-<script src="cfb-record.js" onerror="void 0"></script>
-<script src="pga-record.js" onerror="void 0"></script>
 <script>
 (function(){
   'use strict';
@@ -117,13 +107,12 @@
     if(window.console&&console.error) console.error(e);
   }
   function render(){
-  /* The college model is its own; without it a college card shows no numbers rather than the NFL's. */
-  var H=window.BetHouseHome, N=window.BetHouseNFL, C=window.BetHouseCFB||null, E=window.BetHouseEdge, W=window.BetHouseWatchlist;
+  var H=window.BetHouseHome, N=window.BetHouseNFL, E=window.BetHouseEdge, W=window.BetHouseWatchlist;
   var F=window.BetHouseFaces||null, T=window.BetHouseTeams||null;
   var esc=function(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); };
   var el=function(id){ return document.getElementById(id); };
-  var data={ nfl:window.BetHouseNFLData||null, cfb:window.BetHouseCFBData||null, mlb:window.BETHOUSE_MLB||null, pga:window.BetHousePGAData||null,
-             records:[window.BETHOUSE_RECORD, window.BETHOUSE_NFL_RECORD, window.BETHOUSE_CFB_RECORD, window.BETHOUSE_PGA_RECORD] };
+  var data={ nfl:window.BetHouseNFLData||null, mlb:window.BETHOUSE_MLB||null,
+             records:[window.BETHOUSE_RECORD, window.BETHOUSE_NFL_RECORD] };
   var now=Date.now();
   var all=H.normalise(data, now);
   var s=H.slate(all, now);
@@ -142,8 +131,6 @@
   el('hday').textContent=s.day?longDay(s.day):'';
   el('htitle').textContent=s.when==='today'?'Tonight\'s slate':s.when==='next'?'Next up':'Nothing on the boards';
   el('hsent').textContent=H.sentence(s);
-  var golf=H.golfLine(data.pga, now);
-  if(golf){ el('hgolf').innerHTML=esc(golf)+' · <a href="golf.html">PGA →</a>'; el('hgolf').hidden=false; }
 
   /* One card per game. The logo is the one image the site ships: ESPN's,
      by a key the module has already reduced to letters and digits, sent
@@ -169,8 +156,7 @@
   };
   var h='';
   s.games.forEach(function(g){
-    var model=g.league==='NFL'?N:C, D=g.league==='NFL'?data.nfl:data.cfb;
-    var card=g.sport==='football'?H.footballCard(model,E,D,g):null;
+    var card=g.sport==='football'?H.footballCard(N,E,data.nfl,g):null;
     cards.push({game:g, card:card});
     var foot;
     if(g.sport==='football'){
@@ -192,12 +178,12 @@
       '<div class="gfoot">'+foot+'<a class="open" href="'+esc(g.board)+'" aria-label="Open the '+esc(g.league)+' board: '+esc(g.away)+' at '+esc(g.home)+'">Open →</a></div>'+
       '</div>';
   });
-  if(!s.games.length) h='<div class="empty" style="grid-column:1/-1"><div class="big">No games on the boards</div>The boards rebuild on their own schedule; the football files daily, baseball every half hour in season.</div>';
+  if(!s.games.length) h='<div class="empty" style="grid-column:1/-1"><div class="big">No games on the boards</div>The boards rebuild on their own schedule; the NFL file daily, baseball every half hour in season.</div>';
   el('gcards').innerHTML=h;
   el('stitle').textContent=s.when==='today'?'Tonight\'s games':s.when==='next'?(s.label||'Next up')+'\'s games':'Games';
   var hasFb=s.games.some(function(g){ return g.sport==='football'; }), hasBb=s.games.some(function(g){ return g.sport==='baseball'; });
   el('caveat').hidden=!hasFb; // the warning is about football numbers; a baseball day has none to warn about
-  var linesAt=[data.nfl&&data.nfl.linesFetched, data.cfb&&data.cfb.linesFetched].filter(Boolean).sort().pop();
+  var linesAt=data.nfl&&data.nfl.linesFetched;
   el('smeta').textContent=s.games.length?s.games.length+(s.games.length===1?' game':' games')+' · times where you are'+
     (hasFb?' · projected score, the favourite and the better of spread and total by EV'+(linesAt?' · lines as of '+String(linesAt).slice(11,16)+' UTC':''):'')+
     (hasBb?' · probable pitchers and whether lineups are posted':''):'';
@@ -210,19 +196,18 @@
   /* The football tops come from tonight's football games, or, on a day
      without any, from the next day that has some, and say which. */
   var fb=s.games.some(function(g){ return g.sport==='football'; })?s:H.slate(all.filter(function(g){ return g.sport==='football'; }), now);
-  var fbCards=fb===s?cards:fb.games.map(function(g){ return {game:g, card:H.footballCard(g.league==='NFL'?N:C, E, g.league==='NFL'?data.nfl:data.cfb, g)}; });
+  var fbCards=fb===s?cards:fb.games.map(function(g){ return {game:g, card:H.footballCard(N, E, data.nfl, g)}; });
   var whenWord=fb===s?'':' · '+(fb.label||'next up');
-  var tdN=H.topTD(N,{nfl:data.nfl},fb.games), tdC=H.topTD(C,{cfb:data.cfb},fb.games);
-  var td=tdN&&tdC?(tdN.prob>=tdC.prob?tdN:tdC):(tdN||tdC);
+  var td=H.topTD(N,{nfl:data.nfl},fb.games);
   var tdGame=td?fb.games.find(function(g){ return g.id===td.gameId; }):null;
-  if(td) tops+=top('Top touchdown chance'+whenWord, esc(td.name)+' <span class="mono">'+pct(td.prob)+'</span>', td.team+' vs '+td.opp+' · '+td.league, td.board, td.league==='NFL'?'NFL':'CFB', T&&tdGame?T.stripe(tdGame.league,tdGame.awayKey,tdGame.homeKey):'');
+  if(td) tops+=top('Top touchdown chance'+whenWord, esc(td.name)+' <span class="mono">'+pct(td.prob)+'</span>', td.team+' vs '+td.opp+' · '+td.league, td.board, 'NFL', T&&tdGame?T.stripe(tdGame.league,tdGame.awayKey,tdGame.homeKey):'');
   /* Model EV, not "edge": the replay found the game lines do not beat the close, so this is the
      model's best number on the slate, shown with that caveat, and only from one percent up. */
   var edge=H.topEdge(fbCards);
-  if(edge) tops+=top('Top model EV on a line'+whenWord, esc(edge.card.pick.text)+' <span class="mono">'+H.evLabel(edge.card.pick.ev)+'</span>', edge.game.away+' at '+edge.game.home+' · '+pct(edge.card.pick.prob)+' to cover at '+edge.card.pick.price+' · the replay found no proven edge in the lines', edge.game.board, edge.game.league==='NFL'?'NFL':'CFB', T?T.stripe(edge.game.league,edge.game.awayKey,edge.game.homeKey):'');
+  if(edge) tops+=top('Top model EV on a line'+whenWord, esc(edge.card.pick.text)+' <span class="mono">'+H.evLabel(edge.card.pick.ev)+'</span>', edge.game.away+' at '+edge.game.home+' · '+pct(edge.card.pick.prob)+' to cover at '+edge.card.pick.price+' · the replay found no proven edge in the lines', edge.game.board, 'NFL', T?T.stripe(edge.game.league,edge.game.awayKey,edge.game.homeKey):'');
   var tracked=0; try{ if(W&&W.parseTracks) tracked=W.parseTracks(window.localStorage.getItem(W.TRACK_KEY)).length; }catch(e){ tracked=0; }
   tops+=top('Tracking live', '<span class="mono">'+tracked+'</span> '+(tracked===1?'prop':'props'), tracked?'counted off the feeds while the games are on':'press Track on a player to follow him here', 'live.html', 'Live');
-  if(!hasFb&&!fb.games.length) tops+=top('Football', '<span class="mono">0</span> games on file', 'the football boards rebuild daily; nothing is scheduled in their files', 'nfl.html', 'NFL');
+  if(!hasFb&&!fb.games.length) tops+=top('Football', '<span class="mono">0</span> games on file', 'the NFL board rebuilds daily; nothing is scheduled in its file', 'nfl.html', 'NFL');
   el('tops').innerHTML=tops;
 
   /* The cheat sheets, for the NFL slate (today's NFL games, or the next
@@ -270,10 +255,8 @@
   /* The footer: when each board's data was built. */
   var built=[];
   if(data.nfl&&data.nfl.generated) built.push('NFL '+String(data.nfl.generated).slice(0,16).replace('T',' '));
-  if(data.cfb&&data.cfb.generated) built.push('college '+String(data.cfb.generated).slice(0,16).replace('T',' '));
   if(data.mlb&&data.mlb.fetchedAt) built.push('baseball '+String(data.mlb.fetchedAt).slice(0,16).replace('T',' '));
-  if(data.pga&&data.pga.generated) built.push('golf '+String(data.pga.generated).slice(0,16).replace('T',' '));
-  el('foot').innerHTML='<p>Built from the boards\' own data files'+(built.length?' ('+esc(built.join(' · '))+' UTC)':'')+'. Every number on this page is one a board measured; the projected score, favourite and pick are the football boards\' game view, with the boards\' verdict on them above. Team logos are ESPN\'s.</p>';
+  el('foot').innerHTML='<p>Built from the boards\' own data files'+(built.length?' ('+esc(built.join(' · '))+' UTC)':'')+'. Every number on this page is one a board measured; the projected score, favourite and pick are the NFL board\'s game view, with the board\'s verdict on them above. Team logos are ESPN\'s.</p>';
   }
 })();
 </script>

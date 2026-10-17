@@ -140,8 +140,6 @@ table.waterfall tr.wtot td.wl{color:var(--muted);font-size:10px;letter-spacing:.
     <a class="navlink" href="index.html">Home →</a>
     <a class="navlink" href="bets.html">Bets →</a>
     <a class="navlink" href="nfl.html">NFL →</a>
-    <a class="navlink" href="cfb.html">CFB →</a>
-    <a class="navlink" href="golf.html">PGA →</a>
     <a class="navlink" href="live.html">Live →</a>
     <a class="navlink" href="record.html">Record →</a>
     <a class="navlink" href="teams.html">Teams →</a>
@@ -1266,8 +1264,8 @@ function render(){
      still works, because that is what you did at the time. */
   document.getElementById('sugwrap').hidden = !S.parlayEligible(state.view) || isReplay();
 
-  /* Name the board, then the date. golf.html and nfl.html both put the
-     section first ("PGA Tour — who makes the cut", "NFL — 2026 week 1");
+  /* Name the board, then the date. nfl.html puts the section first
+     ("NFL — 2026 week 1");
      this one showed only a date, so the baseball board was the one page
      that never said which board it was. */
   document.getElementById('tagline').textContent = 'Baseball — ' +

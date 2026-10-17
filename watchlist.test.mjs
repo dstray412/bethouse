@@ -21,11 +21,11 @@ test("priceKey: the slate and the line are part of a counting prop's key, the sl
   assert.notEqual(W.priceKey(rec), W.priceKey({ ...rec, slate: "2026-5" }));
   assert.equal(W.priceKey({ league: "NFL", slate: "2026-4", playerId: "4241479", prop: "td" }), "NFL|2026-4|4241479|td");
   assert.equal(W.priceKey({ league: "NFL", slate: "2026-4", playerId: "4241479", prop: "td", line: 0.5 }), "NFL|2026-4|4241479|td", "a line on a touchdown is ignored");
-  assert.notEqual(W.priceKey({ ...rec, league: "CFB" }), W.priceKey(rec), "leagues share ids; the key keeps them apart");
+  assert.notEqual(W.priceKey({ ...rec, league: "XFL" }), W.priceKey(rec), "leagues share ids; the key keeps them apart");
 });
 
 test("forSlate: only this slate's prices are kept, so the store does not carry every week ever typed", () => {
-  const m = { "NFL|2026-3|1|td": -120, "NFL|2026-4|1|td": -140, "CFB|2026-4|9|rushyds|88.5": 105, "NFL|2026-4|2|recyds|59.5": 110 };
+  const m = { "NFL|2026-3|1|td": -120, "NFL|2026-4|1|td": -140, "XFL|2026-4|9|rushyds|88.5": 105, "NFL|2026-4|2|recyds|59.5": 110 };
   assert.deepEqual(W.forSlate(m, "NFL", "2026-4"), { "NFL|2026-4|1|td": -140, "NFL|2026-4|2|recyds|59.5": 110 });
   assert.deepEqual(W.forSlate(m, "NFL", "2026-9"), {});
   assert.deepEqual(W.forSlate(null, "NFL", "2026-4"), {});
@@ -45,7 +45,7 @@ test("parsePrices: bad JSON is an empty map, and only valid prices under string 
 });
 
 test("serialise / parsePrices round-trip, and the key carries a version", () => {
-  const m = { "NFL|2026-4|1|td": -120, "CFB|2026-4|9|rushyds|88.5": 105 };
+  const m = { "NFL|2026-4|1|td": -120, "XFL|2026-4|9|rushyds|88.5": 105 };
   assert.deepEqual(W.parsePrices(W.serialise(m)), m);
   assert.match(W.PRICE_KEY, /^bethouse\.prices\.v\d+$/);
 });
@@ -54,14 +54,14 @@ test("serialise / parsePrices round-trip, and the key carries a version", () => 
    player, not on a prop -- you watch a man, then look at his props. */
 test("watchKey: league and player, so the two boards' stars stay apart", () => {
   assert.equal(W.watchKey({ league: "NFL", playerId: "4241479" }), "NFL|4241479");
-  assert.notEqual(W.watchKey({ league: "CFB", playerId: "4241479" }), W.watchKey({ league: "NFL", playerId: "4241479" }));
+  assert.notEqual(W.watchKey({ league: "XFL", playerId: "4241479" }), W.watchKey({ league: "NFL", playerId: "4241479" }));
 });
 
 test("parseWatch: bad JSON is nothing, and only distinct string keys survive", () => {
   assert.deepEqual(W.parseWatch("nope"), []);
   assert.deepEqual(W.parseWatch(null), []);
   assert.deepEqual(W.parseWatch('{"a":1}'), [], "a map is not a list");
-  assert.deepEqual(W.parseWatch('["NFL|1","NFL|1",7,null,"","CFB|2"]'), ["NFL|1", "CFB|2"]);
+  assert.deepEqual(W.parseWatch('["NFL|1","NFL|1",7,null,"","XFL|2"]'), ["NFL|1", "XFL|2"]);
 });
 
 test("toggle / has: a star goes on, then off, and a list is never mutated in place", () => {
@@ -90,12 +90,12 @@ test("trackKey / parseTracks / toggleTrack: a tracked prop is one player, one pr
   assert.match(W.TRACK_KEY, /^bethouse\.track\.v\d+$/);
 });
 
-test("a track keeps the team's logo key so the live page can mark a college team", async () => {
+test("a track keeps the team's logo key so the live page can mark the team", async () => {
   const W = (await import("./watchlist.js")).default;
-  const raw = { league: "College football", sport: "football", gameId: "1", playerId: "2", name: "A", team: "UTAH", opp: "BYU", teamKey: "254", prop: "td" };
+  const raw = { league: "NFL", sport: "football", gameId: "1", playerId: "2", name: "A", team: "BUF", opp: "NE", teamKey: "buf", prop: "td" };
   const t = W.toggleTrack([], raw)[0];
-  assert.equal(t.teamKey, "254");
+  assert.equal(t.teamKey, "buf");
   const back = W.parseTracks(W.serialise([t]));
-  assert.equal(back[0].teamKey, "254", "round-trips through storage");
+  assert.equal(back[0].teamKey, "buf", "round-trips through storage");
   assert.equal(W.trackKey(t), W.trackKey(Object.assign({}, t, { teamKey: undefined })), "the key does not depend on it");
 });

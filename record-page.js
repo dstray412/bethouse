@@ -2,9 +2,8 @@
  *
  * One page for every board's forward record: what each board actually
  * published, graded after the fact, and the suggested parlays settled
- * the way a book would. The trackers (track-nfl.mjs, track-cfb.mjs)
- * write a record file per league; this reads each one and fills its
- * slot on record.html. The replay tables beside them are static markup
+ * the way a book would. The tracker (track-nfl.mjs) writes a record
+ * file per league; this reads each one and fills its slot on record.html. The replay tables beside them are static markup
  * on the page: they change only when a backtest is re-run.
  *
  * These two renderers lived in football-board.js and printed under every

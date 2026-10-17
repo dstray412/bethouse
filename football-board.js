@@ -1,17 +1,17 @@
 /*
  * BetHouse — football-board.js
- * The football board's page script, shared by nfl.html and cfb.html.
+ * The football board's page script, nfl.html's.
  *
- * The two pages are the same three views -- anytime touchdown, receiving
- * yards, spread and total -- over the same model bound to different
- * constants. When this lived inline in nfl.html a college page would have
- * meant a second copy of three hundred lines that would drift from the
- * first (tasks/lessons.md, "two copies of the same rule will disagree").
- * So each page supplies what is genuinely its own -- the model, the data,
- * the record, and the measured numbers it quotes -- and this renders.
+ * Three views -- anytime touchdown, receiving yards, spread and total --
+ * over a model and its constants. This was shared with the college page
+ * until 2026-10-16: when it lived inline in nfl.html a second league's page
+ * would have meant a second copy of three hundred lines that would drift
+ * from the first (tasks/lessons.md, "two copies of the same rule will
+ * disagree"). So the page supplies what is genuinely its own -- the model,
+ * the data, the record, and the measured numbers it quotes -- and this renders.
  *
  *   BetHouseFootballBoard.mount({
- *     model:  window.BetHouseNFL,       // or BetHouseCFB
+ *     model:  window.BetHouseNFL,
  *     data:   window.BetHouseNFLData,   // written by fetch-<league>.mjs
  *     record: window.BETHOUSE_NFL_RECORD,
  *     league: "NFL",                    // the tagline
@@ -195,7 +195,7 @@
     /* A player's photo and a team's mark, from faces.js; without it a
        row keeps its empty disc so the grid does not move. */
     var F=window.BetHouseFaces||null;
-    var teamKeyOf=function(team){ return F?F.teamKey(cfg.league,team,gameOf[team]):null; };
+    var teamKeyOf=function(team){ return F?F.teamKey(cfg.league,team):null; };
     /* A team's colour (teams.js), only ever a background or a border: the
        hero's tint and the tray card's left edge. '' without the module. */
     var TC=window.BetHouseTeams||null;
@@ -288,8 +288,8 @@
     /* The build time, as the tile prints it: HH:MM UTC, only when the
        stamp really is UTC. */
     var builtUTC=function(){ var g=String(D.generated||''); return /Z$/.test(g)?esc(g.slice(11,16))+' UTC':''; };
-    /* The record page's sections are #nfl and #cfb (record.html). */
-    var RECORD_ANCHOR={'NFL':'nfl','College football':'cfb'};
+    /* The record page's section is #nfl (record.html). */
+    var RECORD_ANCHOR={'NFL':'nfl'};
     var recordHref=function(){ return 'record.html#'+esc(RECORD_ANCHOR[cfg.league]||String(cfg.league||'').toLowerCase().replace(/[^a-z]+/g,'')); };
     var receiptBand=function(prop,r){
       var R=cfg.record, pr=R&&R.props&&R.props[prop];
@@ -640,8 +640,8 @@
           rateBand(avg>0?r.exp/avg:null, avg.toFixed(0)+unit+' a game', r.exp-avg, stat==='recs'?'catches':'yards')+
           receiptBand(stat,r);
       };
-      /* The overview always has a sentence, so a league without the usage
-         feed (college) does not open on a bare price box. */
+      /* The overview always has a sentence, so a board without the usage
+         feed does not open on a bare price box. */
       app.__over=function(r){
         var hit=hitsOf(r);
         return actRow(pxInput(r))+howHtml(r.chips, hit?'Cleared <b>'+Math.ceil(r.line)+'+</b> in <b>'+hit.hits+'</b> of his last <b>'+hit.n+'</b> games.':'No game log on file for him yet.');
@@ -703,9 +703,8 @@
      *
      * tendencies-data.js, written by tendencies.mjs out of nflverse
      * play-by-play: how each offence plays, what each defence gives up,
-     * and where the two meet. nfl.html loads it; college has no
-     * play-by-play, so cfb.html does not, and everything here is guarded
-     * on the file being there rather than on which league this is.
+     * and where the two meet. nfl.html loads it, and everything here is
+     * guarded on the file being there rather than on which league this is.
      *
      * It is DESCRIPTIVE. The replay that would say whether any of it
      * belongs in a projection is not run, so no number here reaches one
@@ -791,7 +790,7 @@
     /* The cheat sheets for a game (NFL: the data file carries `defence`
        and `offence`, sheet-page.js renders them): every top-five line
        for both sides, tagged D or O, under the matchup panel. Nothing
-       without the sheets or the module, so college shows nothing. */
+       without the sheets or the module. */
     function cheatHtml(r){
       var SP=window.BetHouseSheetPage||null;
       /* Guarded on shape, like TCORE: a stale cached module must not take the drawer down. */

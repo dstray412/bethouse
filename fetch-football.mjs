@@ -4,15 +4,15 @@
  * ESPN's football API → `<league>-history.json` (every completed game, every
  * box score, every closing line) and `<league>-data.js` (this week's board).
  *
- * One fetcher, two leagues. The NFL and college football share ESPN's
- * payload shape to the key name, and the day this was two files was the day
- * they started to disagree about the rules (see tasks/lessons.md, "two
- * copies of the same rule will disagree"). Everything league-shaped -- the
- * URLs, the file names, the model, how many weeks a season has, what to do
- * with a team that is not in the league -- lives in football-leagues.mjs.
- * `fetch-nfl.mjs` and `fetch-cfb.mjs` are each three lines that pick one.
+ * One fetcher, written for two leagues: the NFL and college football shared
+ * ESPN's payload shape to the key name, and the day this was two files was
+ * the day they started to disagree about the rules (see tasks/lessons.md,
+ * "two copies of the same rule will disagree"). The college board went on
+ * 2026-10-16; everything league-shaped -- the URLs, the file names, the
+ * model, how many weeks a season has -- still lives in football-leagues.mjs,
+ * and `fetch-nfl.mjs` is three lines that pick the league.
  *
- * Keyless, like statsapi and the golf side. No account, no rate tier.
+ * Keyless, like statsapi. No account, no rate tier.
  *
  * Three endpoints:
  *   1. scoreboard?dates=<yr>&seasontype=2&week=<n>  the week's schedule
@@ -27,9 +27,7 @@
  *    pregame line was PHI -7.5 with a total of 47.5; the live entry says
  *    -4.5 and 44.5, because by then the game had told it what was happening.
  *    Grading a model against that is grading it against the answer. Anything
- *    whose provider name matches /live/i is dropped, here, once. College
- *    football does exactly the same thing (Iowa State-Kansas State: KSU -2.5
- *    pregame, ISU -3.5 "live").
+ *    whose provider name matches /live/i is dropped, here, once.
  *
  * 2. `spread` IS ALWAYS HOME-RELATIVE, even though `details` names whichever
  *    team is favoured. "KC -3.5" on the road comes back as spread +3.5,
@@ -40,38 +38,24 @@
  *
  *        home covers  <=>  (homeScore - awayScore) + spread > 0
  *
- * TWO MORE, PARTICULAR TO COLLEGE FOOTBALL
- * ----------------------------------------
- * 3. NEUTRAL SITES. Kickoff classics, conference championships and every bowl
- *    are played where neither team is at home, and ESPN still designates one
- *    side "home" for the box score. `neutralSite` is carried through so the
- *    model gives home field to nobody. Five of the 96 games in 2025's first
- *    week were neutral; the NFL's London and Germany games are the same flag.
- *
- * 4. TEAMS THAT ARE NOT IN THE LEAGUE. The FBS scoreboard lists every game an
- *    FBS team plays, including ninety-odd a season against FCS opponents who
- *    appear once and lose by forty. Rated individually on one game, the ridge
- *    shrinks each of them to roughly average, which credits the FBS team that
- *    beat one with a forty-point performance against an average side. So
- *    every side that is not in ESPN's own membership list for the season
- *    (core API group 80) is recorded under one code, `FCS`, and rated as one
- *    team on ninety games rather than ninety teams on one. That is where the
- *    membership list comes from: the data, per season, not a table typed
- *    from memory. A school that moves up mid-decade is FCS in the seasons it
- *    was FCS and itself afterwards.
+ * ONE MORE
+ * --------
+ * 3. NEUTRAL SITES. The London and Germany games are played where neither
+ *    team is at home, and ESPN still designates one side "home" for the box
+ *    score. `neutralSite` is carried through so the model gives home field
+ *    to nobody.
  *
  * WHY THE CACHE IS NOT COMMITTED
  * ------------------------------
  * Two seasons of box scores is a few megabytes, and the repo's own
- * pre-commit hook rejects anything over 1 MB. `pga-history.json` is small
- * enough to ship; this is not. It is a rebuildable cache, so it lives in
+ * pre-commit hook rejects anything over 1 MB. It is a rebuildable cache, so it lives in
  * .gitignore and `--history` rebuilds it from scratch. The board itself does
  * not need it: fetch writes the ratings it derives into the data file.
  *
  *   node fetch-nfl.mjs                  # refresh cache, then build the board
- *   node fetch-cfb.mjs --history        # cache only
- *   node fetch-cfb.mjs --seasons 2024,2025
- *   node fetch-cfb.mjs --lines          # add opening lines to cached games that lack one
+ *   node fetch-nfl.mjs --history        # cache only
+ *   node fetch-nfl.mjs --seasons 2024,2025
+ *   node fetch-nfl.mjs --lines          # add opening lines to cached games that lack one
  */
 
 import { buildEnrichment, attach as attachEnrichment, gamesByPlayer, usageOf } from "./enrich-nfl.mjs";
@@ -124,16 +108,9 @@ export function zipStats(keys, stats) {
   return out;
 }
 
-/**
- * The code a team is recorded under. Its own abbreviation, unless the
- * league keeps a membership list and this team is not on it -- then the
- * league's code for outsiders (trap 4 above). `members` is a Set of ESPN
- * team ids; null means every team is a member, which is the NFL.
- */
-export function teamCode(team, members, outsiderCode) {
-  const abbr = team?.abbreviation || "";
-  if (!members || !abbr) return abbr;
-  return members.has(String(team?.id ?? "")) ? abbr : outsiderCode;
+/** The code a team is recorded under: its own abbreviation. */
+export function teamCode(team) {
+  return team?.abbreviation || "";
 }
 
 /**
@@ -142,22 +119,17 @@ export function teamCode(team, members, outsiderCode) {
  * Only players who actually did something are kept: a 53-man roster mostly
  * consists of people who cannot score a touchdown, and carrying them would
  * quadruple the cache for no signal.
- *
- * `opts.members` / `opts.outsiderCode`: see teamCode.
  */
-export function parseGame(summary, opts) {
-  const o = opts || {};
+export function parseGame(summary) {
   const header = summary?.header;
   const comp = header?.competitions?.[0];
   if (!comp) return null;
   const home = (comp.competitors || []).find((c) => c.homeAway === "home");
   const away = (comp.competitors || []).find((c) => c.homeAway === "away");
   if (!home || !away) return null;
-  const code = (c) => teamCode(c.team, o.members, o.outsiderCode);
-  const homeCode = code(home), awayCode = code(away);
+  const homeCode = teamCode(home.team), awayCode = teamCode(away.team);
 
-  /* The box score names sides by abbreviation, which for an outsider is
-     the school's own code rather than the one it is recorded under. */
+  /* The box score names sides by abbreviation. */
   const codeOf = { [home.team?.abbreviation || ""]: homeCode, [away.team?.abbreviation || ""]: awayCode };
 
   const players = new Map();
@@ -194,9 +166,8 @@ export function parseGame(summary, opts) {
             td: s.rushingTouchdowns || 0,
           };
         } else if (block.name === "receiving") {
-          /* College box scores carry no targets. The key is simply absent,
-             so `tgt` is 0 there and the college model reads receptions
-             instead -- see cfb.js. */
+          /* A box score without a target count leaves `tgt` at 0; the
+             model reads DEFAULTS.receivingStat. */
           p.rec = {
             rec: s.receptions || 0, tgt: s.receivingTargets || 0,
             yds: s.receivingYards || 0, td: s.receivingTouchdowns || 0,
@@ -318,8 +289,7 @@ export function wentOver(game) {
  * Six of sixteen week-1 games were dropped and two were attributed to the
  * wrong franchise. The scoreboard has carried `team.abbreviation` all along.
  */
-export function parseScheduleEvent(e, season, week, opts) {
-  const o = opts || {};
+export function parseScheduleEvent(e, season, week) {
   const comp = e?.competitions?.[0];
   const cs = comp?.competitors || [];
   const home = cs.find((c) => c.homeAway === "home");
@@ -331,11 +301,12 @@ export function parseScheduleEvent(e, season, week, opts) {
     date: e?.date || "",
     completed: !!e?.status?.type?.completed,
     name: e?.name || "",
-    home: home ? teamCode(home.team, o.members, o.outsiderCode) || null : null,
-    away: away ? teamCode(away.team, o.members, o.outsiderCode) || null : null,
+    home: home ? teamCode(home.team) || null : null,
+    away: away ? teamCode(away.team) || null : null,
   };
   if (comp?.neutralSite) row.neutral = true;
-  // ESPN's team ids key its logo CDN (the college path takes no abbreviation); the home page reads them.
+  // ESPN's team ids, beside the abbreviations the pages key on (the college
+  // home page keyed logos by these; nothing on the site reads them now).
   if (home?.team?.id != null) row.homeId = String(home.team.id);
   if (away?.team?.id != null) row.awayId = String(away.team.id);
   if (comp?.venue?.fullName) row.venue = String(comp.venue.fullName);
@@ -432,8 +403,7 @@ export function backupPassers(model, players, games, roster, injuries, season) {
   return out;
 }
 
-/** The team ids on a league's membership payload (core API groups/<n>/teams). */
-/** Team ids off ESPN's teams list, for the leagues that have one. */
+/** Team ids off ESPN's teams list. */
 export function parseTeamIds(payload) {
   const out = [];
   for (const s of payload?.sports || []) for (const l of s?.leagues || []) for (const t of l?.teams || []) {
@@ -446,15 +416,13 @@ export function parseTeamIds(payload) {
  * Every team's roster, as one Map by athlete id, or null when any team
  * could not be fetched: a partial set would drop every player on the
  * teams that failed, which is worse than moving nobody. Team ids come
- * from the league's teams list, or its membership list where the league
- * has one instead.
+ * from the league's teams list.
  */
-export async function fetchRosters(league, members) {
-  if (!league.rosterUrl) return null;
+export async function fetchRosters(league) {
+  if (!league.rosterUrl || !league.teamsUrl) return null;
   let ids = [];
   try {
-    if (league.teamsUrl) ids = parseTeamIds(await getJSON(league.teamsUrl));
-    else if (members && members.size) ids = [...members];
+    ids = parseTeamIds(await getJSON(league.teamsUrl));
   } catch (e) {
     console.log(`  WARNING: no teams list for rosters (${e.message})`);
     return null;
@@ -479,15 +447,6 @@ export async function fetchRosters(league, members) {
   return roster;
 }
 
-export function parseMembers(payload) {
-  const ids = new Set();
-  for (const it of payload?.items || []) {
-    const m = /\/teams\/(\d+)/.exec(String(it?.$ref || ""));
-    if (m) ids.add(m[1]);
-  }
-  return ids;
-}
-
 /* -------------------------------------------------------------------- *
  * Collection
  * -------------------------------------------------------------------- */
@@ -501,37 +460,11 @@ function loadHistory(league) {
   }
 }
 
-/**
- * The league's membership for a season, as a Set of team ids, or null for
- * a league that has no outsiders. Cached in the history file so a warm
- * refresh costs nothing; a season whose list cannot be fetched falls back
- * to the most recent one on disk, which is right for all but the handful
- * of schools that move up in any given year.
- */
-async function membersFor(league, history, season) {
-  if (!league.membersUrl) return null;
-  history.members = history.members || {};
-  if (!history.members[season]) {
-    try {
-      const ids = parseMembers(await getJSON(league.membersUrl(season)));
-      if (ids.size) history.members[season] = [...ids];
-    } catch (e) {
-      console.log(`  WARNING: no membership list for ${season} (${e.message})`);
-    }
-  }
-  const seasons = Object.keys(history.members).map(Number).filter((s) => s <= season).sort((a, b) => b - a);
-  const use = history.members[season] ? season : seasons[0];
-  if (!use) return null;
-  if (use !== season) console.log(`  using the ${use} membership list for ${season}`);
-  return new Set(history.members[use]);
-}
-
-async function weekSchedule(league, season, week, members) {
+async function weekSchedule(league, season, week) {
   const d = await getJSON(
-    `${league.site}/scoreboard?dates=${season}&seasontype=${REGULAR_SEASON}&week=${week}${league.scoreboardQuery || ""}`,
+    `${league.site}/scoreboard?dates=${season}&seasontype=${REGULAR_SEASON}&week=${week}`,
   );
-  const opts = { members, outsiderCode: league.outsiderCode };
-  return (d.events || []).map((e) => parseScheduleEvent(e, season, week, opts));
+  return (d.events || []).map((e) => parseScheduleEvent(e, season, week));
 }
 
 /** The current (or, after the game, closing) pregame line for one game. */
@@ -540,12 +473,12 @@ export async function fetchLine(league, id) {
   return parseOdds(odds);
 }
 
-async function fetchGame(league, id, members) {
+async function fetchGame(league, id) {
   const [summary, line] = await Promise.all([
     getJSON(`${league.site}/summary?event=${id}`),
     fetchLine(league, id),
   ]);
-  const game = parseGame(summary, { members, outsiderCode: league.outsiderCode });
+  const game = parseGame(summary);
   if (!game) return null;
   game.spread = line ? line.spread : null;
   game.total = line ? line.total : null;
@@ -583,10 +516,9 @@ export async function refreshHistory(league, seasons) {
   const todo = [];
 
   for (const season of seasons) {
-    const members = await membersFor(league, history, season);
     for (let w = 1; w <= league.weeks; w++) {
-      const sched = await weekSchedule(league, season, w, members);
-      for (const g of sched) if (g.completed && !have.has(g.id)) todo.push({ ...g, members });
+      const sched = await weekSchedule(league, season, w);
+      for (const g of sched) if (g.completed && !have.has(g.id)) todo.push(g);
     }
     console.log(`  ${season}: schedule scanned`);
   }
@@ -597,7 +529,7 @@ export async function refreshHistory(league, seasons) {
   for (let i = 0; i < todo.length; i += BATCH) {
     const chunk = todo.slice(i, i + BATCH);
     const got = await Promise.all(
-      chunk.map((g) => fetchGame(league, g.id, g.members).catch(() => null)),
+      chunk.map((g) => fetchGame(league, g.id).catch(() => null)),
     );
     got.forEach((g) => {
       if (g && g.players.length) history.games.push(g);
@@ -631,10 +563,10 @@ export async function refreshHistory(league, seasons) {
  * -------------------------------------------------------------------- */
 
 /** The next week with games still to play, else the most recent one. */
-async function nextWeek(league, season, members) {
+async function nextWeek(league, season) {
   const now = new Date().toISOString();
   for (let w = 1; w <= league.weeks; w++) {
-    const sched = await weekSchedule(league, season, w, members);
+    const sched = await weekSchedule(league, season, w);
     if (!sched.length) continue;
     const unplayed = sched.filter((g) => !g.completed || g.date > now);
     if (unplayed.length) return { week: w, games: sched };
@@ -707,8 +639,7 @@ export function seasonLines(games, model) {
       }
       players.set(p.id, r);
       if (tdBy[p.team] != null) tdBy[p.team] += td;
-      // One game's workload, in the model's own terms: targets in the
-      // NFL, receptions in college, where targets are not recorded.
+      // One game's workload, in the model's own terms (DEFAULTS.receivingStat).
       const u = model.usageTDs(p.rush?.att || 0, model.receivingOpportunity(model.gameLine(p)));
       if (u > 0) {
         if (!usageByPlayer.has(p.id)) usageByPlayer.set(p.id, []);
@@ -986,8 +917,8 @@ export function boardPlayer(p, { roster, injuries, backups, vac, opponentOf, rec
     ...(known(use3) ? { usage3: use3 } : {}),
     ...(p.rz && p.rz.n ? { rz: p.rz } : {}),
     /* The per-game log only where a decay reads it: a league at equal
-       weights would carry six numbers a game for nothing, and college's
-       1,362 players put the file over its ceiling (2026-10-01). */
+       weights would carry six numbers a game for nothing (the college
+       board's 1,362 players put its file over the ceiling, 2026-10-01). */
     ...(p.log && p.log.length && model && model.DEFAULTS.tdDecay < 1 ? { log: p.log } : {}),
     ...(w ? { w } : {}),
   };
@@ -996,8 +927,7 @@ export function boardPlayer(p, { roster, injuries, backups, vac, opponentOf, rec
 export async function buildBoard(league, history) {
   const model = league.model;
   const season = new Date().getUTCFullYear();
-  const members = await membersFor(league, history, season);
-  const up = await nextWeek(league, season, members);
+  const up = await nextWeek(league, season);
   if (!up) {
     console.log("no upcoming regular-season week found");
     return;
@@ -1047,7 +977,7 @@ export async function buildBoard(league, history) {
      Patriots, 2026). The roster wins; a player on no roster is not
      bettable and leaves. The pools above are built from the record and
      do not care where he is now. */
-  const roster = await fetchRosters(league, members);
+  const roster = await fetchRosters(league);
   const placed = model.applyRosters([...players.values()], roster);
   if (roster) {
     const show = placed.moved.slice(0, 6).map((m) => `${m.name} ${m.from}→${m.to}`).join(", ");
@@ -1137,8 +1067,7 @@ export async function buildBoard(league, history) {
 
   /* The injury report, where the league publishes one. Each board player
      gets his status; each team gets its list of hurt skill players for the
-     game view. College's endpoint returns three stale entries, so college
-     has no report and every player reads as available. */
+     game view. */
   let injuries = {};
   if (league.injuriesUrl) {
     try {
@@ -1170,8 +1099,8 @@ export async function buildBoard(league, history) {
 
   /* The last few game lines per player, for the drawer's recent-games
      tab. The history files are not published, so the rows ride in the
-     data file; league.recentGames caps them so the college file stays
-     under the 1 MB ceiling. */
+     data file; league.recentGames caps them so the file stays under the
+     1 MB ceiling. */
   const recent = recentRows(current, league.recentGames || 10, model);
 
 

@@ -44,17 +44,11 @@ const RESERVE = 25;
 
 /**
  * Which sports we care about, and how to find them.
- *
- * Golf is matched by group rather than by key: the tour's weekly event
- * keys change through the season (each major has its own key), so
- * hardcoding them would silently stop working in April. Discovery via
- * the free endpoint is both cheaper and more durable.
  */
 const WANTED = {
   mlb: { match: (s) => s.key === "baseball_mlb", markets: ["h2h", "totals"], label: "MLB" },
   nfl: { match: (s) => s.key === "americanfootball_nfl", markets: ["h2h", "spreads", "totals"], label: "NFL" },
   nba: { match: (s) => s.key === "basketball_nba", markets: ["h2h", "spreads", "totals"], label: "NBA" },
-  pga: { match: (s) => s.group === "Golf", markets: ["outrights"], label: "PGA Tour" },
 };
 
 /* ---------------------------------------------------------------- *

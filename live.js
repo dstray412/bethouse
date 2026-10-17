@@ -16,7 +16,7 @@
   "use strict";
 
   const num = (x) => { const n = Number(x); return isFinite(n) ? n : 0; };
-  const ESPN = { NFL: "nfl", "College football": "college-football" };
+  const ESPN = { NFL: "nfl" };
 
   /* Football reads ESPN's box-score feed on its cdn host, which allows a
      browser to read it across origins. The site API the fetchers use
@@ -156,5 +156,11 @@
     return 0;
   }
 
-  return { feedUrl, footballLine, footballState, mlbLine, mlbState, target, current, progress, summarise, pollInterval };
+  /** A track whose league the page no longer has a feed for (the college board, removed 2026-10-16): final and void, with the reason, so the card never sits at "scheduled". */
+  function orphan(t) {
+    if (!t || feedUrl(t)) return null;
+    return { current: null, target: target(t), status: "void", remaining: null, state: "post", detail: "no feed for this league any more; untrack it", fetched: true, stale: false };
+  }
+
+  return { feedUrl, footballLine, footballState, mlbLine, mlbState, target, current, progress, summarise, pollInterval, orphan };
 });

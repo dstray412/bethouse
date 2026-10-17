@@ -22,9 +22,7 @@
     <a class="navlink" href="index.html">Home →</a>
     <a class="navlink" href="bets.html">Bets →</a>
     <a class="navlink" href="nfl.html">NFL →</a>
-    <a class="navlink" href="cfb.html">CFB →</a>
     <a class="navlink" href="baseball.html">Baseball →</a>
-    <a class="navlink" href="golf.html">PGA →</a>
     <a class="navlink" href="record.html">Record →</a>
     <a class="navlink" href="teams.html">Teams →</a>
     <a class="navlink" href="defence.html">Defences →</a>
@@ -132,6 +130,7 @@
   }
 
   function measure(t){
+    var orphan=L.orphan?L.orphan(t):null; if(orphan) return orphan;
     var feed=state.feeds[L.feedUrl(t)];
     var st=t.sport==='baseball'?L.mlbState(feed):L.footballState(feed);
     var line=t.sport==='baseball'?L.mlbLine(feed,t.playerId):L.footballLine(feed,t.playerId);
@@ -167,7 +166,7 @@
     var cards=document.getElementById('cards'); var h='';
     var shown=state.items.filter(function(t){ return keep(t.progress); });
     if(!state.items.length){
-      h='<div class="empty" style="grid-column:1/-1"><div class="big">Nothing tracked tonight</div><div class="lhint" style="margin:0 auto">Open a player on the <a href="nfl.html">NFL</a> or <a href="cfb.html">college</a> board and press <b>Track</b> on a rung or on his touchdown; a bet you log on the <a href="baseball.html">baseball</a> board shows here too.</div></div>';
+      h='<div class="empty" style="grid-column:1/-1"><div class="big">Nothing tracked tonight</div><div class="lhint" style="margin:0 auto">Open a player on the <a href="nfl.html">NFL</a> board and press <b>Track</b> on a rung or on his touchdown; a bet you log on the <a href="baseball.html">baseball</a> board shows here too.</div></div>';
     } else if(!shown.length){
       h='<div class="empty" style="grid-column:1/-1"><div class="big">None '+esc(FILTERS.filter(function(f){return f.id===state.filter;})[0].label.toLowerCase())+'</div></div>';
     }

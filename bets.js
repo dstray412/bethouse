@@ -86,7 +86,7 @@
    * Building
    * ------------------------------------------------------------------ */
 
-  const RECORD_DIR = { NFL: "nfl-record", CFB: "cfb-record" };
+  const RECORD_DIR = { NFL: "nfl-record" };
   const isDay = (d) => typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d);
 
   function normLeg(l) {
@@ -111,6 +111,10 @@
        imported or hand-edited log cannot widen the path. */
     if (l.rung != null && isFinite(l.rung)) out.rung = Number(l.rung);
     if (l.league && RECORD_DIR[String(l.league).toUpperCase()]) out.league = String(l.league).toUpperCase();
+    /* A football leg from a league the log no longer grades (the college
+       board, removed 2026-10-16) can never be fetched a box line: the book
+       voids a market it cannot settle, and so does the log. */
+    if (out.rung != null && l.league && !out.league) out.void = true;
     if (l.kickoff) out.kickoff = String(l.kickoff);
     if (isDay(l.recordDay)) out.recordDay = String(l.recordDay);
     if (l.marketKey) out.marketKey = l.marketKey;
@@ -129,9 +133,12 @@
 
   function build(legs, prob, date, extra) {
     if (!Array.isArray(legs) || !legs.length) return null;
+    const normed = legs.map(normLeg);
+    /* Every leg void at build (a slip of legs the log no longer grades): nothing left to settle, so it is settled void now. */
+    const allVoid = normed.every((l) => l.void === true);
     const bet = Object.assign(
       {
-        legs: legs.map(normLeg),
+        legs: normed,
         // The number you were SHOWN when you bet, not a recomputation from
         // legs the model has since revised. Recomputing later would compare
         // your decision against evidence you never had.
@@ -144,8 +151,8 @@
       extra && extra.retro ? { retro: true } : {},
       extra && extra.actual != null
         ? { actual: Number(extra.actual), gradedAt: extra.gradedAt || new Date().toISOString() }
-        : extra && extra.void === true
-          ? { void: true, gradedAt: extra.gradedAt || new Date().toISOString() }
+        : (extra && extra.void === true) || allVoid
+          ? { void: true, gradedAt: (extra && extra.gradedAt) || new Date().toISOString() }
           : {},
     );
     const key = keyOf(bet);

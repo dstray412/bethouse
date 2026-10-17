@@ -1,6 +1,6 @@
 /*
  * BetHouse — home.test.mjs
- * The home page's arithmetic: one slate out of three boards' data, which
+ * The home page's arithmetic: one slate out of two boards' data, which
  * day it shows, what a game card says, and what the tile counts.
  *
  * Oracle: the data files' own shapes (nfl-data.js games[], mlb-data.js
@@ -29,7 +29,6 @@ const NFL = { games: [
     { id: "c", name: "Out Guy", team: "NE", opp: "BUF", pos: "WR", games: 4, tds: 5, carries: 0, targets: 40, recYds: 400, rushYds: 0, recs: 28, status: "Out" },
     { id: "d", name: "Travis Kelce", team: "KC", opp: "DEN", pos: "TE", games: 4, tds: 3, carries: 0, targets: 36, recYds: 300, rushYds: 0, recs: 24 },
   ] };
-const CFB = { games: [{ id: "9", date: "2026-10-02T23:30Z", name: "X at Y", completed: false, home: "UTAH", away: "BYU", homeId: "254", awayId: "252" }], ratings: null, players: [], teamFactors: {} };
 const MLB = { date: "2026-10-02", games: [
   { gamePk: 1, startTime: "2026-10-02T22:08:00Z", status: "Pre-Game", abstract: "Preview", live: false, venue: "Citizens Bank Park",
     away: { team: "Philadelphia Phillies", abbrev: "PHI", teamId: 143, confirmed: true, lineup: [{ id: 1 }, { id: 2 }] },
@@ -39,13 +38,12 @@ const MLB = { date: "2026-10-02", games: [
 ] };
 
 test("normalise: one list across the boards, each game with its keys, board and state", () => {
-  const all = H.normalise({ nfl: NFL, cfb: CFB, mlb: MLB }, NOW);
-  assert.equal(all.length, 6);
+  const all = H.normalise({ nfl: NFL, mlb: MLB }, NOW);
+  assert.equal(all.length, 5);
   const buf = all.find((g) => g.id === "nfl:2");
   assert.deepEqual({ sport: buf.sport, league: buf.league, home: buf.home, away: buf.away, board: buf.board, state: buf.state, start: buf.start },
     { sport: "football", league: "NFL", home: "BUF", away: "NE", board: "nfl.html", state: "pre", start: "2026-10-03T00:15Z" });
   assert.equal(all.find((g) => g.id === "nfl:1").state, "post", "completed is final");
-  assert.equal(all.find((g) => g.id === "cfb:9").board, "cfb.html");
   const phi = all.find((g) => g.id === "mlb:1");
   assert.deepEqual({ sport: phi.sport, league: phi.league, home: phi.home, away: phi.away, homeKey: phi.homeKey, awayKey: phi.awayKey, state: phi.state, board: phi.board },
     { sport: "baseball", league: "MLB", home: "ATL", away: "PHI", homeKey: "atl", awayKey: "phi", state: "pre", board: "baseball.html" });
@@ -64,15 +62,15 @@ test("localDay: the calendar day where the reader is, not UTC", () => {
 });
 
 test("slate: today's games when there are any, in start order, finished ones kept", () => {
-  const all = H.normalise({ nfl: NFL, cfb: CFB, mlb: MLB }, NOW);
+  const all = H.normalise({ nfl: NFL, mlb: MLB }, NOW);
   const s = H.slate(all, NOW, TZ);
   assert.equal(s.when, "today");
   assert.equal(s.day, "2026-10-02");
-  assert.deepEqual(s.games.map((g) => g.id), ["mlb:1", "cfb:9", "nfl:2"], "today in New York: the 6pm MLB game, the 7:30 college game, the 8:15 NFL game; yesterday's final and Sunday are not today");
+  assert.deepEqual(s.games.map((g) => g.id), ["mlb:1", "nfl:2"], "today in New York: the 6pm MLB game, the 8:15 NFL game; yesterday's final and Sunday are not today");
 });
 
 test("slate: with nothing today, the next day that has games, and never a past day", () => {
-  const all = H.normalise({ nfl: NFL, cfb: CFB, mlb: MLB }, NOW);
+  const all = H.normalise({ nfl: NFL, mlb: MLB }, NOW);
   const later = Date.parse("2026-10-03T12:00:00Z"); // Saturday morning Eastern
   const s = H.slate(all, later, TZ);
   assert.equal(s.when, "next");
@@ -85,9 +83,9 @@ test("dayLabel and sentence: measured words for the heading", () => {
   assert.equal(H.dayLabel("2026-10-02", NOW, TZ), "Today");
   assert.equal(H.dayLabel("2026-10-03", NOW, TZ), "Tomorrow");
   assert.equal(H.dayLabel("2026-10-04", NOW, TZ), "Sunday");
-  const all = H.normalise({ nfl: NFL, cfb: CFB, mlb: MLB }, NOW);
+  const all = H.normalise({ nfl: NFL, mlb: MLB }, NOW);
   const s = H.slate(all, NOW, TZ);
-  assert.equal(H.sentence(s, TZ), "3 games: 1 NFL, 1 college, 1 MLB · first at 6:08 PM");
+  assert.equal(H.sentence(s, TZ), "2 games: 1 NFL, 1 MLB · first at 6:08 PM");
   assert.equal(H.sentence(H.slate([all.find((g) => g.id === "nfl:3")], NOW, TZ), TZ), "1 game: 1 NFL · Sunday at 1:00 PM");
   assert.equal(H.sentence({ when: "none", day: null, games: [] }, TZ), "No games on the boards yet.");
 });
@@ -95,17 +93,14 @@ test("dayLabel and sentence: measured words for the heading", () => {
 test("logoUrl: ESPN's logo CDN by league, keys sanitised, nothing without a key", () => {
   assert.equal(H.logoUrl("NFL", "CLE"), "https://a.espncdn.com/i/teamlogos/nfl/500/cle.png");
   assert.equal(H.logoUrl("MLB", "phi"), "https://a.espncdn.com/i/teamlogos/mlb/500/phi.png");
-  assert.equal(H.logoUrl("College football", "254"), "https://a.espncdn.com/i/teamlogos/ncaa/500/254.png");
-  assert.equal(H.logoUrl("College football", null), null, "college needs the numeric id");
   assert.equal(H.logoUrl("NFL", "cle\"><script>"), null, "a key is letters and digits or nothing");
   assert.equal(H.logoUrl("Curling", "x"), null);
 });
 
-test("normalise: college keys are the numeric ids; the NFL and MLB keys are abbreviations", () => {
-  const all = H.normalise({ nfl: NFL, cfb: CFB, mlb: MLB }, NOW);
-  assert.deepEqual([all.find((g) => g.id === "cfb:9").homeKey, all.find((g) => g.id === "cfb:9").awayKey], ["254", "252"]);
+test("normalise: the NFL and MLB keys are abbreviations", () => {
+  const all = H.normalise({ nfl: NFL, mlb: MLB }, NOW);
   assert.equal(all.find((g) => g.id === "nfl:2").homeKey, "buf", "NFL by abbreviation even when ids are missing from the file");
-  assert.equal(H.normalise({ cfb: { games: [{ id: "z", date: "2026-10-02T23:30Z", home: "UTAH", away: "BYU" }] } }, NOW)[0].homeKey, null, "a college game without ids has no logo key");
+  assert.equal(all.find((g) => g.id === "nfl:1").awayKey, "pit", "the abbreviation, not the id the file also carries");
 });
 
 test("footballCard: the projection, favourite and pick the NFL board's game view shows", () => {
@@ -125,9 +120,9 @@ test("footballCard: the projection, favourite and pick the NFL board's game view
 });
 
 test("topTD: the best touchdown chance among players in the slate's open football games, nobody ruled out", () => {
-  const all = H.normalise({ nfl: NFL, cfb: CFB, mlb: MLB }, NOW);
+  const all = H.normalise({ nfl: NFL, mlb: MLB }, NOW);
   const s = H.slate(all, NOW, TZ);
-  const top = H.topTD(N, { nfl: NFL, cfb: CFB }, s.games);
+  const top = H.topTD(N, { nfl: NFL }, s.games);
   assert.ok(top && top.prob > 0 && top.prob < 1);
   assert.notEqual(top.name, "Out Guy");
   assert.notEqual(top.name, "Travis Kelce", "Sunday's game is not on today's slate");
@@ -136,8 +131,8 @@ test("topTD: the best touchdown chance among players in the slate's open footbal
 });
 
 test("topEdge: the game pick with the most positive EV on the slate, or nothing", () => {
-  const all = H.normalise({ nfl: NFL, cfb: CFB, mlb: MLB }, NOW);
-  const cards = H.slate(all, NOW, TZ).games.map((g) => ({ game: g, card: g.sport === "football" ? H.footballCard(N, E, g.league === "NFL" ? NFL : CFB, g) : null }));
+  const all = H.normalise({ nfl: NFL, mlb: MLB }, NOW);
+  const cards = H.slate(all, NOW, TZ).games.map((g) => ({ game: g, card: g.sport === "football" ? H.footballCard(N, E, NFL, g) : null }));
   // The model shrinks a cover chance toward a coin flip (the replay found no edge on the lines), so at -110 nothing here is an edge.
   assert.ok(cards.every((c) => !c.card || !c.card.pick || c.card.pick.ev < 0));
   assert.equal(H.topEdge(cards), null, "a pick that loses money at its price is not an edge, however it ranks");
@@ -166,16 +161,7 @@ test("evLabel, favLabel, pitcherLabel: the card's words say only what the number
 });
 
 test("counts: the tile's numbers, each only from data that loaded", () => {
-  const c = H.counts({ nfl: NFL, cfb: CFB, mlb: MLB, records: [{ total: 100 }, null, { total: 5 }] }, 3);
-  assert.deepEqual(c, { games: 3, players: 4 + 0 + 4, graded: 105 }, "players: football players plus batters in posted lineups (both lineups of the final, the away lineup of the pre-game)");
+  const c = H.counts({ nfl: NFL, mlb: MLB, records: [{ total: 100 }, null, { total: 5 }] }, 2);
+  assert.deepEqual(c, { games: 2, players: 4 + 4, graded: 105 }, "players: football players plus batters in posted lineups (both lineups of the final, the away lineup of the pre-game)");
   assert.deepEqual(H.counts({}, 0), { games: 0, players: 0, graded: 0 });
-});
-
-test("golfLine: the current event when it starts within the week", () => {
-  const P = { event: { name: "Bank of Utah Championship", date: "2026-10-01T04:00Z", state: "pre", cut: 65 }, field: new Array(120) };
-  assert.equal(H.golfLine(P, Date.parse("2026-09-29T20:00:00Z"), TZ), "Bank of Utah Championship starts Thursday · 120 in the field");
-  assert.equal(H.golfLine(Object.assign({}, P, { event: Object.assign({}, P.event, { state: "in" }) }), NOW, TZ), "Bank of Utah Championship is under way · 120 in the field");
-  assert.equal(H.golfLine(P, Date.parse("2026-09-20T20:00:00Z"), TZ), null, "more than a week out: nothing");
-  assert.equal(H.golfLine(P, Date.parse("2026-09-29T20:00:00Z"), "America/Los_Angeles"), "Bank of Utah Championship starts Thursday · 120 in the field", "the tour's day is Eastern: midnight Eastern is not Wednesday evening in Los Angeles");
-  assert.equal(H.golfLine(null, NOW, TZ), null);
 });

@@ -32,13 +32,6 @@ jobs:
       - name: Fetch today's slate
         run: node fetch-mlb.mjs
 
-      - name: Fetch the golf board
-        # Cheap: the season cache only re-fetches tournaments that have
-        # finished since last run, so most runs cost a single schedule
-        # request. Never fail the whole refresh over golf — the baseball
-        # board is the thing people open every day.
-        run: node fetch-pga.mjs || echo "PGA fetch failed, keeping the previous board"
-
       - name: Sanity check before committing
         # Never publish a broken board. If the fetch produced something the
         # app cannot read, fail here rather than commit it.
@@ -53,28 +46,10 @@ jobs:
             if (d.games.length && slots < d.games.length * 9) throw new Error("lineups look truncated: " + slots);
             console.log("ok:", d.games.length, "games,", slots, "lineup slots");
           '
-          # The golf board must never fail this job. The fetch step above is
-          # deliberately non-fatal, and on 2026-08-14 this check undid that:
-          # between tournaments the next event has no field posted yet, the
-          # check threw "empty field", and the whole refresh died -- so the
-          # BASEBALL board stopped updating because of golf. Report and carry
-          # on; a malformed golf board is worth knowing about, not worth
-          # taking the daily board down for.
-          node -e '
-            const fs = require("fs");
-            if (!fs.existsSync("pga-data.js")) { console.log("golf: no board yet"); process.exit(0); }
-            global.window = {};
-            require("./pga-data.js");
-            const d = window.BetHousePGAData;
-            if (!d || !d.event) { console.log("golf: WARNING malformed board"); process.exit(0); }
-            const n = Array.isArray(d.field) ? d.field.length : 0;
-            if (!n) { console.log("golf: field not posted for " + d.event.name + " — board left as-is"); process.exit(0); }
-            console.log("golf ok:", d.event.name, n, "players, cut", d.event.cut);
-          ' || echo "golf sanity check errored — continuing anyway"
           # Name the test files explicitly. `node --test` bare discovery picks
-          # up backtest.mjs and backtest-pga.mjs on Node 21+ and would fire
+          # up backtest.mjs and backtest-nfl.mjs on Node 21+ and would fire
           # ~100 live API calls at statsapi and ESPN on every scheduled run.
-          node --test edge.test.mjs score.test.mjs golf.test.mjs nfl.test.mjs cfb.test.mjs parlay.test.mjs nflverse.test.mjs tendencies.test.mjs cfbfastr.test.mjs statcast.test.mjs bets.test.mjs track.test.mjs clv.test.mjs provenance.test.mjs watchlist.test.mjs live.test.mjs home.test.mjs faces.test.mjs enrich-nfl.test.mjs chips.test.mjs record-page.test.mjs teams.test.mjs compare-td.test.mjs teams-page.test.mjs fetch-weather.test.mjs sheet-page.test.mjs consistency-page.test.mjs parlay-page.test.mjs dom.test.mjs
+          node --test edge.test.mjs score.test.mjs nfl.test.mjs parlay.test.mjs nflverse.test.mjs tendencies.test.mjs statcast.test.mjs bets.test.mjs track.test.mjs clv.test.mjs provenance.test.mjs watchlist.test.mjs live.test.mjs home.test.mjs faces.test.mjs enrich-nfl.test.mjs chips.test.mjs record-page.test.mjs teams.test.mjs compare-td.test.mjs teams-page.test.mjs fetch-weather.test.mjs sheet-page.test.mjs consistency-page.test.mjs parlay-page.test.mjs dom.test.mjs
 
       - name: Record predictions and grade finished games
         run: |
@@ -85,13 +60,6 @@ jobs:
           node track.mjs snapshot
           node track.mjs grade
           node track.mjs report --write-record
-          # Golf, same rules. Snapshot skips no-cut weeks and anything already
-          # under way; grade reads pga-history.json, which fetch-pga.mjs has
-          # just refreshed, so it makes no requests of its own. Never fail the
-          # baseball refresh over golf.
-          node track-pga.mjs snapshot || echo "PGA snapshot skipped"
-          node track-pga.mjs grade    || echo "PGA grade skipped"
-          node track-pga.mjs report --write-record || true
 
       - name: Commit if the board changed
         run: |
@@ -102,12 +70,8 @@ jobs:
           # not there yet is a fatal error, which took down every scheduled
           # run until the first graded day.
           git add mlb-data.js
-          [ -f pga-data.js ] && git add pga-data.js || true
-          [ -f pga-history.json ] && git add pga-history.json || true
           [ -f record.js ] && git add record.js || true
           [ -d history ] && git add history/ || true
-          [ -d pga-record ] && git add pga-record/ || true
-          [ -f pga-record.js ] && git add pga-record.js || true
           if git diff --staged --quiet; then
             echo "No change."
           else

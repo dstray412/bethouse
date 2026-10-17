@@ -68,7 +68,7 @@ components:
 ## Overview
 
 **Creative North Star:** a warm, soft board that reads like the reference the user likes: rounded panels and pills, figures in gold, colour where the model found something, because the one thing to remember is that it tells you the truth about the price, and the truth should be easy to spot.
-**Product context:** a personal, zero-dependency sports-props board: seven static pages (a home, baseball, NFL, college football, golf, a bet log, a live tracker) where every number is a measured probability with a fair price beside it. Used daily, on a laptop and a phone, before kickoff, by the owner and the friends he sends links to. Peers: nhlpropking.com and the props sites it resembles.
+**Product context:** a personal, zero-dependency sports-props board: a dozen static pages (a home, baseball, NFL, a bet log, a live tracker, the record, the teams, the cheat sheets, the consistency cards, the parlays) where every number is a measured probability with a fair price beside it. Used daily, on a laptop and a phone, before kickoff, by the owner and the friends he sends links to. Peers: nhlpropking.com and the props sites it resembles.
 **Mode per surface:** the boards and the drawer Operate; the notes, footers and README prose Read; nothing Persuades and nothing is an Experience.
 **Reference sites:** nhlpropking.com/projections (the user's reference for density, the headed table, the stat tile and the drawer).
 **Key characteristics:**

@@ -67,7 +67,7 @@ const LADDER = !args.includes("--no-ladder");
  * hashed at both ends of the run and the hash is printed, and a reader can
  * tell whether this table and a given backtest run mean the same model.
  */
-const MODEL_FILES = ["nfl.js", "cfb.js", "fetch-football.mjs", "football-leagues.mjs"];
+const MODEL_FILES = ["nfl.js", "fetch-football.mjs", "football-leagues.mjs"];
 const modelHash = () => {
   const h = createHash("sha256");
   for (const f of MODEL_FILES) h.update(readFileSync(f));

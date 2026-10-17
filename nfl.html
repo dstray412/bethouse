@@ -16,9 +16,7 @@
   <nav class="boards" aria-label="Other boards">
   <a class="navlink" href="index.html">Home →</a>
   <a class="navlink" href="bets.html">Bets →</a>
-  <a class="navlink" href="cfb.html">CFB →</a>
   <a class="navlink" href="baseball.html">Baseball →</a>
-  <a class="navlink" href="golf.html">PGA →</a>
   <a class="navlink" href="live.html">Live →</a>
   <a class="navlink" href="record.html">Record →</a>
   <a class="navlink" href="teams.html">Teams →</a>
@@ -106,8 +104,7 @@
 <script src="nfl.js"></script>
 <script src="nfl-data.js"></script>
 <!-- Written by tendencies.mjs from nflverse play-by-play. The matchup
-     panel on the game view reads it; the board works without it, and
-     college has no play-by-play, so cfb.html loads no such file. -->
+     panel on the game view reads it; the board works without it. -->
 <script src="tendencies-data.js"></script>
 <script src="tendencies-core.js"></script>
 <!-- The cheat sheets ride nfl-data.js; sheet-page.js renders them on a game's drawer, as on the home and the two pages. -->
@@ -119,8 +116,7 @@
 <script src="chips.js"></script>
 <script src="football-board.js"></script>
 <script>
-/* The page is football-board.js, shared with cfb.html. What is the NFL's
-   own is the model, the data, the record, and the numbers it quotes --
+/* The page is football-board.js. What is the NFL's own is the model, the data, the record, and the numbers it quotes --
    every one of them from `node backtest-nfl.mjs` on 2026-09-05 (touchdowns, receiving yards, game lines) and 2026-09-08 (the other counting props). */
 BetHouseFootballBoard.mount({
   model: window.BetHouseNFL,

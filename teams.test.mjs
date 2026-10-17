@@ -12,19 +12,17 @@ import T from "./teams.js";
 const DATA = {
   NFL: { cle: { p: "311d00", s: "ff3c00" }, kc: { p: "e31837", s: "ffb81c" }, bad: { p: "zzz", s: "ffffff" }, one: { p: "123456" },
     pit: { p: "000000", s: "ffb612" }, nite: { p: "000000", s: "0a0a0a" }, dark: { p: "000000" } },
-  "College football": { "2000": { p: "592d82", s: "b1b3b3" } },
   MLB: { phi: { p: "e81828", s: "002d72" } },
 };
 
 test("colour: a team's primary and secondary as #hex, by league and the key faces.js uses; nothing for an unknown team or a bad hex", () => {
   T.use(DATA);
   assert.deepEqual(T.colour("NFL", "CLE"), { primary: "#311d00", secondary: "#ff3c00" }, "the key is case-insensitive like faces.js's");
-  assert.deepEqual(T.colour("College football", "2000"), { primary: "#592d82", secondary: "#b1b3b3" });
   assert.deepEqual(T.colour("MLB", "phi"), { primary: "#e81828", secondary: "#002d72" });
   assert.equal(T.colour("NFL", "xxx"), null);
   assert.equal(T.colour("NFL", "bad"), null, "a colour that is not six hex digits is not a colour");
   assert.deepEqual(T.colour("NFL", "one"), { primary: "#123456", secondary: null }, "a team with no secondary keeps its primary");
-  assert.equal(T.colour("PGA", "x"), null);
+  assert.equal(T.colour("Curling", "x"), null, "a league the table does not carry");
   assert.equal(T.colour("NFL", null), null);
   assert.equal(T.colour("NFL", "<b>"), null, "a key that is not letters and digits is not a key");
   T.use(null);

@@ -31,8 +31,8 @@
  *
  * WHAT IT IS NOT
  * --------------
- * Not a replacement for the ESPN cache, which carries box scores, the
- * opening line and college. Not wired into any board or record. A history
+ * Not a replacement for the ESPN cache, which carries box scores and the
+ * opening line. Not wired into any board or record. A history
  * for asking questions, cached under nflverse/ (gitignored, ~70 MB plus
  * 19 MB per season of gzipped play-by-play). tendencies.mjs is what reads
  * the play-by-play.

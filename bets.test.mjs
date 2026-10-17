@@ -633,7 +633,7 @@ test("recordPaths: where the grades live, a file a day for baseball and a file a
     bets.parlay([fleg({ league: "CFB", recordDay: "2026-10-10", gamePk: "7" })], 0.6, "2026-10-10"),
     Object.assign(bets.single(leg({ gamePk: 5 }), "2026-08-18"), { actual: 1 }),
   ];
-  assert.deepEqual(bets.recordPaths(list), ["nfl-record/2026-10-09.json", "cfb-record/2026-10-10.json", "history/2026-08-19.json"], "newest first, football before baseball, a settled bet's file not fetched");
+  assert.deepEqual(bets.recordPaths(list), ["nfl-record/2026-10-09.json", "history/2026-08-19.json"], "newest first, football before baseball, a settled bet's file not fetched; a leg from a league the log no longer grades (the college board, removed 2026-10-16) has nowhere to be graded");
   assert.deepEqual(bets.recordPaths([]), []);
   assert.deepEqual(bets.recordPaths([bets.parlay([fleg({ recordDay: undefined })], 0.5, "2026-10-08")]), [], "a football leg without a record day has nowhere to be graded; it is not fetched as baseball");
 });
@@ -688,4 +688,25 @@ test("a scratched player voids his leg: a book would void it, so the parlay sett
   assert.equal(bets.applyResults([mixed], { "401872980|4429676|td|1": "void", "401872980|2577417|passyds|250": 0 })[0].actual, 0);
   const half = bets.applyResults([mixed], { "401872980|4429676|td|1": "void" })[0];
   assert.equal(half.actual == null, true); assert.equal(half.void, undefined); assert.equal(half.legs[0].void, true);
+});
+
+/* A league the log no longer grades (the college board, removed 2026-10-16).
+   Oracle: the void rule above -- a leg the book cannot settle comes off the
+   slip, and a slip with nothing left on it is void, not open forever. */
+test("a logged football leg from a league the log no longer grades is void at build; a bet of only such legs settles void, a mixed slip just loses the leg", () => {
+  const cfb = bets.parlay([fleg({ league: "CFB", gamePk: "7", recordDay: "2026-10-10" })], 0.6, "2026-10-10");
+  assert.equal(cfb.legs[0].void, true);
+  assert.equal("league" in cfb.legs[0], false, "no fetch path is kept for it");
+  assert.equal(cfb.void, true, "nothing on it can ever grade: settled void, as a book voids an unsettleable market");
+  assert.ok(cfb.gradedAt);
+  assert.deepEqual(bets.recordPaths([cfb]), [], "a settled bet is not fetched");
+  assert.equal(bets.summarise([cfb]).void, 1);
+  const mixed = bets.parlay([fleg(), fleg({ league: "CFB", gamePk: "7", playerId: "9" })], 0.4, "2026-10-08");
+  assert.equal("void" in mixed, false, "an NFL leg still stands, so the slip settles as a shorter parlay");
+  assert.equal(mixed.legs[1].void, true);
+  assert.equal("void" in mixed.legs[0], false);
+  assert.deepEqual(bets.recordPaths([mixed]), ["nfl-record/2026-10-09.json"]);
+  const nfl = bets.parlay([fleg()], 0.6, "2026-10-09");
+  assert.equal("void" in nfl.legs[0], false);
+  assert.equal("void" in nfl, false);
 });

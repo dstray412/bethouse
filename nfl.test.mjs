@@ -694,12 +694,9 @@ test("pickGame: still picks the side when the probability is a coin flip", () =>
   close(p.total.prob, 0.5);
 });
 
-test("the NFL ships its spread probability fully shrunk, and college too", async () => {
-  const cfb = (await import("./cfb.js")).default;
+test("the NFL ships its spread probability fully shrunk", () => {
   assert.equal(DEFAULTS.spreadShrink, 0);
-  assert.equal(cfb.DEFAULTS.spreadShrink, 0);
   assert.ok(DEFAULTS.totalShrink > 0 && DEFAULTS.totalShrink < 1);
-  assert.ok(cfb.DEFAULTS.totalShrink > 0 && cfb.DEFAULTS.totalShrink < 1);
 });
 
 /* ------------------------------------------------------------------ *
@@ -1020,8 +1017,8 @@ test("rushrec: touches for opportunity, the two yardages summed off a box score"
   const p = { rush: { att: 12, yds: 80, td: 1 }, rec: { tgt: 6, rec: 4, yds: 41 } };
   assert.equal(nfl.gameValue("rushrec", p), 121);
   assert.equal(nfl.statOpportunity("rushrec", nfl.gameLine(p)), 18, "carries + targets in the NFL");
-  const college = nfl.bind({ receivingStat: "recs" });
-  assert.equal(college.statOpportunity("rushrec", college.gameLine(p)), 16, "carries + receptions where targets are not recorded");
+  const recsLeague = nfl.bind({ receivingStat: "recs" });
+  assert.equal(recsLeague.statOpportunity("rushrec", recsLeague.gameLine(p)), 16, "carries + receptions where a league records no targets");
   const rec = { games: 4, carries: 60, targets: 12, rushYds: 300, recYds: 80 };
   assert.equal(nfl.statOpportunity("rushrec", rec), 72);
   const y = nfl.statEligible("rushrec", rec);
@@ -1331,14 +1328,14 @@ test("boardPlayer: carries the player's recent rows when there are any, and no f
   assert.equal("recent" in b, false);
 });
 
-test("boardPlayer: the per-game log rides along only for a model whose touchdown decay reads it; college at equal weights writes none", async () => {
+test("boardPlayer: the per-game log rides along only for a model whose touchdown decay reads it; a model at equal weights writes none", async () => {
   const { boardPlayer } = await import("./fetch-football.mjs");
-  const cfb = (await import("./cfb.js")).default;
+  const flat = nfl.bind({ tdDecay: 1 });
   const rec = { id: "1", name: "A", team: "KC", games: 2, tds: 1, carries: 0, targets: 10, recYds: 100, rushYds: 0, recs: 8, passAtt: 0, passYds: 0, log: [[0, 0, 5, null, null, null], [1, 0, 5, null, null, null]] };
   const ctx = { roster: null, injuries: {}, backups: new Set(), opponentOf: {}, recent: new Map() };
-  assert.ok(nfl.DEFAULTS.tdDecay < 1 && cfb.DEFAULTS.tdDecay === 1, "the fixture assumes the NFL decays and college does not");
+  assert.ok(nfl.DEFAULTS.tdDecay < 1, "the fixture assumes the NFL decays");
   assert.deepEqual(boardPlayer(rec, { ...ctx, model: nfl }).log, rec.log, "the NFL board lost the log its decay reads");
-  assert.equal("log" in boardPlayer(rec, { ...ctx, model: cfb }), false, "college carries a log nothing reads (1,362 players of it put the file over 1 MB)");
+  assert.equal("log" in boardPlayer(rec, { ...ctx, model: flat }), false, "a model at equal weights carries a log nothing reads (the college board's 1,362 players put its file over 1 MB)");
   assert.equal("log" in boardPlayer(rec, ctx), false, "no model, no decay to read it");
 });
 
@@ -1455,9 +1452,9 @@ test("seasonLines: the per-game log is oldest first whatever order the games arr
   const newestFirst = [g("2026-09-21T00:00Z", 8, 6), g("2026-09-07T00:00Z", 3, 2)];
   const nflLine = seasonLines(newestFirst, nfl).players.get("p1");
   assert.deepEqual(nflLine.log.map((row) => row[2]), [3, 8], "oldest first, targets for the NFL");
-  const cfb = (await import("./cfb.js")).default;
-  const cfbLine = seasonLines(newestFirst, cfb).players.get("p1");
-  assert.deepEqual(cfbLine.log.map((row) => row[2]), [2, 6], "oldest first, receptions for college, where targets are never recorded");
+  const recsLeague = nfl.bind({ receivingStat: "recs" });
+  const recsLine = seasonLines(newestFirst, recsLeague).players.get("p1");
+  assert.deepEqual(recsLine.log.map((row) => row[2]), [2, 6], "oldest first, receptions for a league that records no targets");
 });
 
 /* ------------------------------------------------------------------ *
@@ -1819,4 +1816,160 @@ test("recentTdHits: games with a touchdown in the recent rows, the one count eve
   const rows = [["260928", "DEN", 0, 0, 0, 0, 2], ["260921", "NYG", 0, 0, 0, 0, 0], ["260914", "LV", 0, 0, 0, 0, 1], ["260907", "KC", 0, 0, 0, 0, null]];
   assert.equal(nfl.recentTdHits(rows), 2);
   assert.equal(nfl.recentTdHits(null), 0); assert.equal(nfl.recentTdHits([]), 0);
+});
+
+/* ------------------------------------------------------------------ *
+ * Parsing ESPN's payloads (fetch-football.mjs)
+ *
+ * These lived in cfb.test.mjs until the college board went (2026-10-16);
+ * the shapes are the NFL's too. Oracle: ESPN's own payloads, read on
+ * 2026-09-05 -- a neutral-site game (the NFL's London and Germany games
+ * carry the same flag), a receiving block, the odds endpoint with its
+ * in-play entry, and a team-level statistics block.
+ * ------------------------------------------------------------------ */
+
+const summaryPayload = (over) =>
+  Object.assign({
+    header: {
+      id: "401756846",
+      season: { year: 2025, type: 2 },
+      week: 1,
+      competitions: [{
+        date: "2025-08-23T16:00Z",
+        neutralSite: true,
+        competitors: [
+          { homeAway: "home", score: "21", team: { id: "2306", abbreviation: "KSU" } },
+          { homeAway: "away", score: "24", team: { id: "66", abbreviation: "ISU" } },
+        ],
+      }],
+    },
+    boxscore: {
+      players: [{
+        team: { abbreviation: "ISU" },
+        statistics: [
+          {
+            name: "rushing",
+            keys: ["rushingAttempts", "rushingYards", "yardsPerRushAttempt", "rushingTouchdowns", "longRushing"],
+            athletes: [{ athlete: { id: "5077502", displayName: "Carson Hansen" }, stats: ["16", "71", "4.4", "0", "15"] }],
+          },
+          {
+            name: "receiving",
+            keys: ["receptions", "receivingYards", "yardsPerReception", "receivingTouchdowns", "longReception"],
+            athletes: [{ athlete: { id: "5148535", displayName: "Brett Eskildsen" }, stats: ["3", "46", "15.3", "1", "24"] }],
+          },
+        ],
+      }],
+    },
+  }, over || {});
+
+test("parseGame: a neutral site is carried through, and only when it is one", async () => {
+  const { parseGame } = await import("./fetch-football.mjs");
+  assert.equal(parseGame(summaryPayload()).neutral, true);
+  const home = summaryPayload();
+  home.header.competitions[0].neutralSite = false;
+  assert.equal("neutral" in parseGame(home), false, "a home game carries no flag at all");
+});
+
+test("parseGame: every team is recorded under its own abbreviation, and a receiver with no target count is kept on receptions", async () => {
+  const { parseGame, teamCode } = await import("./fetch-football.mjs");
+  const g = parseGame(summaryPayload());
+  assert.equal(g.home.team, "KSU");
+  assert.equal(g.away.team, "ISU");
+  assert.equal(teamCode({ id: "9999", abbreviation: "ISU" }), "ISU");
+  assert.equal(teamCode(null), "");
+  const wr = g.players.find((p) => p.id === "5148535");
+  assert.ok(wr, "a player with receptions but no targets must not be dropped");
+  assert.deepEqual(wr.rec, { rec: 3, tgt: 0, yds: 46, td: 1 });
+});
+
+test("parseScheduleEvent: the sides, ESPN's team ids beside them, and the neutral flag", async () => {
+  const { parseScheduleEvent } = await import("./fetch-football.mjs");
+  const e = {
+    id: "1", date: "2026-09-12T16:00Z", name: "Minnesota Vikings at Pittsburgh Steelers",
+    status: { type: { completed: false } },
+    competitions: [{
+      neutralSite: false,
+      competitors: [
+        { homeAway: "home", team: { id: "23", abbreviation: "PIT" } },
+        { homeAway: "away", team: { id: "16", abbreviation: "MIN" } },
+      ],
+    }],
+  };
+  const row = parseScheduleEvent(e, 2026, 3);
+  assert.equal(row.home, "PIT");
+  assert.equal(row.away, "MIN");
+  assert.deepEqual([row.homeId, row.awayId], ["23", "16"]);
+  assert.equal("neutral" in row, false);
+  e.competitions[0].neutralSite = true;
+  assert.equal(parseScheduleEvent(e, 2026, 3).neutral, true, "Dublin, London, Berlin: nobody is at home");
+});
+
+test("parseOdds: keeps the juice on each side, and drops the in-play entry first", async () => {
+  const { parseOdds } = await import("./fetch-football.mjs");
+  const line = parseOdds({ items: [
+    { provider: { name: "ESPN Bet - Live Odds" }, spread: 3.5, overUnder: 48.5 },
+    { provider: { name: "Draft Kings" }, spread: -3.5, overUnder: 44.5,
+      homeTeamOdds: { moneyLine: -175, spreadOdds: -105 }, awayTeamOdds: { moneyLine: 145, spreadOdds: -115 },
+      overOdds: -105, underOdds: -115 },
+  ] });
+  assert.equal(line.spread, -3.5);
+  assert.equal(line.homeML, -175);
+  assert.equal(line.awayML, 145);
+  assert.equal(line.homeSpreadOdds, -105);
+  assert.equal(line.awaySpreadOdds, -115);
+  assert.equal(line.overOdds, -105);
+  assert.equal(line.underOdds, -115);
+  assert.equal(line.book, "Draft Kings");
+  // A finished game's closing entry often carries no moneyline at all.
+  const bare = parseOdds({ items: [{ provider: { name: "ESPN BET" }, spread: -2.5, overUnder: 51.5 }] });
+  assert.equal(bare.homeML, null);
+  assert.equal(bare.homeSpreadOdds, null);
+});
+
+test("parseOdds: keeps the opening line beside the current or closing one", async () => {
+  const { parseOdds } = await import("./fetch-football.mjs");
+  const am = (s) => ({ american: s });
+  const line = parseOdds({ items: [{
+    provider: { name: "ESPN BET" }, spread: -2.5, overUnder: 51.5,
+    homeTeamOdds: { moneyLine: -140, spreadOdds: -125, open: { pointSpread: am("-3"), spread: am("-115"), moneyLine: am("-155") } },
+    awayTeamOdds: { moneyLine: 120, spreadOdds: 102, open: { pointSpread: am("+3"), spread: am("-105"), moneyLine: am("+135") } },
+    open: { total: am("49.5"), over: am("-110"), under: am("-110") },
+  }] });
+  assert.equal(line.spread, -2.5, "the top-level number is the current/closing line");
+  assert.deepEqual(line.open, { spread: -3, total: 49.5, homeML: -155, awayML: 135 });
+  // No open block at all: no open, no crash.
+  const bare = parseOdds({ items: [{ provider: { name: "ESPN BET" }, spread: -2.5, overUnder: 51.5 }] });
+  assert.equal("open" in bare, false);
+});
+
+test("parseGame: keeps each side's team-level efficiency line", async () => {
+  const { parseGame } = await import("./fetch-football.mjs");
+  const s = summaryPayload();
+  s.boxscore.teams = [
+    { team: { abbreviation: "ISU" }, statistics: [
+      { name: "totalYards", displayValue: "313" }, { name: "rushingAttempts", displayValue: "46" },
+      { name: "completionAttempts", displayValue: "14/28" }, { name: "turnovers", displayValue: "2" },
+      { name: "possessionTime", displayValue: "33:52" }, { name: "firstDowns", displayValue: "19" } ] },
+    { team: { abbreviation: "KSU" }, statistics: [
+      { name: "totalYards", displayValue: "400" }, { name: "rushingAttempts", displayValue: "30" },
+      { name: "completionAttempts", displayValue: "21/30" }, { name: "turnovers", displayValue: "0" } ] },
+  ];
+  const g = parseGame(s);
+  assert.deepEqual(g.away.stats, { yards: 313, plays: 74, turnovers: 2, firstDowns: 19, possession: 2032 });
+  assert.equal(g.home.stats.yards, 400);
+  assert.equal(g.home.stats.plays, 60);
+  assert.equal(g.home.stats.turnovers, 0);
+  // No team block at all: no stats, no crash.
+  delete s.boxscore.teams;
+  assert.equal("stats" in parseGame(s).home, false);
+});
+
+test("football-leagues: one league, picked by default and by name, and nothing else", async () => {
+  const { NFL, LEAGUES, leagueFromArgs } = await import("./football-leagues.mjs");
+  assert.equal(NFL.model, nfl);
+  assert.deepEqual(Object.keys(LEAGUES), ["nfl"]);
+  assert.equal(leagueFromArgs([]), NFL);
+  assert.equal(leagueFromArgs(["--league", "NFL"]), NFL);
+  assert.throws(() => leagueFromArgs(["--league", "cfb"]), /unknown league/, "the college board was removed on 2026-10-16");
+  assert.equal(NFL.teamsUrl && NFL.rosterUrl("12").includes("/teams/12/roster"), true, "rosters come from the league's teams list");
 });

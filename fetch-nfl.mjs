@@ -3,8 +3,8 @@
  * BetHouse — fetch-nfl.mjs
  * ESPN's NFL API → `nfl-history.json` and `nfl-data.js`.
  *
- * All of the work is in fetch-football.mjs, which is shared with the
- * college board; this file only says which league. The parsers are
+ * All of the work is in fetch-football.mjs; this file only says which
+ * league. The parsers are
  * re-exported so the tests keep importing them from here.
  *
  *   node fetch-nfl.mjs                  # refresh cache, then build the board

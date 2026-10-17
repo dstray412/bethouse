@@ -7,7 +7,7 @@
  *   node track-nfl.mjs report       print the running record
  *   node track-nfl.mjs report --write-record   also emit nfl-record.js
  *
- * The work is in track-football.mjs, shared with the college board; the
+ * The work is in track-football.mjs; the
  * rules that keep the record honest are in track-core.mjs, shared with
  * baseball. This file only says which league.
  */

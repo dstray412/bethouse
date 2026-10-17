@@ -131,7 +131,17 @@ test("summarise and pollInterval: the strip's counts, and how often to ask", () 
 test("feedUrl: each tracked prop knows where its game is", () => {
   // The cdn host, not site.api.espn.com: the latter answers 403 to a browser's user agent.
   assert.equal(L.feedUrl({ sport: "football", league: "NFL", gameId: "401872945" }), "https://cdn.espn.com/core/nfl/boxscore?xhr=1&gameId=401872945");
-  assert.equal(L.feedUrl({ sport: "football", league: "College football", gameId: "9" }), "https://cdn.espn.com/core/college-football/boxscore?xhr=1&gameId=9");
+  assert.equal(L.feedUrl({ sport: "football", league: "College football", gameId: "9" }), null, "a league the site no longer tracks has no feed");
   assert.equal(L.feedUrl({ sport: "baseball", gameId: 849845 }), "https://statsapi.mlb.com/api/v1.1/game/849845/feed/live");
   assert.equal(L.feedUrl({ sport: "curling", gameId: 1 }), null);
+});
+
+test("orphan: a track from a league the page no longer feeds is final and void, and says why; a served track is not one", () => {
+  const o = L.orphan({ sport: "football", league: "College football", gameId: "9", playerId: "2", prop: "td" });
+  assert.equal(o.status, "void");
+  assert.equal(o.state, "post", "final, so the page stops polling for it");
+  assert.match(o.detail, /no feed/);
+  assert.equal(L.orphan({ sport: "football", league: "NFL", gameId: "9", playerId: "2", prop: "td" }), null);
+  assert.equal(L.orphan({ sport: "baseball", gameId: 1, playerId: 2, prop: "hrr" }), null);
+  assert.equal(L.orphan(null), null);
 });

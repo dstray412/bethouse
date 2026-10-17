@@ -454,17 +454,15 @@
      * Shipped: 1 for other games, one game and mixed; 0.85 for every leg
      * on one team (the touchdown case is the common one and measured
      * 0.66-0.86); 1.3 for the same player, the smallest ratio measured.
-     * College (cfb.js): 1 everywhere but the same player, 1.3. The slip
-     * prints the product, the adjusted number where they differ, and
+     * The slip prints the product, the adjusted number where they differ, and
      * the ratio it came from.
      */
     parlayProps: ["td", "recyds", "rushyds", "passyds", "recs", "spread", "total"],
     parlayLift: { game: 1, mixed: 1, team: 0.85, player: 1.3 },
     /*
      * Which box-score stat counts as receiving opportunity. The NFL records
-     * targets. College box scores record receptions and nothing about the
-     * throws that were not caught, so cfb.js binds this to "recs" and
-     * re-measures the per-opportunity touchdown rate to match.
+     * targets; a league whose box scores record only receptions binds this
+     * to "recs" and re-measures the per-opportunity touchdown rate to match.
      */
     receivingStat: "targets",
   };
@@ -943,8 +941,8 @@
    * --measure prints the per-game means the priors sit under).
    *
    * `opportunity` is a record field, except "receiving", which is
-   * whatever the league records (targets in the NFL, receptions in
-   * college -- DEFAULTS.receivingStat). `box` is where the stat sits on
+   * whatever the league records (targets in the NFL --
+   * DEFAULTS.receivingStat). `box` is where the stat sits on
    * a box-score line (block, field). Every threshold is a DEFAULTS key,
    * so a league can bind its own.
    */
@@ -1442,14 +1440,13 @@
   }
 
   /* ------------------------------------------------------------------ *
-   * 8. Another league, same model
+   * 8. Other constants, same model
    *
-   * College football is this model with different constants: a bigger
-   * home field, more points, wider margins, receptions instead of targets.
-   * Rather than a second copy of four hundred lines that would drift from
-   * this one, cfb.js asks for the same API with its own constants merged
-   * in. An explicit `opts` at a call site still wins, so a neutral-site
-   * projection or a backtest sweep works the same either way.
+   * The same API with other constants merged in: the backtest's sweeps
+   * and fixed references run through here, and college football did too
+   * until 2026-10-16 (a bigger home field, more points, wider margins,
+   * receptions instead of targets). An explicit `opts` at a call site
+   * still wins, so a neutral-site projection works the same either way.
    * ------------------------------------------------------------------ */
 
   function bind(overrides) {

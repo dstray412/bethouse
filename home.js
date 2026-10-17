@@ -1,6 +1,6 @@
 /* home.js — the home page's arithmetic. Shared by index.html and the tests.
  *
- * The home shows one slate out of three boards' data: which games are on
+ * The home shows one slate out of the two boards' data: which games are on
  * today (or the next day that has any), what the model says about each
  * football game, and a few numbers for the tile. Nothing here fetches
  * and nothing here is a model: the projection, favourite and pick come
@@ -16,22 +16,23 @@
 })(typeof globalThis !== "undefined" ? globalThis : this, function (F) {
   "use strict";
 
-  const BOARD = { NFL: "nfl.html", MLB: "baseball.html", "College football": "cfb.html" };
+  const BOARD = { NFL: "nfl.html", MLB: "baseball.html" };
+  /* One football league since the college board went (2026-10-16). */
+  const FOOTBALL = "NFL";
   /* One validator for a team key, faces.js's; without faces.js nothing is a key. */
   const key = (v) => (F && F.keyOf ? F.keyOf(v) : null);
 
-  function footballGames(D, league, now) {
+  function footballGames(D, now) {
     const out = [];
     for (const g of (D && D.games) || []) {
       if (!g || !g.home || !g.away || !g.date) continue;
       const t = Date.parse(g.date);
       const state = g.completed ? "post" : isFinite(t) && t <= now ? "in" : "pre";
-      const college = league === "College football";
       out.push({
-        sport: "football", league, id: (college ? "cfb:" : "nfl:") + g.id, start: g.date,
+        sport: "football", league: FOOTBALL, id: "nfl:" + g.id, start: g.date,
         home: g.home, away: g.away, homeName: g.home, awayName: g.away,
-        homeKey: college ? key(g.homeId) : key(g.home), awayKey: college ? key(g.awayId) : key(g.away),
-        state, board: BOARD[league], raw: g,
+        homeKey: key(g.home), awayKey: key(g.away),
+        state, board: BOARD[FOOTBALL], raw: g,
       });
     }
     return out;
@@ -56,7 +57,7 @@
   function normalise(data, now) {
     const d = data || {};
     const t = isFinite(now) ? now : Date.now();
-    const all = footballGames(d.nfl, "NFL", t).concat(footballGames(d.cfb, "College football", t), baseballGames(d.mlb));
+    const all = footballGames(d.nfl, t).concat(baseballGames(d.mlb));
     all.sort((a, b) => String(a.start).localeCompare(String(b.start)));
     return all;
   }
@@ -104,14 +105,14 @@
     return weekday(day);
   }
 
-  const LEAGUE_WORD = { NFL: "NFL", "College football": "college", MLB: "MLB" };
-  /** "3 games: 1 NFL, 1 college, 1 MLB · first at 6:08 PM" */
+  const LEAGUE_WORD = { NFL: "NFL", MLB: "MLB" };
+  /** "2 games: 1 NFL, 1 MLB · first at 6:08 PM" */
   function sentence(s, tz) {
     if (!s || !s.games || !s.games.length) return "No games on the boards yet.";
     const n = s.games.length;
     const counts = {};
     for (const g of s.games) counts[g.league] = (counts[g.league] || 0) + 1;
-    const parts = ["NFL", "College football", "MLB"].filter((l) => counts[l]).map((l) => counts[l] + " " + LEAGUE_WORD[l]);
+    const parts = ["NFL", "MLB"].filter((l) => counts[l]).map((l) => counts[l] + " " + LEAGUE_WORD[l]);
     const first = clock(s.games[0].start, tz);
     const when = s.when === "today" ? "first at " + first : (s.label || weekday(s.day)) + " at " + first;
     return n + (n === 1 ? " game: " : " games: ") + parts.join(", ") + " · " + when;
@@ -162,7 +163,7 @@
     let best = null;
     for (const g of games || []) {
       if (g.sport !== "football" || g.state !== "pre") continue;
-      const D = g.league === "NFL" ? data && data.nfl : data && data.cfb;
+      const D = data && data.nfl;
       if (!D || !D.players) continue;
       const pool = D.usagePool && D.usagePool.length ? D.usagePool : null;
       const tf = D.teamFactors || {};
@@ -196,7 +197,7 @@
   /** The tile: games on the slate, players priced across the boards, predictions graded. */
   function counts(data, games) {
     const d = data || {};
-    let players = ((d.nfl && d.nfl.players) || []).length + ((d.cfb && d.cfb.players) || []).length;
+    let players = ((d.nfl && d.nfl.players) || []).length;
     for (const g of (d.mlb && d.mlb.games) || []) {
       for (const side of ["away", "home"]) {
         const s = g && g[side];
@@ -206,25 +207,6 @@
     let graded = 0;
     for (const r of d.records || []) if (r && isFinite(r.total)) graded += Number(r.total);
     return { games: isFinite(games) ? games : 0, players, graded };
-  }
-
-  /** One line about the golf event: under way, or starting within the week. */
-  function golfLine(P, now, tz) {
-    const ev = P && P.event;
-    if (!ev || !ev.name) return null;
-    const field = (P.field || []).length;
-    const tail = field ? " · " + field + " in the field" : "";
-    if (ev.state === "in") return ev.name + " is under way" + tail;
-    if (ev.state === "post" || !ev.date) return null;
-    const t = isFinite(now) ? now : Date.now();
-    const start = Date.parse(ev.date);
-    if (!isFinite(start) || start - t > 7 * 86400000 || start < t - 86400000) return null;
-    /* The tour's dates are Eastern: ESPN gives midnight Eastern, which is
-       the evening before out west. The day is read in New York. */
-    const day = localDay(ev.date, "America/New_York");
-    let label = dayLabel(day, t, tz);
-    if (label === "Today" || label === "Tomorrow") label = label.toLowerCase();
-    return ev.name + " starts " + label + tail;
   }
 
   /* Words for the card, so the page prints nothing the number does not say. */
@@ -249,5 +231,5 @@
     return last + (f.era ? " " + f.era : "");
   }
 
-  return { normalise, localDay, slate, dayLabel, sentence, clock, logoUrl, footballCard, topTD, topEdge, counts, golfLine, evLabel, favLabel, pitcherLabel };
+  return { normalise, localDay, slate, dayLabel, sentence, clock, logoUrl, footballCard, topTD, topEdge, counts, evLabel, favLabel, pitcherLabel };
 });

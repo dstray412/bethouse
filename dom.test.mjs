@@ -5,7 +5,7 @@
  * WHY THIS FILE EXISTS
  * --------------------
  * The suite had 202 tests and not one of them looked at a page. score.js,
- * edge.js, golf.js and nfl.js were covered to the decimal place while the
+ * edge.js and nfl.js were covered to the decimal place while the
  * three HTML boards -- the entire thing a user actually sees -- had no
  * coverage at all. A design review then found five defects on a fully green
  * suite, including two controls that rendered on every view and did nothing.
@@ -34,7 +34,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const DIR = dirname(fileURLToPath(import.meta.url));
-const BOARDS = ["index.html", "baseball.html", "golf.html", "nfl.html", "cfb.html", "bets.html", "live.html", "record.html", "teams.html", "defence.html", "offence.html", "consistency.html", "parlays.html"];
+const BOARDS = ["index.html", "baseball.html", "nfl.html", "bets.html", "live.html", "record.html", "teams.html", "defence.html", "offence.html", "consistency.html", "parlays.html"];
 const src = (f) => readFileSync(resolve(DIR, f), "utf8");
 
 /*
@@ -490,7 +490,6 @@ test("every test file runs in every gate that runs tests", () => {
     ".github/workflows/ci.yml",
     ".github/workflows/refresh.yml",
     ".github/workflows/refresh-nfl.yml",
-    ".github/workflows/refresh-cfb.yml",
     ".github/workflows/refresh-odds.yml",
   ];
 
@@ -605,11 +604,11 @@ test("the views are built from the model's stat table, not a list typed on the p
   );
 });
 
-test("every counting prop the model has has a note on both football boards", async () => {
+test("every counting prop the model has has a note on the football board", async () => {
   const nfl = (await import("./nfl.js")).default;
   const stats = Object.keys(nfl.STATS);
   assert.ok(stats.length >= 5, `expected the model's counting props, found ${stats.join(", ")}`);
-  for (const f of ["nfl.html", "cfb.html"]) {
+  for (const f of ["nfl.html"]) {
     const js = src(f);
     const at = js.indexOf("noteStat:");
     assert.ok(at > 0, `${f} defines no noteStat table`);
@@ -630,9 +629,9 @@ test("every counting prop the model has has a note on both football boards", asy
    or receptions, `STATS[stat].total` says a yards prop is made of yards
    and not of the touches that only gate it, and the shrink constants
    say how far the touchdown number is pulled toward the league. */
-test("each board's notes name the inputs its own model reads: the receiving word, yards not touches, the league pull", async () => {
-  const nfl = (await import("./nfl.js")).default, cfb = (await import("./cfb.js")).default;
-  for (const [f, M] of [["nfl.html", nfl], ["cfb.html", cfb]]) {
+test("the board's notes name the inputs its own model reads: the receiving word, yards not touches, the league pull", async () => {
+  const nfl = (await import("./nfl.js")).default;
+  for (const [f, M] of [["nfl.html", nfl]]) {
     const js = src(f);
     const notes = js.slice(js.indexOf("noteTD:"), js.indexOf("noteGames:"));
     const td = notes.slice(0, notes.indexOf("noteStat:"));
@@ -773,7 +772,7 @@ test("a scrolling control strip sits in a box that is allowed to shrink", () => 
   const css = src(SHEET);
   assert.match(css, /\.seg\{[^}]*overflow-x:\s*auto/, "board.css: .seg does not scroll inside itself");
   assert.match(css, /\.ctl\{[^}]*min-width:\s*0/, "board.css: .ctl can widen the page (no min-width:0)");
-  for (const page of ["nfl.html", "cfb.html"]) {
+  for (const page of ["nfl.html"]) {
     assert.doesNotMatch(src(page), /<style>/, `${page} carries its own <style> again`);
   }
 });
@@ -920,7 +919,7 @@ const RATINGS = { off: { KC: 2, LAC: 1, AAA: 0, BBB: 0 }, def: { KC: -1, LAC: 0,
 /* The cheat sheets on the board: a game row's drawer carries every
    top-five line for both sides of that game, from the sheets on the data
    file, through the sheet pages' own module. Nothing without the sheets
-   (college) or without the module. */
+   or without the module. */
 test("a game's drawer carries the cheat sheet for its two sides, every top-five line tagged D or O, and nothing without the sheets", async () => {
   const sheets = {
     defence: { side: "def", through: { season: 2026, week: 3 }, field: 32, stats: { passYds: { label: "Pass yards", soft: "most", kind: "mean" }, sacks: { label: "Sacks", soft: "fewest", kind: "total" } },
@@ -956,7 +955,7 @@ test("a game's drawer carries the cheat sheet for its two sides, every top-five 
   assert.doesNotMatch(stale.panelFor(stale.app.__rows.findIndex((r) => r.g.id === "g1")), /Cheat sheet|slines/, "a cached module without listHtml took the drawer down or rendered");
   const noSheets = await mountBoard({ tendencies: TENDENCIES, games: GAMES, ratings: RATINGS, sheets: {}, sheetModule: true });
   assert.doesNotMatch(noSheets.panelFor(noSheets.app.__rows.findIndex((r) => r.g.id === "g1")), /Cheat sheet|slines/, "the module but no sheets: a section anyway");
-  /* The NFL page loads the module before the board; the college page, which has no sheets, need not. */
+  /* The page loads the module before the board. */
   const nflHtml = src("nfl.html");
   assert.ok(nflHtml.indexOf('<script src="sheet-page.js"></script>') > 0 && nflHtml.indexOf('<script src="sheet-page.js"></script>') < nflHtml.indexOf('<script src="football-board.js"></script>'), "nfl.html does not load sheet-page.js before the board");
 });
@@ -995,7 +994,7 @@ test("a board with no tendencies file loaded renders every game without one", as
   for (let i = 0; i < app.__rows.length; i++) {
     assert.doesNotMatch(
       panelFor(i), /class="mu"/,
-      "the matchup section rendered with no tendencies file loaded — cfb.html loads none",
+      "the matchup section rendered with no tendencies file loaded",
     );
   }
 });
@@ -1035,9 +1034,8 @@ test("the matchup table fits a 390px phone without widening the page", () => {
   );
 });
 
-test("the tendencies file is loaded by the board that has play-by-play, and only that one", () => {
+test("the tendencies file is loaded by the board that has play-by-play", () => {
   assert.match(src("nfl.html"), /<script src="tendencies-data\.js"><\/script>/, "nfl.html does not load tendencies-data.js");
-  assert.doesNotMatch(src("cfb.html"), /tendencies-data/, "cfb.html loads a play-by-play file college has none of");
 });
 
 /* ------------------------------------------------------------------ *
@@ -1050,8 +1048,8 @@ test("the tendencies file is loaded by the board that has play-by-play, and only
  * the real script mounted against the stub.
  * ------------------------------------------------------------------ */
 
-test("both football boards load watchlist.js before the board script", () => {
-  for (const page of ["nfl.html", "cfb.html"]) {
+test("the football board loads watchlist.js before the board script", () => {
+  for (const page of ["nfl.html"]) {
     const html = src(page);
     const w = html.indexOf('src="watchlist.js"'), b = html.indexOf('src="football-board.js"');
     assert.ok(w >= 0, `${page} does not load watchlist.js`);
@@ -1210,8 +1208,8 @@ test("one edge colour rule: the slip and the row share edgeClass", () => {
  * first, then the real script against the stub window.
  * ------------------------------------------------------------------ */
 
-test("both football boards carry the drawer and its scrim, and the stylesheet fixes them to the viewport", () => {
-  for (const page of ["nfl.html", "cfb.html"]) {
+test("the football board carries the drawer and its scrim, and the stylesheet fixes them to the viewport", () => {
+  for (const page of ["nfl.html"]) {
     const html = src(page);
     assert.match(html, /<div[^>]*id="drawer"[^>]*role="dialog"[^>]*aria-modal="true"[^>]*hidden/, `${page}: no dialog drawer`);
     assert.match(html, /id="scrim"[^>]*hidden/, `${page}: no scrim`);
@@ -1387,8 +1385,8 @@ test("a page without the drawer markup is told to reload, like a stale model", a
  * player to a tray that holds up to three side by side.
  * ------------------------------------------------------------------ */
 
-test("both football boards carry the star strip, the compare button and the tray", () => {
-  for (const page of ["nfl.html", "cfb.html"]) {
+test("the football board carries the star strip, the compare button and the tray", () => {
+  for (const page of ["nfl.html"]) {
     const html = src(page);
     for (const id of ["starseg", "dcompare", "tray", "tcards", "tclear"]) assert.match(html, new RegExp(`id="${id}"`), `${page}: no #${id}`);
   }
@@ -1404,14 +1402,14 @@ const clickStar = (app, key) => {
 };
 
 test("a star is kept in the browser and lit in place without opening the row; Starred only narrows the board; another tab's stars survive a save", async () => {
-  const { app, doc, win, store, press } = await mountPlayers({ players: PLAYERS, storage: { "bethouse.watch.v1": JSON.stringify(["CFB|zz"]) } });
+  const { app, doc, win, store, press } = await mountPlayers({ players: PLAYERS, storage: { "bethouse.watch.v1": JSON.stringify(["XFL|zz"]) } });
   const W = win.BetHouseWatchlist;
   const ka = W.watchKey({ league: "NFL", playerId: "a" }), kf = W.watchKey({ league: "NFL", playerId: "f" });
   const btn = clickStar(app, ka);
   assert.equal(btn.getAttribute("aria-pressed"), "true", "the star did not light in place");
   assert.equal(doc.getElementById("dtitle").textContent, "", "a star click opened the drawer");
   clickStar(app, kf);
-  assert.deepEqual(W.parseWatch(store.get(W.WATCH_KEY)).sort(), ["CFB|zz", ka, kf].sort(), "the stars were not remembered, or the other board's were lost");
+  assert.deepEqual(W.parseWatch(store.get(W.WATCH_KEY)).sort(), ["XFL|zz", ka, kf].sort(), "the stars were not remembered, or the other board's were lost");
   press("starseg", "Starred only");
   assert.deepEqual(app.__rows.map((r) => r.p.id).sort(), ["a", "f"]);
   assert.ok(app.innerHTML.includes('data-star="' + ka + '" aria-pressed="true"'), "a re-render does not light the star");
@@ -1582,7 +1580,7 @@ test("live.html is a board: shared stylesheet, the scripts it needs, a card list
 
 test("index.html is the home: the shared models and every board's data, the slate's ids, logos only from ESPN's CDN", () => {
   const html = src("index.html");
-  for (const s of ["edge.js", "nfl.js", "cfb.js", "watchlist.js", "home.js", "mlb-data.js", "pga-data.js", "nfl-data.js", "cfb-data.js", "teams-data.js", "teams.js"]) {
+  for (const s of ["edge.js", "nfl.js", "watchlist.js", "home.js", "mlb-data.js", "nfl-data.js", "teams-data.js", "teams.js"]) {
     assert.match(html, new RegExp('<script src="' + s.replace(".", "\\.") + '"'), "index.html loads " + s);
   }
   for (const id of ["tile", "hero", "slate", "gcards", "tops"]) assert.match(html, new RegExp('id="' + id + '"'), "index.html has #" + id);
@@ -1595,7 +1593,7 @@ test("index.html is the home: the shared models and every board's data, the slat
   assert.match(html, /H\.logoUrl\(/, "the src comes from home.js");
   // The boards' verdict travels with the numbers: the replay found the favourite and the lines do not beat the market.
   assert.match(html, /id="caveat"[^>]*>[^<]*replay found neither beats the market/, "the home shows the football numbers without the boards' warning");
-  assert.match(html, /window\.BetHouseCFB\|\|null/, "a missing college model must not fall back to the NFL's");
+  for (const gone of ["cfb", "pga", "golf", "CFB", "PGA"]) assert.doesNotMatch(html, new RegExp(gone), "the home still carries the removed " + gone + " board");
 });
 
 test("the baseball board kept its page under its new name, and every board calls the home Home", () => {
@@ -2088,14 +2086,14 @@ test("the parlay strip hides behind one button in the controls row, on every vie
   for (const id of ["linewrap", "sortwrap", "teamwrap", "poswrap", "starwrap"]) assert.equal(doc.getElementById(id).hidden, true, id + " shows on the game view");
   press("view", "Anytime TD");
   for (const id of ["sortwrap", "teamwrap", "poswrap", "starwrap"]) assert.equal(doc.getElementById(id).hidden, false, id + " did not come back");
-  for (const f of ["nfl.html", "cfb.html"]) {
+  for (const f of ["nfl.html"]) {
     const m = markup(f);
     for (const id of ["sortwrap", "teamwrap", "parlaywrap", "parlayseg", "parlayctl"]) assert.match(m, new RegExp('id="' + id + '"'), f + " has no #" + id);
     assert.ok(m.indexOf('id="controls"') < m.indexOf('id="parlayctl"'), f + ": the parlay strip must sit under the controls row, not above the note");
   }
 });
 
-test("each football board's footer is one line with the graded count, the touchdown bias and a link to the record page; the tables are gone", async () => {
+test("the football board's footer is one line with the graded count, the touchdown bias and a link to the record page; the tables are gone", async () => {
   const record = { total: 2360, days: ["a", "b", "c"], props: { td: { label: "Anytime touchdown", n: 816, predicted: 21.9, actual: 20.7, bias: 1.2, brier: 0.15 } }, parlays: { x: { scope: "slate", legs: 3, n: 1, adjusted: 0.1, cashed: 0 } } };
   const { doc } = await mountPlayers({ players: PLAYERS, record });
   const foot = doc.getElementById("foot").innerHTML;
@@ -2106,26 +2104,26 @@ test("each football board's footer is one line with the graded count, the touchd
   assert.match(bare.doc.getElementById("foot").innerHTML, /Nothing graded yet[\s\S]*<a href="record\.html#nfl">/);
   const js = src("football-board.js");
   assert.doesNotMatch(js, /function liveRecord|parlayRecord=|C\.footer/, "football-board.js still renders the record, or reads a footer copy");
-  for (const f of ["nfl.html", "cfb.html"]) assert.doesNotMatch(src(f), /footer:/, f + " still carries the replay table as copy; it lives on record.html");
+  for (const f of ["nfl.html"]) assert.doesNotMatch(src(f), /footer:/, f + " still carries the replay table as copy; it lives on record.html");
 });
 
-test("record.html: one section per football league with its replay table and a live-record slot, the record files and the page script, no faces", () => {
+test("record.html: a section for the football league with its replay table and a live-record slot, the record file and the page script, no faces", () => {
   const m = markup("record.html"), s = src("record.html");
-  for (const id of ["nfl", "cfb", "nfl-live", "cfb-live"]) assert.match(m, new RegExp('id="' + id + '"'), "no #" + id);
+  for (const id of ["nfl", "nfl-live"]) assert.match(m, new RegExp('id="' + id + '"'), "no #" + id);
   assert.match(m, /Does it work\?[\s\S]*anytime touchdown[\s\S]*Brier <b>0\.1591<\/b>/, "the NFL replay table is not on the record page");
-  assert.match(m, /Two FBS seasons[\s\S]*Brier <b>0\.1743<\/b>/, "the college replay table is not on the record page");
-  for (const f of ["nfl-record.js", "cfb-record.js", "record-page.js"]) assert.match(s, new RegExp('<script src="' + f.replace(".", "\\.") + '"></script>'), "record.html does not load " + f);
+  assert.doesNotMatch(m, /College football|FBS|cfb/, "the college section is still on the record page");
+  for (const f of ["nfl-record.js", "record-page.js"]) assert.match(s, new RegExp('<script src="' + f.replace(".", "\\.") + '"></script>'), "record.html does not load " + f);
   assert.match(s, /BetHouseRecordPage\.render\(document/);
   assert.doesNotMatch(s, /faces\.js|<img/);
-  // The two boards' links land on the two sections: the college board is "College football" to the script.
+  // The board's link lands on its section.
   const js = src("football-board.js");
   const anchors = js.match(/RECORD_ANCHOR=\{([^}]*)\}/);
   assert.ok(anchors, "football-board.js has no RECORD_ANCHOR map");
-  for (const [league, id] of [["NFL", "nfl"], ["College football", "cfb"]]) {
+  for (const [league, id] of [["NFL", "nfl"]]) {
     assert.match(anchors[1], new RegExp("'" + league + "':'" + id + "'"), "no anchor for " + league);
     assert.match(m, new RegExp('id="' + id + '"'), "record.html has no #" + id + " for " + league);
   }
-  for (const f of ["nfl.html", "cfb.html"]) assert.match(src(f), new RegExp("league: '(" + ["NFL", "College football"].join("|") + ")'"), f + " names a league the anchor map does not know");
+  for (const f of ["nfl.html"]) assert.match(src(f), new RegExp("league: '(" + ["NFL"].join("|") + ")'"), f + " names a league the anchor map does not know");
   // Every other board offers the Record link (the nav test above checks the record page links every board).
   for (const f of BOARDS.filter((b) => b !== "record.html")) assert.match(src(f), /<a class="navlink" href="record\.html">Record →<\/a>/, f + " has no Record link");
 });
@@ -2194,7 +2192,7 @@ test("the drawer's hero takes the team's tint and the tray card its edge, both f
       assert.ok(["background", "border-left-color"].includes(m[1]), page + ": a team colour on the " + m[1] + " property");
     }
   }
-  for (const f of ["nfl.html", "cfb.html"]) {
+  for (const f of ["nfl.html"]) {
     assert.match(src(f), /<script src="teams-data\.js"><\/script>\s*<script src="teams\.js"><\/script>/, f + " does not load the colours before teams.js");
     assert.match(markup(f), /id="dhead"/, f + " has no #dhead for the tint");
   }
@@ -2209,7 +2207,7 @@ test("teams-data.js is committed, generated by fetch-teams.mjs, and carries a si
   const data = JSON.parse(s.slice(s.indexOf("{"), s.lastIndexOf("}") + 1));
   assert.equal(Object.keys(data.NFL).length, 32);
   for (const [k, v] of Object.entries(data.NFL)) { assert.match(k, /^[a-z0-9]{2,5}$/); assert.match(v.p, /^[0-9a-f]{6}$/, k + " has no primary"); }
-  assert.ok(Object.keys(data["College football"]).length > 100, "the college table is short");
+  assert.equal("College football" in data, false, "the colours file still carries the college table (690 rows the site no longer shows)");
   assert.ok(Object.keys(data.MLB).length >= 30);
   assert.ok(s.length < 60000, "the colours file is bigger than its job");
   // A black primary is real (the Steelers), and teams.js paints with the secondary: so every black NFL primary must have one.
@@ -2231,8 +2229,8 @@ test("teams-data.js is committed, generated by fetch-teams.mjs, and carries a si
  * swipe from the top of the sheet closes it.
  * ------------------------------------------------------------------ */
 
-test("both football pages keep the drawer's Compare and close buttons in a bar that sticks while the card scrolls, and the bar is in the stale-page list", () => {
-  for (const f of ["nfl.html", "cfb.html"]) {
+test("the football page keeps the drawer's Compare and close buttons in a bar that sticks while the card scrolls, and the bar is in the stale-page list", () => {
+  for (const f of ["nfl.html"]) {
     const m = markup(f);
     const bar = (m.match(/<div class="dbar" id="dbar">([\s\S]*?)<\/div>\s*<div class="dhead"/) || [])[1];
     assert.ok(bar, f + ": no #dbar before the hero");
