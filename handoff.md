@@ -34,7 +34,33 @@ Zero dependencies, no build step, no server, no API key. `node --test` with
 **named files** — bare discovery pulls in the backtests, which fire live API
 calls. The list lives in six places and `dom.test.mjs` checks all six.
 
-## The home as Direction A (2026-10-16, latest)
+## One nav on every page (2026-10-16, latest)
+
+**What.** The user asked for the other pages' nav to match the home.
+Every page now carries the same `.mnav` markup: the two boards as a
+switch (`.prim`), then Home, Bets, Live, Record (`.sec`), then
+`Research ▾`, a native `<details class="research">` whose panel lists
+Teams, Defences, Offences, Consistency and Parlays; the one link
+marked `aria-current="page"` is the page itself (accent fill on the
+switch, an accent underline in `.sec`, `surface-2` in the panel). The
+count badges (`#betsn`, `#liven`) exist on the home only, which is the
+one page that loads `bets.js` and fills them; the test forbids the ids
+elsewhere. The old `.navlink` row and its `.boards` rules are gone
+(`mock-b.html`, gitignored, still has one). `dom.test.mjs`: the two
+navlink tests became one nav contract (every page links every page
+exactly once, marks itself and only itself current, in the one order)
+and the ONE-name test reads the nav on every page. Two traps on the
+way: the dropdown's first class name `.more` collided with the board's
+"show more" button rule and painted a full-width bar (renamed
+`.research`); and deleting `.navlink` by line prefix left the rule's
+second line orphaned, which the parser swallowed together with the
+`.tile` rule, so the stat tile stacked on every page until the
+fragment went. Checked by comparing every selector in the source with
+the browser's parsed sheet (491 of 491). Verified at three widths on
+the teams page and the bet log, the dropdown open on the NFL board and
+the home; 682 tests, 0 skipped.
+
+## The home as Direction A (2026-10-16)
 
 **What.** The layout rework's first page. `index.html` is the research
 dashboard the user chose from the mockups: `.mnav` (NFL | Baseball as a

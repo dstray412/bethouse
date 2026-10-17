@@ -164,39 +164,31 @@ test("the design tokens exist once, in the shared stylesheet", () => {
  * was which nav link happened to be absent.
  * ------------------------------------------------------------------ */
 
-test("every board links to every other board, and nowhere broken", () => {
-  /* The home has its own nav since 2026-10-16 (the two-board switch, Bets, Live, Record; the research pages from their sections), pinned in its own test. */
-  for (const f of BOARDS.filter((b) => b !== "index.html")) {
-    const hrefs = [...src(f).matchAll(/class="navlink"\s+href="([^"]+)"/g)].map((m) => m[1]);
-    const others = BOARDS.filter((b) => b !== f);
-    assert.equal(
-      hrefs.length, others.length,
-      `${f} has ${hrefs.length} nav links, expected ${others.length} (one per sibling board)`,
-    );
-    for (const o of others) {
-      assert.ok(hrefs.includes(o), `${f} does not link to ${o}`);
-    }
-    for (const h of hrefs) {
-      assert.ok(existsSync(resolve(DIR, h)), `${f} links to ${h}, which does not exist`);
-    }
+
+
+/* One nav on every page since 2026-10-16: the two boards as a switch, Home, Bets, Live and Record beside it, and the five
+   research pages behind a native Research dropdown. The markup is identical on every page but for the one link marked
+   aria-current, which is the page itself, so a reader can build a map of the site from any page. */
+const NAV = (f) => (markup(f).match(/<nav class="mnav"[\s\S]*?<\/nav>/) || [""])[0];
+const NAV_LINKS = (f) => [...NAV(f).matchAll(/<a href="([^"]+)"([^>]*)>([^<]+)</g)].map((m) => ({ href: m[1], current: /aria-current="page"/.test(m[2]), label: m[3].trim() }));
+
+test("every page carries the one nav: a link to every page, itself marked current, nowhere broken", () => {
+  for (const f of BOARDS) {
+    const links = NAV_LINKS(f);
+    assert.ok(links.length, f + " has no .mnav");
+    const hrefs = links.map((l) => l.href);
+    assert.deepEqual([...new Set(hrefs)].sort(), [...BOARDS].sort(), f + " does not link every page exactly once");
+    assert.equal(hrefs.length, BOARDS.length, f + " links a page twice");
+    assert.deepEqual(links.filter((l) => l.current).map((l) => l.href), [f], f + " does not mark itself, and only itself, current");
+    for (const h of hrefs) assert.ok(existsSync(resolve(DIR, h)), f + " links to " + h + ", which does not exist");
+    assert.match(NAV(f), /<span class="prim">[\s\S]*href="nfl\.html"[\s\S]*href="baseball\.html"[\s\S]*<\/span>[\s\S]*<span class="sec">[\s\S]*href="index\.html"[\s\S]*href="bets\.html"[\s\S]*href="live\.html"[\s\S]*href="record\.html"[\s\S]*<\/span>[\s\S]*<details class="research">[\s\S]*<summary>Research/, f + ": the nav is not the switch, the four pages and the Research dropdown, in that order");
+    assert.doesNotMatch(src(f), /class="navlink"|class="boards"/, f + " still carries the old link row");
   }
 });
 
 test("a destination has ONE name everywhere it is linked", () => {
   const names = new Map(); // href -> Set of link texts
-  const home = (markup("index.html").match(/<nav class="mnav"[\s\S]*?<\/nav>/) || [""])[0];
-  for (const m of home.matchAll(/<a href="([^"]+)">([^<]+)</g)) {
-    if (!names.has(m[1])) names.set(m[1], new Set());
-    names.get(m[1]).add(m[2].trim());
-  }
-  for (const f of BOARDS) {
-    for (const m of src(f).matchAll(/class="navlink"\s+href="([^"]+)">([^<]+)</g)) {
-      const href = m[1];
-      const label = m[2].replace(/[→\s]+$/u, "").trim();
-      if (!names.has(href)) names.set(href, new Set());
-      names.get(href).add(label);
-    }
-  }
+  for (const f of BOARDS) for (const l of NAV_LINKS(f)) { if (!names.has(l.href)) names.set(l.href, new Set()); names.get(l.href).add(l.label); }
   for (const [href, set] of names) {
     assert.equal(
       set.size, 1,
@@ -1594,6 +1586,7 @@ test("index.html is the home: the two-board switch, the week line, the game scro
   for (const gone of ["hero", "bstrip", "tops", "topsec", "gcards", "slate"]) assert.doesNotMatch(m, new RegExp('id="' + gone + '"'), "the old home's #" + gone + " is still on the page");
   // The nav: the two boards as a switch, then the three pages a bettor keeps open, with a count where there is one; the research pages are linked from their sections, not the nav.
   assert.match(m, /<nav class="mnav"[\s\S]*class="prim"[\s\S]*href="nfl\.html"[\s\S]*href="baseball\.html"[\s\S]*class="sec"[\s\S]*href="bets\.html"[\s\S]*id="betsn"[\s\S]*href="live\.html"[\s\S]*id="liven"[\s\S]*href="record\.html"/, "the nav is not the two-board switch with Bets, Live and Record");
+  for (const page of BOARDS.filter((b) => b !== "index.html")) assert.doesNotMatch(src(page), /id="(betsn|liven)"/, page + " carries the home's count badges with no script to fill them");
   assert.doesNotMatch(m, /class="navlink"/, "the home still carries the boards' link row");
   for (const f of ["teams.html", "defence.html", "offence.html", "consistency.html", "parlays.html"]) assert.match(m, new RegExp('href="' + f.replace(".", "\\.") + '"'), "the home no longer links " + f);
   assert.doesNotMatch(html, /fonts\.googleapis|https?:\/\/[^"]*\.(js|css)"/, "an off-origin script or sheet");
@@ -1620,10 +1613,7 @@ test("the baseball board kept its page under its new name, and every board calls
   const b = src("baseball.html");
   assert.match(b, /<title>BetHouse — Baseball<\/title>/);
   assert.match(b, /BETHOUSE_MLB|mlb-data\.js/);
-  for (const page of BOARDS) {
-    if (page === "index.html") continue;
-    assert.match(src(page), /class="navlink" href="index\.html">Home →</, page + " links Home");
-  }
+  for (const page of BOARDS) assert.ok(NAV_LINKS(page).some((l) => l.href === "index.html" && l.label === "Home"), page + " links Home");
 });
 
 /* ------------------------------------------------------------------ *
@@ -2137,8 +2127,7 @@ test("record.html: a section for the football league with its replay table and a
   }
   for (const f of ["nfl.html"]) assert.match(src(f), new RegExp("league: '(" + ["NFL"].join("|") + ")'"), f + " names a league the anchor map does not know");
   // Every other board offers the Record link (the nav test above checks the record page links every board).
-  for (const f of BOARDS.filter((b) => b !== "record.html" && b !== "index.html")) assert.match(src(f), /<a class="navlink" href="record\.html">Record →<\/a>/, f + " has no Record link");
-  assert.match(markup("index.html"), /<a href="record\.html">Record<\/a>/, "the home's nav has no Record link");
+  for (const f of BOARDS) assert.ok(NAV_LINKS(f).some((l) => l.href === "record.html" && l.label === "Record"), f + " has no Record link");
 });
 
 test("the stylesheet carries the chips line, the why list, the how list and the record panels", () => {
