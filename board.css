@@ -684,7 +684,9 @@ button.rung:hover{border-color:var(--rule)}
   .plays{grid-template-columns:1fr}
   .gscroll .gcard{flex-basis:164px}
   .week h2{font-size:24px}
-  .mnav{gap:12px} .mnav .sec{gap:12px}
+  .mnav{gap:12px;position:relative} .mnav .sec{gap:12px}
+  /* The Research panel spans the nav on a phone rather than hanging off its summary past the right edge. */
+  .mnav .research{position:static} .mnav .research div{left:0;right:0;min-width:0}
 }
 /* The current page in the one nav, and the Research dropdown (a native details, no script). */
 .mnav .prim a[aria-current]{background:var(--accent);color:var(--ink)}

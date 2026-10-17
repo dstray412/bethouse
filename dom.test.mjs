@@ -183,6 +183,7 @@ test("every page carries the one nav: a link to every page, itself marked curren
     for (const h of hrefs) assert.ok(existsSync(resolve(DIR, h)), f + " links to " + h + ", which does not exist");
     assert.match(NAV(f), /<span class="prim">[\s\S]*href="nfl\.html"[\s\S]*href="baseball\.html"[\s\S]*<\/span>[\s\S]*<span class="sec">[\s\S]*href="index\.html"[\s\S]*href="bets\.html"[\s\S]*href="live\.html"[\s\S]*href="record\.html"[\s\S]*<\/span>[\s\S]*<details class="research">[\s\S]*<summary>Research/, f + ": the nav is not the switch, the four pages and the Research dropdown, in that order");
     assert.doesNotMatch(src(f), /class="navlink"|class="boards"/, f + " still carries the old link row");
+    assert.match(src(f), /<script src="nav\.js"><\/script>/, f + " does not load nav.js, so the Research panel never closes on a click outside it");
   }
 });
 
