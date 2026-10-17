@@ -46,6 +46,11 @@
   /* The families on by default: every counting prop. The touchdown has one rung and sits at 20–45%, so it is a family the user
      switches on knowing it, not one that drags a slip of 85% legs by default. */
   const DEFAULT_FAMS = FAMILIES.map((f) => f.id).filter((id) => id !== "td");
+  /* Table stakes (2026-10-17): the lowest rung the page will suggest for each counting stat. A back runs for ten
+     yards and a receiver catches two balls without a model; "10+ rushing yards" at 87% is a line nobody needs
+     help with, and ranked by chance it was the first thing on the home. Each is a rung the board prices; a
+     player whose highest rung at the floor sits under it has no leg on that stat. The touchdown has one rung. */
+  const MIN_RUNG = { recyds: 30, rushyds: 30, rushrec: 30, recs: 4, passyds: 200 };
   const famLabel = (id) => (FAMILIES.find((f) => f.id === id) || { label: id }).label;
   /* The cheat-sheet line a stat reads, by the player's position: what the opponent's defence allows to players like him. */
   const SHEET_KEYS = {
@@ -137,7 +142,7 @@
       for (const stat of Object.keys(model.STATS)) {
         const pool = pools[stat]; if (!pool || !model.poolSize(pool)) continue;
         const y = model.statEligible(stat, p, null, { oppFactor: model.allowOf(TF, p.opp, stat), vacRec, vacRush }); if (!y) continue;
-        const rungs = model.ladder(stat, y.exp, pool).filter((r) => r.prob >= floor);
+        const rungs = model.ladder(stat, y.exp, pool).filter((r) => r.prob >= floor && r.at >= (MIN_RUNG[stat] || 0));
         if (!rungs.length) continue;
         const top = rungs[rungs.length - 1]; // the ladder climbs, so the last rung clearing the floor is the highest
         out.push(leg(stat, top.at, top.prob));
@@ -355,10 +360,10 @@
     }).join("");
   }
 
-  function footHtml(data) {
+  function footHtml(data, model) {
     const w = data && data.week != null ? data.week : null, s = data && data.season != null ? data.season : null;
     return "<p>Every leg is a line the book sells as a number and up: a rung on the model's ladder, priced off the same pool of comparable real games as the drawer's alternate lines, or an anytime touchdown; never an over/under at the projection. " +
-      "For each player and stat the leg is the highest rung the model gives at least the floor to; the slip is the legs most likely to cash under the filters, one a game from the slate or one a player from any games, with the replay's measured lift for legs that rise together. " +
+      "For each player and stat the leg is the highest rung the model gives at least the floor to, never under the table stakes (" + Object.keys(MIN_RUNG).map((k) => MIN_RUNG[k] + "+ " + esc(String(model && model.STATS && model.STATS[k] ? model.STATS[k].label : k).toLowerCase())).join(", ") + ": lines nobody needs a model for); the slip is the legs most likely to cash under the filters, one a game from the slate or one a player from any games, with the replay's measured lift for legs that rise together. " +
       "Under each leg: how many of his last ten games on file" + (s != null && w != null ? ", before week " + esc(w) + " of " + esc(s) + "," : "") + " cleared that rung (a count, not a chance); whether the opponent ranks in the top five of the field on the defensive cheat sheet for that stat at his position; and what the record did at that rung, what the model said and what hit, where it has " + MIN_GRADED + " graded calls. " +
       "A player needs a game still to kick off and no Out status. Nothing here sees a price: compare the fair price with the book's, type what you are offered for the edge, and shade the top of the board.</p>";
   }
@@ -443,7 +448,7 @@
       }
       if (slipEl) { slipEl.__slip = slip; slipEl.innerHTML = slipHtml(slip, s, { lift, model, faces: o.faces, league: o.league, edge: o.edge, price, reason, bets: B, betState }); }
       host.innerHTML = legsHtml(list, s, { faces: o.faces, league: o.league });
-      if (foot) foot.innerHTML = footHtml(data);
+      if (foot) foot.innerHTML = footHtml(data, o.model);
     };
     if (ctl) ctl.__draw = draw;
     draw();
@@ -510,5 +515,5 @@
     return false;
   }
 
-  return { LEGS, FLOORS, SCOPES, HITS, FAMILIES, DEFAULT_FAMS, HOSTS, LISTED, MIN_GRADED, SOFT, sheetLine, recordFor, legs, filter, cleanState, controlsHtml, evidence, ruleText, buildSlip, betOf, localDay, slipHtml, stripHtml, legsHtml, footHtml, topPlays, playCardHtml, render };
+  return { LEGS, FLOORS, SCOPES, HITS, FAMILIES, DEFAULT_FAMS, MIN_RUNG, HOSTS, LISTED, MIN_GRADED, SOFT, sheetLine, recordFor, legs, filter, cleanState, controlsHtml, evidence, ruleText, buildSlip, betOf, localDay, slipHtml, stripHtml, legsHtml, footHtml, topPlays, playCardHtml, render };
 });

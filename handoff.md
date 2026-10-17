@@ -34,7 +34,34 @@ Zero dependencies, no build step, no server, no API key. `node --test` with
 **named files** — bare discovery pulls in the backtests, which fire live API
 calls. The list lives in six places and `dom.test.mjs` checks all six.
 
-## The baseball board's sticky control bar (2026-10-16, latest)
+## Table stakes and the Teams page (2026-10-17, latest)
+
+**What.** Two user complaints. (1) "10+ rushing yards is table
+stakes": `parlay-page.js` gained `MIN_RUNG = { recyds: 30, rushyds:
+30, rushrec: 30, recs: 4, passyds: 200 }`, applied in `legs()` so a
+rung under it is never a leg (the highest rung at the floor is taken
+among rungs at or above the minimum; a player whose clearing rungs all
+sit under it has no leg on that stat). The home's plays, the slip and
+the parlay page all go through `legs()`, so all three follow it; the
+parlay caveat (`footHtml(data, model)`) names the values; the drawer's
+ladder still prices every rung. The numbers are a judgment call from
+the user's own examples (he bets 20+ receiving, 4+ receptions, 50+
+rushing); change the table if he wants them higher. Two fixtures in
+`parlay-page.test.mjs` sat under the new floor (a 4.6-catch receiver
+has no 4+ leg at 70%) and the tests now say so. (2) The Teams page:
+`teams-page.js` has `VIEWS` (offence: team, plays/g, pass, PROE, the
+three EPA figures, leans; defence: team, the three allowances, blitz,
+soft spots), `DEFAULT_SORT`, `controlsHtml(view)` (a `Side` seg) and
+`tableHtml(list, key, helpers, view)`; `render` writes `#tcontrols`
+(new host on `teams.html`) and swaps the table on a view click,
+opening on that view's own sort. CSS: ranks inline after the figure,
+chips on one row, the table's min-width 720px. Rows went from ~120px
+to 41px. After review: a sort key from the other view (a caller's
+opts) falls back to the view's own default; the parlay caveat escapes
+the stat label. Verified in the browser at three widths; 691 tests, 0
+skipped.
+
+## The baseball board's sticky control bar (2026-10-16)
 
 **What.** The same bar on `baseball.html`: the bet-type strip and the
 controls row (now `id="controls"`: bases, lineups, per team, day,

@@ -46,6 +46,16 @@
     { key: "defSpots", head: "Defence", side: null },
   ];
 
+  /* Two views (2026-10-17): the one wide table was hard to read, so the page is two tables, an offence and a
+     defence, one line a team, under a segmented control. Each names its columns in order; the sort a view opens on
+     is its EPA figure. */
+  const VIEWS = {
+    off: ["team", "playsPerGame", "passRate", "proe", "epaPerPlay", "epaPerPass", "epaPerRush", "offLeans"],
+    def: ["team", "defEpaPerPlay", "defEpaPerPass", "defEpaPerRush", "blitzRate", "defSpots"],
+  };
+  const DEFAULT_SORT = { off: "epaPerPlay", def: "defEpaPerPlay" };
+  const viewOf = (v) => (VIEWS[v] ? v : "off");
+
   /** One row per team: the numbers, their ranks, and the family tags. */
   function rows(data, core) {
     if (!data || !data.current || !data.current.off || !data.current.def || !data.current.league || !core) return [];
@@ -91,20 +101,21 @@
   const ord = (n) => { const s = ["th", "st", "nd", "rd"], v = n % 100; return n + (s[(v - 20) % 10] || s[v] || s[0]); };
 
   /** The table's markup for a sort key. `helpers`: faces/teams modules and the league, all optional. */
-  function tableHtml(list, key, helpers) {
+  function tableHtml(list, key, helpers, view) {
     const h = helpers || {}, F = h.faces || null, T = h.teams || null, league = h.league || "NFL";
+    const cols = VIEWS[viewOf(view)].map((k) => COLUMNS.find((c) => c.key === k));
     const mark = (t) => (F ? F.mark(league, t, 22) : "");
     const edge = (t) => { const c = T ? T.paint(league, t) : null; return c ? ' style="border-left-color:' + esc(c) + '"' : ""; };
     const chip = (x) => '<span class="tag ' + (x.dir === "soft" ? "soft" : x.dir === "stout" ? "tough" : "lean") + '">' + esc(x.family) + " · " + esc(x.dir === "lean" ? "leans in" : x.dir === "avoid" ? "avoids" : x.dir) + "</span>";
     let html = '<table class="teams"><thead><tr>';
     /* A sortable column's head is a button; the chip columns' heads are plain text, since there is nothing to sort them by. */
-    for (const c of COLUMNS) html += '<th' + (c.side ? ' class="r"' : "") + (c.title ? ' title="' + esc(c.title) + '"' : "") + '>' +
+    for (const c of cols) html += '<th' + (c.side ? ' class="r"' : "") + (c.title ? ' title="' + esc(c.title) + '"' : "") + '>' +
       (c.sort ? '<button type="button" data-sort="' + c.key + '" aria-pressed="' + (c.key === key) + '">' + esc(c.head) + "</button>" : '<span>' + esc(c.head) + "</span>") + "</th>";
     html += "</tr></thead><tbody>";
     for (const r of sorted(list, key)) {
       /* The colour edge and the stickiness ride the team cell, which stays in view while the panel scrolls sideways. */
       html += '<tr><td class="tm"' + edge(r.team) + '>' + mark(r.team) + "<b>" + esc(r.team) + "</b></td>";
-      for (const c of COLUMNS) {
+      for (const c of cols) {
         if (c.key === "team") continue;
         if (c.key === "offLeans" || c.key === "defSpots") { html += '<td class="chips">' + (r[c.key].length ? r[c.key].map(chip).join("") : '<span class="none">—</span>') + "</td>"; continue; }
         const rk = c.rank ? r.rank[c.key] : null;
@@ -113,6 +124,13 @@
       html += "</tr>";
     }
     return html + "</tbody></table>";
+  }
+
+  /** The two views as a labelled segmented control in the board's style; the pressed one marked. */
+  function controlsHtml(view) {
+    const v = viewOf(view);
+    return '<div class="ctl"><label id="lab-tview">Side</label><div class="seg" id="tview" role="group" aria-labelledby="lab-tview">' +
+      [["off", "Offence"], ["def", "Defence"]].map(([id, label]) => '<button type="button" data-view="' + id + '" aria-pressed="' + (id === v) + '">' + label + "</button>").join("") + "</div></div>";
   }
 
   /** The caveat under the table: what the numbers are and are not. The thresholds are the core's, never re-typed. */
@@ -128,18 +146,24 @@
       "Descriptive: nothing here is in a price yet.</p>";
   }
 
-  /* Render into the page: the table into #teams, the caveat into #tfoot,
-     and a click on a column head re-sorts. */
+  /* Render into the page: the controls into #tcontrols, the table into #teams, the caveat into #tfoot;
+     a click on a view swaps the table (opening on that view's own sort), a click on a column head re-sorts. */
   function render(doc, opts) {
-    const o = opts || {}, host = doc.getElementById("teams"), foot = doc.getElementById("tfoot");
+    const o = opts || {}, host = doc.getElementById("teams"), foot = doc.getElementById("tfoot"), ctl = doc.getElementById("tcontrols");
     if (!host) return;
     const core = o.core || null, data = o.data || null;
     const list = rows(data, core);
     if (foot) foot.innerHTML = footHtml(data, core);
-    if (!list.length) { host.innerHTML = '<div class="empty"><div class="big">No team profiles</div><div>Run <code>node tendencies.mjs</code> to build them.</div></div>'; return; }
-    /* One listener per host however often render runs; the sort key lives on the host. */
-    host.__sort = o.sort || host.__sort || "epaPerPlay";
-    const draw = () => { host.innerHTML = tableHtml(list, host.__sort, o); };
+    if (!list.length) { host.innerHTML = '<div class="empty"><div class="big">No team profiles</div><div>Run <code>node tendencies.mjs</code> to build them.</div></div>'; if (ctl) ctl.hidden = true; return; }
+    /* One listener per host however often render runs; the view and the sort key live on the host. */
+    host.__view = viewOf(o.view || host.__view);
+    host.__sort = o.sort || host.__sort || DEFAULT_SORT[host.__view];
+    /* A sort key from another view (a caller's opts after a view change) would order the table by a column it does not show. */
+    if (!VIEWS[host.__view].includes(host.__sort)) host.__sort = DEFAULT_SORT[host.__view];
+    const draw = () => {
+      host.innerHTML = tableHtml(list, host.__sort, o, host.__view);
+      if (ctl) { ctl.innerHTML = controlsHtml(host.__view); ctl.hidden = false; }
+    };
     draw();
     if (host.addEventListener && !host.__sorting) {
       host.__sorting = true;
@@ -149,7 +173,17 @@
         host.__sort = b.getAttribute("data-sort"); draw();
       });
     }
+    if (ctl && ctl.addEventListener && !ctl.__viewing) {
+      ctl.__viewing = true;
+      ctl.addEventListener("click", (e) => {
+        const b = e.target && e.target.closest ? e.target.closest("[data-view]") : null;
+        if (!b) return;
+        const v = viewOf(b.getAttribute("data-view"));
+        if (v === host.__view) return;
+        host.__view = v; host.__sort = DEFAULT_SORT[v]; draw();
+      });
+    }
   }
 
-  return { COLUMNS, rows, sorted, tableHtml, footHtml, render };
+  return { COLUMNS, VIEWS, DEFAULT_SORT, rows, sorted, tableHtml, controlsHtml, footHtml, render };
 });

@@ -56,7 +56,10 @@ test("legs: a leg is the highest rung the model gives at least the floor, priced
   /* Every stat he is in the business of gets its own leg; one rung a stat. */
   const props = legs.map((l) => l.prop);
   assert.equal(new Set(props).size, props.length, "two legs on one stat");
-  assert.ok(props.includes("recs") && props.includes("rushrec"), "receptions and rush + rec missing: " + props.join(","));
+  assert.ok(props.includes("rushrec"), "rush + rec missing: " + props.join(","));
+  assert.ok(!props.includes("recs"), "4.6 catches a game: 4+ is under the floor and 3+ is table stakes (MIN_RUNG), so no receptions leg");
+  const heavy = page.legs(nfl, data([player({ targets: 130, recs: 100 })]), RECORD, { now: NOW, floor: 0.7 }).find((l) => l.prop === "recs");
+  assert.ok(heavy && heavy.rung >= page.MIN_RUNG.recs, "an eight-catch receiver has a receptions leg at 4+ or above");
   assert.ok(!props.includes("rushyds"), "a receiver with two carries got a rushing leg");
   /* The floor is the floor: at 90% the rung drops or the leg goes. */
   const high = page.legs(nfl, data([p]), RECORD, { now: NOW, floor: 0.9 }).find((l) => l.prop === "recyds");
@@ -471,4 +474,36 @@ test("playCardHtml keeps the sheet label's abbreviations: only the first letter 
   const leg = { key: "k", playerId: "7", gameId: "g1", team: "KC", opp: "LAC", name: "A", pos: "WR", prop: "recyds", rung: 50, prob: 0.8, propLabel: "50+ receiving yards", hits: null, rec: null,
     sheet: { key: "recYdsWR", label: "Rec yards to WR", rank: 2, of: null } };
   assert.match(page.playCardHtml(leg, { fair: () => -400 }), /LAC ranks 2nd for rec yards to WR allowed/, "the position abbreviation was lowercased");
+});
+
+/* ------------------------------------------------------------------ *
+ * Table stakes (2026-10-17): a line nobody needs a model for is not a
+ * suggestion. The user saw "10+ rushing yards" and "2+ receptions" at
+ * the top of the plays: of course a back runs for ten. So each stat has
+ * a lowest rung the page will suggest; a player whose highest rung at
+ * the floor sits under it has no leg on that stat.
+ * ------------------------------------------------------------------ */
+
+test("MIN_RUNG: a lowest suggested rung per counting stat, each one on the model's ladder, the touchdown exempt", () => {
+  for (const stat of Object.keys(nfl.STATS)) {
+    assert.ok(page.MIN_RUNG[stat] > nfl.LADDERS[stat][0], stat + ": the minimum does not rule out the ladder's first rung");
+    assert.ok(nfl.LADDERS[stat].includes(page.MIN_RUNG[stat]), stat + ": the minimum is not a rung the board prices");
+  }
+  assert.equal("td" in page.MIN_RUNG, false, "the touchdown has one rung");
+});
+
+test("legs: a rung under the stat's minimum is never a leg, even when it is the highest rung clearing the floor", () => {
+  /* A receiver whose 25+ clears 70% but whose 30+ does not: before the minimum, "25+ receiving yards" was his leg. */
+  const p = player({ recYds: 560, targets: 70, recs: 48, recent: ten((i) => row(45, 4, 0, 0, 0)) });
+  const d = data([p]);
+  const y = nfl.statEligible("recyds", p, null, { oppFactor: nfl.allowOf(d.teamFactors, "LAC", "recyds") });
+  const clear = nfl.ladder("recyds", y.exp, POOL).filter((r) => r.prob >= 0.7);
+  assert.ok(clear.length && clear[clear.length - 1].at < page.MIN_RUNG.recyds, "the fixture's highest clearing rung (" + (clear.length ? clear[clear.length - 1].at : "none") + ") is not under the minimum " + page.MIN_RUNG.recyds);
+  const legs = page.legs(nfl, d, RECORD, { now: NOW, floor: 0.7 });
+  assert.equal(legs.find((l) => l.prop === "recyds"), undefined, "a table-stakes rung was suggested");
+  /* The same receiver at a 60% floor: 30+ clears it, so he has a leg, at 30+ or above. */
+  const low = page.legs(nfl, d, RECORD, { now: NOW, floor: 0.6 }).find((l) => l.prop === "recyds");
+  assert.ok(low && low.rung >= page.MIN_RUNG.recyds, "at a lower floor the leg is not the first rung at or above the minimum");
+  /* Nothing suggested anywhere sits under a minimum. */
+  for (const l of page.legs(nfl, data([player(), p]), RECORD, { now: NOW, floor: 0.7 })) if (l.prop !== "td") assert.ok(l.rung >= page.MIN_RUNG[l.prop], l.propLabel + " is table stakes");
 });

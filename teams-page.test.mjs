@@ -53,7 +53,7 @@ test("sorted: best first by the column's own direction, nulls last, the team col
 test("tableHtml: every column headed with a sort button, the pressed one marked, every figure with its rank, every chip, every value escaped", () => {
   const rows = page.rows(DATA, core);
   const html = page.tableHtml(rows, "epaPerPlay", {});
-  assert.equal((html.match(/<th[ >]/g) || []).length, page.COLUMNS.length);
+  assert.equal((html.match(/<th[ >]/g) || []).length, page.VIEWS.off.length, "the offence table, by default");
   assert.match(html, /data-sort="epaPerPlay" aria-pressed="true"/);
   assert.match(html, /data-sort="passRate" aria-pressed="false"/);
   assert.match(html, /<th><span>Offence leans<\/span><\/th>/, "a chip column's head looks sortable and is not");
@@ -62,8 +62,9 @@ test("tableHtml: every column headed with a sort button, the pressed one marked,
   assert.match(html, /<td class="r"><b>70<\/b><\/td>/, "plays a game rounded, and no rank on a style column");
   assert.match(html, /<td class="r"><b>—<\/b><\/td>/, "a null metric prints a dash and no rank");
   assert.match(html, /<span class="tag lean">deep pass · leans in<\/span>/);
-  assert.match(html, /<span class="tag soft">deep pass · soft<\/span>/);
-  assert.match(html, /<span class="tag tough">inside run · stout<\/span>/);
+  const def = page.tableHtml(rows, "defEpaPerPlay", {}, "def");
+  assert.match(def, /<span class="tag soft">deep pass · soft<\/span>/);
+  assert.match(def, /<span class="tag tough">inside run · stout<\/span>/);
   const hostile = { K: 6, current: { off: { "<b>": prof({}) }, def: { "<b>": prof({}) }, league: prof({}) } };
   assert.doesNotMatch(page.tableHtml(page.rows(hostile, core), "team", {}), /<b><b>|<td class="tm"><b><b>/);
   assert.match(page.tableHtml(page.rows(hostile, core), "team", {}), /&lt;b&gt;/);
@@ -100,15 +101,82 @@ test("render: the table and the caveat land in their slots, a head click re-sort
   page.render(doc, { data: DATA, core });
   assert.match(slots.teams.innerHTML, /data-sort="epaPerPlay" aria-pressed="true"/, "the default sort is EPA per play");
   assert.match(slots.tfoot.innerHTML, /nothing here is in a price yet/);
-  slots.teams.handlers.click[0]({ target: { closest: (sel) => (sel === "[data-sort]" ? { getAttribute: () => "defEpaPerPlay" } : null) } });
-  assert.match(slots.teams.innerHTML, /data-sort="defEpaPerPlay" aria-pressed="true"/);
-  assert.ok(slots.teams.innerHTML.indexOf("<b>KC</b>") < slots.teams.innerHTML.indexOf("<b>LAC</b>"), "the best defence did not come first after the click");
+  slots.teams.handlers.click[0]({ target: { closest: (sel) => (sel === "[data-sort]" ? { getAttribute: () => "playsPerGame" } : null) } });
+  assert.match(slots.teams.innerHTML, /data-sort="playsPerGame" aria-pressed="true"/);
+  assert.ok(slots.teams.innerHTML.indexOf("<b>KC</b>") < slots.teams.innerHTML.indexOf("<b>LAC</b>"), "the fastest offence did not come first after the click");
   assert.equal(slots.teams.handlers.click.length, 1);
   page.render(doc, { data: DATA, core });
   assert.equal(slots.teams.handlers.click.length, 1, "a second render stacked a second listener");
-  assert.match(slots.teams.innerHTML, /data-sort="defEpaPerPlay" aria-pressed="true"/, "a second render forgot the sort");
+  assert.match(slots.teams.innerHTML, /data-sort="playsPerGame" aria-pressed="true"/, "a second render forgot the sort");
   const empty = {};
   page.render({ getElementById: (id) => (empty[id] = empty[id] || { innerHTML: "", addEventListener() {} }) }, { data: null, core });
   assert.match(empty.teams.innerHTML, /No team profiles/);
   assert.match(empty.tfoot.innerHTML, /nothing here is in a price yet/, "the empty page lost its caveat");
+});
+
+/* ------------------------------------------------------------------ *
+ * Two views (2026-10-17): the one wide table was hard to read, thirteen
+ * columns with a stacked rank under every figure and a chip column that
+ * wrapped every row to three lines. The page is two tables now, an
+ * offence and a defence, one line a team, under a segmented control.
+ * ------------------------------------------------------------------ */
+
+test("VIEWS: the offence's columns and the defence's, each a subset of COLUMNS led by the team, neither carrying the other side's figures", () => {
+  const keys = page.COLUMNS.map((c) => c.key);
+  for (const v of ["off", "def"]) {
+    assert.equal(page.VIEWS[v][0], "team");
+    for (const k of page.VIEWS[v]) assert.ok(keys.includes(k), v + " names a column that does not exist: " + k);
+  }
+  assert.deepEqual(page.VIEWS.off, ["team", "playsPerGame", "passRate", "proe", "epaPerPlay", "epaPerPass", "epaPerRush", "offLeans"]);
+  assert.deepEqual(page.VIEWS.def, ["team", "defEpaPerPlay", "defEpaPerPass", "defEpaPerRush", "blitzRate", "defSpots"]);
+  assert.equal(page.DEFAULT_SORT.off, "epaPerPlay"); assert.equal(page.DEFAULT_SORT.def, "defEpaPerPlay");
+});
+
+test("tableHtml takes a view: the offence table has no defence column and the defence table no offence column; the default is the offence", () => {
+  const rows = page.rows(DATA, core);
+  const off = page.tableHtml(rows, "epaPerPlay", {}, "off"), def = page.tableHtml(rows, "defEpaPerPlay", {}, "def");
+  assert.equal((off.match(/<th[ >]/g) || []).length, page.VIEWS.off.length);
+  assert.equal((def.match(/<th[ >]/g) || []).length, page.VIEWS.def.length);
+  assert.doesNotMatch(off, /Allows\/play|Defence<|tag soft|tag tough/, "the offence table carries the defence");
+  assert.doesNotMatch(def, /EPA\/play|Offence leans|tag lean/, "the defence table carries the offence");
+  assert.match(def, /<th><span>Defence<\/span><\/th>/); assert.match(def, /data-sort="defEpaPerPlay" aria-pressed="true"/);
+  assert.equal(page.tableHtml(rows, "epaPerPlay", {}), off, "no view is the offence");
+  assert.equal(page.tableHtml(rows, "epaPerPlay", {}, "nonsense"), off, "an unknown view is the offence");
+});
+
+test("controlsHtml: the two views as a labelled segmented control in the board's style, the pressed one marked", () => {
+  const h = page.controlsHtml("def");
+  assert.match(h, /<div class="ctl"><label id="lab-tview">Side<\/label><div class="seg" id="tview" role="group" aria-labelledby="lab-tview">/);
+  assert.match(h, /<button type="button" data-view="off" aria-pressed="false">Offence<\/button><button type="button" data-view="def" aria-pressed="true">Defence<\/button>/);
+  assert.match(page.controlsHtml("off"), /data-view="off" aria-pressed="true"/);
+  assert.match(page.controlsHtml(), /data-view="off" aria-pressed="true"/, "no view is the offence");
+});
+
+test("render: the controls land in #tcontrols, a view click swaps the table and its default sort, the view and sort survive a second render", () => {
+  const slots = {};
+  const el = (id) => (slots[id] = slots[id] || { innerHTML: "", hidden: true, handlers: {}, addEventListener(t, f) { (this.handlers[t] = this.handlers[t] || []).push(f); } });
+  const doc = { getElementById: el };
+  page.render(doc, { data: DATA, core });
+  assert.equal(slots.tcontrols.hidden, false, "the controls host stays hidden");
+  assert.match(slots.tcontrols.innerHTML, /data-view="off" aria-pressed="true"/);
+  assert.match(slots.teams.innerHTML, /Offence leans/);
+  slots.tcontrols.handlers.click[0]({ target: { closest: (sel) => (sel === "[data-view]" ? { getAttribute: () => "def" } : null) } });
+  assert.match(slots.tcontrols.innerHTML, /data-view="def" aria-pressed="true"/);
+  assert.match(slots.teams.innerHTML, /data-sort="defEpaPerPlay" aria-pressed="true"/, "the defence view did not open on its own default sort");
+  assert.doesNotMatch(slots.teams.innerHTML, /Offence leans/);
+  slots.teams.handlers.click[0]({ target: { closest: (sel) => (sel === "[data-sort]" ? { getAttribute: () => "blitzRate" } : null) } });
+  assert.match(slots.teams.innerHTML, /data-sort="blitzRate" aria-pressed="true"/);
+  page.render(doc, { data: DATA, core });
+  assert.match(slots.teams.innerHTML, /data-sort="blitzRate" aria-pressed="true"/, "a second render forgot the view or the sort");
+  assert.equal(slots.tcontrols.handlers.click.length, 1, "a second render stacked a second listener");
+  const empty = {};
+  page.render({ getElementById: (id) => (empty[id] = empty[id] || { innerHTML: "", hidden: true, addEventListener() {} }) }, { data: null, core });
+  assert.equal(empty.tcontrols.hidden, true, "no data, no controls");
+});
+
+test("render: a sort key from the other view falls back to the view's own default", () => {
+  const slots = {};
+  const el = (id) => (slots[id] = slots[id] || { innerHTML: "", hidden: true, addEventListener() {} });
+  page.render({ getElementById: el }, { data: DATA, core, view: "def", sort: "playsPerGame" });
+  assert.match(slots.teams.innerHTML, /data-sort="defEpaPerPlay" aria-pressed="true"/, "the defence table opened sorted by an offence column it does not show");
 });
