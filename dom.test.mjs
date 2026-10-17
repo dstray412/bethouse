@@ -1034,6 +1034,39 @@ test("the matchup table fits a 390px phone without widening the page", () => {
   );
 });
 
+/* ------------------------------------------------------------------ *
+ * Direction B (2026-10-16): the board's controls sit in one sticky bar,
+ * the method paragraph folds under the table, and on a phone only the
+ * bet-type strip pins with the rest behind a Filters button.
+ * ------------------------------------------------------------------ */
+
+test("nfl.html: one sticky control bar (bet type, find, the controls row, a Filters button), the parlay strip under it, the method folded under the table", () => {
+  const html = src("nfl.html"), m = markup("nfl.html"), css = src(SHEET);
+  const bar = (m.match(/<div class="cbar" id="bar">[\s\S]*?<\/div>\s*<div class="controls" id="parlayctl"/) || [])[0];
+  assert.ok(bar, "no #bar before the parlay strip");
+  for (const id of ["lab-view", "view", "find", "controls", "filters"]) assert.match(bar, new RegExp('id="' + id + '"'), "#bar has no #" + id);
+  assert.ok(bar.indexOf('id="view"') < bar.indexOf('id="find"') && bar.indexOf('id="find"') < bar.indexOf('id="controls"') && bar.indexOf('id="controls"') < bar.indexOf('id="filters"'), "the bar's order is not bet type, find, controls, Filters");
+  assert.doesNotMatch(m.match(/<header>[\s\S]*?<\/header>/)[0], /class="ctl"/, "a control is still in the header");
+  assert.match(bar, /<button type="button" class="filters" id="filters" aria-expanded="false" aria-controls="controls">Filters<\/button>/, "the Filters button is not a toggle for the controls row");
+  // The method under the table, folded, still written into #note by the board.
+  const after = m.slice(m.indexOf('id="app"'));
+  assert.match(after, /<details class="method" id="how"><summary>[^<]*How this number is made[^<]*<\/summary><div class="note" id="note"><\/div><\/details>/, "the method paragraph is not folded under the table (a .method details, since .how is the drawer's list)");
+  assert.ok(m.indexOf('id="note"') > m.indexOf('id="app"'), "#note is still above the table");
+  // The bar sticks; on a phone the controls row hides until Filters opens it, and Filters shows only there.
+  assert.match(css, /\.cbar\{[^}]*position:sticky[^}]*top:0/, "the bar does not stick");
+  assert.match(css, /\.cbar \.filters\{[^}]*display:none/, "the Filters button shows on a desktop");
+  assert.match(css, /@media \(max-width:760px\)\{[^@]*\.cbar \.controls\{display:none\}[^@]*\.cbar\.open \.controls\{display:flex[^@]*\.cbar \.filters\{display:inline-flex/, "on a phone the controls row is not behind the Filters button");
+  assert.doesNotMatch(css, /\.cbar \.controls\{[^}]*!important/, "display !important on .controls would tie with [hidden]");
+  // The fold's summary style stops at the fold: the note's own "How it was checked" disclosure keeps .note summary.
+  assert.doesNotMatch(css, /\.method summary\{/, "the fold's summary rule reaches the note's nested disclosure");
+  assert.match(css, /\.method>summary\{/, "no rule for the fold's summary");
+  // No Filters button over an empty row: the game view hides every control.
+  assert.match(css, /\.cbar:not\(:has\(#controls>\.ctl:not\(\[hidden\]\)\)\) \.filters\{display:none\}/, "Filters can open an empty row on the game view");
+  // The toggle: a class on the bar and the button's state, nothing else.
+  assert.match(html, /bar\.classList\.toggle\('open'\)/, "Filters does not toggle the bar");
+  assert.match(html, /setAttribute\('aria-expanded'/, "Filters does not report its state");
+});
+
 test("the tendencies file is loaded by the board that has play-by-play", () => {
   assert.match(src("nfl.html"), /<script src="tendencies-data\.js"><\/script>/, "nfl.html does not load tendencies-data.js");
 });

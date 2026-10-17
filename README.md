@@ -257,7 +257,7 @@ should be re-fitted when the run environment shifts.
 | `clv.mjs` | Compares every published prediction against the price the market closed at. Brier on both sides, same yardstick. The measure that decides whether the model has an edge rather than merely being calibrated. 15 tests. |
 | `provenance.mjs` | Every analysis tool prints where its numbers came from: the commit, the age of the data, whether the checkout is behind origin. Exists because a session once read a 77-commit-stale tree and reported three false things as fact. 22 tests. |
 | `fetch-odds.mjs` | The Odds API client. Needs a key; not required for the board. |
-| `nfl.html` | The NFL board. Open it. Renders through `football-board.js`. |
+| `nfl.html` | The NFL board. Open it. Renders through `football-board.js`; since 2026-10-16 its controls sit in one bar that sticks while the table scrolls (only the bet type and the search on a phone, the rest behind Filters) and the method paragraph folds under the table. |
 | `nfl.js` | The three football models, and `bind()`, the same code with other constants (the backtest's sweeps; the college board, while it existed). 51 tests. |
 | `football-leagues.mjs` | The one table of what is league-shaped: endpoints, files, weeks, the model. One entry since the college board went. |
 | `fetch-football.mjs` | Keyless ESPN requests → `<league>-history.json` and `<league>-data.js`. `fetch-nfl.mjs` picks the league. |

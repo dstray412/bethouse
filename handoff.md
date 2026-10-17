@@ -34,7 +34,34 @@ Zero dependencies, no build step, no server, no API key. `node --test` with
 **named files** — bare discovery pulls in the backtests, which fire live API
 calls. The list lives in six places and `dom.test.mjs` checks all six.
 
-## One nav on every page (2026-10-16, latest)
+## The NFL board's sticky control bar (2026-10-16, latest)
+
+**What.** Direction B's two edits on `nfl.html`. The bet-type strip,
+the search and the view's controls row (`#controls`) now sit in one
+`.cbar` (`#bar`) between the header and the parlay strip, stuck to the
+top while the table scrolls; the method paragraph the board writes
+into `#note` sits under the table inside `<details class="method"
+id="how">`. On a phone only the bet type and the search pin; the
+controls row is `display:none` until the `Filters` button (`#filters`,
+`aria-expanded`) toggles `.cbar.open`, wired by a few lines at the end
+of the page's inline script. The board script is untouched (it finds
+`#controls`, `#find`, `#note` by id wherever they are). Two class
+names had to be avoided: `.bar` is the live tracker's progress bar
+(8px, overflow hidden; the bar collapsed to 23px until renamed) and
+`.how` is the drawer's list (a test forbids a bare `.how` rule).
+`dom.test.mjs` pins the bar's order, the Filters toggle, the folded
+note and the phone rules. Verified at three widths; a full-page
+screenshot draws the pinned bar mid-image, which is a capture
+artifact, and the probe shows `position:sticky` at top 0 while
+scrolled. The handoff's earlier "Next" for B is done; baseball keeps
+its header controls (not asked). After `/code-review`: the fold's
+summary rule is `.method>summary`, so the note's nested "How it was
+checked" disclosure keeps `.note summary`; and on a phone the Filters
+button hides when the game view has hidden every control, so it cannot
+open an empty row (`:has()` in CSS, no script). `/security-review`
+clean. 683 tests, 0 skipped.
+
+## One nav on every page (2026-10-16)
 
 **What.** The user asked for the other pages' nav to match the home.
 Every page now carries the same `.mnav` markup: the two boards as a

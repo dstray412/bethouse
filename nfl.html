@@ -20,6 +20,11 @@
     </nav>
   </div>
   <div class="tile" id="tile"></div>
+</header>
+
+<!-- One control bar, stuck to the top while the table scrolls under it: the bet type, the search, then the
+     view's own controls. On a phone only the bet-type strip pins and the rest sits behind Filters. -->
+<div class="cbar" id="bar">
   <div class="ctl">
     <label id="lab-view">Bet type</label>
     <div class="seg" id="view" role="group" aria-labelledby="lab-view"></div>
@@ -28,9 +33,6 @@
     <label id="lab-q" for="q">Find</label>
     <input class="search" id="q" type="search" placeholder="Player or team" autocomplete="off" spellcheck="false">
   </div>
-</header>
-
-<div class="note" id="note"></div>
 <div class="controls" id="controls" hidden>
   <div class="ctl" id="linewrap">
     <label id="lab-line">Line</label>
@@ -57,6 +59,8 @@
     <div class="seg" id="parlayseg" role="group" aria-labelledby="lab-parlay"></div>
   </div>
 </div>
+<button type="button" class="filters" id="filters" aria-expanded="false" aria-controls="controls">Filters</button>
+</div>
 <div class="controls" id="parlayctl" hidden>
   <div class="ctl">
     <label id="lab-plegs">Legs</label>
@@ -77,6 +81,8 @@
 </div>
 <div id="app"><div class="empty"><div class="big">Loading…</div>
   <div>If this does not clear, run <code>node fetch-nfl.mjs</code>.</div></div></div>
+<!-- The method, folded under the table: the board writes the view's note into #note as before. -->
+<details class="method" id="how"><summary>How this number is made · how it was checked</summary><div class="note" id="note"></div></details>
 <div class="scrim" id="scrim" hidden></div>
 <div class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="dtitle" hidden>
   <div class="dbar" id="dbar"><button type="button" class="dcompare" id="dcompare" hidden>Compare</button><button type="button" class="dclose" id="dclose" aria-label="Close">×</button></div>
@@ -157,6 +163,12 @@ BetHouseFootballBoard.mount({
     gameHonestly: 'this did not beat the closing line over two seasons'
   }
 });
+/* The phone's Filters button: the controls row shows while the bar is open; the button says so. */
+(function(){
+  var bar=document.getElementById('bar'), btn=document.getElementById('filters');
+  if(!bar||!btn) return;
+  btn.addEventListener('click',function(){ var open=bar.classList.toggle('open'); btn.setAttribute('aria-expanded', open?'true':'false'); });
+})();
 </script>
 <script src="nav.js"></script>
 </body>
