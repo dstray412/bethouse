@@ -27,14 +27,58 @@ the college football and PGA Tour boards were removed):
 | `offence.html` | the offensive cheat sheet, the twin: what either offence does most. Added 2026-10-02 |
 | `consistency.html` | the consistency cards: a prop a card, players ranked by hits in their last ten games. Added 2026-10-02 |
 | `nfl.html` | anytime TD; receiving, rushing, rush + rec and passing yards and receptions, each with a ladder of alternate lines; game matchups from play-by-play. Spreads and totals shown with the board saying they do not beat the close |
-| `bets.html` | the bet log: history, win rate by bet type, closing line value |
+| `bets.html` | the bet log: history, win rate by bet type |
 | `parlays.html` | the prop parlay page: N+ legs on the model's ladder, the consistency count and the cheat-sheet rank beside each, the slip |
 
 Zero dependencies, no build step, no server, no API key. `node --test` with
 **named files** — bare discovery pulls in the backtests, which fire live API
 calls. The list lives in six places and `dom.test.mjs` checks all six.
 
-## Graphite and electric blue (2026-10-17, latest)
+## No odds, no fair price (2026-10-17, latest; shipped 2026-10-20)
+
+The user: "We need to do away with the odds and the 'fair price' stuff. They
+are not accurate and gives the user incorrect information." Scope chosen
+(AskUserQuestion): **prices and the feed go, game lines stay.**
+
+Removed: `fairPrice` from `nfl.js` and `score.js`; the fair price beside
+every chance (rows, drawer headline band, arithmetic cell, ladder rungs,
+tray cards, play cards, the slip); the typed price and its edge on the
+football board (`priceEdge`, `pxCell`, `pxInput`, `edgeCell`, the Edge
+sort, `onPriceInput`/`onPriceCommit`, the `nopx`/`priced` column
+variants; `watchlist.js` lost `PRICE_KEY`/`priceKey`/`forSlate`/
+`validPrice`/`parsePrices`); the slip's fair price, price box and edge on
+both boards; the baseball board's DraftKings feed (`odds-data.js`,
+`fetch-odds-espn.mjs`, `refresh-odds.yml`, the `.chip.mkt` tags, the
+"whymkt" box, the stale-prices warning, `normName`/`marketFor`/`evAt`,
+`amer`); closing-line value in the bet log (`close-odds.mjs`, `odds-close/`,
+`clv.mjs`, `bets.js`'s `legClv`/`clvOf`/`summarise().clv`, the leg's
+`marketKey`/`priceAtBet`/`noVigAtBet`/`noVigAtClose`/`priceAtClose`,
+`bets.html`'s CLV block and `fetchCloses`); `edge.js`/`edge.test.mjs`,
+`fetch-odds.mjs`, `make-sample.mjs`, `sample-odds.js`; EV labels on the
+home (`home.js`'s `footballCard(model, D, g)` returns the projection
+only); "needs 52.4%" on the record page; the game pick's `price` in
+`track-football.mjs`.
+
+Kept: the game lines. The NFL game view ranks games by the model's chance
+to cover its likelier side (spread or total), shows the spread and total
+as the market's numbers with the model's chance and point gap, no odds in
+the market row, and the moneyline row with the replay's verdict.
+`track-football.mjs` still records closing-line *movement* in points
+(`clv` there is a line, not a price) and the record page still prints it.
+`fetch-football.mjs` still writes `homeML`/`homeSpreadOdds` into the data
+file (the ML pick in `pickGame` is gated on them); nothing displays them.
+`backtest-nfl.mjs` keeps the moneyline Brier comparison with a two-line
+`devig` of its own and lost the paid-at-the-close return.
+
+Old bet logs that carry price fields lose them on read (`normLeg`). The
+test list in the six gates dropped `edge.test.mjs` and `clv.test.mjs`;
+`dom.test.mjs` lost the odds-feed, name-matcher, age and typed-price tests
+and gained one that pins "no price surface" across the board and the
+pages. README ("Closing line value", "Filters and sort"), DESIGN.md
+(decisions log, Martian Mono list) updated. `chips.js` says "projected
+players" where it said "priced".
+
+## Graphite and electric blue (2026-10-17)
 
 **What.** The user lived with paper and indigo for a day and preferred
 a darker ground. Two dark previews of the live home (graphite with

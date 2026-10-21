@@ -33,7 +33,7 @@
     <div class="plays" id="plays"></div>
   </section>
   <section id="parsec" hidden>
-    <div class="shead"><h2 class="gtitle">Parlay of the day</h2><div class="gmeta"><span id="parwhen"></span>NFL · lines sold as a number and up, never the projection's line · <span id="parrule"></span> · ranked by chance within a family, not by price · <a class="open" href="parlays.html">Pick your own legs and floor →</a></div></div>
+    <div class="shead"><h2 class="gtitle">Parlay of the day</h2><div class="gmeta"><span id="parwhen"></span>NFL · lines sold as a number and up, never the projection's line · <span id="parrule"></span> · ranked by chance within a family, never a price · <a class="open" href="parlays.html">Pick your own legs and floor →</a></div></div>
     <div id="parstrip"></div>
   </section>
 </div>
@@ -63,7 +63,6 @@
 
 <!-- Models first, then this page's module, then every board's data. A
      data file that is missing is a board the home does not show. -->
-<script src="edge.js"></script>
 <script src="faces.js"></script>
 <!-- Written by fetch-teams.mjs: each team's colours, for the stripe on a game card. -->
 <script src="teams-data.js"></script>
@@ -93,7 +92,7 @@
     if(window.console&&console.error) console.error(e);
   }
   function render(){
-  var H=window.BetHouseHome, N=window.BetHouseNFL, E=window.BetHouseEdge, W=window.BetHouseWatchlist;
+  var H=window.BetHouseHome, N=window.BetHouseNFL, W=window.BetHouseWatchlist;
   var F=window.BetHouseFaces||null, T=window.BetHouseTeams||null;
   var esc=function(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); };
   var el=function(id){ return document.getElementById(id); };
@@ -108,7 +107,7 @@
   var c=H.counts(data, s.games.length);
   var cell=function(v,l){ return '<div><b>'+esc(v)+'</b><span>'+l+'</span></div>'; };
   el('tile').innerHTML=cell(c.games, s.when==='today'?'games today':s.when==='next'?(s.label==='Tomorrow'?'games tomorrow':s.label?'games on '+esc(s.label):'games next up'):'games')+
-    cell(c.players.toLocaleString('en-US'),'players priced')+(c.graded?cell(c.graded.toLocaleString('en-US'),'predictions graded'):'');
+    cell(c.players.toLocaleString('en-US'),'players projected')+(c.graded?cell(c.graded.toLocaleString('en-US'),'predictions graded'):'');
 
   /* The nav's counts: open bets in the log, props tracked live. Each in its own guard: a bad store is a missing count, never a missing home. */
   try{
@@ -150,7 +149,7 @@
   var stateWord=function(g){ return g.state==='in'?(g.sport==='baseball'?'Live':'Started'):g.state==='post'?'Final':null; };
   var h='';
   s.games.forEach(function(g){
-    var card=g.sport==='football'?H.footballCard(N,E,data.nfl,g):null;
+    var card=g.sport==='football'?H.footballCard(N,data.nfl,g):null;
     var fav=card?H.favLabel(card.fav):null;
     var left=stateWord(g)||(g.sport==='football'?(fav?esc(fav):(card?'pick \'em':esc(g.league))):lineupWord(g));
     /* The two teams' colours as a stripe along the top (teams.js): a background, never a text colour. */
@@ -188,7 +187,7 @@
     if(PP&&P&&rawLegs.length){
       var list=PP.filter(rawLegs, Object.assign({}, PP.cleanState(null), {fams:PP.FAMILIES.map(function(f){ return f.id; })}));
       var plays=PP.topPlays(list, {parlay:P, n:6, lift:N.DEFAULTS.parlayLift});
-      plays.forEach(function(l){ ph+=PP.playCardHtml(l, {fair:N.fairPrice, faces:F, league:'NFL'}); });
+      plays.forEach(function(l){ ph+=PP.playCardHtml(l, {faces:F, league:'NFL'}); });
     }
     el('playwhen').textContent=ph?dayWord():'';
     el('plays').innerHTML=ph;

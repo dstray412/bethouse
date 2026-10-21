@@ -252,6 +252,8 @@ export function parseOdds(payload) {
       /* The juice on each side. Pregame lines carry it; the closing
          entry on a finished game usually does not, and -110 is assumed
          downstream where it is missing. */
+      // TODO(simplify): the four *Odds fields below are written but nothing reads them since the
+      // site stopped showing odds (2026-10-17); drop them, with their parser tests, on the next data-shape change.
       homeSpreadOdds: price(it.homeTeamOdds?.spreadOdds),
       awaySpreadOdds: price(it.awayTeamOdds?.spreadOdds),
       overOdds: price(it.overOdds),

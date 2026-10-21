@@ -197,7 +197,7 @@ test("buildSlip: the best leg of each family in turn, one a game or one a player
   assert.deepEqual(free.legs.map((l) => l.key), ["d-rushrec", "a-recs"]); assert.deepEqual(free.skipped, []);
 });
 
-test("slipHtml and legsHtml: the legs with their evidence, the product, the fair price, the correlation note, the family sections; escaping", () => {
+test("slipHtml and legsHtml: the legs with their evidence, the product, the correlation note, the family sections; no price; escaping", () => {
   const leg = { key: "g1|p1|recyds", playerId: "p1", gameId: "g1", team: "KC", opp: "LAC", name: "A <b>Wide", pos: "WR", prop: "recyds", rung: 20, prob: 0.805, propLabel: "20+ receiving yards",
     hits: { hits: 7, n: 10 }, sheet: { key: "recYdsWR", label: "Rec yards to WR", rank: 2, of: null, v: 190, n: 3, one: false }, rec: { said: 64.3, hit: 65.6, n: 160 } };
   const leg2 = { key: "g2|p9|rushyds", playerId: "p9", gameId: "g2", team: "DEN", opp: "LV", name: "Back Man", pos: "RB", prop: "rushyds", rung: 50, prob: 0.72, propLabel: "50+ rushing yards", hits: null, sheet: null, rec: null };
@@ -214,8 +214,8 @@ test("slipHtml and legsHtml: the legs with their evidence, the product, the fair
   assert.match(h, /at 20\+ the record said 64% and hit 66% of 160/);
   assert.match(h, /no ten-game log/); assert.match(h, /not a soft spot on the sheets/); assert.match(h, /the record has under 15 graded calls at 50\+/);
   assert.match(h, new RegExp((100 * 0.805 * 0.72).toFixed(1) + "%"), "the product is not printed to the board's one decimal");
-  assert.match(h, /fair price/); assert.match(h, /Legs from different games multiply honestly/);
-  assert.match(h, /id="slipprice"/);
+  assert.doesNotMatch(h, /fair price|slipprice|edge at that price|offered/, "the slip still carries a price: the site shows chances, not odds (2026-10-17)");
+  assert.match(h, /Legs from different games multiply honestly/);
   assert.doesNotMatch(h, / o\d/, "an over line");
   assert.doesNotMatch(h, /rush \+ rec/i, "a skipped family is named when none was skipped");
   const sk = page.slipHtml(Object.assign({}, s, { skipped: ["rushrec"] }), state, { lift: nfl.DEFAULTS.parlayLift, model: nfl });
@@ -240,13 +240,13 @@ test("slipHtml and legsHtml: the legs with their evidence, the product, the fair
   assert.match(page.legsHtml([], page.cleanState({}), {}), /No leg clears/);
 });
 
-test("stripHtml: the home's slip at the page's defaults, three legs then two, without the price input; nothing when none builds", () => {
+test("stripHtml: the home's slip at the page's defaults, three legs then two; nothing when none builds", () => {
   const p1 = player(), p2 = player({ id: "p2", name: "Bravo Back", team: "DEN", opp: "LV", pos: "RB", carries: 180, targets: 30, recYds: 200, recs: 24, rushYds: 800, tds: 7, recent: ten((i) => row(10, 2, i < 9 ? 70 : 20, 0, i < 5 ? 1 : 0)) });
   const p3 = player({ id: "p3", name: "Charlie Catch", team: "LV", opp: "DEN", pos: "TE", targets: 60, recYds: 500, recs: 44, recent: ten((i) => row(i < 8 ? 55 : 10, i < 9 ? 4 : 1, 0, 0, 0)) });
   const two = page.stripHtml(nfl, data([p1, p2, p3]), RECORD, parlay, { now: NOW });
   assert.match(two, /<h3>Suggested parlay — 2 legs · from 2 different games<\/h3>/, "two games did not fall back to a two-leg slip");
-  assert.doesNotMatch(two, /slipprice|edge at that price/, "the home carries the price input");
-  assert.match(two, /class="leg-line"/); assert.match(two, /fair price/);
+  assert.doesNotMatch(two, /slipprice|edge at that price|fair price/, "the home carries a price");
+  assert.match(two, /class="leg-line"/); assert.match(two, /the legs multiplied/);
   assert.doesNotMatch(two, /href="parlays\.html"/, "the slip links the page; the home's heading already does, once");
   assert.match(two, /Rush \+ rec yards legs are kept out of the slip: the replay has not measured them in a parlay/, "the home says legs are listed; the home has no list");
   const g3 = GAMES.concat([{ id: "g3", date: "2026-10-04T20:00Z", home: "SF", away: "ARI", completed: false }]);
@@ -395,15 +395,9 @@ test("render: the controls, the slip from the filtered legs, every leg listed, t
   const norm = [];
   page.render(doc, { data: d, model: nfl, record: RECORD, parlay, now: NOW, state: { legs: 42 }, onState: (s) => norm.push(s) });
   assert.equal(norm.length, 1); assert.equal(norm[0].legs, 3);
-  /* The price typed on the slip: the change listener keeps it on the host, redraws with the edge, and survives a control click. */
-  page.render(doc, { data: d, model: nfl, record: RECORD, parlay, edge: { evPct: (p, dec) => 100 * (p * dec - 1), americanToDecimal: (a) => (a > 0 ? 1 + a / 100 : 1 + 100 / -a), formatPct: (x) => (x >= 0 ? "+" : "") + x.toFixed(1) + "%" }, now: NOW, state: { legs: 2, floor: 0.6, hits: 0 } });
-  assert.equal(els.pslip.listeners.change.length, 1, "render added a second price listener");
-  els.pslip.listeners.change[0]({ target: { id: "slipprice", value: "150" } });
-  assert.match(els.pslip.innerHTML, /value="150"/); assert.match(els.pslip.innerHTML, /edge at that price/);
-  click({ target: { closest: (sel) => (sel === "[data-legs]" ? { getAttribute: () => "2" } : null) } });
-  assert.match(els.pslip.innerHTML, /value="150"/, "a control click lost the typed price");
-  els.pslip.listeners.change[0]({ target: { id: "slipprice", value: "" } });
-  assert.doesNotMatch(els.pslip.innerHTML, /edge at that price/, "a cleared price keeps an edge");
+  /* No price input anywhere on the slip (2026-10-17). */
+  assert.doesNotMatch(els.pslip.innerHTML, /slipprice|edge at that price|fair price/, "the slip carries a price");
+  assert.equal((els.pslip.listeners.change || []).length, 0, "a price listener was added");
   /* No board: the controls hide and the page says so. */
   page.render(doc, { data: null, model: nfl, parlay });
   assert.equal(els.pcontrols.hidden, true); assert.match(els.plegs.innerHTML, /No board/); assert.equal(els.pslip.innerHTML, "");
@@ -439,18 +433,18 @@ test("topPlays: the best leg of each family in turn, one a player, the touchdown
   assert.deepEqual(page.topPlays(list, { n: 6 }), [], "without parlay.js there is no slip rule to follow");
 });
 
-test("playCardHtml: a receipt card says the chance, the fair price and only the facts the leg carries, every string escaped", () => {
+test("playCardHtml: a receipt card says the chance and only the facts the leg carries, no price, every string escaped", () => {
   const leg = { key: "k", playerId: "7", gameId: "g1", team: "KC", opp: "LAC", name: "A <b>Wide</b>", pos: "WR", prop: "recyds", rung: 50, prob: 0.8, propLabel: "50+ receiving yards",
     hits: { hits: 9, n: 10 }, sheet: { key: "recYdsWR", label: "Rec yards to WR", rank: 2, of: null }, rec: { said: 78, hit: 76, n: 305 } };
-  const h = page.playCardHtml(leg, { fair: (p) => -400, faces: null, league: "NFL" });
+  const h = page.playCardHtml(leg, { faces: null, league: "NFL" });
   assert.match(h, /^<div class="play">/);
   assert.match(h, /A &lt;b&gt;Wide&lt;\/b&gt;/, "the name is not escaped");
   assert.doesNotMatch(h, /<b>Wide<\/b>/);
-  assert.match(h, /80%/); assert.match(h, /-400/); assert.match(h, /50\+ receiving yards/);
+  assert.match(h, /80%/); assert.doesNotMatch(h, /fair|-400/, "a fair price on the card"); assert.match(h, /50\+ receiving yards/);
   assert.match(h, /9 of his last 10/); assert.match(h, /LAC ranks 2nd/i); assert.match(h, /said 78%/); assert.match(h, /hit 76%/);
-  const bare = page.playCardHtml(Object.assign({}, leg, { hits: null, sheet: null, rec: null }), { fair: () => 100, league: "NFL" });
+  const bare = page.playCardHtml(Object.assign({}, leg, { hits: null, sheet: null, rec: null }), { league: "NFL" });
   assert.doesNotMatch(bare, /last 10|ranks|said/, "a fact the leg does not carry is printed");
-  assert.match(bare, /\+100/, "a positive fair price carries its sign");
+  assert.match(bare, /<small>chance<\/small>/, "the figure is not named as a chance");
 });
 
 test("buildSlip with partial: the legs gathered when fewer than asked fill, so a caller can ask for six and take what there is", () => {
@@ -473,7 +467,7 @@ test("stripHtml takes a prebuilt leg list, so the home builds the legs once for 
 test("playCardHtml keeps the sheet label's abbreviations: only the first letter is lowered", () => {
   const leg = { key: "k", playerId: "7", gameId: "g1", team: "KC", opp: "LAC", name: "A", pos: "WR", prop: "recyds", rung: 50, prob: 0.8, propLabel: "50+ receiving yards", hits: null, rec: null,
     sheet: { key: "recYdsWR", label: "Rec yards to WR", rank: 2, of: null } };
-  assert.match(page.playCardHtml(leg, { fair: () => -400 }), /LAC ranks 2nd for rec yards to WR allowed/, "the position abbreviation was lowercased");
+  assert.match(page.playCardHtml(leg, {}), /LAC ranks 2nd for rec yards to WR allowed/, "the position abbreviation was lowercased");
 });
 
 /* ------------------------------------------------------------------ *

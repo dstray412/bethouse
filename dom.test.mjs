@@ -326,97 +326,6 @@ test("every add-to-parlay button is built inside the eligibility guard", () => {
 });
 
 /* ------------------------------------------------------------------ *
- * A price that already carries its sign must not be given a second one
- *
- * fetch-odds-espn.mjs stores American prices as SIGNED STRINGS: "+111",
- * "-103". index.html rendered them as `(mkt.over>0?'+':'')+mkt.over`, and
- * "+111" > 0 coerces to 111 > 0, which is true — so every positively
- * priced row on total bases showed `++111`, in the chip and again in the
- * detail panel's "Market: ++111 over 1.5". Negative prices looked fine,
- * which is why it survived: half the rows were correct.
- *
- * index.html already has amer() for exactly this. Math.round("+111") is
- * 111, so it takes the string or a number and emits one sign either way.
- * ------------------------------------------------------------------ */
-
-/* The prices that break the contract. An empty market set yields none, which
-   is the entire point: see the note below. */
-const unsignedPrices = (markets) =>
-  Object.values(markets)
-    .flatMap((m) => [m.over, m.under])
-    .filter((p) => !/^[+-]\d+$/.test(String(p)));
-
-/*
- * An empty slate is a legitimate state and must never fail a run.
- *
- * The first version of the test below asserted `prices.length > 0`. That is
- * a claim about the live feed, and this file runs inside all three refresh
- * workflows against data they have just fetched. At 13:51 UTC on 2026-08-20
- * no MLB props were posted yet, refresh-odds.yml printed its own "no
- * scheduled games — nothing priced" and exited 0 as designed, then handed
- * the same empty file to `node --test` and this assertion failed the run.
- * Thirteen consecutive refreshes died on it and the board sat past its
- * six-hour cutoff showing no prices at all.
- *
- * The rule was already written, three lines above the call site: "An empty
- * slate is legitimate (no games scheduled); a malformed file is not. Only
- * the second one should fail the run."
- *
- * So: nothing in this file may assert that live data is non-empty. Check the
- * shape of what is there; say how much that was.
- */
-
-test("an empty slate is not a contract violation", () => {
-  assert.deepEqual(unsignedPrices({}), [], "an empty market set must pass");
-  assert.deepEqual(
-    unsignedPrices({ a: { over: "+108", under: "-144" } }),
-    [],
-    "signed strings are the contract",
-  );
-  assert.deepEqual(
-    unsignedPrices({ a: { over: 108, under: "-144" } }),
-    [108],
-    "a bare number is a violation — it is what made index.html print ++108",
-  );
-});
-
-test("the odds feed stores prices with their sign attached", (t) => {
-  const file = resolve(DIR, "odds-data.js");
-  assert.ok(existsSync(file), "odds-data.js is missing");
-
-  const win = {};
-  new Function("window", readFileSync(file, "utf8"))(win);
-  const markets = (win.BetHouseOdds || {}).markets;
-  assert.ok(markets && typeof markets === "object", "odds-data.js defines no markets object");
-
-  assert.deepEqual(
-    unsignedPrices(markets),
-    [],
-    "a price is not a signed American string — the render path assumes it is",
-  );
-
-  /* Vacuous on an empty slate, by design. Reported so that a file which is
-     empty forever is visible in the run output rather than silently green. */
-  t.diagnostic(
-    `${Object.keys(markets).length} markets, ${Object.values(markets).length * 2} prices checked`,
-  );
-});
-
-test("no board hand-prefixes a sign onto a market price", () => {
-  /* The bug in the form it was written in: a truthiness test on a value
-     that is already signed, used to decide whether to add a sign. */
-  for (const f of BOARDS) {
-    const js = src(f);
-    const offenders = js.match(/\.(over|under)\s*>\s*0\s*\?\s*'\+'/g) || [];
-    assert.deepEqual(
-      offenders,
-      [],
-      `${f} prefixes '+' onto an already-signed market price — use amer()`,
-    );
-  }
-});
-
-/* ------------------------------------------------------------------ *
  * A fixed-width cell must not let its content decide the row height
  *
  * nfl.html's spread board put "SEA -7.2" inside .prob, a 74px grid column
@@ -436,36 +345,12 @@ test("a sublabel inside a fixed-width row cell is a block, not wrappable text", 
   assert.ok(rule, `${SHEET} has no display:block rule for row sublabels`);
 
   const selectors = rule[1].split(",").map((s) => s.trim());
-  for (const cell of [".be", ".prob", ".px"]) {
+  for (const cell of [".be", ".prob"]) {
     assert.ok(
       selectors.includes(`${cell} small`),
       `${cell} small is not blocked — content can wrap and set the row height`,
     );
   }
-});
-
-/* ------------------------------------------------------------------ *
- * One age computation, not two
- *
- * index.html used to compute the feed's age twice: once inside the ODDS
- * gate to decide whether to show prices, and again into an ODDS_AGE_H
- * that nothing ever read. Two copies of the same arithmetic, one of them
- * dead — which is why the board could withhold prices without being able
- * to say it was withholding them.
- * ------------------------------------------------------------------ */
-
-test("the board asks edge.js how old the odds are, and asks once", () => {
-  const js = src("baseball.html");
-  assert.ok(
-    js.includes("E.oddsFreshness("),
-    "baseball.html must get odds age from edge.js, not re-derive it",
-  );
-  const inlined = js.match(/Date\.parse\([^)]*generated[^)]*\)/g) || [];
-  assert.deepEqual(
-    inlined,
-    [],
-    "baseball.html re-derives the feed's age inline; that is the duplication oddsFreshness replaced",
-  );
 });
 
 /* ------------------------------------------------------------------ *
@@ -490,7 +375,6 @@ test("every test file runs in every gate that runs tests", () => {
     ".github/workflows/ci.yml",
     ".github/workflows/refresh.yml",
     ".github/workflows/refresh-nfl.yml",
-    ".github/workflows/refresh-odds.yml",
   ];
 
   const files = readdirSync(DIR)
@@ -506,58 +390,6 @@ test("every test file runs in every gate that runs tests", () => {
     for (const f of files) {
       assert.ok(text.includes(f), `${gate} does not run ${f}`);
     }
-  }
-});
-
-/* ------------------------------------------------------------------ *
- * Two copies of the name matcher, and they have to agree
- *
- * The odds feed keys every market by a normalised player name. That
- * normalisation exists twice: `normalizeName` in fetch-odds-espn.mjs, which
- * writes the keys, and `normName` in index.html, which reads them. The
- * board cannot import an .mjs without becoming a module, so the duplication
- * is structural rather than careless.
- *
- * If they ever disagree, no price matches any player: the chips vanish, and
- * closing line value silently reports nothing for every bet rather than
- * failing loudly. So compare them on the names that actually break this
- * sort of function.
- * ------------------------------------------------------------------ */
-
-test("the board and the odds fetcher normalise names identically", async () => {
-  const { normalizeName } = await import("./fetch-odds-espn.mjs");
-
-  const js = src("baseball.html");
-  const at = js.indexOf("function normName(s){");
-  assert.ok(at > 0, "baseball.html no longer defines normName");
-  const end = js.indexOf("\n}", at) + 2;
-  // eslint-disable-next-line no-new-func
-  const boardVersion = new Function(js.slice(at, end) + "; return normName;")();
-
-  const NAMES = [
-    "Luis García Jr.",          // accent AND a suffix
-    "José Ramírez",
-    "Ronald Acuña Jr.",
-    "Ken Griffey Sr.",
-    "Vladimir Guerrero Jr.",
-    "J.T. Realmuto",            // periods inside initials
-    "A.J. Pollock",
-    "Jackson Merrill III",
-    "Michael A. Taylor",
-    "Shohei Ohtani",
-    "O'Neil Cruz",              // apostrophe
-    "Jean-Carlos Rodríguez",    // hyphen
-    "  Extra   Spaces  ",
-    "",
-  ];
-  for (const n of NAMES) {
-    assert.equal(
-      boardVersion(n),
-      normalizeName(n),
-      `"${n}" normalises differently in baseball.html than in fetch-odds-espn.mjs — ` +
-        `every market key for a name like this would fail to match, and CLV would ` +
-        `quietly report nothing`,
-    );
   }
 });
 
@@ -679,7 +511,7 @@ test("the panel reads a season total through the model, never off the record by 
 /* ------------------------------------------------------------------ *
  * The ladder: the alternate lines, priced, inside the panel
  *
- * Every rung comes from the model (`ladder`, `fairPrice`) so the page and
+ * Every rung comes from the model (`ladder`) so the page and
  * the tracker offer the same rungs, and the strip wraps or scrolls in its
  * own box — thirteen rungs must not make the body scroll sideways on a
  * 390px phone.
@@ -1079,11 +911,11 @@ test("baseball.html: the same sticky control bar (bet type, the controls row, Fi
   assert.match(after, /<details class="method" id="how"><summary>[^<]*How this number is made[^<]*<\/summary><div class="note" id="note"><\/div><\/details>/, "the method paragraph is not folded under the board");
   assert.match(html, /bar\.classList\.toggle\('open'\)/, "Filters does not toggle the bar");
   assert.match(html, /setAttribute\('aria-expanded'/, "Filters does not report its state");
-  // The live warnings (a replay day, games under way, prices withheld) stay in view above the board; only the method folds.
+  // The live warnings (a replay day, games under way) stay in view above the board; only the method folds.
   assert.ok(m.indexOf('id="warn"') > m.indexOf('id="bar"') && m.indexOf('id="warn"') < m.indexOf('id="board"'), "#warn is not between the bar and the board");
   assert.match(html, /warnings\.push\('This day is over\./, "the replay warning is not a warning");
   assert.match(html, /warnings\.push\('<b>'\+liveN\+' game'/, "the games-under-way line is not a warning");
-  assert.match(html, /warnings\.push\('<b class="hot">Prices are '/, "the withheld-prices line is not a warning");
+  assert.doesNotMatch(html, /Prices are |odds-data|BetHouseOdds|BetHouseEdge|fair price/, "the baseball page still carries a price surface (removed 2026-10-17)");
   assert.match(html, /warn\.innerHTML = warnings\.join\(' '\);\s*warn\.hidden = !warnings\.length;/, "the warnings are not written to #warn, hidden when there are none");
   assert.doesNotMatch(html, /note\.innerHTML \+=/, "something still appends to the folded note");
 });
@@ -1093,13 +925,13 @@ test("the tendencies file is loaded by the board that has play-by-play", () => {
 });
 
 /* ------------------------------------------------------------------ *
- * A typed price, filters and sorts on the football boards (2026-09-29)
+ * Filters and sorts on the football boards (2026-09-29)
  *
- * The rows take the price the book offers and show the edge at once,
- * remembered in the browser. The arithmetic is edge.js's, the key is
- * watchlist.js's, and the rows are narrowed by team and position and
- * re-ordered by projection, edge or boost. Source contracts first, then
- * the real script mounted against the stub.
+ * The rows are narrowed by team and position and re-ordered by
+ * projection or boost. (A typed price with its edge lived here until
+ * 2026-10-17, when the site stopped showing odds: nothing on the board
+ * is a price now, and the test below pins that.) Source contracts first,
+ * then the real script mounted against the stub.
  * ------------------------------------------------------------------ */
 
 test("the football board loads watchlist.js before the board script", () => {
@@ -1109,16 +941,6 @@ test("the football board loads watchlist.js before the board script", () => {
     assert.ok(w >= 0, `${page} does not load watchlist.js`);
     assert.ok(w < b, `${page} loads watchlist.js after the board`);
   }
-});
-
-test("the board keys a typed price through watchlist.js and prices it through edge.js, never by hand", () => {
-  const js = src("football-board.js");
-  assert.match(js, /W\.priceKey\(/, "no W.priceKey( call: the key would be built by hand");
-  // The price map is only ever indexed by a key variable, never by a string the board glued together.
-  assert.doesNotMatch(js, /state\.prices\[['"]|state\.prices\[[^\]]*\+/, "a hand-built price key");
-  const priced = js.match(/function priceEdge[\s\S]*?\n    }/);
-  assert.ok(priced, "no priceEdge helper");
-  assert.match(priced[0], /E\.evPct\(/, "the edge is not edge.js's");
 });
 
 /* Enough players for every filter and sort to have something to do. */
@@ -1135,13 +957,13 @@ const PLAYERS = [
   { id: "f", name: "Foxtrot Back", team: "AAA", pos: "RB", games: 10, tds: 4, carries: 140, targets: 20, recYds: 120, rushYds: 600, recs: 15, passAtt: 0, passYds: 0, opp: "BBB" },
 ];
 
-/** Mount the real board on the TD view with players, edge.js and watchlist.js present. */
+/** Mount the real board on the TD view with players and watchlist.js present. */
 async function mountPlayers({ players, storage, storageThrows, noWatchlist, search, pools, games, record, teamFactors, noChips, model, bound }) {
   /* `bound`: a model with other constants (nfl.bind(...)), for a term the shipped constants hold at 0. */
   const nfl = bound || (await import("./nfl.js")).default;
   const doc = stubDoc();
   const store = new Map(Object.entries(storage || {}));
-  const win = { BetHouseEdge: (await import("./edge.js")).default, BetHouseParlay: (await import("./parlay.js")).default, BetHouseFaces: (await import("./faces.js")).default, pushed: [], listeners: {} };
+  const win = { BetHouseParlay: (await import("./parlay.js")).default, BetHouseFaces: (await import("./faces.js")).default, pushed: [], listeners: {} };
   win.location = { search: search || "", pathname: "/nfl.html" };
   win.history = { pushState(_s, _t, url) { win.pushed.push(url); }, replaceState(_s, _t, url) { win.pushed.push(url); } };
   win.addEventListener = (type, fn) => { (win.listeners[type] = win.listeners[type] || []).push(fn); };
@@ -1193,64 +1015,42 @@ test("team and position filters narrow the rows, a bye team is still a team, ros
   assert.equal(app.__rows.length, 6);
 });
 
-test("a browser that refuses storage still gets a board, and a page without watchlist.js gets rows with no price cell", async () => {
+test("a browser that refuses storage still gets a board, and so does a page without watchlist.js", async () => {
   const { app } = await mountPlayers({ players: PLAYERS, storageThrows: true });
   assert.equal(app.__rows.length, 6, "the board did not render");
   const bare = await mountPlayers({ players: PLAYERS, noWatchlist: true });
-  assert.ok(!bare.app.innerHTML.includes('class="px"'), "a price cell with nothing behind it");
-  assert.ok(!bare.app.__detail(bare.app.__rows[0]).includes("pxin"), "a price input with nothing behind it");
+  assert.equal(bare.app.__rows.length, 6, "the board did not render without watchlist.js");
+  assert.doesNotMatch(bare.app.innerHTML, /data-star/, "a star with nothing behind it");
 });
 
-test("with Sort by edge on, a price committed in the panel re-orders the rows; a keystroke does not", async () => {
-  const { app, doc, press, win } = await mountPlayers({ players: PLAYERS });
-  const W = win.BetHouseWatchlist;
-  press("sortseg", "Edge");
-  const i = app.__rows.length - 1, last = app.__rows[i];
-  const key = W.priceKey({ league: "NFL", slate: "2026-2", playerId: last.p.id, prop: "td" });
-  const input = stubEl("input"); input.setAttribute("data-pk", key); input.setAttribute("data-i", String(i)); input.value = "+400";
-  app.handlers.input[0]({ target: input });
-  assert.equal(app.__rows[i].p.id, last.p.id, "typing must not re-order under the cursor");
-  app.handlers.change[0]({ target: input });
-  assert.equal(app.__rows[0].p.id, last.p.id, "committing the price put the priced row first");
+/* The site shows chances, not odds (2026-10-17): no price is typed, stored, shown or sorted on, and the
+   price module is not loaded. Oracle: the user's instruction that the odds and the fair price were wrong. */
+test("the football board carries no price: no input, no fair price, no edge, no Edge sort, no price module", async () => {
+  const js = src("football-board.js");
+  assert.doesNotMatch(js, /BetHouseEdge|fairPrice|evPct|americanToDecimal|slipprice|slipPrice|pxin|data-pk|PRICE_KEY|priceKey\(|parsePrices|validPrice/, "a price surface survives in football-board.js");
+  const { app, doc, press } = await mountPlayers({ players: PLAYERS });
+  assert.doesNotMatch(doc.getElementById("sortseg").innerHTML, /Edge/, "an Edge sort with no price behind it");
+  assert.doesNotMatch(app.innerHTML, /class="px"|class="fair"|class="be fair"|fair |<input/, "a price cell, a fair price or an input on the rows");
+  const i = app.__rows.findIndex((r) => r.p.id === "a");
+  clickRow(app, i);
+  const drawer = doc.getElementById("dbands").innerHTML + doc.getElementById("dbody").innerHTML;
+  assert.doesNotMatch(drawer, /fair|<input|edge at|Price you are offered/i, "the drawer still offers a price");
+  press("dtabs", "The arithmetic");
+  assert.doesNotMatch(doc.getElementById("dbody").innerHTML, /<dt>Edge<\/dt>|fair/, "the arithmetic prices the row");
+  for (const page of ["nfl.html", "index.html", "parlays.html", "live.html", "baseball.html"]) assert.doesNotMatch(src(page), /edge\.js|BetHouseEdge/, page + " still loads the price module");
 });
 
-test("sort by boost orders rows by projection over his own rate, with no rate last; sort by edge puts priced rows first", async () => {
-  const { app, doc, press, win } = await mountPlayers({ players: PLAYERS, storage: { [ (await import("./watchlist.js")).default.PRICE_KEY ]: JSON.stringify({ "NFL|2026-2|c|td": "+400", "NFL|2026-1|a|td": "-500" }) } });
+
+test("sort by boost orders rows by projection over his own rate, with no rate last", async () => {
+  const { app, press } = await mountPlayers({ players: PLAYERS });
   press("sortseg", "Boost");
   const ratio = (r) => r.s.observedRate > 0 ? r.s.lambda / r.s.observedRate : -Infinity;
   const got = app.__rows.map(ratio);
   for (let i = 1; i < got.length; i++) assert.ok(got[i - 1] >= got[i], `boost not descending at ${i}: ${got}`);
   assert.equal(app.__rows[app.__rows.length - 1].p.id, "c", "no touchdowns yet: no baseline, so last");
-  press("sortseg", "Edge");
-  assert.equal(app.__rows[0].p.id, "c", "the one priced row comes first");
-  assert.ok(!app.__rows.find((r) => r.p.id === "a").pe, "last week's price is not this week's edge");
-  const E = win.BetHouseEdge;
-  const ev = E.evPct(app.__rows[0].s.prob, E.americanToDecimal(400));
-  assert.ok(app.innerHTML.includes(E.formatPct(ev)), "the row does not show the edge at the stored price");
 });
 
-test("typing a price in the panel prices the row at once, through edge.js, and is remembered", async () => {
-  const { app, doc, win, store } = await mountPlayers({ players: PLAYERS });
-  const W = win.BetHouseWatchlist, E = win.BetHouseEdge;
-  const i = app.__rows.findIndex((r) => r.p.id === "a");
-  const panel = app.__over(app.__rows[i]);
-  const key = W.priceKey({ league: "NFL", slate: "2026-2", playerId: "a", prop: "td" });
-  assert.ok(panel.includes(`data-pk="${key}"`), "the overview has no price input for this row");
-  const input = stubEl("input"); input.setAttribute("data-pk", key); input.setAttribute("data-i", String(i)); input.value = "-120";
-  app.handlers.input[0]({ target: input });
-  const ev = E.evPct(app.__rows[i].s.prob, E.americanToDecimal(-120));
-  assert.ok(doc.getElementById("px" + i).innerHTML.includes(E.formatPct(ev)), "the row cell did not update");
-  assert.deepEqual(W.parsePrices(store.get(W.PRICE_KEY)), { [key]: -120 }, "the price was not remembered");
-  input.value = "";
-  app.handlers.input[0]({ target: input });
-  assert.deepEqual(W.parsePrices(store.get(W.PRICE_KEY)), {}, "clearing the box forgets the price");
-  assert.ok(!doc.getElementById("px" + i).innerHTML.includes("edge"), "a cleared price still shows an edge");
-});
 
-test("one edge colour rule: the slip and the row share edgeClass", () => {
-  const js = src("football-board.js");
-  assert.equal((js.match(/ev>0\.02\?/g) || []).length, 1, "the good/warn/bad threshold appears more than once");
-});
 
 /* ------------------------------------------------------------------ *
  * The player drawer (phase 2, 2026-09-29)
@@ -1536,7 +1336,7 @@ test("every football view renders one column-head row that names its columns, on
   const headed = (html) => {
     const hs = [...heads(html).matchAll(/<span([^>]*)>([^<]*)<\/span>/g)];
     const cells = (html.match(/<button class="row[^"]*"[^>]*>([\s\S]*?)<\/button>/) || ["", ""])[1];
-    const figures = (cells.match(/class="(prob|be|fair|px)[ "]/g) || []).length;
+    const figures = (cells.match(/class="(prob|be)[ "]/g) || []).length;
     // A figure head is a right-aligned span (thead's r:1) with words in it; one per figure cell, exactly.
     const figureHeads = hs.filter((m) => /class="r[ "]/.test(m[1]) && m[2].trim()).length;
     return { labels: hs.map((m) => m[2]).filter(Boolean), figures, figureHeads };
@@ -1552,13 +1352,13 @@ test("every football view renders one column-head row that names its columns, on
   assert.match(app.innerHTML, /<div class="game v-stat">/);
   press("view", "Spread & total");
   assert.deepEqual(labels(app.innerHTML).slice(0, 2), ["Rk", "Matchup"]);
-  assert.match(app.innerHTML, /<div class="game v-game nopx nostar">|<div class="game v-game nostar">/);
+  assert.match(app.innerHTML, /<div class="game v-game nostar">/);
 });
 
-test("the stat tile carries the players priced and the build time, and a graded count only when there is a record", async () => {
+test("the stat tile carries the players projected and the build time, and a graded count only when there is a record", async () => {
   const { doc } = await mountPlayers({ players: PLAYERS });
   const tile = doc.getElementById("tile").innerHTML;
-  assert.match(tile, /<b>6<\/b><span>players priced<\/span>/);
+  assert.match(tile, /<b>6<\/b><span>players projected<\/span>/);
   assert.match(tile, /<b>00:00<\/b><span>built, UTC<\/span>/);
   assert.doesNotMatch(tile, /graded/, "a graded cell with no record behind it");
 });
@@ -1617,7 +1417,7 @@ test("the drawer offers a Track button on the pressed rung and on the touchdown 
 
 test("live.html is a board: shared stylesheet, the scripts it needs, a card list and a status strip", () => {
   const html = src("live.html");
-  for (const s of ["watchlist.js", "bets.js", "nfl.js", "live.js", "edge.js"]) assert.match(html, new RegExp(`src="${s}"`), `live.html does not load ${s}`);
+  for (const s of ["watchlist.js", "bets.js", "nfl.js", "live.js"]) assert.match(html, new RegExp(`src="${s}"`), `live.html does not load ${s}`);
   for (const id of ["cards", "lstrip", "tile", "updated"]) assert.match(html, new RegExp(`id="${id}"`), `live.html has no #${id}`);
   assert.doesNotMatch(html, /fonts\.googleapis|https?:\/\/[^"]*\.(js|css)"/, "an off-origin script or sheet");
 });
@@ -1634,7 +1434,7 @@ test("live.html is a board: shared stylesheet, the scripts it needs, a card list
 
 test("index.html is the home: the two-board switch, the week line, the game scroller, the top plays by the slip's rule, the research tabs, logos only from ESPN's CDN", () => {
   const html = src("index.html"), m = markup("index.html");
-  for (const s of ["edge.js", "faces.js", "teams-data.js", "teams.js", "nfl.js", "watchlist.js", "bets.js", "home.js", "sheet-page.js", "consistency-page.js", "parlay.js", "parlay-page.js", "mlb-data.js", "nfl-data.js", "record.js", "nfl-record.js"]) {
+  for (const s of ["faces.js", "teams-data.js", "teams.js", "nfl.js", "watchlist.js", "bets.js", "home.js", "sheet-page.js", "consistency-page.js", "parlay.js", "parlay-page.js", "mlb-data.js", "nfl-data.js", "record.js", "nfl-record.js"]) {
     assert.match(html, new RegExp('<script src="' + s.replace(".", "\\.") + '"'), "index.html loads " + s);
   }
   for (const id of ["tile", "week", "caveat", "gscroll", "playsec", "plays", "parsec", "research", "tabs", "conssec", "cheatsec", "foot"]) assert.match(m, new RegExp('id="' + id + '"'), "index.html has #" + id);
@@ -1727,7 +1527,7 @@ test("every football row carries a face cell, the matchup its marks, and the dra
 
 test("the stylesheet gives every column set a face track after the rank", () => {
   const css = src(SHEET);
-  for (const m of css.matchAll(/\.game(?:\.v-[a-z]+(?:\.nopx)?)?\{--cols:([^;}]+)/g)) {
+  for (const m of css.matchAll(/\.game(?:\.v-[a-z]+)?\{--cols:([^;}]+)/g)) {
     // Desktop: rank, face, name. Phone: the rank is hidden (span.slot), the face leads.
     assert.match(m[1], /^(34px 44px 1fr|28px 1fr) /, "a column set without the face track: " + m[0]);
   }
@@ -1754,13 +1554,11 @@ test("the stylesheet gives every column set a face track after the rank", () => 
         if (m) hidden.push(m[1]);
       }
     }
-    assert.ok(hidden.length, view + ": the tablet block hides nothing, so its column set must equal the desktop's");
-    for (const variant of ["", ".nopx"]) {
-      const re = new RegExp("\\.game\\." + view.replace(".", "\\.") + variant.replace(".", "\\.") + "\\{--cols:([^};]+)");
-      const desk = css.slice(0, css.indexOf("@media")).match(re), tb = tab[1].match(re);
-      assert.ok(desk && tb, view + variant + ": a desktop and a tablet column set");
-      assert.equal(tracks(tb[1]), tracks(desk[1]) - hidden.length, view + variant + ": the tablet set's track count does not match the cells the block leaves visible");
-    }
+    // Since the price cell went (2026-10-17) the block hides nothing on these views and only narrows the tracks.
+    const re = new RegExp("\\.game\\." + view.replace(".", "\\.") + "\\{--cols:([^};]+)");
+    const desk = css.slice(0, css.indexOf("@media")).match(re), tb = tab[1].match(re);
+    assert.ok(desk && tb, view + ": a desktop and a tablet column set");
+    assert.equal(tracks(tb[1]), tracks(desk[1]) - hidden.length, view + ": the tablet set's track count does not match the cells the block leaves visible");
   }
 });
 
@@ -1768,13 +1566,12 @@ test("the stylesheet gives every column set a face track after the rank", () => 
  * The player card: what the drawer says about a player, and where
  *
  * The drawer's head is a hero (matchup label, name, position and model
- * rank, the large photo), then bands: the headline figure with its fair
- * price; why, at most three sentences naming the terms that moved him;
+ * rank, the large photo), then bands: the headline figure; why, at most three sentences naming the terms that moved him;
  * the projection against his own rate; and a receipt (only when a
  * record is mounted) saying this call was recorded before kickoff and
  * linking to the record page. The record's aggregate for the prop is
  * NOT on the card: it is the model's honesty, not his story. The
- * overview is the price row and "how he gets there"; the arithmetic
+ * overview is the Track row and "how he gets there"; the arithmetic
  * (the labelled cells, "carries" included) is its own tab.
  * ------------------------------------------------------------------ */
 
@@ -1790,9 +1587,9 @@ test("the drawer's hero names the matchup, the position and the model rank in th
   assert.equal(doc.getElementById("dkick").textContent, "KC vs LAC");
   assert.equal(doc.getElementById("dsub").textContent, "WR · Model rank #" + (i + 1) + " of " + field + " · Anytime TD");
   const bands = doc.getElementById("dbands").innerHTML;
-  // The headline is the row's chance and the row's fair price, to the digit.
-  const fp = nfl.fairPrice(r.s.prob);
-  assert.match(bands, new RegExp('class="dband head"[\\s\\S]*Chance to score[\\s\\S]*<b class="fig">' + (100 * r.s.prob).toFixed(1) + '%</b>[\\s\\S]*fair ' + (fp > 0 ? "\\+" : "[\\u2212-]") + Math.abs(fp)), "the headline band is not the row's chance and fair price");
+  // The headline is the row's chance, to the digit, and nothing priced beside it.
+  assert.match(bands, new RegExp('class="dband head"[\\s\\S]*Chance to score[\\s\\S]*<b class="fig">' + (100 * r.s.prob).toFixed(1) + '%</b>'), "the headline band is not the row's chance");
+  assert.doesNotMatch(bands, /fair/, "a fair price on the headline band");
   // Why: his line first, with the numbers the arithmetic uses, then only the terms that moved him five percent or more.
   // Plain per-game counts beside the plain rate: the decay-weighted workload is labelled in the arithmetic tab.
   assert.match(bands, new RegExp('class="dband why"[\\s\\S]*<ul class="dwhy"><li><b>' + r.s.observedRate.toFixed(2) + '</b> TD a game on <b>' + (r.p.carries / r.p.games).toFixed(1) + '</b> carries and <b>' + (r.p.targets / r.p.games).toFixed(1) + '</b> targets over <b>' + r.p.games + '</b> games</li>'), "the why band does not lead with his plain line");
@@ -1858,7 +1655,7 @@ test("without a record the receipt band is absent; a stat view's card leads with
   assert.match(bands, new RegExp('<li>Cleared <b>' + Math.ceil(r.line) + '\\+</b> in <b>' + nfl.recentHits("recyds", r.p.recent, Math.ceil(r.line)) + '</b> of his last <b>3</b> games</li>'), "the stat why band does not count his recent games against the line");
   const avg = nfl.statTotal("recyds", r.p) / r.p.games, delta = r.exp - avg, d = Math.round((r.exp / avg - 1) * 100);
   assert.match(bands, new RegExp('own rate ' + avg.toFixed(0) + ' yards a game[\\s\\S]*' + (delta >= 0 ? "\\+" : "\\u2212") + Math.abs(delta).toFixed(0) + ' yards \\(' + (d >= 0 ? "\\+" : "\\u2212") + Math.abs(d) + '%\\)'), "the stat rate band does not say the row's ratio");
-  assert.match(doc.getElementById("dbody").innerHTML, /class="dact"/, "the stat overview does not lead with the price row");
+  assert.doesNotMatch(doc.getElementById("dbody").innerHTML, /class="dact"/, "the stat overview has an action row with nothing to act on: Track lives on the ladder tab");
   assert.match(doc.getElementById("dbody").innerHTML, /How he gets there[\s\S]*Cleared <b>\d+\+<\/b> in <b>\d<\/b> of his last <b>3<\/b> games\./, "a stat overview with no chips is an empty tab");
   press("dtabs", "The arithmetic");
   const body = doc.getElementById("dbody").innerHTML;
@@ -1964,26 +1761,22 @@ test("a row wears up to three chips under the name, each a chips.js chip, and no
  * stripe as the game cards do.
  * ------------------------------------------------------------------ */
 
-test("the arithmetic colours a cell only where the model moved the number, and carries the edge at a typed price", async () => {
+test("the arithmetic colours a cell only where the model moved the number", async () => {
   const nfl = (await import("./nfl.js")).default;
-  const W = (await import("./watchlist.js")).default, E = (await import("./edge.js")).default;
   const rp = recPool(nfl).recyds;
   const pools = { recyds: rp, rushyds: rp };
   const teamFactors = { KC: { off: 1.15, def: 1, allow: { rushyds: 1.3 } }, LAC: { off: 1, def: 0.85, allow: {} } };
-  const { app, doc, press } = await mountPlayers({ players: PLAYERS, pools, teamFactors, storage: { [W.PRICE_KEY]: JSON.stringify({ "NFL|2026-2|a|td": "+400" }) } });
+  const { app, doc, press } = await mountPlayers({ players: PLAYERS, pools, teamFactors });
   const arith = (id) => { const i = app.__rows.findIndex((r) => r.p.id === id); clickRow(app, i); press("dtabs", "The arithmetic"); return { r: app.__rows[i], body: doc.getElementById("dbody").innerHTML }; };
-  /* Alpha (KC vs LAC): offence 15% over the league, opponent 15% under, a price typed. */
+  /* Alpha (KC vs LAC): offence 15% over the league, opponent 15% under. */
   let { r, body } = arith("a");
   assert.match(body, /<dt>Offence<\/dt><dd><b class="up">×1\.15<\/b>/, "the offence's factor above one is not coloured up");
   assert.match(body, /<dt>Opponent<\/dt><dd><b class="down">LAC ×0\.85<\/b>/, "the opponent's factor below one is not coloured down");
-  assert.ok(r.pe && r.pe.price === 400, "the typed price did not reach the row");
-  const cls = r.pe.ev > 0.02 ? "good" : r.pe.ev >= 0 ? "warn" : "bad";
-  assert.match(body, new RegExp('<dt>Edge</dt><dd><b class="edge ' + cls + '">' + E.formatPct(r.pe.ev).replace(/[+%]/g, "\\$&") + '</b><span>at \\+400 against a fair ' + (nfl.fairPrice(r.s.prob) > 0 ? "\\+" : "") + nfl.fairPrice(r.s.prob)), "the edge at the typed price is not a cell, or its colour is not the edge rule's");
-  /* Bravo (LAC vs KC): both factors at one, no price: nothing coloured, no edge cell. */
+  /* Bravo (LAC vs KC): both factors at one: nothing coloured. */
   ({ r, body } = arith("b"));
   assert.match(body, /<dt>Offence<\/dt><dd><b>×1\.00<\/b>/, "a factor of one is coloured");
   assert.match(body, /<dt>Opponent<\/dt><dd><b>KC ×1\.00<\/b>/, "a factor of one is coloured");
-  assert.doesNotMatch(body, /<dt>Edge<\/dt>/, "an edge cell with no price typed");
+  assert.doesNotMatch(body, /<dt>Edge<\/dt>/, "an edge cell: nothing is priced");
   /* Rushing yards: KC gives up 30% more, applied at half strength, +15%, coloured up; the regression by its own direction. */
   press("view", "Rushing yards");
   ({ r, body } = arith("b"));
@@ -2097,7 +1890,7 @@ test("the defence chip replaces the stat row's soft/tough badge: only where the 
   assert.doesNotMatch(src("football-board.js"), /soft D<|tough D<|>=1\.07|<=0\.93/, "the old hand-typed badge, or its threshold, is still in the board");
 });
 
-test("the card's overview is the price row and how he gets there: every chip with its note, and one sentence from the game log", async () => {
+test("the card's overview is the Track row and how he gets there: every chip with its note, and one sentence from the game log", async () => {
   const teamFactors = { LAC: { def: 1.21, allow: {} }, KC: { def: 1, allow: {} } };
   const { app, doc } = await mountPlayers({ players: PLAYERS.concat([CHIPPED, TEAMMATE]), teamFactors });
   const i = app.__rows.findIndex((x) => x.p.id === "h");
@@ -2105,7 +1898,7 @@ test("the card's overview is the price row and how he gets there: every chip wit
   const over = doc.getElementById("dbody").innerHTML;
   assert.match(over, /<h4 class="muhead">How he gets there<\/h4>/);
   assert.equal((over.match(/<li>/g) || []).length, 5, "the overview does not carry every chip");
-  assert.match(over, /Red zone 25%<\/span><span>9 of the 36 red-zone touches logged for KC&#39;s priced players \(carries and targets inside the 20\); his over 8 games/, "a chip's note is missing or unescaped");
+  assert.match(over, /Red zone 25%<\/span><span>9 of the 36 red-zone touches logged for KC&#39;s projected players \(carries and targets inside the 20\); his over 8 games/, "a chip's note is missing or unescaped");
   assert.match(over, /LAC gives up 21% more touchdowns than average/);
   assert.match(over, /Scored in <b>2<\/b> of his last <b>3<\/b> games/);
   // The why band names the opponent as the mover, with its figure.
@@ -2128,12 +1921,10 @@ test("the parlay strip hides behind one button in the controls row, on every vie
   press("parlayseg", "Suggest a parlay");
   assert.equal(doc.getElementById("parlayctl").hidden, true, "the strip did not close");
   assert.ok(!app.innerHTML.includes("Suggested parlay") && !app.innerHTML.includes("Cannot build that slip"), "closing the strip left the slip on the board");
-  // A price typed against a slip dies with the slip: reopen, suggest again, and the box is empty.
+  // No price box on the slip (2026-10-17): nothing to type against it.
   press("parlayseg", "Suggest a parlay"); press("plegs", "3 legs");
-  app.handlers.input[0]({ target: { id: "slipprice", value: "-150", getAttribute: () => null } });
+  assert.doesNotMatch(app.innerHTML, /slipprice|fair price|<input/, "the slip still offers a price box");
   press("parlayseg", "Suggest a parlay");
-  press("parlayseg", "Suggest a parlay"); press("plegs", "3 legs");
-  assert.doesNotMatch(app.innerHTML, /id="slipprice"[^>]*value="/, "the old slip's price survived into the new slip");
   // The game view keeps the button and hides the rest of the row.
   assert.ok(SHIPPED_HIDDEN.has("controls"), "nfl.html no longer ships the controls row hidden; this test's guard assumes it does");
   assert.equal(doc.getElementById("controls").hidden, false, "the script never shows the controls row the page ships hidden");
@@ -2218,7 +2009,7 @@ test("the drawer's hero takes the team's tint and the tray card its edge, both f
   // The module reads the page's global at load; the board reads the module. Mount with the table in place.
   const nfl = (await import("./nfl.js")).default;
   const doc = stubDoc();
-  const win = { BetHouseEdge: (await import("./edge.js")).default, BetHouseParlay: (await import("./parlay.js")).default, BetHouseFaces: (await import("./faces.js")).default, BetHouseWatchlist: (await import("./watchlist.js")).default, BetHouseChips: (await import("./chips.js")).default, BetHouseTeams: teams.use(data), pushed: [], listeners: {} };
+  const win = { BetHouseParlay: (await import("./parlay.js")).default, BetHouseFaces: (await import("./faces.js")).default, BetHouseWatchlist: (await import("./watchlist.js")).default, BetHouseChips: (await import("./chips.js")).default, BetHouseTeams: teams.use(data), pushed: [], listeners: {} };
   win.location = { search: "", pathname: "/nfl.html" }; win.history = { pushState() {}, replaceState() {} }; win.addEventListener = () => {};
   win.localStorage = { getItem: () => null, setItem() {}, removeItem() {} };
   // eslint-disable-next-line no-new-func
@@ -2452,8 +2243,8 @@ test("the teams page's panel scrolls sideways inside itself, the team cell stick
   assert.match(src(SHEET), /\.ccard \.who small\{[^}]*overflow:hidden;text-overflow:ellipsis/, "a long note paints over the figures");
   assert.match(src(SHEET), /#cons>\.ccard\{max-width:/, "a picked card runs the full page width, the name a page away from its count");
   assert.ok(src(SHEET).includes(".ccard .cmore"), "no rule for the cut line");
-  /* The parlay page: the faces, edge.js (the edge at a typed price), parlay.js (the slip), the model, the data file, the record (optional, so the page stands without it), the page module. */
-  for (const f of ["faces.js", "edge.js", "parlay.js", "bets.js", "nfl.js", "nfl-data.js", "parlay-page.js"]) assert.match(src("parlays.html"), new RegExp('<script src="' + f.replace(".", "\\.") + '"></script>'), "parlays.html does not load " + f);
+  /* The parlay page: the faces, parlay.js (the slip), the model, the data file, the record (optional, so the page stands without it), the page module. */
+  for (const f of ["faces.js", "parlay.js", "bets.js", "nfl.js", "nfl-data.js", "parlay-page.js"]) assert.match(src("parlays.html"), new RegExp('<script src="' + f.replace(".", "\\.") + '"></script>'), "parlays.html does not load " + f);
   assert.ok(src("parlays.html").includes("bets: window.BetHouseBets || null"), "the page does not hand the bet log module to the renderer");
   /* The bet log grades a football leg off the tracker's record file at the leg's rung, and shows the leg's own league's face and mark. */
   assert.match(src("bets.html"), /T\.recordPaths\(BETS\)/, "the bet log fetches by date, not by the file each open bet needs");
@@ -2469,7 +2260,7 @@ test("the teams page's panel scrolls sideways inside itself, the team cell stick
   assert.ok(src("parlays.html").indexOf('src="parlay.js"') < src("parlays.html").indexOf('src="parlay-page.js"'), "parlay.js loads after the page that needs it");
   assert.match(markup("parlays.html"), /id="pcontrols"[\s\S]*id="pslip"[\s\S]*id="plegs"[\s\S]*id="pfoot"/, "the hosts are not in order: controls, slip, legs, caveat");
   assert.match(src("parlays.html"), /<div class="controls" id="pcontrols" hidden>/, "the empty controls host paints a rule before the controls exist");
-  for (const k of ["model: window.BetHouseNFL || null", "parlay: window.BetHouseParlay || null", "edge: window.BetHouseEdge || null", "record: window.BETHOUSE_NFL_RECORD || null"]) assert.ok(src("parlays.html").includes(k), "the page does not hand over " + k);
+  for (const k of ["model: window.BetHouseNFL || null", "parlay: window.BetHouseParlay || null", "record: window.BETHOUSE_NFL_RECORD || null"]) assert.ok(src("parlays.html").includes(k), "the page does not hand over " + k);
   assert.match(src("parlays.html"), /new URLSearchParams\(location\.search\)/, "the filters are not read off the URL");
   assert.match(src("parlays.html"), /history\.replaceState\(/, "the filters are not written to the URL");
   assert.match(src("parlays.html"), /\} catch \(e\) \{/, "a fault in the renderer leaves the page on Loading… forever");

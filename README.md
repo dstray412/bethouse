@@ -19,14 +19,14 @@ paper and indigo; `DESIGN.md` has the tokens and the decisions.)
 ## What it is
 
 A daily board, one page a sport. The home shows tonight's slate across
-them. The NFL board prices anytime touchdown and five counting props
+them. The NFL board projects anytime touchdown and five counting props
 (receiving, rushing, rush + rec and passing yards, receptions), each
 with a ladder of alternate lines, and shows the game lines with the
-board's own verdict on them. The baseball board prices 1+ hit, run or
-RBI, total bases and home runs. For each player it shows the chance and the fair price, and
+board's own verdict on them. The baseball board covers 1+ hit, run or
+RBI, total bases and home runs. For each player it shows the chance and
 up to three chips that each carry a measured number. Name, number, why.
 
-Tap a player for the card: the chance with its fair price, at most
+Tap a player for the card: the chance, at most
 three sentences on what moved the number, the projection against his
 own rate, and the receipt (recorded before kickoff, graded once the
 game is final). The arithmetic is a tab away, every term as a cell.
@@ -49,7 +49,6 @@ means 72% — including the part where 72% loses more than a quarter of the time
 node provenance.mjs     # what commit am I reading, and how old is the data?
 node fetch-mlb.mjs      # builds mlb-data.js for today
 bash scripts/local-check.sh                # freshness + the whole suite + secrets, mirrors CI
-node clv.mjs                               # does the model beat the closing line?
 node backtest.mjs --prop tb2               # validate total bases
 node backtest.mjs                          # measures whether the model works
 node backtest.mjs --parlay                 # ...and whether parlays multiply
@@ -113,10 +112,12 @@ And being pickier barely helps: top 2% and top 10% are within a point of each
 other. There is a hard ceiling around 75% on this bet type, and no amount of
 model quality moves it.
 
-**The edge is in the price, not the pick.** That is what the odds half of this
-project (`edge.js`, `fetch-odds.mjs`) is for, and it is why the two halves need
-each other. The model tells you who; the de-vig engine tells you whether the
-number on offer is good enough.
+**The site shows chances, not odds.** Until 2026-10-17 it also showed a fair
+price for every chance, took the book's price and printed an edge, and the
+baseball board drew DraftKings prices from an ESPN feed. The user found the
+prices wrong often enough to mislead, so the odds half (`edge.js`, the feed,
+the closing-line value in the bet log) was removed. The model tells you who
+and how often; what the book is offering is yours to compare.
 
 ### The football models, term by term
 
@@ -252,13 +253,9 @@ should be re-fitted when the run environment shifts.
 | `track-football.mjs` | The same for football: records each week before kickoff, grades from ESPN box scores. `track-nfl.mjs` picks the league. |
 | `lineup-context.mjs` | Replays committed board snapshots to test whether on-base ahead of a hitter moves the residual. It does not. |
 | `calibrate.mjs` | Rebuilds the model from committed snapshots and measures it against its own shipped predictions. Found and fitted the spread correction. |
-| `edge.js` | De-vig and EV math for the odds side. 36 tests. |
 | `bets.js` | Your bet log, singles and parlays. What you tracked, how it graded, and how that compares to what the model said. 46 tests. |
 | `bets.html` | The history: every bet, won and lost, grouped by day, with win rate by kind of bet. Open it. |
-| `close-odds.mjs` | Freezes the last price before each game starts, so closing line value can be worked out later. |
-| `clv.mjs` | Compares every published prediction against the price the market closed at. Brier on both sides, same yardstick. The measure that decides whether the model has an edge rather than merely being calibrated. 15 tests. |
 | `provenance.mjs` | Every analysis tool prints where its numbers came from: the commit, the age of the data, whether the checkout is behind origin. Exists because a session once read a 77-commit-stale tree and reported three false things as fact. 22 tests. |
-| `fetch-odds.mjs` | The Odds API client. Needs a key; not required for the board. |
 | `nfl.html` | The NFL board. Open it. Renders through `football-board.js`; since 2026-10-16 its controls sit in one bar that sticks while the table scrolls (only the bet type and the search on a phone, the rest behind Filters) and the method paragraph folds under the table. |
 | `nfl.js` | The three football models, and `bind()`, the same code with other constants (the backtest's sweeps; the college board, while it existed). 51 tests. |
 | `football-leagues.mjs` | The one table of what is league-shaped: endpoints, files, weeks, the model. One entry since the college board went. |
@@ -282,7 +279,7 @@ tables sat under every table. Prop King is not less data; every surface
 answers one question first and keeps the rest a tab away. So:
 
 - **The first screen is three claims.** The chance (or the projection
-  with the line and the chance of the over) with its fair price. Then
+  with the line and the chance of the over). Then
   **Why**: at most three measured sentences, his line first (`1.20 TD a
   game on 19.6 carries and 3.3 targets over 20 games`), then only the
   terms that moved the number five percent or more, the bigger first
@@ -352,7 +349,7 @@ family: the rungs step by one catch and by ten yards, so a list ranked
 by raw chance is a list of whichever ladder's step lands highest (at a
 70% floor, "2+ receptions" at 86% for every receiver); the arithmetic
 is `parlay.js`'s `combineLegs` with the replay's measured lift for
-correlated legs, the fair price printed and the edge at a typed price;
+correlated legs, no price printed (the site shows chances, not odds);
 only props the replay has measured in a parlay (`parlayProps`) go in,
 so rush + rec is listed but named as kept out; a refused slip says
 why. Under the slip, a section a family, each ranked by chance within
@@ -463,9 +460,8 @@ taste rules, used. In the drawer's arithmetic a cell is coloured only
 where it reports a delta the model computed, by the number's direction:
 the offence and opponent factors (green above one, red below, plain
 inside two percent), the regression (which way the prior pulled him),
-and the edge at a typed price, which is a cell of its own now with the
-price and the fair one beside it, and is not there until a price is
-typed. The opponent cell on a counting prop prints the factor the model
+and (until 2026-10-17, when the site stopped showing odds) the edge at a
+typed price. The opponent cell on a counting prop prints the factor the model
 applied (half the allowance on rushing and passing yards), the one
 number the chip and the why band already carry, with the raw allowance
 and the strength in its note. The notes above each view lead with the
@@ -576,7 +572,7 @@ beside the parlay of the day, and the research pages as tabs.
   by the slip's rule widened to the players scope (`topPlays`: the best
   leg of each family in turn, one a player), so the strip is never six
   "2+ receptions" (a raw ranking by chance ranks ladder steps). A card
-  says the chance and the fair price, the line, and only the facts the
+  says the chance, the line, and only the facts the
   leg carries: the count of his last ten, the opponent's cheat-sheet
   rank, and what the record said and hit at that line.
 - **The parlay of the day** is the parlay page's slip at its defaults,
@@ -590,7 +586,7 @@ beside the parlay of the day, and the research pages as tabs.
   rushing yards, five rows each) and one compact cheat-sheet card per
   NFL game on the slate day, four lines from both sheets, each tagged D
   or O, with a count of the lines cut.
-- **The tile** counts games on the slate, players priced across the
+- **The tile** counts games on the slate, players projected across the
   boards (football players plus batters in posted lineups) and
   predictions graded (the sum of the records).
 - **Logos** are the one image the site ships. They load from ESPN's logo
@@ -667,7 +663,7 @@ changed and why:
   red past −10%, "steady" between, nothing without a rate. The glow
   behind the page is still gone.
 - **A real stat tile in the header**, flush right on the header's
-  baseline: players priced, the build time and the graded record on the
+  baseline: players projected, the build time and the graded record on the
   football boards; games, lineups posted, candidates and the record on
   baseball; bets tracked, graded and the hit rate on the log. A number a page does not have is a
   cell it does not show.
@@ -1022,45 +1018,14 @@ outcomes move together, so the spread is narrower than the truth. The panel
 cannot fix that honestly without modelling the joint distribution, so it counts
 the shared players and says so.
 
-### Closing line value
+### Closing line value (removed 2026-10-17)
 
-`node clv.mjs` answers the question this whole section is about, for the model
-rather than for bets you tapped by hand: it joins every graded prediction to
-the price its market closed at and scores both on Brier. Calibration says the
-numbers are true; this says whether they are worth betting. At the measured
-6.96% hold a perfectly calibrated 3-leg slip returns -15.4%, so being right and
-being paid are different things.
-
-
-
-Whether you bet at a better number than the market settled on. It is the one
-measure here that does not care whether the bet won, which is exactly why it is
-worth more than the win rate: results need hundreds of bets before they say
-anything, and CLV needs far fewer. A losing bet at a price the market later
-moved past was still a good bet.
-
-```
-+1.9pp   average closing line value, over 3 bets
-You beat the closing number on 2, missed it on 1.
-```
-
-Nothing extra to type. Tapping a player already tells the board which market it
-is looking at, so it records the price it can see at that moment, and
-`close-odds.mjs` freezes the last price before each game starts — every hourly
-run overwrites the entry for a game that has not started, so the final write
-before first pitch is the closing line by construction. A missed run costs
-precision, never correctness.
-
-Measured in points of **no-vig** probability rather than raw price, because two
-raw prices carry two different bookmaker margins and comparing them would credit
-you when the book merely widens its cut.
-
-Two honest limits, both stated on the page. It compares **the price BetHouse
-could see when you tapped**, which is not necessarily the price you got — bet
-elsewhere or ten minutes later and yours differed. And it needs a market at all:
-the feed covers 1+ H/R/RBI and total bases, and only players a book has priced,
-so most legs have no CLV. Those report *nothing* rather than zero, because zero
-is the claim "you matched the close".
+The bet log used to record the price the board could see when you tapped,
+freeze the closing price before first pitch (`close-odds.mjs`) and report the
+difference in no-vig points; `clv.mjs` did the same for the model. Both went
+with the odds feed: the prices were wrong often enough that a number built on
+them misled more than it measured. A leg is the pick and the chance now, and
+the log grades on the box score alone.
 
 ### What it deliberately does not do
 
@@ -1208,8 +1173,8 @@ files, so it lives in one.
 ## The parlay checker
 
 Tap the **+** on any row to add it to a slip. The slip shows the combined
-chance, the price that would be fair, and, if you type in the price you are
-being offered, your edge at that price.
+chance (it showed a fair price and took the book's price for an edge until
+2026-10-17; the site shows chances, not odds).
 
 ### Suggest a parlay
 
@@ -1687,8 +1652,8 @@ in the detail with that verdict next to it.
 Every pick is recorded before kickoff by `track-football.mjs` and settled the
 way a book would: home covers iff margin plus spread is positive, pushes are
 void, the moneyline settles on the winner. Two numbers come back: how often
-the side won, against the 52.4% a −110 price needs, and closing line value in
-points, whether the line moved toward the pick by kickoff. Both are on the
+the side won, and closing-line movement in points, whether the line moved
+toward the pick by kickoff (a line, not a price: the site shows no odds). Both are on the
 page under the live record once games have been graded.
 
 ### Reconfiguring the model: what was tried, and what it found
@@ -2317,29 +2282,18 @@ membership adjusted too; re-run on the shipped rule the 0.5 column reads
 team code matches neither side of the schedule gets no opponent rather than
 the home team, in every loop, through one `opponentIn`.
 
-### Typing a price, and what the edge means
+### Filters and sort, and the typed price that was removed
 
-**2026-09-29.** Every football row now takes the price the book is offering
-and shows your edge at it, on the row and in the row's panel, and
-remembers it in your browser. There is no price feed behind the football
-boards: ESPN's keyless API carries game lines but no player props (probed
-2026-09-29, `propBets` returns 404 for NFL events), and the keyed
-alternative costs credits the free tier cannot spend on sixteen games of
-props. So the price is yours to type, the way the parlay slip already
-took one.
-
-The arithmetic is `edge.js`'s: expected value of the model's chance at
-that American price, the same call the slip makes and the same colour
-rule the baseball board uses for its market chip (over 2% green, at or
-above zero amber, below zero red). A price is keyed by league, slate
-(season and week), player, prop and -- for a counting prop -- the line,
-so a price typed at o59.5 is not read as an edge at o77.5 when the Low /
-High setting moves the line, and last week's price is never shown as this
-week's against a new opponent; only the slate on the board is kept, so
-the store does not carry every week ever typed. `watchlist.js` owns the
-key and the versioned storage key (`bethouse.prices.v1`); the page owns
-the try/catch around `localStorage`, which a private window can refuse,
-in which case the price lasts the visit and the board renders regardless.
+**2026-09-29, removed 2026-10-17.** For three weeks every football row
+took the price the book was offering and showed an edge at it (edge.js's
+expected value of the model's chance at that American price, keyed and
+remembered through `watchlist.js`), the slip took a price and printed a
+fair one, and the baseball board drew DraftKings prices from an ESPN
+feed. The user found the prices wrong often enough to mislead, so all of
+it went: no fair price anywhere, no price input, no edge, no Edge sort,
+no odds feed, no closing-line value in the bet log. The board shows the
+chance; what the book offers is yours to compare. Old bet logs that carry
+price fields lose them on read.
 
 **Filters and sort.** Team (every team on the board, a bye week included)
 and position (from the roster, written into the data file as `pos`; only
@@ -2347,15 +2301,12 @@ the positions the board files under are buttons, so a safety with a
 trick-play record is under All and is not navigation; an older file
 without positions hides the strip) narrow the rows the same way the
 search box does. Sort
-by **projection** is the board's own order; by **edge** puts the rows you
-have priced first, best edge first, the rest in projection order; by
-**boost** re-orders by projection over his own per-game rate -- for a
+by **projection** is the board's own order; by **boost** re-orders by projection over his own per-game rate -- for a
 touchdown, expected touchdowns over his scoring rate; for a counting
 prop, the projection over his season average -- two numbers the panel
 already prints. Boost is a re-ordering and nothing else: it never
 reaches a price or a parlay probability, and a player with no rate yet
-(no touchdowns) sorts last. On a phone the row has no room for the price
-cell, so the panel carries it there.
+(no touchdowns) sorts last.
 
 ### The player drawer: a row is a link
 
@@ -2372,10 +2323,10 @@ gesture adds a history entry: the board's own tidying replaces the entry
 it is on, so Back and Forward keep meaning what they did.
 
 Three tabs. **Overview** is the row's reasoning, the same table as
-before, with the price box from phase 1. **Alternate lines** is the
+before (its price box went on 2026-10-17). **Alternate lines** is the
 ladder as buttons: every rung the book might offer, priced off the same
 games as the row (`N.ladder`, nothing new), the rung nearest the row's
-line pressed first; pressing one moves the headline (chance, fair price)
+line pressed first; pressing one moves the headline (the chance)
 and the threshold on the next tab. **Recent games** is a bar a game,
 newest on the right, the dashed line the threshold, the bars that clear
 it in the accent, and the count: "reached 60+ in 4 of the last 10". For
@@ -2411,8 +2362,7 @@ button inside a button is not a thing in HTML.
 
 The drawer gains **Compare**: up to three players in a tray at the foot
 of the page, each with the number the current view ranks by -- the
-chance to score, or the projection with the over and the fair price --
-and the price you typed with its edge. The tray follows the view: switch
+chance to score, or the projection with the over. The tray follows the view: switch
 from touchdowns to receiving yards and the cards re-price; a player not
 on the view says so. Three at a time, drop one to add another; the tray
 lasts the visit and is not stored.
@@ -2570,10 +2520,9 @@ already priced most of what it sees.
 - **Line movement is not a signal.** Following the move at the current line
   covers about 50%; the 60% lived at the opening number and
   the model cannot predict the move. Shown, recorded, not bet.
-- **Lines are as old as the last daily refresh**, up to a day. Closing line
-  value is measured against ESPN's own closing entry after the game, so the
-  record is honest regardless; the price on the page is not the price you
-  will get.
+- **Lines are as old as the last daily refresh**, up to a day. Closing-line
+  movement is measured against ESPN's own closing entry after the game, so the
+  record is honest regardless.
 - **A receiver with no catches is voided, not graded under** where the box
   score carries no line for him; in the NFL a target with no catch is still
   a line, so the hole is small.

@@ -283,7 +283,7 @@ export function snapshot(league) {
       if (seen.has(key)) continue;                // Rule 1: first prediction wins
       day.predictions.push({
         gameId: g.id, playerId: "game", name: `${g.away} at ${g.home}`, team: g.home, opp: g.away,
-        prop, side: k.side, line: k.line ?? null, price: k.price ?? null,
+        prop, side: k.side, line: k.line ?? null,
         edge: k.edge != null ? Math.round(k.edge * 100) / 100 : null,
         /* Where the line opened, so the record can say whether the market
            had already moved toward the pick when it was made. */
@@ -574,7 +574,7 @@ export async function grade(league) {
 
 /**
  * The game picks, the way a bettor reads them: how often the side won,
- * against the 52.4% a -110 price needs, and whether the closing line
+ * and whether the closing line
  * moved toward the pick. Calibration (in core.report) asks whether the
  * probabilities were true; this asks whether the picks were any good.
  */
@@ -669,7 +669,7 @@ export function report(league, writeRecord) {
     console.log("Game picks, settled like a book would:");
     for (const [prop, g] of Object.entries(picks)) {
       console.log(
-        `  ${prop.padEnd(7)} n=${String(g.n).padStart(4)}  won ${g.rate}% (${g.lo}–${g.hi}%), needs 52.4%` +
+        `  ${prop.padEnd(7)} n=${String(g.n).padStart(4)}  won ${g.rate}% (${g.lo}–${g.hi}%)` +
           (g.clvPts != null ? `   closing line moved toward the pick ${g.movedToward}% of the time, ${g.clvPts >= 0 ? "+" : ""}${g.clvPts} pts on average (n=${g.clvN})` : ""),
       );
     }

@@ -124,11 +124,9 @@
   }
 
   /* What the football board's game view says about a game: the
-     projection, the favourite from the projected margin, and the better
-     of the spread and total picks by EV. The moneyline is deliberately
-     not a candidate, for the reason football-board.js gives: the replay
-     says the model's win probabilities are worse than the market's. */
-  function footballCard(model, E, D, g) {
+     projection and the favourite from the projected margin. No pick and
+     no price since 2026-10-17: the site shows chances, not odds. */
+  function footballCard(model, D, g) {
     const ratings = D && D.ratings;
     if (!ratings || !model || !g) return null;
     const pr = model.projectGame(ratings, g.home, g.away, { neutral: !!(g.raw && g.raw.neutral) });
@@ -138,26 +136,10 @@
       const p = model.winProbability(pr.margin);
       fav = pr.margin > 0 ? { team: g.home, prob: p } : { team: g.away, prob: 1 - p };
     }
-    let pick = null;
-    const line = g.raw && g.raw.line;
-    const pk = line ? model.pickGame(pr, line) : null;
-    if (pk && E) {
-      for (const prop of ["spread", "total"]) {
-        const k = pk[prop]; if (!k) continue;
-        const ev = E.evPct(k.prob, E.americanToDecimal(k.price));
-        if (!pick || (isFinite(ev) && ev > pick.ev)) pick = { prop, side: k.side, line: k.line, prob: k.prob, price: k.price, ev, text: sideName(g, k, prop) };
-      }
-    }
-    return { homePts: Math.round(pr.homePts), awayPts: Math.round(pr.awayPts), total: pr.total, margin: pr.margin, fav, pick };
-  }
-  function sideName(g, k, prop) {
-    if (prop === "total") return (k.side === "over" ? "o" : "u") + k.line;
-    const team = k.side === "home" ? g.home : g.away;
-    const pts = k.side === "home" ? k.line : -k.line;
-    return team + " " + (pts > 0 ? "+" : "") + pts;
+    return { homePts: Math.round(pr.homePts), awayPts: Math.round(pr.awayPts), total: pr.total, margin: pr.margin, fav };
   }
 
-  /** The tile: games on the slate, players priced across the boards, predictions graded. */
+  /** The tile: games on the slate, players projected across the boards, predictions graded. */
   function counts(data, games) {
     const d = data || {};
     let players = ((d.nfl && d.nfl.players) || []).length;
@@ -173,13 +155,6 @@
   }
 
   /* Words for the card, so the page prints nothing the number does not say. */
-  /** "+3.1% EV", "−2.9% EV", or "" when it rounds to nothing either way. */
-  function evLabel(ev) {
-    if (!isFinite(ev)) return "";
-    const r = Math.round(1000 * ev) / 10;
-    if (r === 0) return "";
-    return (r > 0 ? "+" : "−") + Math.abs(r).toFixed(1) + "% EV";
-  }
   /** "BUF 73%", or "pick 'em" when the margin does not clear a coin flip. */
   function favLabel(fav) {
     if (!fav || !isFinite(fav.prob)) return null;
@@ -194,5 +169,5 @@
     return last + (f.era ? " " + f.era : "");
   }
 
-  return { normalise, localDay, slate, dayLabel, sentence, clock, logoUrl, footballCard, counts, evLabel, favLabel, pitcherLabel };
+  return { normalise, localDay, slate, dayLabel, sentence, clock, logoUrl, footballCard, counts, favLabel, pitcherLabel };
 });

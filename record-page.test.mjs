@@ -26,8 +26,8 @@ test("the live record: one row per prop with n, predicted, actual, bias and Brie
   assert.match(h, /<b>2,360<\/b> graded predictions over 3 weeks/);
   assert.match(h, /<td>Anytime touchdown<\/td><td>n <b>816<\/b> · predicted <b>21\.9%<\/b>, actual <b>20\.7%<\/b> · off by <b>\+1\.2pp<\/b> · Brier <b>0\.1507<\/b>/);
   assert.match(h, /off by <b>\u22121\.9pp<\/b>/, "a negative bias must carry a real minus sign, as the boards do");
-  assert.match(h, /spread picks<\/td><td>n <b>47<\/b> · won <b>44\.7%<\/b> \(30\.4–59%\), needs 52\.4% · closing line moved toward the pick <b>42\.6%<\/b> of the time, <b>\+0\.28<\/b> pts on average/);
-  assert.match(h, /moneyline picks<\/td><td>n <b>48<\/b> · won <b>66\.7%<\/b> \(52\.5–80\.8%\), needs 52\.4%<\/td>/, "a pick family without CLV must not print one");
+  assert.match(h, /spread picks<\/td><td>n <b>47<\/b> · won <b>44\.7%<\/b> \(30\.4–59%\) · closing line moved toward the pick <b>42\.6%<\/b> of the time, <b>\+0\.28<\/b> pts on average/);
+  assert.match(h, /moneyline picks<\/td><td>n <b>48<\/b> · won <b>66\.7%<\/b> \(52\.5–80\.8%\)<\/td>/, "a pick family without CLV must not print one");
   assert.doesNotMatch(h, /Far too few/, "2,360 is not too few");
   assert.match(page.liveRecord(Object.assign({}, R, { total: 120 })), /Far too few to mean anything yet/);
 });

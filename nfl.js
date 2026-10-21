@@ -626,8 +626,8 @@
    * side the board shows is the side the record grades is the side the
    * replay counted. The side is whichever the projection gives more than
    * half a chance; `prob` is that side's probability; `edge` is points in
-   * that side's favour; `price` is the American price of that side, with
-   * spread and total juice defaulting to -110 when the feed has none.
+   * that side's favour. No price: the site shows chances, not odds
+   * (2026-10-17).
    *
    * A projection sitting exactly on the number is not a pick. A market
    * the line does not carry is null rather than a guess.
@@ -640,28 +640,22 @@
     if (isFinite(line.spread) && isFinite(m)) {
       const sp = spreadProbability(m, line.spread, opts);
       if (sp.edge > 0) {
-        out.spread = { side: "home", prob: sp.homeCoverProb, edge: sp.edge,
-          line: line.spread, price: isFinite(line.homeSpreadOdds) ? line.homeSpreadOdds : -110 };
+        out.spread = { side: "home", prob: sp.homeCoverProb, edge: sp.edge, line: line.spread };
       } else if (sp.edge < 0) {
-        out.spread = { side: "away", prob: 1 - sp.homeCoverProb, edge: -sp.edge,
-          line: line.spread, price: isFinite(line.awaySpreadOdds) ? line.awaySpreadOdds : -110 };
+        out.spread = { side: "away", prob: 1 - sp.homeCoverProb, edge: -sp.edge, line: line.spread };
       }
     }
     if (isFinite(line.total) && isFinite(t)) {
       const tp = totalProbability(t, line.total, opts);
       if (tp.edge > 0) {
-        out.total = { side: "over", prob: tp.overProb, edge: tp.edge,
-          line: line.total, price: isFinite(line.overOdds) ? line.overOdds : -110 };
+        out.total = { side: "over", prob: tp.overProb, edge: tp.edge, line: line.total };
       } else if (tp.edge < 0) {
-        out.total = { side: "under", prob: 1 - tp.overProb, edge: -tp.edge,
-          line: line.total, price: isFinite(line.underOdds) ? line.underOdds : -110 };
+        out.total = { side: "under", prob: 1 - tp.overProb, edge: -tp.edge, line: line.total };
       }
     }
     if (isFinite(line.homeML) && isFinite(line.awayML) && isFinite(m) && m !== 0) {
       const pHome = winProbability(m, opts);
-      out.ml = m > 0
-        ? { side: "home", prob: pHome, price: line.homeML }
-        : { side: "away", prob: 1 - pHome, price: line.awayML };
+      out.ml = m > 0 ? { side: "home", prob: pHome } : { side: "away", prob: 1 - pHome };
     }
     return out;
   }
@@ -1429,17 +1423,6 @@
   }
 
   /* ------------------------------------------------------------------ *
-   * 7. Presentation
-   * ------------------------------------------------------------------ */
-
-  function fairPrice(p) {
-    p = Number(p);
-    if (!(p > 0 && p < 1)) return null;
-    const d = 1 / p;
-    return d >= 2 ? Math.round((d - 1) * 100) : -Math.round(100 / (d - 1));
-  }
-
-  /* ------------------------------------------------------------------ *
    * 8. Other constants, same model
    *
    * The same API with other constants merged in: the backtest's sweeps
@@ -1500,7 +1483,6 @@
       parseRoster,
       applyRosters,
       startingPasser,
-      fairPrice,
       bind: (more) => bind(Object.assign({}, overrides || {}, more || {})),
     };
   }
@@ -1554,7 +1536,6 @@
     parseRoster,
     applyRosters,
     startingPasser,
-    fairPrice,
     bind,
   };
 });

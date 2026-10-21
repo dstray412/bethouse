@@ -34,7 +34,14 @@ import { loadInjuries } from "./nflverse.mjs";
 import { readFileSync, existsSync, writeFileSync } from "node:fs";
 import { leagueFromArgs } from "./football-leagues.mjs";
 import { seasonLines } from "./fetch-football.mjs";
-import E from "./edge.js";
+
+/* American odds for both sides to the market's no-vig probabilities, or null. */
+const devig = (prices) => {
+  const imp = prices.map((a) => { a = Number(a); if (!isFinite(a) || a === 0) return NaN; return a > 0 ? 100 / (a + 100) : -a / (-a + 100); });
+  if (imp.some((p) => !isFinite(p))) return null;
+  const sum = imp.reduce((x, y) => x + y, 0);
+  return imp.map((p) => p / sum);
+};
 
 const args = process.argv.slice(2);
 const flag = (f, d) => {
@@ -406,13 +413,15 @@ for (let i = START_INDEX; i < ALL.length; i++) {
       });
     }
     /* Moneyline: the model's win probability against the market's, with
-       the vig taken out. Both graded on who won. */
+       the vig taken out. Both graded on who won. (edge.js carried the
+       de-vig until the site stopped showing odds on 2026-10-17; the two
+       lines it needs live here now, since this replay is the evidence
+       behind the moneyline verdict on the board.) */
     if (g.homeML != null && g.awayML != null && margin !== 0) {
-      const nv = E.devigAmerican([g.homeML, g.awayML]);
+      const nv = devig([g.homeML, g.awayML]);
       const pHome = M.winProbability(proj.margin);
       if (nv && pHome != null) {
-        mlRows.push({ model: pHome, market: nv[0], actual: margin > 0 ? 1 : 0,
-          price: pHome > nv[0] ? g.homeML : g.awayML, side: pHome > nv[0] ? "home" : "away" });
+        mlRows.push({ model: pHome, market: nv[0], actual: margin > 0 ? 1 : 0 });
       }
     }
     if (g.total != null) {
@@ -895,17 +904,6 @@ if (mlRows.length) {
   const bk = mean(mlRows.map((r) => (r.market - r.actual) ** 2));
   console.log(`  Brier, model        ${bm.toFixed(4)}`);
   console.log(`  Brier, market       ${bk.toFixed(4)}  ${bm < bk ? "(model is better)" : "(MARKET IS BETTER)"}`);
-  /* Betting the side the model likes more than the market does, paid at
-     the closing price. Return per $1 staked, which is what a bettor sees. */
-  let staked = 0, ret = 0, won = 0;
-  for (const r of mlRows) {
-    const dec = E.americanToDecimal(r.price);
-    const hit = r.side === "home" ? r.actual === 1 : r.actual === 0;
-    staked += 1; if (hit) { won++; ret += dec; }
-  }
-  console.log(`  bet the side the model likes more than the market, at the close:`);
-  console.log(`    ${mlRows.length} bets, won ${pct(won / mlRows.length)}, return ${((100 * (ret - staked)) / staked).toFixed(1)}% of stake`);
-  console.log(`  (a return inside a few percent of zero on this many games is noise, not a result)`);
 }
 
 console.log("");

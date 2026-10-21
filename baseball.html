@@ -18,8 +18,7 @@
 .side{padding:4px 0 10px}
 .shead{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;padding:10px 15px 6px}
 .sname{font-family:var(--display);font-size:14px;font-weight:600}
-/* Market price from odds-data.js. Its own class so it never gets confused
-   with the THIN sample-size chip, which is what happened first time. */
+/* The probable pitcher beside the lineup. */
 .vs{font-size:12.5px;color:var(--muted)}
 .vs b{color:var(--text);font-weight:600}
 
@@ -82,9 +81,6 @@ table.waterfall .wn{display:block;color:var(--muted);font-size:12px;font-weight:
 table.waterfall .wup{color:var(--good)} table.waterfall .wdn{color:var(--bad)}
 table.waterfall tr.wtot td{border-top:1px solid var(--line);font-size:15px}
 table.waterfall tr.wtot td.wl{color:var(--muted);font-size:10px;letter-spacing:.14em;text-transform:uppercase;font-family:var(--label);font-weight:600}
-.whymkt{margin-top:11px;padding:10px 12px;background:var(--surface);
-  border:1px solid var(--line);border-radius:var(--r-btn);font-size:13px;line-height:1.6;max-width:56ch}
-.whymkt .wup{color:var(--good)} .whymkt .wdn{color:var(--bad)}
 .flag{color:var(--warn)}
 /* Finished games stay on the board (seeing what happened is useful) but must
    not compete with what you can still bet. */
@@ -186,7 +182,7 @@ table.waterfall tr.wtot td.wl{color:var(--muted);font-size:10px;letter-spacing:.
 <button type="button" class="filters" id="filters" aria-expanded="false" aria-controls="controls">Filters</button>
 </div>
 
-<!-- Live warnings stay in view (a replay day, games under way, prices withheld); only the method folds under the board. -->
+<!-- Live warnings stay in view (a replay day, games under way); only the method folds under the board. -->
 <div class="note" id="warn" hidden></div>
 <div id="betlog"></div>
 <div id="slip"></div>
@@ -197,19 +193,16 @@ table.waterfall tr.wtot td.wl{color:var(--muted);font-size:10px;letter-spacing:.
 <footer id="footer"></footer>
 </div>
 
-<script src="edge.js"></script>
 <script src="faces.js"></script>
 <script src="score.js"></script>
 <script src="bets.js"></script>
 <script src="mlb-data.js"></script>
-<script src="odds-data.js" onerror="void 0"></script>
 <!-- Written by track.mjs. Absent until a day has been graded. -->
 <script src="record.js"></script>
 <script>
 (function(){
 "use strict";
 var S = window.BetHouseScore;
-var E = window.BetHouseEdge;
 var T = window.BetHouseBets;
 var D = window.BETHOUSE_MLB;
 
@@ -244,7 +237,6 @@ var state = {
 
   tbThreshold: 2,
   slip: [],
-  slipPrice: null,
   sugLegs: null,
   sugError: null,
   // Every bettable 1+ H/R/RBI leg currently on the board, refilled on each
@@ -273,7 +265,6 @@ function markHtml(abbrev,px){ return FACES?FACES.mark('MLB',abbrev,px||20):''; }
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){
   return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
 function pct(x,d){return isFinite(x)?(x*100).toFixed(d==null?1:d)+'%':'—';}
-function amer(a){ if(!isFinite(a))return '—'; a=Math.round(a); return a>0?'+'+a:''+a; }
 function timeStr(iso){
   var d=new Date(iso); if(isNaN(d))return '';
   return d.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'});
@@ -449,12 +440,12 @@ function renderSlip(){
   if(state.suggested){
     /* What the suggestion is, and what it is not. It ranks by the model's
        probability, which makes it the slip most likely to CASH -- not the
-       slip most likely to be worth betting. It cannot see a price. */
+       slip most likely to cash. It never sees a price. */
     var how=el('div');
     how.style.cssText='font-size:12.5px;color:var(--muted);line-height:1.6;margin:-4px 0 10px';
     how.innerHTML='The best available hitter from '+state.slip.length+
       ' different games \u2014 different games so the legs multiply honestly. '+
-      'Ranked by chance to cash, <b>not</b> by price: it cannot see what you are being offered.';
+      'Ranked by chance to cash, never by a price: the site shows chances, not odds.';
     box.appendChild(how);
   }
 
@@ -480,24 +471,6 @@ function renderSlip(){
     var sum=el('div','slipsum');
     var stat=function(node,label){ var d=el('div'); d.appendChild(node); d.appendChild(el('span','lbl',label)); sum.appendChild(d); };
     stat(el('span','big', pct(c.prob, c.prob<0.1?2:1)), 'combined chance');
-    stat(el('span','big', E.formatAmerican(E.probToAmerican(c.prob))), 'fair price');
-
-    var inp=el('input'); inp.type='number'; inp.step='10'; inp.placeholder='offered';
-    inp.setAttribute('aria-label','Parlay price you are offered');
-    inp.style.cssText='font:inherit;font-size:20px;font-weight:700;width:112px;background:var(--panel2);'+
-      'border:1px solid var(--line);border-radius:9px;padding:3px 8px;color:var(--text);font-variant-numeric:tabular-nums';
-    if(state.slipPrice!=null) inp.value=state.slipPrice;
-    inp.addEventListener('input',function(e){
-      var v=parseFloat(e.target.value); state.slipPrice = isFinite(v)?v:null; renderSlip();
-    });
-    stat(inp,'price you are offered');
-
-    if(state.slipPrice!=null && isFinite(state.slipPrice) && state.slipPrice!==0){
-      var ev=E.evPct(c.prob, E.americanToDecimal(state.slipPrice));
-      var span=el('span','big', E.formatPct(ev));
-      span.style.color = ev>0.02 ? 'var(--good)' : ev>=0 ? 'var(--warn)' : 'var(--bad)';
-      stat(span,'edge at that price');
-    }
     box.appendChild(sum);
 
     var w=el('div','slipwarn '+c.correlation);
@@ -579,7 +552,7 @@ function renderSlip(){
     var clr=el('button',null,'Clear slip'); clr.type='button';
     clr.style.cssText='font:inherit;font-size:12.5px;color:var(--muted);background:none;border:0;cursor:pointer;margin-top:10px;padding:0';
     clr.addEventListener('click',function(){
-      state.slip=[]; state.slipPrice=null;
+      state.slip=[];
       state.suggested=false; state.sugLegs=null; state.sugError=null;
       render();
     });
@@ -596,35 +569,9 @@ function renderSlip(){
  * is a multiplier around 1, so show the change and keep the raw number in
  * brackets for anyone reconciling the arithmetic.
  */
-/* ---------------- market prices ----------------
- * odds-data.js is written by fetch-odds-espn.mjs from ESPN's DraftKings
- * feed, no API key. It may be absent or stale; everything below degrades to
- * "no price" rather than to a wrong one.
- *
- * Names are matched the same way the fetcher normalises them: no accents,
- * no punctuation, no Jr/II. ESPN athlete ids are not MLB ids, so the name
- * is the only join available.
- */
-/* Prices go stale. A number from this morning sitting next to tonight's
-   lineup is worse than no number, because it looks current. Six hours is
-   generous for a board refreshed hourly and still well inside a game day. */
-var ODDS_MAX_AGE_H = 6;
-var ODDS_FEED = window.BetHouseOdds || null;
-var ODDS_AGE = E.oddsFreshness(ODDS_FEED && ODDS_FEED.generated, Date.now(), ODDS_MAX_AGE_H);
-var ODDS = (ODDS_FEED && ODDS_FEED.markets && ODDS_AGE.fresh) ? ODDS_FEED.markets : null;
-
-/* Withheld is not the same as absent, and the board used to draw them the
-   same way: nothing. On 2026-08-20 the odds refresher failed 13 runs in a
-   row and the only symptom anywhere was chips quietly not appearing, so it
-   ran most of a day before anyone looked. A feed that HAS prices and is too
-   old to show them should say so. */
-function withheldMarkets(){
-  if(!ODDS_FEED || !ODDS_FEED.markets || ODDS_AGE.fresh) return 0;
-  var prop = state.view==='tb' ? 'tb' : state.view;
-  return Object.keys(ODDS_FEED.markets).filter(function(k){
-    return k.split('|')[1]===prop;
-  }).length;
-}
+/* No market prices. The board carried DraftKings prices from an ESPN feed
+   until 2026-10-17; they were often stale or wrong beside the lineup, so the
+   site now shows chances only. */
 
 /* ------------------------------------------------------------------ *
  * The bet log
@@ -749,32 +696,6 @@ function historyFor(date, then){
       delete HISTORY_WAITING[date];
       queued.forEach(function(cb){ cb(HISTORY[date]); });
     });
-}
-
-function normName(s){
-  return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'')
-    .toLowerCase().replace(/\b(jr|sr|ii|iii|iv)\b/g,'')
-    .replace(/[^a-z ]/g,'').replace(/\s+/g,' ').trim();
-}
-
-/* Which market answers the prop currently on screen. The home run board has
-   no matching market in the feed, so it gets nothing rather than a guess. */
-function marketKeyFor(name){
-  if(!ODDS) return null;
-  if(state.view==='hrr') return normName(name)+'|hrr|0.5';
-  if(state.view==='tb')  return normName(name)+'|tb|'+(state.tbThreshold-0.5);
-  return null;
-}
-function marketFor(name){
-  var k=marketKeyFor(name);
-  return k && ODDS[k] ? ODDS[k] : null;
-}
-
-/* Expected value per $1 staked, at the price actually on offer. */
-function evAt(prob, american){
-  var dec=E.americanToDecimal(american);
-  if(!isFinite(dec)) return NaN;
-  return prob*(dec-1)-(1-prob);
 }
 
 function ctxFor(game, side){
@@ -1039,22 +960,6 @@ function buildWhy(r, game, side){
          ', so he needs <b>'+r.stillNeeds+'</b> more.');
   }
 
-  var mk = marketFor(r.name);
-  if(mk){
-    var ev=evAt(r.prob, mk.over);
-    var edge=r.prob-mk.noVigOver;
-    var box = el('div','whymkt');
-    box.innerHTML = '<b>DraftKings has him at '+amer(mk.over)+'.</b> Strip the bookmaker\'s cut and that '+
-      'is a '+pct(mk.noVigOver,0)+' chance in their eyes, against this model\'s '+pct(r.prob,0)+'. '+
-      (ev>0
-        ? '<span class="wup">That is a bet worth '+(100*ev).toFixed(1)+' cents on the dollar</span>, if you trust the model over the book.'
-        : '<span class="wdn">The price is shorter than the model justifies</span> \u2014 not a bet.');
-    w.appendChild(box);
-  } else {
-    line('A fair price for '+pct(r.prob,0)+' is <b>'+amer(S.fairPrice(r.prob))+
-         '</b>. Anything longer than that is value, anything shorter is not.');
-  }
-
   if(r.confidence < 0.65){
     line('<span class="flag">Small sample.</span> Only <b>'+r.player.pa+'</b> PA, so this estimate is mostly '+
       (r.player.prior&&r.player.prior.xba!=null?'his own expected rate from last season (xBA <b>'+r.player.prior.xba.toFixed(3)+'</b>)':'the league average')+', not this season.');
@@ -1256,7 +1161,6 @@ function render(){
       state.sugLegs=null; state.suggested=false;
     } else {
       state.slip = out.legs.slice();
-      state.slipPrice = null;
       state.sugLegs = n; state.suggested = true; state.sugError = null;
     }
     render();
@@ -1309,17 +1213,6 @@ function render(){
     warnings.push('<b>'+liveN+' game'+(liveN===1?' is':'s are')+' underway</b> \u2014 those numbers count only the plate appearances a hitter has left.');
   }
 
-  /* Only when this prop actually has prices in the feed. The home run board
-     carries none even on a good day, so telling you they were hidden would
-     be inventing a loss. */
-  if(withheldMarkets()){
-    var ageH = ODDS_AGE.ageH;
-    var how = ageH===null ? 'of unknown age'
-            : Math.round(ageH)+' hour'+(Math.round(ageH)===1?'':'s')+' old';
-    warnings.push('<b class="hot">Prices are '+how+' and hidden</b> \u2014 '+
-      'a stale price sitting next to tonight\'s lineup looks current and is not. '+
-      'They return when the hourly refresh lands.');
-  }
   warn.innerHTML = warnings.join(' ');
   warn.hidden = !warnings.length;
 
@@ -1443,20 +1336,6 @@ function render(){
           row.appendChild(el('div','prob', pct(r.prob, 0)));
         }
 
-        var mkt = marketFor(r.name);
-        if(mkt && !r.settled){
-          var ev=evAt(r.prob, mkt.over);
-          var tag=el('span','chip mkt');
-          /* The feed already signs its prices, so prefixing another '+'
-             printed ++111. amer() rounds first, which takes the signed
-             string or a bare number and emits exactly one sign. */
-          tag.textContent=amer(mkt.over);
-          if(isFinite(ev)){
-            tag.style.color = ev>0.02 ? 'var(--good)' : ev<-0.05 ? 'var(--bad)' : 'var(--muted)';
-            tag.title='Market '+mkt.over+', model '+pct(r.prob,1)+', EV '+(100*ev).toFixed(1)+'%';
-          }
-          who.appendChild(tag);
-        }
         /* "I bet this." Available on every bet type, unlike the parlay:
            nothing about tracking a pick depends on the measurement that
            scopes the slip.
@@ -1483,21 +1362,11 @@ function render(){
           : 'Record that you bet this';
         trk.addEventListener('click', function(ev){
           ev.stopPropagation();
-          /* The market as the board could see it at this moment, so closing
-             line value can be worked out later without you typing a price.
-             It is NOT necessarily the price you got -- you may have bet
-             elsewhere, or minutes later -- and bets.html says so. It is the
-             only price anything here can honestly claim to know. */
-          var mkNow = marketFor(r.name);
-          var mkKey = marketKeyFor(r.name);
           BETS = betOn ? T.remove(BETS, betKey) : T.add(BETS, T.single({
             gamePk: g.gamePk, playerId: r.player.id, prop: propKey(),
             propLabel: propLabel(), name: r.name,
             team: g[side].abbrev || g[side].team,
-            prob: r.prob,
-            marketKey: mkNow && mkKey ? mkKey : null,
-            priceAtBet: mkNow ? mkNow.over : null,
-            noVigAtBet: mkNow && isFinite(mkNow.noVigOver) ? mkNow.noVigOver : null
+            prob: r.prob
           }, D.date, {retro: late}));
           saveBets();
           render();

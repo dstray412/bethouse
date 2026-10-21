@@ -37,7 +37,7 @@ header>.ctl{order:2;flex:1 1 100%}
 .brand{flex:1 1 auto;min-width:200px}
 .logo{font-family:var(--display);font-size:26px;font-weight:800;letter-spacing:.06em;color:var(--accent);margin:0;font-variation-settings:'opsz' 96}
 .tagline{font-family:var(--label);font-size:13px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin-top:4px}
-/* The stat tile: only numbers the page already has (players priced, the
+/* The stat tile: only numbers the page already has (players projected, the
    build time, predictions graded). A missing number is a missing cell,
    never a dash. */
 .tile{display:flex;gap:22px;margin-left:auto;text-align:center;border:1px solid var(--line);border-radius:var(--r-panel);background:var(--surface);padding:12px 18px}
@@ -79,11 +79,9 @@ header>.ctl{order:2;flex:1 1 100%}
   background:color-mix(in srgb,var(--text) 3%,transparent);border-bottom:1px solid var(--line)}
 .game.nostar .thead{grid-template-columns:var(--cols)}
 /* The football views' column sets: rank, player, matchup, the figures,
-   the price cell, the caret; nopx drops the price cell. */
-.game.v-td{--cols:34px 44px 1fr 150px 96px 80px 130px 18px}
-.game.v-td.nopx{--cols:34px 44px 1fr 150px 96px 80px 18px}
-.game.v-stat{--cols:34px 44px 1fr 150px 90px 90px 76px 130px 18px}
-.game.v-stat.nopx{--cols:34px 44px 1fr 150px 90px 90px 76px 18px}
+   the caret. No price cell since 2026-10-17. */
+.game.v-td{--cols:34px 44px 1fr 150px 96px 18px}
+.game.v-stat{--cols:34px 44px 1fr 150px 90px 90px 18px}
 .game.v-game{--cols:34px 44px 1fr 130px 90px 18px}
 .thead span{font-family:var(--label);font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
 .thead .r{text-align:right}
@@ -98,11 +96,10 @@ header>.ctl{order:2;flex:1 1 100%}
 .mtch{font-family:var(--body);font-size:15px;color:var(--muted);line-height:1.3}
 .mtch .pill{margin:4px 0 0}
 .prob{font-family:var(--mono);font-weight:600;font-size:24px;font-variant-numeric:tabular-nums;text-align:right;letter-spacing:-.02em;color:var(--accent)}
-.be,.fair{font-family:var(--mono);font-variant-numeric:tabular-nums;text-align:right;font-size:15px}
-.fair{color:var(--muted)}
+.be{font-family:var(--mono);font-variant-numeric:tabular-nums;text-align:right;font-size:15px}
 .be.dim{color:var(--muted-dim)}
 .prob.pick{font-size:16px;letter-spacing:0}
-.be small,.prob small,.px small{display:block;color:var(--muted);font-size:13px;font-weight:400;letter-spacing:.02em}
+.be small,.prob small{display:block;color:var(--muted);font-size:13px;font-weight:400;letter-spacing:.02em}
 /* Pills: a measured state in a soft capsule. up and down are the vs-rate
    pill (past ten percent either way); good, warn and bad are an edge. */
 .pill{display:inline-block;font-family:var(--label);font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;padding:3px 9px;border-radius:999px;border:1px solid var(--line);color:var(--muted);white-space:nowrap;line-height:1.3;font-stretch:100%}
@@ -138,7 +135,7 @@ header>.ctl{order:2;flex:1 1 100%}
 .fnum small{font-family:var(--body);font-size:13px;font-weight:400;color:var(--muted);margin-left:6px}
 .frec{grid-column:1/-1;font-size:13px;color:var(--muted);line-height:1.4}
 .frec b{font-family:var(--mono);color:var(--text);font-size:13px;font-variant-numeric:tabular-nums}
-/* The parlay slip: legs, the product, the measured adjustment, a price.
+/* The parlay slip: legs, the product, the measured adjustment.
    A ruled block, not a tinted card. */
 .slip{border:1px solid var(--line);border-radius:var(--r-panel);background:var(--surface);padding:14px 18px 16px;margin-bottom:18px}
 .slip h3{font-family:var(--label);font-size:13px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--text);margin:0 0 8px}
@@ -149,7 +146,6 @@ header>.ctl{order:2;flex:1 1 100%}
 .slipsum{display:flex;gap:24px;flex-wrap:wrap;align-items:baseline;margin-top:12px;padding-top:11px;border-top:1px solid var(--line)}
 .slipsum .big{font-family:var(--mono);font-size:24px;font-weight:600;font-variant-numeric:tabular-nums}
 .slipsum .lbl{font-size:13px;color:var(--muted);display:block;max-width:22ch}
-.slipsum input{font:inherit;font-family:var(--mono);font-size:18px;font-weight:600;width:112px;background:var(--surface2);border:1px solid var(--line);border-radius:var(--r-btn);padding:5px 10px;color:var(--text);font-variant-numeric:tabular-nums}
 .slipwarn{margin-top:11px;font-size:14px;line-height:1.6;max-width:60ch}
 .slipwarn.severe{color:var(--bad)} .slipwarn.team,.slipwarn.moderate{color:var(--warn)} .slipwarn.game,.slipwarn.none{color:var(--muted)}
 .slip .actions{margin-top:10px}
@@ -157,7 +153,7 @@ header>.ctl{order:2;flex:1 1 100%}
 .slip .actions button:hover{color:var(--text);border-color:var(--rule)}
 .more{display:block;width:100%;padding:14px;background:color-mix(in srgb,var(--text) 2%,transparent);border:0;border-top:1px solid var(--line);color:var(--text);font:inherit;font-family:var(--label);font-size:13px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;cursor:pointer}
 .more:hover{background:var(--surface)}
-/* The ladder: every alternate line the book might offer, priced off the
+/* The ladder: every alternate line the book might offer, read off the
    same pool the row is. A strip that wraps into as many columns as fit,
    so it stays scannable and the body never scrolls sideways. */
 .ladder{margin:10px 0 2px;max-width:60ch}
@@ -167,7 +163,6 @@ header>.ctl{order:2;flex:1 1 100%}
   padding:8px 10px;border:1px solid var(--line);border-radius:var(--r-btn);background:var(--surface2);font-variant-numeric:tabular-nums}
 .rung b{font-family:var(--mono);font-size:14px;font-weight:600}
 .rung .rp{font-family:var(--mono);font-size:14px;text-align:right;font-weight:600;color:var(--text)}
-.rung .rf{grid-column:1/-1;font-family:var(--mono);font-size:13px;color:var(--muted)}
 .rung.near{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,transparent)}
 /* The matchup panel on a game: descriptive, so it reads quietly under
    the table. The family table's first column flexes and the two number
@@ -228,10 +223,6 @@ header>.ctl{order:2;flex:1 1 100%}
 .leg-line{display:flex;gap:9px;align-items:baseline;padding:3px 0 3px 24px;font-size:13.5px;color:var(--muted)}
 .leg-line .nm{color:var(--text)}
 .leg-line .out{margin-left:auto}
-/* The price box a panel offers: mono figure on a surface, hairline. */
-.priceinp{display:inline-flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--line);border-radius:var(--r-btn);padding:7px 12px}
-.priceinp input{font:inherit;font-family:var(--mono);font-size:15px;color:var(--text);background:transparent;border:0;width:70px;font-variant-numeric:tabular-nums}
-.priceinp input:focus{outline:none}
 .banner{border:1px solid color-mix(in srgb,var(--warn) 40%,transparent);border-radius:var(--r-panel);background:color-mix(in srgb,var(--warn) 7%,transparent);padding:14px 18px;margin-bottom:16px}
 .banner h3{font-family:var(--label);font-size:13px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--warn);margin:0 0 8px}
 .banner p{margin:0 0 7px;font-size:15px;line-height:1.65;color:var(--text)}
@@ -292,18 +283,13 @@ footer td{padding:1px 14px 1px 0}
 .dface .face img{object-fit:contain;object-position:bottom}
 .dface .tmark{width:28px;height:28px;margin:0}
 
-/* Tablets, up to 959px: the desktop column sets do not fit (the stat
-   view's eight columns clip the price cell under ~812px; the name cell
-   collapses under ~956px). The fair price goes, as on a phone, and the
-   matchup, figures and price narrow. This block sits BEFORE the phone
-   block so the phone's own sets win at 760px and below, and no
-   fractional width falls between two ranges. */
+/* Tablets, up to 959px: the desktop column sets do not fit (the name
+   cell collapses under ~956px), so the matchup and figures narrow. This
+   block sits BEFORE the phone block so the phone's own sets win at 760px
+   and below, and no fractional width falls between two ranges. */
 @media (max-width:959px){
-  .game.v-td .thead .fair,.game.v-td .row .fair,.game.v-stat .thead .fair,.game.v-stat .row .fair{display:none}
-  .game.v-td{--cols:34px 44px 1fr 112px 84px 110px 18px}
-  .game.v-td.nopx{--cols:34px 44px 1fr 112px 84px 18px}
-  .game.v-stat{--cols:34px 44px 1fr 112px 74px 74px 100px 18px}
-  .game.v-stat.nopx{--cols:34px 44px 1fr 112px 74px 74px 18px}
+  .game.v-td{--cols:34px 44px 1fr 112px 84px 18px}
+  .game.v-stat{--cols:34px 44px 1fr 112px 74px 74px 18px}
 }
 @media (max-width:760px){
   .wrap{padding:14px 12px 40px}
@@ -315,16 +301,14 @@ footer td{padding:1px 14px 1px 0}
   .row{gap:6px;padding:6px 4px 6px 10px;min-height:56px}
   .thead{gap:6px;padding:8px 4px 7px 10px}
   .who{font-size:16px}
-  .thead .mtch,.row .mtch,.thead .fair,.row .fair{display:none}
+  .thead .mtch,.row .mtch{display:none}
   /* On a phone the rank goes: the order shows it, and the name needs the room. The face stays. */
   span.slot,.thead .rk{display:none}
   .game{--cols:28px 1fr 72px 66px 14px}
-  .game.v-td{--cols:28px 1fr 58px 80px 14px}
-  .game.v-td.nopx{--cols:28px 1fr 58px 14px}
+  .game.v-td{--cols:28px 1fr 58px 14px}
   /* The stat view: the heads say Proj and Over, so the figures drop their sublabels and the name gets the room. */
   .game.v-stat .prob small,.game.v-stat .be small{display:none}
-  .game.v-stat{--cols:28px 1fr 40px 46px 76px 14px}
-  .game.v-stat.nopx{--cols:28px 1fr 40px 46px 14px}
+  .game.v-stat{--cols:28px 1fr 40px 46px 14px}
   .game.v-game{--cols:28px 1fr 96px 68px 14px}
   .face{width:28px;height:28px}
   .face.pair img{width:16px;height:16px}
@@ -339,27 +323,6 @@ footer td{padding:1px 14px 1px 0}
   .bet .right{align-self:flex-start}
   .leg-line{flex-wrap:wrap}
   .leg-line .meta,.leg-line .lp{flex:1 0 100%;order:3;padding-left:0}
-}
-/* The price you are offered, typed in the drawer and shown on the row
-   beside the fair price with the edge at it: edge.js's expected value of
-   the model's chance at that price, coloured the way the baseball board
-   colours its market chip (over 2% good, at or above zero a warning, else
-   bad). The cell stays on a phone; the matchup and fair columns go. */
-.px{font-family:var(--mono);text-align:right;font-variant-numeric:tabular-nums;font-size:15px;font-weight:600;line-height:1.2}
-.px small.edge{display:inline-block;font-family:var(--label);font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;padding:3px 9px;border-radius:999px;border:1px solid var(--line);margin-top:3px;line-height:1.3;font-stretch:100%}
-.px small.edge.good{color:var(--ink);border-color:var(--good);background:var(--good);font-weight:700}
-.px small.edge.bad{color:var(--ink);border-color:var(--bad);background:var(--bad);font-weight:700}
-.px small.edge.warn{color:var(--ink);border-color:var(--warn);background:var(--warn);font-weight:700}
-.px .none{font-family:var(--body);color:var(--muted-dim);font-weight:400;font-size:13px}
-/* One colour rule for an edge wherever it is shown: the slip, the row, the panel. */
-.edge.good{color:var(--good)} .edge.warn{color:var(--warn)} .edge.bad{color:var(--bad)}
-.pxrow{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin:8px 0 2px}
-.pxrow label{display:flex;gap:8px;align-items:center;color:var(--text)}
-.pxin{font:inherit;font-family:var(--mono);font-size:16px;font-weight:600;width:100px;background:var(--surface2);border:1px solid var(--line);border-radius:var(--r-btn);padding:7px 11px;color:var(--text);font-variant-numeric:tabular-nums}
-.pxin:focus{border-color:var(--accent);outline:none}
-.pxedge b{font-family:var(--mono);font-variant-numeric:tabular-nums}
-@media (max-width:760px){
-  .px{font-size:13px}
 }
 /* The player drawer: a sheet on the right at desktop width, a sheet
    from the bottom on a phone; the scrim behind it closes it, so does
@@ -419,7 +382,6 @@ footer td{padding:1px 14px 1px 0}
 .dband.rate.up .fig,.dband.rate.up .br span{color:var(--good)}
 .dband.rate.down .fig,.dband.rate.down .br span{color:var(--bad)}
 .dact{padding:0 0 12px}
-.dact .pxrow{margin-top:0}
 .dcells{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:var(--r-panel);overflow:hidden}
 .dcell{background:var(--surface);padding:10px 12px;min-width:0}
 .dcells{margin:0}

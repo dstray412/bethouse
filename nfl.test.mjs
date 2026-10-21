@@ -17,7 +17,7 @@ import nfl from "./nfl.js";
 const {
   DEFAULTS, buildTeamRatings, projectGame, normalCDF, spreadProbability,
   totalProbability, usageTDs, scoreAnytimeTD, expectedVolume, empiricalOver,
-  ratioPool, fairPrice,
+  ratioPool,
 } = nfl;
 
 const close = (a, b, tol = 1e-9) =>
@@ -385,13 +385,6 @@ test("empiricalOver: refuses rather than inventing a number", () => {
  * fairPrice
  * ------------------------------------------------------------------ */
 
-test("fairPrice: matches the convention used everywhere else", () => {
-  assert.equal(fairPrice(0.5), 100);
-  assert.ok(fairPrice(0.8) < 0);
-  assert.ok(fairPrice(0.2) > 0);
-  assert.equal(fairPrice(1), null);
-  assert.equal(fairPrice(0), null);
-});
 
 /* ------------------------------------------------------------------ *
  * Schedule parsing
@@ -627,19 +620,9 @@ test("pickGame: the moneyline pick is the projected winner with its win probabil
   const p = nfl.pickGame({ margin: -4, total: 40 }, { spread: 2.5, total: 40, homeML: 130, awayML: -150 });
   assert.equal(p.ml.side, "away");
   close(p.ml.prob, 1 - nfl.winProbability(-4));
-  assert.equal(p.ml.price, -150);
+  assert.equal("price" in p.ml, false, "a pick carries no price: the site shows chances, not odds");
 });
 
-test("pickGame: carries the price of the side it picked, defaulting spread and total juice to -110", () => {
-  const priced = nfl.pickGame({ margin: 7, total: 45 }, {
-    spread: -3.5, total: 44.5, homeSpreadOdds: -105, awaySpreadOdds: -115, overOdds: -102, underOdds: -118,
-  });
-  assert.equal(priced.spread.price, -105);
-  assert.equal(priced.total.price, -102);
-  const bare = nfl.pickGame({ margin: 7, total: 45 }, { spread: -3.5, total: 44.5 });
-  assert.equal(bare.spread.price, -110);
-  assert.equal(bare.total.price, -110);
-});
 
 test("pickGame: no line, no pick; a market that is missing is null, not a guess", () => {
   assert.equal(nfl.pickGame({ margin: 7, total: 45 }, null), null);

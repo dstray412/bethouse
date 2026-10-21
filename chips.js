@@ -11,7 +11,7 @@
  *                      three to compare against
  *   Red zone N%        his share of the red-zone touches (carries and
  *                      targets inside the 20) logged for his team's
- *                      priced players, from twenty percent; the data
+ *                      projected players, from twenty percent; the data
  *                      file carries no team total, and the note says so
  *   Snaps N%           the season snap share at seventy or above, or at
  *                      forty or below
@@ -73,7 +73,7 @@
       const mine = num(rz.c) + num(rz.t), share = mine / num(c.teamRz);
       if (share >= THRESHOLDS.redZone) {
         out.push({ id: "redzone", dir: null, label: "Red zone " + pctOf(share), value: null,
-          note: mine + " of the " + num(c.teamRz) + " red-zone touches logged for " + String(c.team || "the team") + "'s priced players (carries and targets inside the 20); his over " + num(rz.n) + " games" });
+          note: mine + " of the " + num(c.teamRz) + " red-zone touches logged for " + String(c.team || "the team") + "'s projected players (carries and targets inside the 20); his over " + num(rz.n) + " games" });
       }
     }
     if (c.oppFactor != null && isFinite(c.oppFactor) && Math.abs(c.oppFactor - 1) >= THRESHOLDS.defence) {

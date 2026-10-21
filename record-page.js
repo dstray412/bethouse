@@ -44,7 +44,7 @@
       const lab = { spread: "spread", total: "total", ml: "moneyline" };
       Object.keys(R.picks).forEach((k) => {
         const g = R.picks[k];
-        picks += "<tr><td>" + esc(lab[k] || k) + " picks</td><td>n <b>" + n(g.n) + "</b> · won <b>" + esc(g.rate) + "%</b> (" + esc(g.lo) + "–" + esc(g.hi) + "%), needs 52.4%" +
+        picks += "<tr><td>" + esc(lab[k] || k) + " picks</td><td>n <b>" + n(g.n) + "</b> · won <b>" + esc(g.rate) + "%</b> (" + esc(g.lo) + "–" + esc(g.hi) + "%)" +
           (g.clvPts != null ? " · closing line moved toward the pick <b>" + esc(g.movedToward) + "%</b> of the time, <b>" +
             signed(g.clvPts) + "</b> pts on average" : "") + "</td></tr>";
       });

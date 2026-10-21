@@ -23,7 +23,7 @@
   "use strict";
 
   function mount(cfg) {
-    var N = cfg.model, D = cfg.data, C = cfg.copy || {}, P = window.BetHouseParlay, E = window.BetHouseEdge, W = window.BetHouseWatchlist;
+    var N = cfg.model, D = cfg.data, C = cfg.copy || {}, P = window.BetHouseParlay, W = window.BetHouseWatchlist;
     var app = document.getElementById("app");
     if (!D || !D.players) {
       app.innerHTML = '<div class="empty"><div class="big">No board yet</div>' +
@@ -35,7 +35,7 @@
        an old model. Every function this script calls on the model has to
        exist, or the first keystroke fails silently (the search box did,
        2026-09-09). Say so instead. */
-    var NEEDS = ['STATS','statEligible','statOppFactor','allowOf','scoreAnytimeTD','empiricalOver','fairPrice','availability','playerMatches',
+    var NEEDS = ['STATS','statEligible','statOppFactor','allowOf','scoreAnytimeTD','empiricalOver','availability','playerMatches',
       'statTotal','statOpportunity','ladder','projectGame','pickGame','poolSize','poolReads','recentValues','recentHits','recentTdHits','recentDate','receivingOpportunity'];
     var missing = NEEDS.filter(function(k){ return typeof N[k] !== 'function' && k !== 'STATS' || (k === 'STATS' && !N.STATS); });
     /* The same mix the other way: a fresh model with a data file from
@@ -69,8 +69,8 @@
     var state = { view:'td', lineMult:1, showAll:false, q:'',
       /* The parlay slip: what the suggester built, or why it could not;
          its controls stay behind one button until asked for. */
-      candidates:[], slip:null, slipError:null, slipLegs:null, slipScope:'slate', slipGame:null, slipPrice:null, pin:null, parlayOpen:false,
-      sort:'proj', team:'', pos:'', prices:{},
+      candidates:[], slip:null, slipError:null, slipLegs:null, slipScope:'slate', slipGame:null, pin:null, parlayOpen:false,
+      sort:'proj', team:'', pos:'',
       /* Which kinds of leg the suggester may draw on: touchdowns, the counting props, the game lines. */
       kinds:{ td:true, props:true, game:true } };
     /* Which game each team plays this week, and whether it is still open. */
@@ -90,23 +90,12 @@
       scriptCache[team]=v; return v;
     };
 
-    /* What the browser remembers: the price typed against a row, keyed by
-       watchlist.js so the same player at another line is another price.
-       The store can refuse (a private window); then nothing is kept and
-       the board still works for the visit. */
+    /* What the browser remembers: the stars and the tracks, through
+       watchlist.js. The store can refuse (a private window); then nothing
+       is kept and the board still works for the visit. (The typed prices
+       lived here too until 2026-10-17, when the site stopped showing odds.) */
     var store=null; try{ store=(typeof window!=='undefined'&&window.localStorage)||null; }catch(e){ store=null; }
     var slate=String(D.season)+'-'+String(D.week);
-    var readAll=function(){ if(!W||!store) return {}; try{ return W.parsePrices(store.getItem(W.PRICE_KEY)); }catch(e){ return {}; } };
-    /* Save this league's slate over whatever it held before; the other
-       board's prices in the same store are left alone. */
-    var savePrices=function(){
-      if(!W||!store) return;
-      var all=readAll();
-      Object.keys(all).forEach(function(k){ if(k.indexOf(cfg.league+'|')===0) delete all[k]; });
-      Object.keys(state.prices).forEach(function(k){ all[k]=state.prices[k]; });
-      try{ store.setItem(W.PRICE_KEY,W.serialise(all)); }catch(e){}
-    };
-    state.prices=W?W.forSlate(readAll(),cfg.league,slate):{};
     /* The stars: the players on the watchlist, per league; and the compare
        tray, which lasts the visit. */
     var readWatch=function(){ if(!W||!store) return []; try{ return W.parseWatch(store.getItem(W.WATCH_KEY)); }catch(e){ return []; } };
@@ -159,26 +148,9 @@
       var on=isStarred(p);
       return '<button type="button" class="star" data-star="'+esc(watchKeyOf(p))+'" aria-pressed="'+on+'" aria-label="'+(on?'Unstar ':'Star ')+esc(p.name)+'">'+(on?'★':'☆')+'</button>';
     };
-    var priceKeyOf=function(p,prop,line){ return W?W.priceKey({league:cfg.league,slate:slate,playerId:p.id,prop:prop,line:line}):null; };
-    /* The price typed against a row and the edge at it: edge.js's expected
-       value of the model's chance at that price. null when nothing is typed. */
-    function priceEdge(prob,pk){
-      var price=pk!=null&&state.prices?state.prices[pk]:null;
-      if(price==null||!E||!(prob>0&&prob<1)) return null;
-      return {price:price, ev:E.evPct(prob,E.americanToDecimal(price))};
-    }
-    /* One colour rule for an edge, wherever it is shown: the slip, the row, the panel. */
-    var edgeClass=function(ev){ return 'edge '+(ev>0.02?'good':ev>=0?'warn':'bad'); };
-    /* The row cell: the price and its edge, or an invitation. Nothing at
-       all when watchlist.js did not load: no cell that promises an input
-       the panel cannot give. */
-    var pxInner=function(pe){ return pe?sgn(pe.price)+'<br><small class="'+edgeClass(pe.ev)+'">'+E.formatPct(pe.ev)+' edge</small>':'<span class="none">price?</span>'; };
-    var pxCell=function(i,pe){ return W?'<span class="px" id="px'+i+'">'+pxInner(pe)+'</span>':''; };
-    var rowClass=W?'row priced':'row';
     /* The ledger's parts: the matchup cell, the caps column heads over
        the thick-thin rule, and the class that names the view's column
-       set (board.css sets --cols per view; nopx when watchlist.js did
-       not load and there is no price column). */
+       set (board.css sets --cols per view). */
     /* The matchup, and under it how the projection compares with his own
        per-game rate: the boost ratio the sort uses, as a pill past ten
        percent either way, grey between, and nothing without a rate. */
@@ -247,23 +219,16 @@
         '</div>';
     };
     var thead=function(cols){ return '<div class="thead">'+cols.map(function(c){ return '<span'+(c.r?' class="r'+(c.cls?' '+c.cls:'')+'"':c.cls?' class="'+c.cls+'"':'')+'>'+c.t+'</span>'; }).join('')+'</div>'; };
-    var gameClass=function(view){ return 'game v-'+view+(W?'':' nopx')+(view==='game'?' nostar':''); };
+    var gameClass=function(view){ return 'game v-'+view+(view==='game'?' nostar':''); };
     var posTag=function(p){ return p.pos?'<span class="pos">'+esc(p.pos)+'</span>':''; };
-    var pxEdgeInner=function(pe){ return pe?'<b class="'+edgeClass(pe.ev)+'">'+E.formatPct(pe.ev)+'</b> edge at '+sgn(pe.price):'the edge shows here'; };
-    /* The panel's input: type the book's price, the row above follows. */
-    var pxInput=function(r){
-      if(r.pk==null) return '';
-      return '<p class="pxrow"><label>Price you are offered <input class="pxin" data-pk="'+esc(r.pk)+'" data-i="'+r.i+'" inputmode="text" placeholder="-110" autocomplete="off"'+
-        (r.pe?' value="'+sgn(r.pe.price)+'"':'')+'></label><span class="pxedge" id="pxe'+r.i+'">'+pxEdgeInner(r.pe)+'</span></p>';
-    };
 
     /* The card's parts. A cell is a caps label, a mono value and a short
        note; a band is one line across the drawer with a label on the
        left and a figure on the right. Both take text the caller has
        already escaped where it came from data. */
     /* A cell's value takes a class only where it reports a delta the model
-       computed (B6): `up`/`down` by the number's direction, or the edge
-       rule's class at a typed price. A factor of one stays plain. */
+       computed (B6): `up`/`down` by the number's direction. A factor of one
+       stays plain. */
     var cells=function(list){
       return '<dl class="dcells">'+list.filter(Boolean).map(function(c){
         /* The label and the class are literals today; escaped so that stays true whoever adds a cell. The value and note are markup the caller escaped at the source. */
@@ -274,8 +239,6 @@
        the two-percent cut the notes use for "about average"; the regression
        the printed figures, so two that print alike are not coloured apart). */
     var dirOf=function(delta,cut){ var c=cut==null?0:cut; return delta>c?'up':delta<-c?'down':''; };
-    /* The edge at the typed price as a cell, or nothing without a price. */
-    var edgeCell=function(pe,prob){ return pe?{l:'Edge',v:E.formatPct(pe.ev),n:'at '+sgn(pe.price)+' against a fair '+sgn(N.fairPrice(prob)),c:edgeClass(pe.ev)}:null; };
     var band=function(cls,label,fig,side,sub){
       return '<div class="dband '+cls+'"><div class="bl"><small>'+label+'</small>'+(sub?'<span>'+sub+'</span>':'')+'</div>'+
         '<div class="br">'+(fig!=null?'<b class="fig">'+fig+'</b>':'')+(side?'<span>'+side+'</span>':'')+'</div></div>';
@@ -379,19 +342,13 @@
     var keep=function(p){
       return available(p)&&find(p)&&(!state.team||p.team===state.team)&&(!state.pos||p.pos===state.pos)&&(!state.starOnly||isStarred(p));
     };
-    /* Ranking. Projection is the board's own order. Edge puts the rows a
-       price has been typed against first, best edge first, the rest in
-       projection order. Boost is projection over his own per-game rate,
-       two numbers the panel already prints, so a re-ordering and never a
-       price; no rate (a player yet to score) sorts last. */
+    /* Ranking. Projection is the board's own order. Boost is projection
+       over his own per-game rate, two numbers the panel already prints, so
+       a re-ordering and never a price; no rate (a player yet to score)
+       sorts last. */
     function sortRows(rows,by){
       var proj=function(a,b){ return by.proj(b)-by.proj(a); };
-      if(state.sort==='edge') rows.sort(function(a,b){
-        var ea=a.pe?a.pe.ev:null, eb=b.pe?b.pe.ev:null;
-        if(ea!=null&&eb!=null&&ea!==eb) return eb-ea;
-        if(ea!=null&&eb==null) return -1; if(ea==null&&eb!=null) return 1;
-        return proj(a,b); });
-      else if(state.sort==='boost') rows.sort(function(a,b){
+      if(state.sort==='boost') rows.sort(function(a,b){
         var xa=by.boost(a), xb=by.boost(b);
         if(xa!=null&&xb!=null&&xa!==xb) return xb-xa;
         if(xa!=null&&xb==null) return -1; if(xa==null&&xb!=null) return 1;
@@ -470,8 +427,7 @@
       var of=p.opp?oppFactorFor(p.opp):1;
       var s=N.scoreAnytimeTD(p,{teamFactor:tf, oppFactor:of, usagePool:usagePool, scriptFactor:scriptOf(p.team), vacRec:vacR(p), vacRush:vacC(p)});
       if(!s) return null;
-      var pk=priceKeyOf(p,'td');
-      return {p:p,s:s,chance:s.prob,pk:pk,pe:priceEdge(s.prob,pk),chips:chipsOf(p,s.oppFactor,'touchdowns')};
+      return {p:p,s:s,chance:s.prob,chips:chipsOf(p,s.oppFactor,'touchdowns')};
     }
     function renderTD(){
       var rows=[];
@@ -485,22 +441,20 @@
       var t=trim(rows); rows=t.rows;
 
       var html=slipHtml()+featured+'<div class="'+gameClass('td')+'"><div class="ghead"><h2 class="gtitle">Most likely to score</h2>'+
-        '<div class="gmeta">'+rows.length+' players · '+seasons+' form · type the book\'s price in a row for your edge</div></div>'+
-        thead([{t:'Rk',cls:'rk'},{t:''},{t:'Player'},{t:'Matchup · vs rate',cls:'mtch'},{t:'Chance',r:1},{t:'Fair',r:1,cls:'fair'}].concat(W?[{t:'Price / edge',r:1}]:[]).concat([{t:''}]));
+        '<div class="gmeta">'+rows.length+' players · '+seasons+' form · the chance to score, nothing priced</div></div>'+
+        thead([{t:'Rk',cls:'rk'},{t:''},{t:'Player'},{t:'Matchup · vs rate',cls:'mtch'},{t:'Chance',r:1},{t:''}]);
       rows.forEach(function(r,i){
         r.i=i;
-        html+='<div class="rowline"><button class="'+rowClass+'" aria-haspopup="dialog" data-i="'+i+'">'+
+        html+='<div class="rowline"><button class="row" aria-haspopup="dialog" data-i="'+i+'">'+
           '<span class="slot">'+(i+1)+'</span>'+face(r.p)+
           '<span class="who">'+esc(r.p.name)+posTag(r.p)+qTag(r.p)+rowChips(r.chips)+'</span>'+
           mtch(r.p,r.s.observedRate>0?r.s.lambda/r.s.observedRate:null)+
           '<span class="prob">'+pct(r.s.prob,0)+'</span>'+
-          '<span class="be fair">'+sgn(N.fairPrice(r.s.prob))+'</span>'+
-          pxCell(i,r.pe)+
           '<span class="caret">›</span></button>'+starBtn(r.p)+'</div>';
       });
       app.innerHTML=html+(rows.length?'':nothing())+moreBtn(t.hidden)+'</div>';
       app.__rows=rows; app.__ladder=null;
-      /* The card's bands: the chance with its fair price; why, in at most
+      /* The card's bands: the chance; why, in at most
          three sentences; the projection against his own scoring rate;
          the receipt. */
       app.__bands=function(r){
@@ -515,15 +469,15 @@
           /* The vacated share, by what it did to his workload rate as a whole; only when a strength moved it. */
           {f:s.vacFactor||1, t:vacMoved(s.vacFactor)?factorWhy(vacNames(r.p)+' out',s.vacFactor,vacHis(r.p)+' share of the '+(s.vacRec>=s.vacRush?oppWord:'carries')+' goes to those still in',''):''}
         ].filter(function(x){ return x.t; }).sort(function(a,b){ return Math.abs(b.f-1)-Math.abs(a.f-1); }).map(function(x){ return x.t; });
-        return band('head','Chance to score',pct(r.s.prob),'fair '+sgn(N.fairPrice(r.s.prob)),r.s.usageAveraged?'averaged over real week-to-week workload swings':'')+
+        return band('head','Chance to score',pct(r.s.prob),'',r.s.usageAveraged?'averaged over real week-to-week workload swings':'')+
           whyBand([line].concat(terms))+
           rateBand(r.s.observedRate>0?r.s.lambda/r.s.observedRate:null, r.s.observedRate.toFixed(3)+' a game', r.s.lambda-r.s.observedRate, 'TD')+
           receiptBand('td',r);
       };
-      /* The overview: the price and Track row, then how he gets there. */
+      /* The overview: the Track row, then how he gets there. */
       app.__over=function(r){
         var rec=r.p.recent, scored=rec&&rec.length?N.recentTdHits(rec):null;
-        return actRow(pxInput(r)+trackBtn(r,'td'))+
+        return actRow(trackBtn(r,'td'))+
           howHtml(r.chips, scored!=null?'Scored in <b>'+scored+'</b> of his last <b>'+rec.length+'</b> games.':'');
       };
       app.__detail=function(r){
@@ -538,7 +492,6 @@
           {l:'Offence',v:'×'+r.s.teamFactor.toFixed(2),n:'his team against the league',c:dirOf(r.s.teamFactor-1,0.02)},
           {l:'Opponent',v:r.p.opp?esc(r.p.opp)+' ×'+r.s.oppFactor.toFixed(2):'—',n:r.p.opp?(r.s.oppFactor>1.02?'gives up more touchdowns than average':r.s.oppFactor<0.98?'gives up fewer than average':'about average'):'no opponent scheduled',c:r.p.opp?dirOf(r.s.oppFactor-1,0.02):''},
           {l:'Expected TDs',v:r.s.lambda.toFixed(3),n:'pulled '+Math.round((1-N.DEFAULTS.tdShrink)*100)+'% toward the league average, which stops the top of the board running hot'},
-          edgeCell(r.pe,r.s.prob),
           {l:'Games',v:String(r.p.games),n:'in the window'}
         ].concat(statusCells(r.p)));
       };
@@ -552,12 +505,11 @@
       var line=Math.round(y.exp*state.lineMult)+0.5;
       var over=N.empiricalOver(y.exp,line,pool);
       if(over==null) return null;
-      var pk=priceKeyOf(p,stat,line);
       /* The defence chip only where the opponent is in this number, and
          then the factor the model applied (the allowance at the stat's
          strength), so the chip means the same thing on every view. */
       var strength=N.DEFAULTS[N.STATS[stat].oppShrinkKey];
-      return {p:p,exp:y.exp,base:y.base,oppFactor:y.oppFactor,vacFactor:y.vacFactor,line:line,over:over,chance:over,pk:pk,pe:priceEdge(over,pk),
+      return {p:p,exp:y.exp,base:y.base,oppFactor:y.oppFactor,vacFactor:y.vacFactor,line:line,over:over,chance:over,
         chips:chipsOf(p,strength?y.oppFactor:null,N.STATS[stat].label.toLowerCase())};
     }
     function renderStat(stat){
@@ -581,26 +533,23 @@
       var poolWord=stat==='passyds'?'quarterbacks':stat==='rushyds'?'backs':stat==='rushrec'?'backs and receivers':'receivers';
       /* The matchup badge the row used to carry (soft or tough, 7% either
          side) is the defence chip now, its threshold in chips.js. */
-      /* At the projection line every player's over prices about the same,
+      /* At the projection line every player's over is near a coin flip,
          so that column is dimmed and the projection carries the row. Low and
-         High are where the odds separate. */
+         High are where the chances separate. */
       var atProj=state.lineMult===1;
       var html=slipHtml()+'<div class="'+gameClass('stat')+'"><div class="ghead"><h2 class="gtitle">'+esc(ST.label)+'</h2>'+
         '<div class="gmeta">'+rows.length+' players · '+(atProj
-          ? 'ranked by projection · at his own line every player is near a coin flip, so pick Low or High to see the odds move'
-          : 'ranked by projection · the chance of the over at the line shown · <b>fair</b> is the break-even price — bet only if the book beats it')+
-        ' · type the book\'s price in a row for your edge</div></div>'+
-        thead([{t:'Rk',cls:'rk'},{t:''},{t:'Player'},{t:'Matchup · vs rate',cls:'mtch'},{t:'Proj',r:1},{t:'Over',r:1},{t:'Fair',r:1,cls:'fair'}].concat(W?[{t:'Price / edge',r:1}]:[]).concat([{t:''}]));
+          ? 'ranked by projection · at his own line every player is near a coin flip, so pick Low or High to see the chances move'
+          : 'ranked by projection · the chance of the over at the line shown, nothing priced')+'</div></div>'+
+        thead([{t:'Rk',cls:'rk'},{t:''},{t:'Player'},{t:'Matchup · vs rate',cls:'mtch'},{t:'Proj',r:1},{t:'Over',r:1},{t:''}]);
       rows.forEach(function(r,i){
         r.i=i;
-        html+='<div class="rowline"><button class="'+rowClass+'" aria-haspopup="dialog" data-i="'+i+'">'+
+        html+='<div class="rowline"><button class="row" aria-haspopup="dialog" data-i="'+i+'">'+
           '<span class="slot">'+(i+1)+'</span>'+face(r.p)+
           '<span class="who">'+esc(r.p.name)+posTag(r.p)+qTag(r.p)+rowChips(r.chips)+'</span>'+
           mtch(r.p,(function(){ var avg=N.statTotal(stat,r.p)/r.p.games; return avg>0?r.exp/avg:null; })())+
           '<span class="prob">'+Math.round(r.exp)+'<small>'+(stat==='recs'?'catches':'yards')+'</small></span>'+
           '<span class="be'+(atProj?' dim':'')+'">'+pct(r.over,0)+'<small>o'+r.line+'</small></span>'+
-          '<span class="fair">'+sgn(N.fairPrice(r.over))+'</span>'+
-          pxCell(i,r.pe)+
           '<span class="caret">›</span></button>'+starBtn(r.p)+'</div>';
       });
       /* A stat the model has and this data file has no pool for: the view
@@ -610,7 +559,7 @@
         '<div>Pricing '+esc(word)+' needs a pool of comparable real games. Run <code>node '+cfg.fetcher+'</code> to build it.</div></div>';
       app.innerHTML=html+(rows.length?'':empty)+moreBtn(t.hidden)+'</div>';
       app.__rows=rows;
-      /* The alternate lines: every rung of the model's ladder, priced off
+      /* The alternate lines: every rung of the model's ladder, read off
          the same pool the row is. The drawer's ladder tab renders them. */
       app.__ladder=function(r){ return N.ladder(stat,r.exp,pool); };
       /* The panel: the decision first, in two lines, then the alternate
@@ -622,11 +571,11 @@
       var oppsOf=function(p){ return (stat==='recs' && N.DEFAULTS.receivingStat==='recs') ? null : N.statOpportunity(stat,p); };
       /* How many of his recent games cleared the line in force. */
       var hitsOf=function(r){ var rec=r.p.recent; if(!rec||!rec.length) return null; return {hits:N.recentHits(stat,rec,Math.ceil(r.line)), n:rec.length}; };
-      /* The card's bands: the projection with the line, its chance and the
-         fair price; why, in at most three sentences; the projection
+      /* The card's bands: the projection with the line and its chance;
+         why, in at most three sentences; the projection
          against his own average; the receipt. */
       app.__bands=function(r){
-        var games=r.p.games, avg=N.statTotal(stat,r.p)/games, fair=sgn(N.fairPrice(r.over)), opps=oppsOf(r.p), allow=allowFor(r.p.opp,stat), hit=hitsOf(r);
+        var games=r.p.games, avg=N.statTotal(stat,r.p)/games, opps=oppsOf(r.p), allow=allowFor(r.p.opp,stat), hit=hitsOf(r);
         var line='Averages <b>'+avg.toFixed(0)+'</b>'+unit+' a game'+(opps!=null?' on <b>'+(opps/games).toFixed(1)+'</b> '+oppWordFor:'')+' over <b>'+games+'</b> games';
         /* The applied factor, as the chip: the allowance at the stat's strength. */
         var at=strength&&strength<1?' at '+(strength===0.5?'half':Math.round(strength*100)+'%')+' strength':'';
@@ -635,16 +584,16 @@
         /* The vacated share, when the prop's strength moved the number: what it added, on top of the opponent. */
         var vacWhy=vacMoved(r.vacFactor)?factorWhy(vacNames(r.p)+' out',r.vacFactor,vacHis(r.p)+' share of the '+(N.STATS[stat].vac==='rush'?'carries':oppWordFor)+' goes to those still in, which adds <b>'+Math.abs(r.exp-r.base*r.oppFactor).toFixed(0)+'</b>',''):'';
         var movers=[{f:r.oppFactor||1,t:oppWhy},{f:r.vacFactor||1,t:vacWhy}].filter(function(x){ return x.t; }).sort(function(a,b){ return Math.abs(b.f-1)-Math.abs(a.f-1); }).map(function(x){ return x.t; });
-        return band('head','Projected '+word,Math.round(r.exp),'over '+r.line+' hits '+pct(r.over,0)+' · fair '+fair,'bet it only if the book is offering better than '+fair)+
+        return band('head','Projected '+word,Math.round(r.exp),'over '+r.line+' hits '+pct(r.over,0),'')+
           whyBand([line].concat(movers).concat([hitWhy]))+
           rateBand(avg>0?r.exp/avg:null, avg.toFixed(0)+unit+' a game', r.exp-avg, stat==='recs'?'catches':'yards')+
           receiptBand(stat,r);
       };
       /* The overview always has a sentence, so a board without the usage
-         feed does not open on a bare price box. */
+         feed does not open on a bare Track button. */
       app.__over=function(r){
         var hit=hitsOf(r);
-        return actRow(pxInput(r))+howHtml(r.chips, hit?'Cleared <b>'+Math.ceil(r.line)+'+</b> in <b>'+hit.hits+'</b> of his last <b>'+hit.n+'</b> games.':'No game log on file for him yet.');
+        return howHtml(r.chips, hit?'Cleared <b>'+Math.ceil(r.line)+'+</b> in <b>'+hit.hits+'</b> of his last <b>'+hit.n+'</b> games.':'No game log on file for him yet.');
       };
       app.__detail=function(r){
         var games=r.p.games, avg=N.statTotal(stat,r.p)/games;
@@ -664,7 +613,7 @@
         var used=N.poolReads(pool,r.exp).length, held=N.poolSize(pool);
         return cells([
           {l:'Projection',v:r.exp.toFixed(0),n:unit.trim()+' this game'},
-          {l:'Over the line',v:pct(r.over,0),n:'o'+r.line+' · fair '+sgn(N.fairPrice(r.over))},
+          {l:'Over the line',v:pct(r.over,0),n:'o'+r.line},
           {l:'Model rank',v:rankOf(r),n:'by projection'},
           {l:'Season average',v:avg.toFixed(0),n:unit.trim()+' a game over '+games+' games, every game alike'},
           opps!=null?{l:'Opportunities',v:(opps/games).toFixed(1),n:oppWordFor+' a game over '+games+' games'}:null,
@@ -673,15 +622,11 @@
           oppCell,
           vacMoved(r.vacFactor)?{l:'Teammates out',v:'×'+r.vacFactor.toFixed(2),n:vacNames(r.p)+'; '+vacHis(r.p)+' share of the work to those still in, in proportion, at the measured strength, which adds '+Math.abs(r.exp-r.base*r.oppFactor).toFixed(0),c:dirOf(r.vacFactor-1,0.02)}:null,
           {l:'Read off',v:used.toLocaleString('en-US'),n:'real games by '+poolWord+(used<held?' whose own projection was nearest his':' against their own projections')},
-          edgeCell(r.pe,r.over),
           {l:'Games',v:String(games),n:'in the window'}
         ].concat(statusCells(r.p)));
       };
     }
 
-    /* Expected value of a pick at its price, via edge.js. */
-    var E = window.BetHouseEdge;
-    var evOf=function(k){ return k && E ? E.evPct(k.prob, E.americanToDecimal(k.price)) : NaN; };
     var sideName=function(g,k,prop){
       if(prop==='total') return (k.side==='over'?'o':'u')+k.line;
       var team = k.side==='home'?g.home:g.away;
@@ -689,7 +634,6 @@
       var pts = k.side==='home'?k.line:-k.line;
       return team+' '+(pts>0?'+':'')+pts;
     };
-    var evStr=function(ev){ return isFinite(ev)?((ev>=0?'+':'')+(100*ev).toFixed(1)+'%'):'—'; };
     /* "−3 → −3.5": where the line opened and where it is. A number that has
        not moved is printed once. */
     var fmtLine=function(v,plain){ return plain?String(v):((v>0?'+':'')+v); };
@@ -825,34 +769,34 @@
         var pr=N.projectGame(D.ratings,g.home,g.away,{neutral:!!g.neutral,wind:g.wind,indoor:!!g.indoor});
         if(!pr) return;
         var pick=g.line?N.pickGame(pr,g.line):null;
-        /* The row shows the better of the spread and total picks. The
-           moneyline is deliberately NOT a candidate: the replay says the
-           model's win probabilities are worse than the market's in both
-           leagues, and a flat model makes every underdog look like value,
-           so ranking by moneyline EV would put the worst bet on top. It is
-           in the detail, with the replay's verdict beside it. */
+        /* The row shows the likelier of the spread and total sides: the
+           model's chance that its side covers, no price behind it (the
+           site stopped showing odds on 2026-10-17). The moneyline is
+           deliberately NOT a candidate: the replay says the model's win
+           probabilities are worse than the market's, and a flat model
+           makes every underdog look like value. It is in the detail, with
+           the replay's verdict beside it. */
         var best=null;
         if(pick){
           ['spread','total'].forEach(function(prop){
             var k=pick[prop]; if(!k) return;
-            var ev=evOf(k);
-            if(!best||(isFinite(ev)&&ev>best.ev)) best={prop:prop,k:k,ev:ev};
+            if(!best||k.prob>best.k.prob) best={prop:prop,k:k};
           });
         }
         rows.push({g:g,h:g.home,a:g.away,pr:pr,pick:pick,best:best});
       });
-      /* Best value first; games with no line yet at the bottom, in
+      /* Likeliest side first; games with no line yet at the bottom, in
          schedule order, showing the projection alone. */
       rows.sort(function(x,y){
-        var ex=x.best&&isFinite(x.best.ev)?x.best.ev:-Infinity, ey=y.best&&isFinite(y.best.ev)?y.best.ev:-Infinity;
+        var ex=x.best?x.best.k.prob:-Infinity, ey=y.best?y.best.k.prob:-Infinity;
         if(ex!==ey) return ey-ex;
         return String(x.g.date).localeCompare(String(y.g.date));
       });
       var lined=rows.filter(function(r){return r.best;}).length;
       html+='<div class="'+gameClass('game')+'"><div class="ghead"><h2 class="gtitle">Week '+D.week+'</h2>'+
-        '<div class="gmeta">'+rows.length+' games · '+(lined?lined+' with a line, best value first · the side, its chance to cover, EV at the price':'no lines yet')+
+        '<div class="gmeta">'+rows.length+' games · '+(lined?lined+' with a line, likeliest side first · the side and its chance to cover, never a price':'no lines yet')+
         (D.linesFetched?' · lines as of '+esc(String(D.linesFetched).slice(0,16).replace('T',' '))+' UTC':'')+'</div></div>'+
-        thead([{t:'Rk',cls:'rk'},{t:''},{t:'Matchup'},{t:lined?'Pick':'Projection',r:1},{t:lined?'EV':'Total',r:1},{t:''}]);
+        thead([{t:'Rk',cls:'rk'},{t:''},{t:'Matchup'},{t:lined?'Pick':'Projection',r:1},{t:lined?'Chance':'Total',r:1},{t:''}]);
       rows.forEach(function(r,i){
         var m=r.pr.margin;
         html+='<button class="row" aria-haspopup="dialog" data-i="'+i+'">'+
@@ -863,12 +807,12 @@
               ? esc(r.h)+' '+moveStr(r.g.line.open&&r.g.line.open.spread,r.g.line.spread)+' · o/u '+moveStr(r.g.line.open&&r.g.line.open.total,r.g.line.total,true)+
                 (r.g.line.book?' · '+esc(r.g.line.book):'')
               : esc(String(r.g.name||'')))+(r.g.neutral?' · neutral site':'')+'</span></span>'+
-          /* With a line: the best pick, its probability, and its EV at the
-             quoted price. Without one: the projection, as before. Number on
-             top, label as the block sublabel under it. */
+          /* With a line: the likelier side and its chance to cover.
+             Without one: the projection, as before. Number on top, label
+             as the block sublabel under it. */
           (r.best
-            ? '<span class="prob pick">'+esc(sideName(r.g,r.best.k,r.best.prop))+'<small>'+pct(r.best.k.prob,0)+' cover</small></span>'+
-              '<span class="be">'+evStr(r.best.ev)+'<small>EV</small></span>'
+            ? '<span class="prob pick">'+esc(sideName(r.g,r.best.k,r.best.prop))+'<small>'+(r.best.prop==='total'?'total':'spread')+'</small></span>'+
+              '<span class="be">'+pct(r.best.k.prob,0)+'<small>to cover</small></span>'
             : '<span class="prob">-'+Math.abs(m).toFixed(1)+'<small>'+esc(m>=0?r.h:r.a)+'</small></span>'+
               '<span class="be">'+r.pr.total.toFixed(1)+'<small>total</small></span>')+
           '<span class="caret">›</span></button>';
@@ -888,28 +832,21 @@
               'spread moved <b>'+Math.abs(mv)+'</b> toward <b>'+esc(mv<0?r.h:r.a)+'</b> since it opened at '+fmtLine(L.open.spread))+
               (tmv?'; total moved <b>'+(tmv>0?'up':'down')+' '+Math.abs(tmv)+'</b> from '+L.open.total:'')+'</td></tr>';
           }
+          /* The line itself, never its price: the spread and the total
+             are the market's numbers, the odds beside them are not shown. */
           t+='<tr><td>market</td><td>'+esc(r.h)+' <b>'+(L.spread>0?'+':'')+L.spread+'</b>'+
-            (L.homeSpreadOdds?' ('+sgn(L.homeSpreadOdds)+' / '+sgn(L.awaySpreadOdds)+')':'')+
-            ' · total <b>'+L.total+'</b>'+(L.overOdds?' ('+sgn(L.overOdds)+' / '+sgn(L.underOdds)+')':'')+
-            (L.homeML?' · '+esc(r.h)+' '+sgn(L.homeML)+', '+esc(r.a)+' '+sgn(L.awayML):'')+
+            ' · total <b>'+L.total+'</b>'+
             (L.book?' · '+esc(L.book):'')+'</td></tr>';
-          var line=function(label,k,prop,extra){
+          var line=function(label,k,prop){
             if(!k){ t+='<tr><td>'+label+'</td><td>no line</td></tr>'; return; }
-            var ev=evOf(k), be=E?E.breakEvenProb(k.price):null;
-            t+='<tr><td>'+label+'</td><td><b>'+esc(sideName(r.g,k,prop))+'</b> at '+sgn(k.price)+
-              ' — model <b>'+pct(k.prob)+'</b>'+(be!=null?', the price needs '+pct(be):'')+
-              (k.edge!=null?', edge <b>'+k.edge.toFixed(1)+'</b> points':'')+(extra||'')+
-              ' → EV <b>'+evStr(ev)+'</b></td></tr>';
+            t+='<tr><td>'+label+'</td><td><b>'+esc(sideName(r.g,k,prop))+'</b>'+
+              ' — model <b>'+pct(k.prob)+'</b>'+
+              (k.edge!=null?', <b>'+k.edge.toFixed(1)+'</b> points from the line':'')+'</td></tr>';
           };
           var pk=r.pick||{};
           line('spread',pk.spread,'spread');
           line('total',pk.total,'total');
-          var mlExtra='';
-          if(pk.ml&&E&&L.homeML&&L.awayML){
-            var nv=E.devigAmerican([L.homeML,L.awayML]);
-            if(nv) mlExtra=', the market (no vig) says <b>'+pct(pk.ml.side==='home'?nv[0]:nv[1])+'</b>';
-          }
-          line('moneyline',pk.ml,'ml',mlExtra);
+          line('moneyline',pk.ml,'ml');
           if(pk.ml&&C.mlVerdict) t+='<tr><td></td><td>'+C.mlVerdict+'</td></tr>';
         } else {
           t+='<tr><td>market</td><td>no line yet</td></tr>';
@@ -1010,7 +947,7 @@
         : [r.g&&r.g.venue, r.g&&r.g.date&&isFinite(Date.parse(r.g.date))?new Date(r.g.date).toLocaleString(undefined,{weekday:'short',hour:'numeric',minute:'2-digit'}):'', weatherOf(r.g)].filter(Boolean).join(' · ')||('week '+D.week);
       var db=document.getElementById('dbands');
       if(db) db.innerHTML = (r.p&&app.__bands) ? app.__bands(r) : '';
-      /* A player's tabs: the overview (price, Track, how he gets there),
+      /* A player's tabs: the overview (Track, how he gets there),
          the alternate lines, the recent games, and the arithmetic (every
          term the model used, as cells). A game row has only its table. */
       var tabs=[{id:'over',label:'Overview'}];
@@ -1033,13 +970,12 @@
       rungs.forEach(function(g,i){ if(Math.abs(g.line-r.line)<Math.abs(rungs[near].line-r.line)) near=i; });
       if(d.rung==null||!rungs.some(function(g){return g.at===d.rung;})) d.rung=rungs[near].at;
       var cur=rungs.filter(function(g){return g.at===d.rung;})[0];
-      var h='<p class="verdict"><b>'+cur.at+'+</b> hits <b>'+pct(cur.prob,0)+'</b> of the time. Fair price <b>'+sgn(N.fairPrice(cur.prob))+'</b>. '+
-        'Bet it only if the book is offering better than that.</p>'+
-        '<p class="lhead">Every alternate line the book might offer, priced off the same games as the row. Press one.</p><div class="rungs" id="rungs">';
+      var h='<p class="verdict"><b>'+cur.at+'+</b> hits <b>'+pct(cur.prob,0)+'</b> of the time.</p>'+
+        '<p class="lhead">Every alternate line the book might offer, read off the same games as the row. Press one.</p><div class="rungs" id="rungs">';
       rungs.forEach(function(g){
         var on=g.at===d.rung;
         h+='<button class="rung'+(on?' near':'')+'" type="button" data-rung="'+g.at+'" aria-pressed="'+on+'">'+
-          '<b>'+g.at+'+</b><span class="rp">'+pct(g.prob,0)+'</span><span class="rf">'+sgn(N.fairPrice(g.prob))+' fair</span></button>';
+          '<b>'+g.at+'+</b><span class="rp">'+pct(g.prob,0)+'</span></button>';
       });
       return h+'</div>'+trackBtn(r,state.view,d.rung);
     }
@@ -1115,9 +1051,8 @@
         var p=playerById(id), r=rowFor(p), edge=edgeOf(p.team);
         h+='<div class="tcard"'+(edge?' style="border-left-color:'+esc(edge)+'"':'')+'><div class="tname">'+face(p,32)+esc(p.name)+'<span class="pos">'+esc(p.team)+(p.opp?' vs '+esc(p.opp):'')+'</span></div>';
         if(!r) h+='<div class="tnum">—<small>not on this view</small></div>';
-        else if(state.view==='td') h+='<div class="tnum">'+pct(r.s.prob,0)+'<small>to score · '+sgn(N.fairPrice(r.s.prob))+' fair</small></div>';
-        else h+='<div class="tnum">'+Math.round(r.exp)+'<small>'+(state.view==='recs'?'catches':'yards')+' · o'+r.line+' hits '+pct(r.over,0)+' · '+sgn(N.fairPrice(r.over))+' fair</small></div>';
-        if(r&&r.pe) h+='<div>'+sgn(r.pe.price)+' <span class="'+edgeClass(r.pe.ev)+'">'+E.formatPct(r.pe.ev)+' edge</span></div>';
+        else if(state.view==='td') h+='<div class="tnum">'+pct(r.s.prob,0)+'<small>to score</small></div>';
+        else h+='<div class="tnum">'+Math.round(r.exp)+'<small>'+(state.view==='recs'?'catches':'yards')+' · o'+r.line+' hits '+pct(r.over,0)+'</small></div>';
         h+='<button type="button" data-untray="'+esc(id)+'" aria-label="Remove '+esc(p.name)+' from compare">×</button></div>';
       });
       document.getElementById('tcards').innerHTML=h;
@@ -1232,7 +1167,7 @@
       h+='<div class="slip"><h3>Suggested parlay — '+s.legs.length+' legs · '+(g?esc(g.away+' at '+g.home):'from '+c.distinctGames+' different games')+'</h3>';
       var kinds=KINDS.filter(function(k){return state.kinds[k.id];}).map(function(k){return k.label.toLowerCase();}).join(', ')||'nothing';
       h+='<div class="how">The '+(g?'best legs in this game, one per player':(state.slipScope==='stars'?'best leg from your stars, one per game, across ':'best leg from each of ')+s.legs.length+' different games')+
-        ', drawn from '+esc(kinds)+'. Ranked by chance to cash, <b>not</b> by price: it cannot see what you are being offered.</div>';
+        ', drawn from '+esc(kinds)+'. Ranked by chance to cash, never by a price: the site shows chances, not odds.</div>';
       s.legs.forEach(function(l){
         h+='<div class="leg"><div>'+(l.playerId==='game'?'':face({id:l.playerId},24))+esc(l.name)+' <span class="lp">'+(l.playerId==='game'?'':esc(l.team)+(l.opp?' vs '+esc(l.opp):'')+' · ')+esc(l.propLabel)+'</span></div><div><span class="lp">'+pct(l.prob,0)+'</span></div></div>';
       });
@@ -1240,9 +1175,6 @@
       h+='<div class="slipsum">';
       h+='<div><span class="big">'+pct(c.prob,c.prob<0.1?2:1)+'</span><span class="lbl">the legs multiplied</span></div>';
       if(c.adjusted!=null&&Math.abs(c.adjusted-c.prob)>1e-9) h+='<div><span class="big">'+pct(c.adjusted,c.adjusted<0.1?2:1)+'</span><span class="lbl">adjusted: same-team legs cash '+lift.team+'× the product on the replay</span></div>';
-      h+='<div><span class="big">'+sgn(N.fairPrice(shown))+'</span><span class="lbl">fair price</span></div>';
-      h+='<div><input id="slipprice" type="number" step="10" placeholder="offered" aria-label="Parlay price you are offered"'+(state.slipPrice!=null?' value="'+state.slipPrice+'"':'')+'><span class="lbl">price you are offered</span></div>';
-      h+='<div id="slipedge">'+edgeHtml(shown)+'</div>';
       h+='</div>';
       var applied=function(k,what){ var m=lift[k]; return m&&m!==1 ? ' The adjusted number applies '+m+'.' : ''; };
       var note={ none:'Legs from different games multiply honestly: on the replay, cross-game slips cashed at or a little above the product.',
@@ -1255,11 +1187,6 @@
       h+='<div class="actions"><button type="button" data-clearslip>Clear slip</button></div></div>';
       return h;
     }
-    function edgeHtml(p){
-      if(state.slipPrice==null||!isFinite(state.slipPrice)||state.slipPrice===0||!E) return '';
-      var ev=E.evPct(p,E.americanToDecimal(state.slipPrice));
-      return '<span class="big '+edgeClass(ev)+'">'+E.formatPct(ev)+'</span><span class="lbl">edge at that price</span>';
-    }
     function renderParlayControls(){
       var box=document.getElementById('parlayctl'); if(!box) return;
       var on=eligible.length>0;
@@ -1270,7 +1197,7 @@
       seg(document.getElementById('parlayseg'),[{id:'on',label:'Suggest a parlay'}],open?'on':'',function(){
         /* Read the state as it is now, not as it was when the button was built. */
         var now=state.parlayOpen||!!state.slip||!!state.slipError;
-        state.parlayOpen=!now; if(!state.parlayOpen){ state.slip=null; state.slipError=null; state.slipLegs=null; state.slipPrice=null; }
+        state.parlayOpen=!now; if(!state.parlayOpen){ state.slip=null; state.slipError=null; state.slipLegs=null; }
         render();
       });
       box.hidden=!open; if(!open) return;
@@ -1294,7 +1221,7 @@
       }
     }
 
-    var SORTS=[{id:'proj',label:'Projection'},{id:'edge',label:'Edge'},{id:'boost',label:'Boost'}];
+    var SORTS=[{id:'proj',label:'Projection'},{id:'boost',label:'Boost'}];
     /* The positions the board files under, in depth-chart order. A safety
        with a trick-play record is on the board under All and is not a
        button: roster noise is not navigation. */
@@ -1321,14 +1248,14 @@
       if(POSS.length) seg(document.getElementById('posseg'),[{id:'',label:'All'}].concat(POSS.map(function(x){return {id:x,label:x};})),state.pos,function(v){state.pos=v;render();});
     }
 
-    /* The header's stat tile: players priced, when the board was built,
+    /* The header's stat tile: players projected, when the board was built,
        and the graded record when there is one. A number the page does not
        have is a cell it does not show. */
     function renderTile(){
       var t=document.getElementById('tile'); if(!t) return;
       var cell=function(v,l){ return '<div><b>'+esc(String(v))+'</b><span>'+l+'</span></div>'; };
       var built=String(D.generated||'').slice(11,16);
-      var h=cell((D.players||[]).length,'players priced')+(built?cell(built,'built, UTC'):'');
+      var h=cell((D.players||[]).length,'players projected')+(built?cell(built,'built, UTC'):'');
       if(cfg.record&&cfg.record.total) h+=cell(Number(cfg.record.total).toLocaleString('en-US'),'predictions graded');
       t.innerHTML=h;
     }
@@ -1389,38 +1316,6 @@
         else if(!e.shiftKey&&document.activeElement===last){ e.preventDefault(); first.focus(); }
       }
     });
-    var onPriceInput=function(e){
-      var t=e.target, pk=t&&t.getAttribute?t.getAttribute('data-pk'):null;
-      if(pk){
-        /* Type a price, keep it, and let the row above follow at once --
-           no re-render, so the box keeps the cursor. */
-        var price=W?W.validPrice(t.value):null;
-        if(price==null) delete state.prices[pk]; else state.prices[pk]=price;
-        savePrices();
-        var i=+t.getAttribute('data-i'), r=app.__rows&&app.__rows[i]; if(!r) return;
-        r.pe=priceEdge(r.chance,pk);
-        var cell=document.getElementById('px'+i); if(cell) cell.innerHTML=pxInner(r.pe);
-        var ed=document.getElementById('pxe'+i); if(ed) ed.innerHTML=pxEdgeInner(r.pe);
-        /* The arithmetic tab's edge cell reads r.pe when the tab is drawn;
-           the only price input is on the overview tab, so the two are
-           never on screen together and nothing here redraws. */
-        return;
-      }
-      if(t.id!=='slipprice') return;
-      var v=parseFloat(t.value); state.slipPrice=isFinite(v)?v:null;
-      var s=state.slip, box=document.getElementById('slipedge');
-      if(s&&box) box.innerHTML=edgeHtml(s.combined.adjusted!=null?s.combined.adjusted:s.combined.prob);
-    };
-    app.addEventListener('input',onPriceInput);
-    if(drawerEl) drawerEl.addEventListener('input',onPriceInput);
-    /* A price committed (blur, Enter) re-orders the rows when the order
-       is by edge; a keystroke never does, so the box keeps the cursor. */
-    var onPriceCommit=function(e){
-      var t=e.target, pk=t&&t.getAttribute?t.getAttribute('data-pk'):null;
-      if(pk&&state.sort==='edge'){ render(); }
-    };
-    app.addEventListener('change',onPriceCommit);
-    if(drawerEl) drawerEl.addEventListener('change',onPriceCommit);
     app.addEventListener('click',function(e){
       if(e.target.closest('[data-clearslip]')){ state.slip=null; state.slipError=null; state.slipLegs=null; render(); return; }
       if(e.target.closest('[data-more]')){ state.showAll=true; render(); return; }

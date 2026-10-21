@@ -12,7 +12,6 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import H from "./home.js";
 import N from "./nfl.js";
-import E from "./edge.js";
 
 const TZ = "America/New_York";
 const NOW = Date.parse("2026-10-02T20:00:00Z"); // Friday 4pm Eastern
@@ -103,26 +102,22 @@ test("normalise: the NFL and MLB keys are abbreviations", () => {
   assert.equal(all.find((g) => g.id === "nfl:1").awayKey, "pit", "the abbreviation, not the id the file also carries");
 });
 
-test("footballCard: the projection, favourite and pick the NFL board's game view shows", () => {
+test("footballCard: the projection and the favourite the NFL board's game view shows; no pick and no price", () => {
   const all = H.normalise({ nfl: NFL }, NOW);
   const g = all.find((x) => x.id === "nfl:2");
-  const c = H.footballCard(N, E, NFL, g);
+  const c = H.footballCard(N, NFL, g);
   const pr = N.projectGame(NFL.ratings, "BUF", "NE", { neutral: false });
   assert.equal(c.homePts, Math.round(pr.homePts)); assert.equal(c.awayPts, Math.round(pr.awayPts));
   assert.equal(c.fav.team, "BUF"); assert.equal(c.fav.prob, N.winProbability(pr.margin));
-  const pick = N.pickGame(pr, NFL.games[1].line);
-  const evs = ["spread", "total"].map((p) => pick[p] ? E.evPct(pick[p].prob, E.americanToDecimal(pick[p].price)) : -Infinity);
-  assert.equal(c.pick.ev, Math.max(...evs), "the better of spread and total by EV; never the moneyline");
-  assert.match(c.pick.text, /^(BUF|NE) [+-]\d|^[ou]\d/);
-  const noLine = H.footballCard(N, E, NFL, all.find((x) => x.id === "nfl:3"));
-  assert.equal(noLine.pick, null, "no line, no pick"); assert.equal(noLine.fav.team, "KC");
-  assert.equal(H.footballCard(N, E, { ratings: null }, g), null, "no ratings, no card");
+  assert.equal("pick" in c, false, "a card carries no pick: the site shows chances, not odds (2026-10-17)");
+  assert.doesNotMatch(JSON.stringify(c), /price|\bev\b/i);
+  const noLine = H.footballCard(N, NFL, all.find((x) => x.id === "nfl:3"));
+  assert.equal(noLine.fav.team, "KC");
+  assert.equal(H.footballCard(N, { ratings: null }, g), null, "no ratings, no card");
 });
 
-test("evLabel, favLabel, pitcherLabel: the card's words say only what the number says", () => {
-  assert.equal(H.evLabel(0.031), "+3.1% EV"); assert.equal(H.evLabel(-0.029), "−2.9% EV");
-  assert.equal(H.evLabel(0), ""); assert.equal(H.evLabel(0.0004), "", "rounds to nothing: no sign, no claim");
-  assert.equal(H.evLabel(NaN), "");
+test("favLabel, pitcherLabel: the card's words say only what the number says", () => {
+  assert.equal("evLabel" in H, false, "no EV label: the site shows chances, not odds");
   assert.equal(H.favLabel({ team: "BUF", prob: 0.7295 }), "BUF 73%");
   assert.equal(H.favLabel({ team: "SF", prob: 0.5006 }), "pick 'em", "a favourite at fifty percent is not a favourite");
   assert.equal(H.favLabel(null), null);

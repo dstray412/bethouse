@@ -284,13 +284,6 @@ test("a player with no home runs is not a home run bet", () => {
  * Presentation
  * ---------------------------------------------------------------- */
 
-test("fair price converts a probability to the break-even number", () => {
-  assert.equal(score.fairPrice(0.75), -300);
-  assert.equal(score.fairPrice(0.5), 100);
-  assert.equal(score.fairPrice(0.25), 300);
-  assert.ok(Number.isNaN(score.fairPrice(0)));
-  assert.ok(Number.isNaN(score.fairPrice(1)));
-});
 
 test("sample confidence separates a real season from a hot week", () => {
   assert.equal(score.sampleConfidence(500), 1);

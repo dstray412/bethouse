@@ -20,7 +20,7 @@ repos:
         # locally would put an 18,000-line reformatting diff on top of
         # whatever actually changed, and only when a human commits -- CI runs
         # no hooks, so the two would disagree forever.
-        exclude: '^(history|nfl-record|odds-close)/.*\.json$'
+        exclude: '^(history|nfl-record)/.*\.json$'
       - id: check-merge-conflict
       - id: check-added-large-files
         args: ["--maxkb=1024"]
@@ -46,6 +46,6 @@ repos:
       - id: node-tests
         name: node --test (the whole suite; see entry for the file list)
         language: system
-        entry: node --test edge.test.mjs score.test.mjs nfl.test.mjs parlay.test.mjs nflverse.test.mjs tendencies.test.mjs statcast.test.mjs bets.test.mjs track.test.mjs clv.test.mjs provenance.test.mjs watchlist.test.mjs live.test.mjs home.test.mjs faces.test.mjs enrich-nfl.test.mjs chips.test.mjs record-page.test.mjs teams.test.mjs compare-td.test.mjs teams-page.test.mjs fetch-weather.test.mjs sheet-page.test.mjs consistency-page.test.mjs parlay-page.test.mjs dom.test.mjs
+        entry: node --test score.test.mjs nfl.test.mjs parlay.test.mjs nflverse.test.mjs tendencies.test.mjs statcast.test.mjs bets.test.mjs track.test.mjs provenance.test.mjs watchlist.test.mjs live.test.mjs home.test.mjs faces.test.mjs enrich-nfl.test.mjs chips.test.mjs record-page.test.mjs teams.test.mjs compare-td.test.mjs teams-page.test.mjs fetch-weather.test.mjs sheet-page.test.mjs consistency-page.test.mjs parlay-page.test.mjs dom.test.mjs
         pass_filenames: false
         stages: [pre-push]

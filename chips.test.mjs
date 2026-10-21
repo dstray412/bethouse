@@ -44,11 +44,11 @@ test("volume: the last three games' opportunities against the games before them,
   assert.equal(byId(chips.forPlayer({}, {}), "volume"), null, "no log, no chip");
 });
 
-test("red zone: his share of the red-zone touches logged for his team's priced players, shown from twenty percent, and the note says whose touches", () => {
+test("red zone: his share of the red-zone touches logged for his team's projected players, shown from twenty percent, and the note says whose touches", () => {
   const c = byId(chips.forPlayer({ rz: { c: 8, t: 2, g: 3, n: 5 } }, { teamRz: 40, team: "KC" }), "redzone");
   assert.ok(c, "no red-zone chip at 25%");
   assert.equal(c.label, "Red zone 25%");
-  assert.match(c.note, /10 of the 40 red-zone touches logged for KC's priced players/);
+  assert.match(c.note, /10 of the 40 red-zone touches logged for KC's projected players/);
   assert.match(c.note, /his over 5 games/);
   assert.doesNotMatch(c.note, /the team's \d/, "the note claims a team total the file does not carry");
   assert.equal(byId(chips.forPlayer({ rz: { c: 7, t: 0, g: 0, n: 5 } }, { teamRz: 40 }), "redzone"), null, "17.5% is under the line");

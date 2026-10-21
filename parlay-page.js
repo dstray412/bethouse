@@ -18,8 +18,8 @@
  * model said and what hit, 15+ graded calls). The consistency floor and
  * the soft-defence switch are filters the user sets; the slip is then
  * parlay.js's, ranked by chance to cash, with the replay's measured
- * lifts for correlated legs. Nothing here can see a price: the fair
- * price is printed and the user types what the book offers.
+ * lifts for correlated legs. Nothing here shows a price: the site
+ * shows chances, not odds (2026-10-17).
  */
 (function (root, factory) {
   if (typeof module === "object" && module.exports) module.exports = factory();
@@ -267,25 +267,19 @@
     return bets.parlay(legs, shown, date, stale > 0 ? { retro: true } : {});
   }
 
-  /** The slip's markup, or why there is none. `helpers.lift` is the replay's lifts; `helpers.price` what the user typed; `helpers.edge` edge.js;
+  /** The slip's markup, or why there is none. `helpers.lift` is the replay's lifts;
       `helpers.bets` the log module with `helpers.betState` {held, stale} for the bet button, which the home (`helpers.home`) does not carry. */
   function slipHtml(slip, state, helpers) {
     const h = helpers || {}, s = cleanState(state), lift = h.lift || {};
     if (!slip) return '<div class="slip warn"><h3>Cannot build that slip</h3><div>' + esc(h.reason || "Nothing clears the filters.") + "</div></div>";
     const c = slip.combined;
     let html = '<div class="slip"><h3>Suggested parlay — ' + slip.legs.length + " legs · " + (s.scope === "players" ? "one leg a player, any games" : "from " + c.distinctGames + " different games") + "</h3>";
-    html += '<div class="how">The best leg of each prop family in turn, ' + (s.scope === "players" ? "one a player" : "one a game") + ", each the highest line the model gives at least " + Math.round(100 * s.floor) + "% to, ranked by chance within a family, <b>not</b> by price: it cannot see what you are being offered. The count, the sheet and the record under each leg are facts, not the chance." +
+    html += '<div class="how">The best leg of each prop family in turn, ' + (s.scope === "players" ? "one a player" : "one a game") + ", each the highest line the model gives at least " + Math.round(100 * s.floor) + "% to, ranked by chance within a family. The count, the sheet and the record under each leg are facts, not the chance." +
       (slip.skipped && slip.skipped.length ? " " + slip.skipped.map(famLabel).map(esc).join(" and ") + " legs are " + (h.home ? "" : "listed but ") + "kept out of the slip: the replay has not measured them in a parlay." : "") + "</div>";
     html += slip.legs.map((l) => legLine(l, h)).join("");
     const shown = c.adjusted != null ? c.adjusted : c.prob;
     html += '<div class="slipsum"><div><span class="big">' + pct(c.prob, c.prob < 0.1 ? 2 : 1) + '</span><span class="lbl">the legs multiplied</span></div>';
     if (c.adjusted != null && Math.abs(c.adjusted - c.prob) > 1e-9) html += '<div><span class="big">' + pct(c.adjusted, c.adjusted < 0.1 ? 2 : 1) + '</span><span class="lbl">adjusted: such legs cashed ' + c.lift + "× the product on the replay</span></div>";
-    if (h.model && typeof h.model.fairPrice === "function") html += '<div><span class="big">' + sgn(h.model.fairPrice(shown)) + '</span><span class="lbl">fair price</span></div>';
-    if (!h.home) html += '<div><input id="slipprice" type="number" step="10" placeholder="offered" aria-label="Parlay price you are offered"' + (h.price != null ? ' value="' + esc(h.price) + '"' : "") + '><span class="lbl">price you are offered</span></div>';
-    if (!h.home && h.price != null && isFinite(h.price) && h.price !== 0 && h.edge) {
-      const ev = h.edge.evPct(shown, h.edge.americanToDecimal(h.price));
-      html += '<div><span class="big ' + (ev > 2 ? "good" : ev >= 0 ? "warn" : "bad") + '">' + esc(h.edge.formatPct(ev)) + '</span><span class="lbl">edge at that price</span></div>';
-    }
     html += "</div>";
     const applied = (k) => (lift[k] && lift[k] !== 1 ? " The adjusted number applies " + lift[k] + "." : "");
     const note = {
@@ -331,7 +325,7 @@
     for (const n of [3, 2]) {
       const s = Object.assign({}, base, { legs: n });
       const slip = buildSlip(list, s, { parlay, lift, eligible });
-      if (slip) return slipHtml(slip, s, { lift, model, faces: h.faces, league: h.league, home: true });
+      if (slip) return slipHtml(slip, s, { lift, faces: h.faces, league: h.league, home: true });
     }
     return "";
   }
@@ -365,7 +359,7 @@
     return "<p>Every leg is a line the book sells as a number and up: a rung on the model's ladder, priced off the same pool of comparable real games as the drawer's alternate lines, or an anytime touchdown; never an over/under at the projection. " +
       "For each player and stat the leg is the highest rung the model gives at least the floor to, never under the table stakes (" + Object.keys(MIN_RUNG).map((k) => MIN_RUNG[k] + "+ " + esc(String(model && model.STATS && model.STATS[k] ? model.STATS[k].label : k).toLowerCase())).join(", ") + ": lines nobody needs a model for); the slip is the legs most likely to cash under the filters, one a game from the slate or one a player from any games, with the replay's measured lift for legs that rise together. " +
       "Under each leg: how many of his last ten games on file" + (s != null && w != null ? ", before week " + esc(w) + " of " + esc(s) + "," : "") + " cleared that rung (a count, not a chance); whether the opponent ranks in the top five of the field on the defensive cheat sheet for that stat at his position; and what the record did at that rung, what the model said and what hit, where it has " + MIN_GRADED + " graded calls. " +
-      "A player needs a game still to kick off and no Out status. Nothing here sees a price: compare the fair price with the book's, type what you are offered for the edge, and shade the top of the board.</p>";
+      "A player needs a game still to kick off and no Out status. Nothing here is a price: the site shows chances, not odds (2026-10-17); shade the top of the board.</p>";
   }
 
   /* The home's top plays (2026-10-16): the slip's own rule, widened to every family and the players scope.
@@ -381,10 +375,9 @@
     return slip ? slip.legs : [];
   }
 
-  /** A receipt card for one play: who, the line, the chance and the fair price, then only the facts the leg carries (the count, the soft spot, the record at this line). `helpers.fair(prob)` prices it. */
+  /** A receipt card for one play: who, the line, the chance, then only the facts the leg carries (the count, the soft spot, the record at this line). */
   function playCardHtml(l, helpers) {
     const h = helpers || {}, F = h.faces || null, league = h.league || "NFL";
-    const fair = typeof h.fair === "function" ? h.fair(l.prob) : null;
     const rows = [];
     if (l.hits) rows.push("<li><span>Hit in " + l.hits.hits + " of his last " + l.hits.n + "</span><b" + (l.hits.hits >= 8 ? ' class="up"' : "") + ">" + l.hits.hits + "/" + l.hits.n + "</b></li>");
     const label = String(l.sheet && l.sheet.label || ""); // only the first letter lowered: the labels carry position and stat abbreviations (Rec yards to WR)
@@ -392,7 +385,7 @@
     if (l.rec) rows.push("<li><span>The record at this line said " + Math.round(l.rec.said) + '%</span><b class="' + (l.rec.hit >= l.rec.said ? "up" : "warn") + '">hit ' + Math.round(l.rec.hit) + "%</b></li>");
     return '<div class="play"><div class="top">' + (F ? F.face(league, l.playerId, 44) : "") +
       '<span><b class="nm">' + esc(l.name) + "</b><small>" + esc(l.pos) + " · " + esc(l.team) + " vs " + esc(l.opp) + "</small></span>" +
-      '<span class="num"><b>' + pct(l.prob, 0) + "</b>" + (fair != null && isFinite(fair) ? "<small>" + (fair > 0 ? "+" : "") + esc(fair) + " fair</small>" : "") + "</span></div>" +
+      '<span class="num"><b>' + pct(l.prob, 0) + "</b><small>chance</small></span></div>" +
       '<div class="line">' + esc(l.propLabel) + "</div>" + (rows.length ? "<ul>" + rows.join("") + "</ul>" : "") + "</div>";
   }
 
@@ -425,10 +418,10 @@
     if (!ok) { if (ctl) { ctl.innerHTML = ""; ctl.hidden = true; } if (slipEl) slipEl.innerHTML = ""; if (foot) foot.innerHTML = ""; host.innerHTML = '<div class="empty"><div class="big">No board</div><div>The NFL data file did not load.</div></div>'; return; }
     const given = o.state || (ctl && ctl.__state) || null;
     const state = cleanState(given);
-    if (ctl) { ctl.__state = state; ctl.__on = typeof o.onState === "function" ? o.onState : null; ctl.__price = o.price != null ? o.price : (ctl.__price != null ? ctl.__price : null); }
+    if (ctl) { ctl.__state = state; ctl.__on = typeof o.onState === "function" ? o.onState : null; }
     const lift = (model.DEFAULTS && model.DEFAULTS.parlayLift) || { game: 1, mixed: 1, team: 1, player: 1 };
     const draw = () => {
-      const s = (ctl && ctl.__state) || state, price = ctl ? ctl.__price : null;
+      const s = (ctl && ctl.__state) || state;
       if (ctl) { ctl.innerHTML = controlsHtml(s); ctl.hidden = false; }
       const all = legs(model, data, o.record || null, { now: o.now, floor: s.floor });
       const list = filter(all, s);
@@ -446,7 +439,7 @@
         const bet = betOf(slip, data, B, { now: now() });
         betState = { held: !!(bet && B.has(readLog(), bet.key)), stale: bet && bet.retro ? slip.legs.filter((l) => { const g = (data.games || []).find((x) => x && String(x.id) === String(l.gameId)); return g && Date.parse(g.date) <= now(); }).length : 0, err: slipEl && slipEl.__err || null };
       }
-      if (slipEl) { slipEl.__slip = slip; slipEl.innerHTML = slipHtml(slip, s, { lift, model, faces: o.faces, league: o.league, edge: o.edge, price, reason, bets: B, betState }); }
+      if (slipEl) { slipEl.__slip = slip; slipEl.innerHTML = slipHtml(slip, s, { lift, faces: o.faces, league: o.league, reason, bets: B, betState }); }
       host.innerHTML = legsHtml(list, s, { faces: o.faces, league: o.league });
       if (foot) foot.innerHTML = footHtml(data, o.model);
     };
@@ -487,13 +480,8 @@
         if (ctl && ctl.__draw) ctl.__draw();
       };
     }
-    if (slipEl && slipEl.addEventListener && !slipEl.__pricing) {
-      slipEl.__pricing = true;
-      slipEl.addEventListener("change", (e) => {
-        const t = e.target; if (!t || t.id !== "slipprice" || !ctl) return;
-        const v = Number(t.value); ctl.__price = t.value === "" || !isFinite(v) ? null : v;
-        if (ctl.__draw) ctl.__draw();
-      });
+    if (slipEl && slipEl.addEventListener && !slipEl.__betListener) {
+      slipEl.__betListener = true;
       /* One listener a host; the latest render's bet closure lives on the host, so the press never records a stale slip. */
       slipEl.addEventListener("click", (e) => {
         const t = e.target, b = t && t.closest ? t.closest("[data-betslip]") : null;

@@ -1096,12 +1096,6 @@
    * 6. Presentation
    * ------------------------------------------------------------------ */
 
-  /** Probability to the American price that would be exactly fair. */
-  function fairPrice(prob) {
-    if (!(prob > 0 && prob < 1)) return NaN;
-    const dec = 1 / prob;
-    return dec >= 2 ? Math.round((dec - 1) * 100) : -Math.round(100 / (dec - 1));
-  }
 
   /**
    * Confidence in the ESTIMATE, which is not the same as the probability.
@@ -1187,7 +1181,6 @@
     tbRates: tbRates,
     tbDistribution: tbDistribution,
     probAtLeastTB: probAtLeastTB,
-    fairPrice: fairPrice,
     sampleConfidence: sampleConfidence,
     rank: rank,
     gameIsOpen: gameIsOpen,

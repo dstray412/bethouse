@@ -639,7 +639,7 @@ function parlayReport(rows) {
   console.log(`\n  WOULD THE SUGGESTED SLIP HAVE CASHED?`);
   console.log(`  One slip per day, the same rule the board uses.`);
   console.log(
-    `  ${"legs".padEnd(6)}${"slips".padStart(8)}${"expected".padStart(11)}${"cashed".padStart(9)}${"hit rate".padStart(11)}${"fair".padStart(9)}`,
+    `  ${"legs".padEnd(6)}${"slips".padStart(8)}${"expected".padStart(11)}${"cashed".padStart(9)}${"hit rate".padStart(11)}`,
   );
 
   const detail = [];
@@ -662,7 +662,7 @@ function parlayReport(rows) {
     }
     if (!slips) continue;
     console.log(
-      `  ${String(n).padEnd(6)}${String(slips).padStart(8)}${(expected / slips * 100).toFixed(1).padStart(10)}%${String(cashed).padStart(9)}${pct(cashed / slips).padStart(11)}${score.fairPrice(expected / slips) > 0 ? "+" + Math.round(score.fairPrice(expected / slips)) : Math.round(score.fairPrice(expected / slips))}`.padEnd(0),
+      `  ${String(n).padEnd(6)}${String(slips).padStart(8)}${(expected / slips * 100).toFixed(1).padStart(10)}%${String(cashed).padStart(9)}${pct(cashed / slips).padStart(11)}`,
     );
   }
   console.log(`  With one slip a day, a handful of days is a handful of trials.`);

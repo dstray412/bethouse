@@ -95,7 +95,6 @@
 <footer id="foot"></footer>
 </div>
 
-<script src="edge.js"></script>
 <script src="faces.js"></script>
 <!-- Written by fetch-teams.mjs: each team's colours, for the hero's tint and the tray's edge. -->
 <script src="teams-data.js"></script>
@@ -148,13 +147,13 @@ BetHouseFootballBoard.mount({
         'The opponent is shown but not applied: on the replay it moved nothing. Checked against <b>24,015</b> unseen player-games: bias 0.1 points, though the two seasons disagree by 6.',
       rushrec: 'Chance of going <b>over</b> a <b>rushing plus receiving</b> yards line: the back who catches and the receiver who runs, his two yardages added and priced as one number, '+
         'from his rushing and receiving yards a game (recent games weighted up, 10% a game of age), pulled toward an ordinary player, scaled up by three quarters of the work a teammate ruled out leaves behind, off real games by backs and receivers. The opponent is not applied: on the replay it read worse. '+
-        'Replayed over 30,245 player-games: bias 0.8 points, the seasons within two (measured 2026-09-21, before the recent-form weight). Tap a player for every alternate line with its fair price.'
+        'Replayed over 30,245 player-games: bias 0.8 points, the seasons within two (measured 2026-09-21, before the recent-form weight). Tap a player for every alternate line and its chance.'
     },
-    noteGames: 'The side the model likes on each game, against a real line, with its expected value at the price. '+
+    noteGames: 'The side the model likes on each game, against a real line, with its chance to cover. No price is shown: the site shows chances, not odds. '+
       '<b>This model did not beat the closing line over two seasons</b> — read the note below before betting one.',
     gameBanner: '<p>These projections were measured against <b>480 real closing lines</b> and did not beat them. '+
-      'The spread model won <b>48.1%</b> of the time and the total model <b>52.5%</b>, against the '+
-      '<b>52.4%</b> you need at -110 — and both confidence intervals straddle a coin flip. '+
+      'The spread model won <b>48.1%</b> of the time and the total model <b>52.5%</b> — neither clears the break-even '+
+      'a book\'s standard cut sets, and both confidence intervals straddle a coin flip. '+
       'Separating a break-even model from noise would take about <b>1,700</b> games; two seasons is 480.</p>'+
       '<p>The picks are shown because you asked which side, not because there is proven edge in them. Every one '+
       'is recorded before kickoff and settled like a book would, and the live record at the bottom will say whether '+
