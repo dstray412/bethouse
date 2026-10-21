@@ -1437,7 +1437,7 @@ test("index.html is the home: the two-board switch, the week line, the game scro
   for (const s of ["faces.js", "teams-data.js", "teams.js", "nfl.js", "watchlist.js", "bets.js", "home.js", "sheet-page.js", "consistency-page.js", "parlay.js", "parlay-page.js", "mlb-data.js", "nfl-data.js", "record.js", "nfl-record.js"]) {
     assert.match(html, new RegExp('<script src="' + s.replace(".", "\\.") + '"'), "index.html loads " + s);
   }
-  for (const id of ["tile", "week", "caveat", "gscroll", "playsec", "plays", "parsec", "research", "tabs", "conssec", "cheatsec", "foot"]) assert.match(m, new RegExp('id="' + id + '"'), "index.html has #" + id);
+  for (const id of ["tile", "week", "caveat", "gscroll", "vocab", "vrec", "playsec", "plays", "parsec", "research", "tabs", "conssec", "cheatsec", "foot"]) assert.match(m, new RegExp('id="' + id + '"'), "index.html has #" + id);
   for (const gone of ["hero", "bstrip", "tops", "topsec", "gcards", "slate"]) assert.doesNotMatch(m, new RegExp('id="' + gone + '"'), "the old home's #" + gone + " is still on the page");
   // The nav: the two boards as a switch, then the three pages a bettor keeps open, with a count where there is one; the research pages are linked from their sections, not the nav.
   assert.match(m, /<nav class="mnav"[\s\S]*class="prim"[\s\S]*href="nfl\.html"[\s\S]*href="baseball\.html"[\s\S]*class="sec"[\s\S]*href="bets\.html"[\s\S]*id="betsn"[\s\S]*href="live\.html"[\s\S]*id="liven"[\s\S]*href="record\.html"/, "the nav is not the two-board switch with Bets, Live and Record");
@@ -2311,4 +2311,61 @@ test("the teams page's panel scrolls sideways inside itself, the team cell stick
   const kcOff = html.slice(html.indexOf("KC offence vs LAC defence"), html.indexOf("LAC offence vs KC defence"));
   assert.match(kcOff, /deep pass<span class="tag soft">soft<\/span>/, "a defence exactly SOFT_EPA over the league is not tagged soft");
   assert.doesNotMatch(kcOff, /inside run<span class="tag (soft|tough)"/, "a defence at the league's inside-run EPA is tagged");
+});
+
+/* ------------------------------------------------------------------ *
+ * Four takeaways from xep.ai (2026-10-21): a season dot on the board
+ * switch, a vocabulary strip on the home, a kicker over every section
+ * heading, and outlined pills. Oracles: the leagues' calendars, the
+ * record files' shape, the week line's own kicker-then-heading pattern,
+ * and DESIGN.md's one-accent rule.
+ * ------------------------------------------------------------------ */
+test("the board switch carries a season dot on every page: after the label, hidden until nav.js reads the calendar", () => {
+  for (const f of BOARDS) {
+    assert.match(NAV(f), /<a href="nfl\.html"[^>]*>NFL<i class="dot" hidden><\/i><\/a><a href="baseball\.html"[^>]*>Baseball<i class="dot" hidden><\/i><\/a>/, f + ": the switch has no season dots after the labels");
+  }
+  const js = src("nav.js");
+  const at = js.indexOf("function inSeason(");
+  assert.ok(at > 0, "nav.js has no inSeason");
+  const end = js.indexOf("\n}", at) + 2;
+  // eslint-disable-next-line no-new-func
+  const inSeason = new Function(js.slice(at, end) + "; return inSeason;")();
+  // The NFL plays from September through the Super Bowl in February; MLB from late March through the World Series in early November.
+  assert.equal(inSeason("nfl.html", new Date(2026, 9, 20)), true);
+  assert.equal(inSeason("nfl.html", new Date(2027, 0, 20)), true, "January is the playoffs");
+  assert.equal(inSeason("nfl.html", new Date(2026, 5, 20)), false);
+  assert.equal(inSeason("baseball.html", new Date(2026, 9, 20)), true, "October is the postseason");
+  assert.equal(inSeason("baseball.html", new Date(2026, 3, 2)), true);
+  assert.equal(inSeason("baseball.html", new Date(2026, 11, 20)), false);
+  assert.equal(inSeason("teams.html", new Date(2026, 9, 20)), null, "a page that is not a board has no season");
+  assert.match(js, /querySelectorAll\("\.mnav \.prim a"\)/, "nav.js never finds the switch");
+  assert.match(js, /dot\.hidden ?= ?!on/, "nav.js never shows the dot");
+  assert.match(js, /a\.title ?=/, "the state has no words for a hover or a reader");
+  assert.match(src(SHEET), /\.mnav \.prim a \.dot\{[^}]*border-radius:50%[^}]*background:var\(--good\)/, "no dot style, or not the measured green");
+});
+
+test("the home's vocabulary strip: projection, chance, record, the record cell from home.js's said and hit, a kicker over every section heading", () => {
+  const m = markup("index.html"), html = src("index.html");
+  const strip = m.slice(m.indexOf('<div class="vocab" id="vocab">'), m.indexOf('<div class="two">'));
+  assert.ok(strip.length > 0 && m.indexOf('id="vocab"') > m.indexOf('id="gscroll"'), "the strip is not between the slate and the plays");
+  assert.match(strip, /<small>[^<]*<\/small><b>Projection<\/b>[\s\S]*<small>[^<]*<\/small><b>Chance<\/b>[\s\S]*<small>[^<]*<\/small><b>Record<\/b><p id="vrec">/, "the three cells are not projection, chance, record with the record cell a host");
+  assert.doesNotMatch(strip, /price|odds|fair/i, "the vocabulary names a price");
+  assert.match(html, /H\.saidHit\(data\.records\)/, "the record cell is not home.js's arithmetic over the records the page loaded");
+  assert.match(html, /el\('vrec'\)/, "the record cell is never filled");
+  // Kicker then heading on every section head on the home, the week line's own pattern; the stylesheet draws the accent dash.
+  const heads = [...m.matchAll(/<div class="shead">([\s\S]*?)<\/div><div class="gmeta">/g)];
+  assert.ok(heads.length >= 5, "fewer section heads than sections: " + heads.length);
+  for (const h of heads) assert.match(h[1], /^<div class="sh"><span class="kick">[^<]+<\/span><h2 class="gtitle">[^<]+<\/h2>$/, "a section head without a kicker over its heading: " + h[1].slice(0, 80));
+  assert.match(src(SHEET), /\.shead \.kick::before\{[^}]*background:var\(--accent\)/, "the kicker has no accent dash");
+  assert.match(src(SHEET), /\.vocab\{[^}]*grid-template-columns:repeat\(3/, "the strip is not three cells across");
+});
+
+test("pills are outlined: a tint and a coloured border in the measured colour, never a solid fill with ink text", () => {
+  const css = src(SHEET);
+  for (const c of ["up", "down", "warn"]) {
+    const rule = css.match(new RegExp("\\.pill\\." + c + "[^{]*\\{([^}]*)\\}"));
+    assert.ok(rule, "no .pill." + c);
+    assert.doesNotMatch(rule[1], /color:var\(--ink\)/, ".pill." + c + " is a solid fill with ink text");
+    assert.match(rule[1], /color-mix\(in srgb,var\(--(good|bad|warn)\)/, ".pill." + c + " has no tint of its colour");
+  }
 });

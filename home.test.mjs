@@ -132,3 +132,22 @@ test("counts: the tile's numbers, each only from data that loaded", () => {
   assert.deepEqual(c, { games: 2, players: 4 + 4, graded: 105 }, "players: football players plus batters in posted lineups (both lineups of the final, the away lineup of the pre-game)");
   assert.deepEqual(H.counts({}, 0), { games: 0, players: 0, graded: 0 });
 });
+
+/* ------------------------------------------------------------------ *
+ * The vocabulary strip's record cell (2026-10-21): said and hit across
+ * every record's props, weighted by graded calls. Oracle: the record
+ * files' own shape (props[k] = {n, predicted, actual} in percent) and
+ * the rule that a number the page does not have is a cell it does not
+ * show.
+ * ------------------------------------------------------------------ */
+test("saidHit: said and hit across the records' props, weighted by graded calls; null with nothing graded", () => {
+  const nfl = { total: 100, props: { td: { n: 60, predicted: 20, actual: 22 }, recyds: { n: 40, predicted: 50, actual: 45 } } };
+  const mlb = { total: 10, props: { hrr: { n: 10, predicted: 70, actual: 60 } } };
+  const r = H.saidHit([nfl, mlb]);
+  assert.equal(r.n, 110);
+  assert.ok(Math.abs(r.said - (60 * 20 + 40 * 50 + 10 * 70) / 110) < 1e-9, "said is not the n-weighted mean");
+  assert.ok(Math.abs(r.hit - (60 * 22 + 40 * 45 + 10 * 60) / 110) < 1e-9, "hit is not the n-weighted mean");
+  assert.equal(H.saidHit([null, {}, { props: { x: { n: 0, predicted: 50, actual: 50 } } }]), null, "nothing graded is a null, not a zero");
+  assert.equal(H.saidHit(), null);
+  assert.deepEqual(H.saidHit([{ props: { a: { n: 10, predicted: 30, actual: 31 }, b: { n: 5, predicted: "x", actual: 1 } } }]), { n: 10, said: 30, hit: 31 }, "a malformed prop is skipped, not counted");
+});

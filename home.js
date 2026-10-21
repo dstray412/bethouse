@@ -139,6 +139,20 @@
     return { homePts: Math.round(pr.homePts), awayPts: Math.round(pr.awayPts), total: pr.total, margin: pr.margin, fav };
   }
 
+  /** Said and hit across the records' props, weighted by graded calls, in percent; null with nothing graded. The home's vocabulary strip (2026-10-21). */
+  function saidHit(records) {
+    let n = 0, said = 0, hit = 0;
+    for (const r of records || []) {
+      const props = r && r.props ? r.props : {};
+      for (const k of Object.keys(props)) {
+        const p = props[k];
+        if (!p || !(p.n > 0) || typeof p.predicted !== "number" || typeof p.actual !== "number" || !isFinite(p.predicted) || !isFinite(p.actual)) continue;
+        n += p.n; said += p.n * p.predicted; hit += p.n * p.actual;
+      }
+    }
+    return n ? { n, said: said / n, hit: hit / n } : null;
+  }
+
   /** The tile: games on the slate, players projected across the boards, predictions graded. */
   function counts(data, games) {
     const d = data || {};
@@ -169,5 +183,5 @@
     return last + (f.era ? " " + f.era : "");
   }
 
-  return { normalise, localDay, slate, dayLabel, sentence, clock, logoUrl, footballCard, counts, favLabel, pitcherLabel };
+  return { normalise, localDay, slate, dayLabel, sentence, clock, logoUrl, footballCard, counts, saidHit, favLabel, pitcherLabel };
 });

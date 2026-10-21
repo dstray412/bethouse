@@ -566,6 +566,14 @@ beside the parlay of the day, and the research pages as tabs.
   no game model for baseball and the page does not invent one. The
   card links the board. The spread and total picks left the home with
   the tops: the replay found no edge in them and the card is not a bet.
+- **The vocabulary** (2026-10-21): three cells under the slate saying what a
+  number on this site is: the projection (ours, written down before kickoff),
+  the chance (how often a line like his cleared in comparable real games, a
+  share and never a quote) and the record (said X%, hit Y% over N calls graded
+  at a line, from the record files through `saidHit`, linking the record page).
+  Every section head on the home carries a kicker over its heading (`— TOP
+  PLAYS`, then the claim), and the board switch in the nav wears a green dot
+  while a league is in season by the calendar (`nav.js`).
 - **Top plays**: six receipt cards, each a leg from the parlay page's
   own leg builder on the slate day's games, at the page's defaults with
   every family on (six of his last ten, the touchdown included), picked

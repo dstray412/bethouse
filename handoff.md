@@ -34,7 +34,27 @@ Zero dependencies, no build step, no server, no API key. `node --test` with
 **named files** — bare discovery pulls in the backtests, which fire live API
 calls. The list lives in six places and `dom.test.mjs` checks all six.
 
-## No odds, no fair price (2026-10-17, latest; shipped 2026-10-20)
+## Four takeaways from xep.ai (2026-10-21, latest)
+
+The user asked for a review of xep.ai, then said "do this" to four of its
+moves. Shipped: a **season dot** on the board switch on every page
+(`<i class="dot" hidden>` after each `.prim` label; `nav.js`'s `inSeason(page,
+now)` shows it by the calendar: NFL Sep 1 to Feb 15, MLB Mar 20 to Nov 5;
+the words go in the link's title); the **vocabulary strip** on the home
+(`#vocab`, three cells: Projection, Chance, Record; `#vrec` is filled from
+`H.saidHit(data.records)`, the n-weighted said and hit across every
+record's props); a **kicker over every section heading** on the home
+(`.shead .sh > .kick + h2`, the dash drawn by `.kick::before`; the headings
+became claims, the section names moved to the kickers, the meta lines
+trimmed of what the heading now says); and **outlined pills** (`.pill.up/
+.down/.warn/.good/.bad`: coloured text, a 55% border, a 10% tint; no solid
+fill). Not taken: xep's grade of the gap between projection and line (that
+is the price surface removed on 2026-10-17) and its paywall. Tests:
+`saidHit` in home.test.mjs; the dots, the strip, the kickers and the pills
+in dom.test.mjs (the nav test's `NAV_LINKS` reads a label up to the first
+`<`, which is why the dot follows the label).
+
+## No odds, no fair price (2026-10-17; shipped 2026-10-20)
 
 The user: "We need to do away with the odds and the 'fair price' stuff. They
 are not accurate and gives the user incorrect information." Scope chosen
