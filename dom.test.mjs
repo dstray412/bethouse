@@ -2320,22 +2320,22 @@ test("the teams page's panel scrolls sideways inside itself, the team cell stick
  * record files' shape, the week line's own kicker-then-heading pattern,
  * and DESIGN.md's one-accent rule.
  * ------------------------------------------------------------------ */
-test("the board switch carries a season dot on every page: after the label, hidden until nav.js reads the calendar", () => {
+test("the board switch carries a season dot on every page: after the label, hidden until nav.js reads the calendar", async () => {
   for (const f of BOARDS) {
     assert.match(NAV(f), /<a href="nfl\.html"[^>]*>NFL<i class="dot" hidden><\/i><\/a><a href="baseball\.html"[^>]*>Baseball<i class="dot" hidden><\/i><\/a>/, f + ": the switch has no season dots after the labels");
   }
   const js = src("nav.js");
-  const at = js.indexOf("function inSeason(");
-  assert.ok(at > 0, "nav.js has no inSeason");
-  const end = js.indexOf("\n}", at) + 2;
-  // eslint-disable-next-line no-new-func
-  const inSeason = new Function(js.slice(at, end) + "; return inSeason;")();
+  // The module exports the rule like every other module (UMD, window.BetHouseNav), so no global leaks and the test imports it.
+  const { inSeason } = (await import("./nav.js")).default;
+  assert.doesNotMatch(js, /^function inSeason/m, "inSeason is a bare global");
   // The NFL plays from September through the Super Bowl in February; MLB from late March through the World Series in early November.
   assert.equal(inSeason("nfl.html", new Date(2026, 9, 20)), true);
   assert.equal(inSeason("nfl.html", new Date(2027, 0, 20)), true, "January is the playoffs");
   assert.equal(inSeason("nfl.html", new Date(2026, 5, 20)), false);
+  assert.equal(inSeason("nfl.html", new Date(2026, 8, 2)), false, "no NFL game before the Thursday after Labor Day");
   assert.equal(inSeason("baseball.html", new Date(2026, 9, 20)), true, "October is the postseason");
   assert.equal(inSeason("baseball.html", new Date(2026, 3, 2)), true);
+  assert.equal(inSeason("baseball.html", new Date(2026, 10, 8)), true, "a World Series can run into the second week of November");
   assert.equal(inSeason("baseball.html", new Date(2026, 11, 20)), false);
   assert.equal(inSeason("teams.html", new Date(2026, 9, 20)), null, "a page that is not a board has no season");
   assert.match(js, /querySelectorAll\("\.mnav \.prim a"\)/, "nav.js never finds the switch");
@@ -2350,12 +2350,14 @@ test("the home's vocabulary strip: projection, chance, record, the record cell f
   assert.ok(strip.length > 0 && m.indexOf('id="vocab"') > m.indexOf('id="gscroll"'), "the strip is not between the slate and the plays");
   assert.match(strip, /<small>[^<]*<\/small><b>Projection<\/b>[\s\S]*<small>[^<]*<\/small><b>Chance<\/b>[\s\S]*<small>[^<]*<\/small><b>Record<\/b><p id="vrec">/, "the three cells are not projection, chance, record with the record cell a host");
   assert.doesNotMatch(strip, /price|odds|fair/i, "the vocabulary names a price");
-  assert.match(html, /H\.saidHit\(data\.records\)/, "the record cell is not home.js's arithmetic over the records the page loaded");
+  assert.match(html, /\[\['NFL',window\.BETHOUSE_NFL_RECORD\],\['Baseball',window\.BETHOUSE_RECORD\]\][\s\S]*H\.saidHit\(\[x\[1\]\]\)/, "the record cell is not home.js's arithmetic, one record at a time with its league named");
   assert.match(html, /el\('vrec'\)/, "the record cell is never filled");
   // Kicker then heading on every section head on the home, the week line's own pattern; the stylesheet draws the accent dash.
-  const heads = [...m.matchAll(/<div class="shead">([\s\S]*?)<\/div><div class="gmeta">/g)];
+  const heads = [...m.matchAll(/<div class="shead">(<h2[\s\S]*?<\/h2>)<div class="gmeta">/g)];
   assert.ok(heads.length >= 5, "fewer section heads than sections: " + heads.length);
-  for (const h of heads) assert.match(h[1], /^<div class="sh"><span class="kick">[^<]+<\/span><h2 class="gtitle">[^<]+<\/h2>$/, "a section head without a kicker over its heading: " + h[1].slice(0, 80));
+  // The kicker is inside the heading, so a reader navigating by headings hears the section's name with its claim.
+  for (const h of heads) assert.match(h[1], /^<h2 class="gtitle"><span class="kick">[^<]+<\/span> [^<]+<\/h2>$/, "a section head without a kicker inside its heading, a space between for a reader: " + h[1].slice(0, 80));
+  assert.match(src(SHEET), /\.week \.kick,\.shead \.kick\{/, "the section kicker and the week line's kicker are two rules, not one");
   assert.match(src(SHEET), /\.shead \.kick::before\{[^}]*background:var\(--accent\)/, "the kicker has no accent dash");
   assert.match(src(SHEET), /\.vocab\{[^}]*grid-template-columns:repeat\(3/, "the strip is not three cells across");
 });

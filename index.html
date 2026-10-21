@@ -36,30 +36,30 @@
 
 <div class="two">
   <section id="playsec" hidden>
-    <div class="shead"><div class="sh"><span class="kick">Top plays</span><h2 class="gtitle">The best leg of each family</h2></div><div class="gmeta"><span id="playwhen"></span>one a player, in turn, as the slip picks them · never table stakes · <a class="open" href="parlays.html">Every line →</a></div></div>
+    <div class="shead"><h2 class="gtitle"><span class="kick">Top plays</span> The best leg of each family</h2><div class="gmeta"><span id="playwhen"></span>one a player, in turn, as the slip picks them · never table stakes · <a class="open" href="parlays.html">Every line →</a></div></div>
     <div class="plays" id="plays"></div>
   </section>
   <section id="parsec" hidden>
-    <div class="shead"><div class="sh"><span class="kick">Parlay of the day</span><h2 class="gtitle">Three legs from three games</h2></div><div class="gmeta"><span id="parwhen"></span>NFL · lines sold as a number and up, never the projection's line · <span id="parrule"></span> · ranked by chance within a family, never a price · <a class="open" href="parlays.html">Pick your own legs and floor →</a></div></div>
+    <div class="shead"><h2 class="gtitle"><span class="kick">Parlay of the day</span> Three legs from three games</h2><div class="gmeta"><span id="parwhen"></span>NFL · lines sold as a number and up, never the projection's line · <span id="parrule"></span> · ranked by chance within a family, never a price · <a class="open" href="parlays.html">Pick your own legs and floor →</a></div></div>
     <div id="parstrip"></div>
   </section>
 </div>
 
 <section id="research" hidden>
-  <div class="shead"><div class="sh"><span class="kick">Research</span><h2 class="gtitle">Consistency and the cheat sheets</h2></div><div class="gmeta"><a class="open" href="teams.html">Teams →</a> <a class="open" href="defence.html">Defences →</a> <a class="open" href="offence.html">Offences →</a> <a class="open" href="consistency.html">Consistency →</a></div></div>
+  <div class="shead"><h2 class="gtitle"><span class="kick">Research</span> Consistency and the cheat sheets</h2><div class="gmeta"><a class="open" href="teams.html">Teams →</a> <a class="open" href="defence.html">Defences →</a> <a class="open" href="offence.html">Offences →</a> <a class="open" href="consistency.html">Consistency →</a></div></div>
   <div class="tabs" id="tabs" role="group" aria-label="Research">
     <button type="button" data-tab="cons" aria-pressed="true">Consistency</button>
     <button type="button" data-tab="cheat" aria-pressed="false">Cheat sheets</button>
   </div>
   <div id="tab-cons">
 <section id="conssec" hidden>
-  <div class="shead"><div class="sh"><span class="kick">Consistency</span><h2 class="gtitle">Hits in his last ten games</h2></div><div class="gmeta">NFL · this season and last, at a line the board projects · six hits or better, five a card · <b>Q</b> questionable on the report · a count, not a chance: the chance is in his drawer on the <a class="open" href="nfl.html">NFL board →</a> · <a class="open" href="consistency.html">Every line →</a></div></div>
+  <div class="shead"><h2 class="gtitle"><span class="kick">Consistency</span> Hits in his last ten games</h2><div class="gmeta">NFL · this season and last, at a line the board projects · six hits or better, five a card · <b>Q</b> questionable on the report · a count, not a chance: the chance is in his drawer on the <a class="open" href="nfl.html">NFL board →</a> · <a class="open" href="consistency.html">Every line →</a></div></div>
   <div class="cons strip" id="consstrip"></div>
 </section>
   </div>
   <div id="tab-cheat" hidden>
 <section id="cheatsec" hidden>
-  <div class="shead"><div class="sh"><span class="kick">Cheat sheet</span><h2 class="gtitle">Where each defence is softest, each offence strongest</h2></div><div class="gmeta"><span id="cheatwhen"></span>this season · the top five of <span id="cheatfield">32</span> · turnovers, takeaways and a defence's sacks rank from the fewest · <b>D</b> the defence, <b>O</b> the offence · <a class="open" href="defence.html">Defences →</a> <a class="open" href="offence.html">Offences →</a></div></div>
+  <div class="shead"><h2 class="gtitle"><span class="kick">Cheat sheet</span> Where each defence is softest, each offence strongest</h2><div class="gmeta"><span id="cheatwhen"></span>this season · the top five of <span id="cheatfield">32</span> · turnovers, takeaways and a defence's sacks rank from the fewest · <b>D</b> the defence, <b>O</b> the offence · <a class="open" href="defence.html">Defences →</a> <a class="open" href="offence.html">Offences →</a></div></div>
   <div class="sheet" id="cheat"></div>
 </section>
   </div>
@@ -115,9 +115,14 @@
   var cell=function(v,l){ return '<div><b>'+esc(v)+'</b><span>'+l+'</span></div>'; };
   el('tile').innerHTML=cell(c.games, s.when==='today'?'games today':s.when==='next'?(s.label==='Tomorrow'?'games tomorrow':s.label?'games on '+esc(s.label):'games next up'):'games')+
     cell(c.players.toLocaleString('en-US'),'players projected')+(c.graded?cell(c.graded.toLocaleString('en-US'),'predictions graded'):'');
-  /* The vocabulary's record cell: said and hit across every record the page loaded, or the standing sentence without one. */
-  var rh=H.saidHit(data.records), vr=el('vrec');
-  if(vr&&rh) vr.innerHTML='Said <span class="n">'+rh.said.toFixed(1)+'%</span>, hit <span class="n">'+rh.hit.toFixed(1)+'%</span> over <span class="n">'+rh.n.toLocaleString('en-US')+'</span> calls graded at a line, every one written down before kickoff. <a class="open" href="record.html">The record →</a>';
+  /* The vocabulary's record cell: each board's own said and hit, named, because the two leagues' base rates differ
+     (a baseball 1+ hit call says 66%, a touchdown call 22%) and one pooled figure would describe neither. */
+  var vr=el('vrec'), said=[];
+  [['NFL',window.BETHOUSE_NFL_RECORD],['Baseball',window.BETHOUSE_RECORD]].forEach(function(x){
+    var rh=H.saidHit([x[1]]); if(!rh) return;
+    said.push(x[0]+' said <span class="n">'+rh.said.toFixed(1)+'%</span>, hit <span class="n">'+rh.hit.toFixed(1)+'%</span> over <span class="n">'+rh.n.toLocaleString('en-US')+'</span> calls');
+  });
+  if(vr&&said.length) vr.innerHTML=said.join(' · ')+', every one graded at a line and written down before kickoff. <a class="open" href="record.html">The record →</a>';
 
   /* The nav's counts: open bets in the log, props tracked live. Each in its own guard: a bad store is a missing count, never a missing home. */
   try{
