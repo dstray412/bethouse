@@ -33,6 +33,8 @@
         home: g.home, away: g.away, homeName: g.home, awayName: g.away,
         homeKey: key(g.home), awayKey: key(g.away),
         state, board: BOARD[FOOTBALL], raw: g,
+        /* A football game has a preview page (2026-10-21); a baseball game opens its board. */
+        preview: g.id != null && g.id !== "" ? "game.html?id=" + encodeURIComponent(String(g.id)) : undefined,
       });
     }
     return out;

@@ -35,6 +35,8 @@ import { fileURLToPath } from "node:url";
 
 const DIR = dirname(fileURLToPath(import.meta.url));
 const BOARDS = ["index.html", "baseball.html", "nfl.html", "bets.html", "live.html", "record.html", "teams.html", "defence.html", "offence.html", "consistency.html", "parlays.html"];
+/* Every page: the nav's eleven plus the pages reached from a card (the game preview), which the site-wide rules cover and the nav rules do not. */
+const PAGES = BOARDS.concat(["game.html"]);
 const src = (f) => readFileSync(resolve(DIR, f), "utf8");
 
 /*
@@ -60,7 +62,7 @@ const markup = (f) => src(f).replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "");
 const SHEET = "board.css";
 
 test("every board loads the one shared stylesheet, and none carries its own copy", () => {
-  for (const f of BOARDS) {
+  for (const f of PAGES) {
     const s = src(f);
     assert.match(s, /<link rel="stylesheet" href="board\.css">/, `${f} does not load ${SHEET}`);
     assert.doesNotMatch(s, /:root\s*\{/, `${f} defines its own :root tokens; they live in ${SHEET}`);
@@ -89,7 +91,7 @@ test("every board neutralises the hidden-attribute override", () => {
 
 test("nothing re-introduces a display rule that could outrank it", () => {
   // The !important above wins, but only while nothing else is !important.
-  for (const f of BOARDS) {
+  for (const f of PAGES) {
     const bad = src(f).match(/\.(ctl|controls)[^{]*\{[^}]*display\s*:[^;}]*!important/g);
     assert.equal(
       bad, null,
@@ -202,7 +204,7 @@ test("a destination has ONE name everywhere it is linked", () => {
 
 test("every board states which board it is", () => {
   /* The home is the one page with no tagline: the root is the home, and no "Home" link is missing from its nav. */
-  for (const f of BOARDS.filter((b) => b !== "index.html")) {
+  for (const f of PAGES.filter((b) => b !== "index.html")) {
     const s = src(f);
     const hasStatic = /class="tagline"[^>]*>[^<]*\S[^<]*</.test(s);
     const hasDynamic = /tagline'\)\.textContent\s*=\s*'[A-Z]/.test(s);
@@ -219,7 +221,7 @@ test("every board states which board it is", () => {
  * ------------------------------------------------------------------ */
 
 test("every script and stylesheet a board loads actually exists", () => {
-  for (const f of BOARDS) {
+  for (const f of PAGES) {
     const s = src(f);
     const refs = [
       ...[...s.matchAll(/<script src="([^"]+)"/g)].map((m) => m[1]),
@@ -233,7 +235,7 @@ test("every script and stylesheet a board loads actually exists", () => {
 });
 
 test("no board defines the same id twice", () => {
-  for (const f of BOARDS) {
+  for (const f of PAGES) {
     const ids = [...markup(f).matchAll(/\sid="([^"]+)"/g)].map((m) => m[1]);
     const dupes = ids.filter((id, i) => ids.indexOf(id) !== i);
     assert.deepEqual(
@@ -1441,7 +1443,7 @@ test("index.html is the home: the two-board switch, the week line, the game scro
   for (const gone of ["hero", "bstrip", "tops", "topsec", "gcards", "slate"]) assert.doesNotMatch(m, new RegExp('id="' + gone + '"'), "the old home's #" + gone + " is still on the page");
   // The nav: the two boards as a switch, then the three pages a bettor keeps open, with a count where there is one; the research pages are linked from their sections, not the nav.
   assert.match(m, /<nav class="mnav"[\s\S]*class="prim"[\s\S]*href="nfl\.html"[\s\S]*href="baseball\.html"[\s\S]*class="sec"[\s\S]*href="bets\.html"[\s\S]*id="betsn"[\s\S]*href="live\.html"[\s\S]*id="liven"[\s\S]*href="record\.html"/, "the nav is not the two-board switch with Bets, Live and Record");
-  for (const page of BOARDS.filter((b) => b !== "index.html")) assert.doesNotMatch(src(page), /id="(betsn|liven)"/, page + " carries the home's count badges with no script to fill them");
+  for (const page of PAGES.filter((b) => b !== "index.html")) assert.doesNotMatch(src(page), /id="(betsn|liven)"/, page + " carries the home's count badges with no script to fill them");
   assert.doesNotMatch(m, /class="navlink"/, "the home still carries the boards' link row");
   for (const f of ["teams.html", "defence.html", "offence.html", "consistency.html", "parlays.html"]) assert.match(m, new RegExp('href="' + f.replace(".", "\\.") + '"'), "the home no longer links " + f);
   assert.doesNotMatch(html, /fonts\.googleapis|https?:\/\/[^"]*\.(js|css)"/, "an off-origin script or sheet");
@@ -1468,7 +1470,7 @@ test("the baseball board kept its page under its new name, and every board calls
   const b = src("baseball.html");
   assert.match(b, /<title>BetHouse — Baseball<\/title>/);
   assert.match(b, /BETHOUSE_MLB|mlb-data\.js/);
-  for (const page of BOARDS) assert.ok(NAV_LINKS(page).some((l) => l.href === "index.html" && l.label === "Home"), page + " links Home");
+  for (const page of PAGES) assert.ok(NAV_LINKS(page).some((l) => l.href === "index.html" && l.label === "Home"), page + " links Home");
 });
 
 /* ------------------------------------------------------------------ *
@@ -1488,7 +1490,7 @@ test("faces.js is the only file that writes an <img>, its markup carries the hou
   for (const attr of [/referrerpolicy="no-referrer"/, /onerror="this\.hidden=true"/, /loading="lazy"/, /decoding="async"/, /alt="/, /width="/, /height="/]) {
     assert.match(imgs[0], attr, "the img markup lacks " + attr);
   }
-  for (const page of BOARDS.concat(["football-board.js", "home.js", "live.js", "bets.js", "watchlist.js"])) {
+  for (const page of PAGES.concat(["football-board.js", "home.js", "live.js", "bets.js", "watchlist.js"])) {
     assert.doesNotMatch(src(page), /<img/, page + " hand-rolls an <img> instead of asking faces.js");
     // Any url in the page that names an image host must be one of the two leagues' services.
     for (const url of src(page).match(/https?:\/\/[^"'\s)]+/g) || []) {
@@ -1497,7 +1499,7 @@ test("faces.js is the only file that writes an <img>, its markup carries the hou
     }
   }
   // The record page prints no player and no team, so it has no faces to load.
-  for (const page of BOARDS.filter((p) => p !== "record.html")) assert.match(src(page), /<script src="faces\.js"><\/script>/, page + " does not load faces.js");
+  for (const page of PAGES.filter((p) => p !== "record.html")) assert.match(src(page), /<script src="faces\.js"><\/script>/, page + " does not load faces.js");
   const hosts = faces.match(/https:\/\/[a-z0-9.-]+/g) || [];
   assert.deepEqual([...new Set(hosts)].sort(), ["https://a.espncdn.com", "https://img.mlbstatic.com"], "faces.js names a host that is not a league's");
 });
@@ -1973,7 +1975,7 @@ test("record.html: a section for the football league with its replay table and a
   }
   for (const f of ["nfl.html"]) assert.match(src(f), new RegExp("league: '(" + ["NFL"].join("|") + ")'"), f + " names a league the anchor map does not know");
   // Every other board offers the Record link (the nav test above checks the record page links every board).
-  for (const f of BOARDS) assert.ok(NAV_LINKS(f).some((l) => l.href === "record.html" && l.label === "Record"), f + " has no Record link");
+  for (const f of PAGES) assert.ok(NAV_LINKS(f).some((l) => l.href === "record.html" && l.label === "Record"), f + " has no Record link");
 });
 
 test("the stylesheet carries the chips line, the why list, the how list and the record panels", () => {
@@ -2321,7 +2323,7 @@ test("the teams page's panel scrolls sideways inside itself, the team cell stick
  * and DESIGN.md's one-accent rule.
  * ------------------------------------------------------------------ */
 test("the board switch carries a season dot on every page: after the label, hidden until nav.js reads the calendar", async () => {
-  for (const f of BOARDS) {
+  for (const f of PAGES) {
     assert.match(NAV(f), /<a href="nfl\.html"[^>]*>NFL<i class="dot" hidden><\/i><\/a><a href="baseball\.html"[^>]*>Baseball<i class="dot" hidden><\/i><\/a>/, f + ": the switch has no season dots after the labels");
   }
   const js = src("nav.js");
@@ -2370,4 +2372,35 @@ test("pills are outlined: a tint and a coloured border in the measured colour, n
     assert.doesNotMatch(rule[1], /color:var\(--ink\)/, ".pill." + c + " is a solid fill with ink text");
     assert.match(rule[1], /color-mix\(in srgb,var\(--(good|bad|warn)\)/, ".pill." + c + " has no tint of its colour");
   }
+});
+
+/* ------------------------------------------------------------------ *
+ * The game preview (2026-10-21): a home card opens game.html?id=…,
+ * which draws what the boards already know about the two teams through
+ * the modules that already draw it. Oracles: game-page.test.mjs for the
+ * arithmetic; here the page's shell and the home's link.
+ * ------------------------------------------------------------------ */
+test("game.html is the preview: the one nav with nothing current, the hosts in order, every module it reads loaded before it, the home's football cards linking it", () => {
+  const html = src("game.html"), m = markup("game.html");
+  const links = NAV_LINKS("game.html");
+  assert.deepEqual([...new Set(links.map((l) => l.href))].sort(), [...BOARDS].sort(), "the preview's nav does not link every nav page");
+  assert.ok(PAGES.includes("game.html") && !BOARDS.includes("game.html"), "the preview is a page the site-wide rules cover and the nav does not link");
+  assert.deepEqual(links.filter((l) => l.current), [], "the preview marks a nav page current, and it is none of them");
+  assert.match(m, /<nav class="mnav"[\s\S]*<a href="nfl\.html">NFL<i class="dot" hidden><\/i><\/a>/, "no season dot on the switch");
+  assert.match(html, /<script src="nav\.js"><\/script>/);
+  assert.match(m, /id="ghead"[\s\S]*id="ratingssec"[\s\S]*id="ratings"[\s\S]*id="matchupsec"[\s\S]*id="matchup"[\s\S]*id="cheatsec"[\s\S]*id="cheat"[\s\S]*id="conssec"[\s\S]*id="cons"[\s\S]*id="gfoot"/, "the hosts are not in order");
+  for (const s of ["ratingssec", "matchupsec", "cheatsec", "conssec"]) assert.match(m, new RegExp('<section id="' + s + '" hidden>'), s + " is not shipped hidden, so an empty section paints a heading");
+  const order = ["faces.js", "teams-data.js", "teams.js", "nfl.js", "nfl-data.js", "tendencies-data.js", "tendencies-core.js", "teams-page.js", "sheet-page.js", "consistency-page.js", "game-page.js"];
+  let at = -1;
+  for (const s of order) { const i = html.indexOf('<script src="' + s + '"></script>'); assert.ok(i > at, "game.html does not load " + s + " after what precedes it"); at = i; }
+  for (const k of ["id: new URLSearchParams(location.search).get('id')", "teamsPage: window.BetHouseTeamsPage || null", "sheetPage: window.BetHouseSheetPage || null", "consistencyPage: window.BetHouseConsistency || null", "core: window.BetHouseTendencyCore || null"]) assert.ok(html.includes(k), "the page does not hand over " + k);
+  assert.match(html, /\} catch \(e\) \{/, "a fault leaves the page on Loading… forever");
+  assert.doesNotMatch(html, /fonts\.googleapis|https?:\/\/[^"]*\.(js|css)"/, "an off-origin script or sheet");
+  // Every section head wears the home's kicker-then-heading; the shell's copy names no price.
+  for (const h of [...m.matchAll(/<div class="shead">(<h2[\s\S]*?<\/h2>)<div class="gmeta">/g)]) assert.match(h[1], /^<h2 class="gtitle"><span class="kick">[^<]+<\/span> [^<]+<\/h2>$/, "a section head without a kicker: " + h[1].slice(0, 60));
+  assert.doesNotMatch(m, /fair price|odds/i, "the preview's shell names a price");
+  // The home: a football card opens the preview, a baseball card its board; the preview's URL is home.js's.
+  assert.match(src("index.html"), /href="'\+esc\(g\.preview\|\|g\.board\)\+'"/, "the card does not open the preview when the game has one");
+  assert.match(src("home.js"), /preview: g\.id != null && g\.id !== "" \? "game\.html\?id=" \+ encodeURIComponent\(String\(g\.id\)\) : undefined/, "the preview URL is not built from the game's id, or a game without one still gets a link");
+  assert.match(src(SHEET), /\.mulist li\{/, "no rule for the matchup sentences");
 });

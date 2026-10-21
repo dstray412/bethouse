@@ -15,7 +15,7 @@ node provenance.mjs || { echo "   ^ pull before trusting any number this run pri
 # pull in the backtests and fire live API calls. Kept in a variable because the
 # echo and the run had drifted apart once already, and tasks/lessons.md is
 # explicit that two copies of the same rule will disagree.
-TESTS="score.test.mjs nfl.test.mjs parlay.test.mjs nflverse.test.mjs tendencies.test.mjs statcast.test.mjs bets.test.mjs track.test.mjs provenance.test.mjs watchlist.test.mjs live.test.mjs home.test.mjs faces.test.mjs enrich-nfl.test.mjs chips.test.mjs record-page.test.mjs teams.test.mjs compare-td.test.mjs teams-page.test.mjs fetch-weather.test.mjs sheet-page.test.mjs consistency-page.test.mjs parlay-page.test.mjs dom.test.mjs"
+TESTS="score.test.mjs nfl.test.mjs parlay.test.mjs nflverse.test.mjs tendencies.test.mjs statcast.test.mjs bets.test.mjs track.test.mjs provenance.test.mjs watchlist.test.mjs live.test.mjs home.test.mjs faces.test.mjs enrich-nfl.test.mjs chips.test.mjs record-page.test.mjs teams.test.mjs compare-td.test.mjs teams-page.test.mjs fetch-weather.test.mjs sheet-page.test.mjs consistency-page.test.mjs parlay-page.test.mjs game-page.test.mjs dom.test.mjs"
 echo "== tests: node --test $TESTS =="
 # shellcheck disable=SC2086  # word splitting is the point
 node --test $TESTS || fail=1

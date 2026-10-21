@@ -169,7 +169,8 @@
     var left=stateWord(g)||(g.sport==='football'?(fav?esc(fav):(card?'pick \'em':esc(g.league))):lineupWord(g));
     /* The two teams' colours as a stripe along the top (teams.js): a background, never a text colour. */
     var stripe=T?T.stripe(g.league,g.awayKey,g.homeKey):'';
-    h+='<a class="gcard mini '+esc(g.state)+'" href="'+esc(g.board)+'" aria-label="Open the '+esc(g.league)+' board: '+esc(g.away)+' at '+esc(g.home)+'">'+(stripe?'<span class="gstripe" style="background:'+esc(stripe)+'"></span>':'')+
+    /* A football card opens the game's preview (ratings, matchup, sheet, consistency); a baseball card opens its board. */
+    h+='<a class="gcard mini '+esc(g.state)+'" href="'+esc(g.preview||g.board)+'" aria-label="'+(g.preview?'Preview '+esc(g.away)+' at '+esc(g.home):'Open the '+esc(g.league)+' board: '+esc(g.away)+' at '+esc(g.home))+'">'+(stripe?'<span class="gstripe" style="background:'+esc(stripe)+'"></span>':'')+
       '<span class="t">'+sideHtml(g,'away',card)+'<span class="at">at</span>'+sideHtml(g,'home',card)+'</span>'+
       '<span class="m"><span>'+left+'</span><span class="gtime">'+esc(H.clock(g.start))+'</span></span></a>';
   });

@@ -34,7 +34,28 @@ Zero dependencies, no build step, no server, no API key. `node --test` with
 **named files** — bare discovery pulls in the backtests, which fire live API
 calls. The list lives in six places and `dom.test.mjs` checks all six.
 
-## Four takeaways from xep.ai (2026-10-21, latest)
+## The game preview (2026-10-21, latest)
+
+The user: a home game card should open a preview with the offence and
+defence ratings and the consistency for that game. Shipped `game.html`
+(`?id=<ESPN game id>`) and `game-page.js` (UMD, `BetHouseGamePage`:
+`find`, `players`, `headHtml`, `ratingsHtml`, `matchupHtml`, `cheatHtml`,
+`consistencyHtml`, `render`; `game-page.test.mjs`, in all five gates).
+Every section is the module that already draws it, handed the game:
+`teams-page.js` `rows`/`tableHtml` filtered to the two teams (ranks stay
+among the 32; a column head re-sorts its table through one listener on
+`#ratings`), `tendencies-core.js` `matchup`/`describe` for the families
+past `SOFT_EPA`/`LEAN_SHARE` (the board's `.mfam` grid is NOT reused: it
+lives inside football-board.js; the preview prints sentences instead),
+`sheet-page.js` `listHtml`, `consistency-page.js` `rows`/`cardHtml` over
+`players(data, game)`. `home.js` football entries carry `preview`;
+`index.html` cards use `g.preview||g.board` with a "Preview X at Y"
+label. `game.html` is not in `BOARDS` (nothing in the nav links it); it
+carries the nav with nothing current and `dom.test.mjs` pins the shell.
+Baseball cards still open the board. Not done: the NFL board's game
+rows do not link the preview yet.
+
+## Four takeaways from xep.ai (2026-10-21)
 
 The user asked for a review of xep.ai, then said "do this" to four of its
 moves. Shipped: a **season dot** on the board switch on every page

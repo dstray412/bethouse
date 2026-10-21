@@ -623,6 +623,20 @@ button.rung:hover{border-color:var(--rule)}
 .vocab b{display:block;font-family:var(--display);font-size:18px;font-weight:700;margin-bottom:4px}
 .vocab p{margin:0;color:var(--muted);font-size:14px;line-height:1.55}
 .vocab p .n{font-family:var(--mono);color:var(--text);font-variant-numeric:tabular-nums}
+/* The game preview (game.html): the week line as its head (kicker, then the heading with the venue beside it, then the sentence), the two marks in the heading; the matchup in sentences; a breath between the panels and the next kicker. */
+.week.gphead{flex-direction:column;align-items:flex-start;gap:6px;margin-bottom:22px}
+.week.gphead h2{display:flex;align-items:center}
+#matchup .mu,#cheat .mu.cheat{margin-bottom:26px}
+.week.gphead h2 .tmark{width:28px;height:28px;vertical-align:-4px;margin-right:8px}
+.week.gphead h2 .at{font-family:var(--label);font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 12px 0 6px}
+.week.gphead .venue{font-size:14px;color:var(--muted)}
+.grate{margin-bottom:14px}
+.grate .ghead{padding:10px 14px 0}
+.mulist{list-style:none;margin:6px 0 0;padding:0}
+.mulist li{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 8px;padding:7px 0;border-top:1px solid var(--line);font-size:14px;line-height:1.5}
+.mulist li:first-child{border-top:0}
+.mulist li b{font-family:var(--display);font-weight:600;color:var(--text)}
+.mulist li>span:last-child{flex:1 0 100%;color:var(--muted)}
 .gscroll{display:flex;gap:10px;overflow-x:auto;padding:2px 2px 10px;margin:0 -2px 6px;scroll-snap-type:x mandatory;scrollbar-width:thin}
 .gscroll .gcard{flex:0 0 190px;scroll-snap-align:start;padding:12px 12px 10px;text-decoration:none;color:inherit;display:block}
 .gscroll .gcard:hover{background:var(--surface2)}

@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Game preview · BetHouse</title>
+<meta name="referrer" content="no-referrer">
+<link rel="stylesheet" href="board.css">
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="brand">
+    <h1 class="logo">BETHOUSE</h1>
+    <div class="tagline">NFL game preview</div>
+    <!-- The one nav every page carries; this page is reached from a home card, not the nav, so nothing here is current. -->
+    <nav class="mnav" aria-label="Boards">
+      <span class="prim"><a href="nfl.html">NFL<i class="dot" hidden></i></a><a href="baseball.html">Baseball<i class="dot" hidden></i></a></span>
+      <span class="sec"><a href="index.html">Home</a><a href="bets.html">Bets</a><a href="live.html">Live</a><a href="record.html">Record</a></span>
+      <details class="research"><summary>Research</summary><div><a href="teams.html">Teams</a><a href="defence.html">Defences</a><a href="offence.html">Offences</a><a href="consistency.html">Consistency</a><a href="parlays.html">Parlays</a></div></details>
+    </nav>
+  </div>
+</header>
+
+<div id="ghead"><div class="empty"><div class="big">Loading…</div></div></div>
+
+<section id="ratingssec" hidden>
+  <div class="shead"><h2 class="gtitle"><span class="kick">Ratings</span> Offence and defence, with their places among the 32</h2><div class="gmeta">the teams page's numbers for these two · press a column head to sort · <a class="open" href="teams.html">Every team →</a></div></div>
+  <div id="ratings"></div>
+</section>
+<section id="matchupsec" hidden>
+  <div class="shead"><h2 class="gtitle"><span class="kick">Matchup</span> Each offence against the defence it faces</h2><div class="gmeta">the play families either side leans into or gives up, past the league</div></div>
+  <div id="matchup"></div>
+</section>
+<section id="cheatsec" hidden>
+  <div class="shead"><h2 class="gtitle"><span class="kick">Cheat sheet</span> What each side has allowed or done most</h2><div class="gmeta"><b>D</b> the defence, <b>O</b> the offence · the top five of the league · <a class="open" href="defence.html">Defences →</a> <a class="open" href="offence.html">Offences →</a></div></div>
+  <div id="cheat"></div>
+</section>
+<section id="conssec" hidden>
+  <div class="shead"><h2 class="gtitle"><span class="kick">Consistency</span> Who has cleared his line most in his last ten</h2><div class="gmeta">this season and last, at a line the board projects · six hits or better, five a card · a count, not a chance: the chance is in his drawer on the <a class="open" href="nfl.html">NFL board →</a></div></div>
+  <div id="cons"></div>
+</section>
+
+<footer id="gfoot"></footer>
+</div>
+
+<!-- The modules whose numbers this page shows, then the data they read, then this page's module. -->
+<script src="faces.js"></script>
+<script src="teams-data.js"></script>
+<script src="teams.js"></script>
+<script src="nfl.js"></script>
+<script src="nfl-data.js"></script>
+<script src="tendencies-data.js"></script>
+<script src="tendencies-core.js"></script>
+<script src="teams-page.js"></script>
+<script src="sheet-page.js"></script>
+<script src="consistency-page.js"></script>
+<script src="game-page.js"></script>
+<script>
+(function () {
+  try {
+    BetHouseGamePage.render(document, {
+      id: new URLSearchParams(location.search).get('id'),
+      data: window.BetHouseNFLData || null,
+      model: window.BetHouseNFL || null,
+      tend: window.BetHouseTendencies || null,
+      core: window.BetHouseTendencyCore || null,
+      teamsPage: window.BetHouseTeamsPage || null,
+      sheetPage: window.BetHouseSheetPage || null,
+      consistencyPage: window.BetHouseConsistency || null,
+      faces: window.BetHouseFaces || null,
+      teams: window.BetHouseTeams || null,
+      league: 'NFL'
+    });
+  } catch (e) {
+    /* A fault leaves a plain message, never "Loading…" forever. */
+    document.getElementById('ghead').innerHTML = '<div class="empty"><div class="big">The page could not read the board</div><div>' + String(e && e.message || e).replace(/[&<>]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]; }) + '</div></div>';
+  }
+})();
+</script>
+<script src="nav.js"></script>
+</body>
+</html>

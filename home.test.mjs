@@ -151,3 +151,16 @@ test("saidHit: said and hit across the records' props, weighted by graded calls;
   assert.equal(H.saidHit(), null);
   assert.deepEqual(H.saidHit([{ props: { a: { n: 10, predicted: 30, actual: 31 }, b: { n: 5, predicted: "x", actual: 1 } } }]), { n: 10, said: 30, hit: 31 }, "a malformed prop is skipped, not counted");
 });
+
+test("slate: a football game carries its preview page, a baseball game does not", () => {
+  const s = H.normalise({ nfl: NFL, mlb: MLB }, NOW);
+  for (const g of s) {
+    if (g.sport === "football") assert.equal(g.preview, "game.html?id=" + encodeURIComponent(g.raw.id), "a football game without its preview");
+    else assert.equal("preview" in g, false, "a baseball game with a preview it has no page for");
+  }
+});
+
+test("slate: a football game without an id gets no preview, so the card falls back to the board", () => {
+  const s = H.normalise({ nfl: { games: [{ date: "2026-10-02T00:15Z", home: "CLE", away: "PIT", completed: false }] } }, NOW);
+  assert.equal(s.length, 1); assert.equal(s[0].preview, undefined); assert.equal(s[0].board, "nfl.html");
+});

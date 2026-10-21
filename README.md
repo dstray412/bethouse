@@ -606,6 +606,38 @@ beside the parlay of the day, and the research pages as tabs.
   `TODO(simplify)` to have the fetcher write a small slate file if that
   ever drags.
 
+## The game preview
+
+**2026-10-21.** A football card on the home opens `game.html?id=<ESPN game id>`:
+one page with what the boards already know about the two teams, each
+section handed to the module that already draws it, so no number is
+derived twice (`game-page.js`, tested in `game-page.test.mjs`).
+
+- **The head**: the week line's own pattern. Week, day and kickoff; the
+  matchup with the two marks; the venue; one sentence with the model's
+  projection (`projectGame`, the favourite's margin and win chance) beside
+  the market's spread and total as numbers, never a price, and the
+  replay's verdict that neither beats the market.
+- **Ratings**: the teams page's two tables (`teams-page.js`) for these
+  two teams only, every rank still among the 32 ("4th of 32"); a column
+  head re-sorts its own table.
+- **Matchup**: each offence against the defence it faces, the families
+  either side leans into or gives up past the core's thresholds
+  (`tendencies-core.js`'s `matchup`), each in the core's own sentence
+  with the board's soft / stout / leans in / avoids tags.
+- **Cheat sheet**: every top-five line for both sides from the two sheets,
+  tagged D or O (`sheet-page.js`'s `listHtml`), as the board's drawer
+  shows it.
+- **Consistency**: a card a rung for the game's players only, five a card,
+  only the rungs with somebody (`consistency-page.js`'s `rows` and
+  `cardHtml`).
+
+A section whose module or data did not load is hidden, not empty; an id
+the file does not have is a plain message with a way back. The page
+carries the one nav with nothing marked current, since nothing in the nav
+leads to it. A baseball card still opens the baseball board: there is no
+team profile or consistency log behind baseball.
+
 ## Live
 
 **2026-09-29.** `live.html` watches the props you are tracking while
