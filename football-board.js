@@ -820,7 +820,9 @@
       app.innerHTML=html+'</div>';
       app.__rows=rows; app.__ladder=null; app.__bands=null; app.__over=null;
       app.__detail=function(r){
-        var t='<table>';
+        /* The game's preview page (2026-10-21): the ratings, the matchup, the sheet and the consistency on one page. First, as the Track row is on a player. */
+        var t=r.g&&r.g.id!=null&&r.g.id!==''?actRow('<a class="open" href="game.html?id='+esc(encodeURIComponent(String(r.g.id)))+'">Game preview: ratings, matchup, cheat sheet, consistency →</a>'):'';
+        t+='<table>';
         t+='<tr><td>projection</td><td><b>'+esc(r.h)+' '+r.pr.homePts.toFixed(1)+
           '</b> — <b>'+esc(r.a)+' '+r.pr.awayPts.toFixed(1)+'</b> · margin <b>'+(r.pr.margin>=0?'+':'')+r.pr.margin.toFixed(1)+
           '</b> to the home side'+(r.g.neutral?' (neutral site, no home field)':'')+' · total <b>'+r.pr.total.toFixed(1)+'</b></td></tr>';

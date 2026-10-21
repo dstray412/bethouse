@@ -632,8 +632,10 @@ derived twice (`game-page.js`, tested in `game-page.test.mjs`).
   only the rungs with somebody (`consistency-page.js`'s `rows` and
   `cardHtml`).
 
-A section whose module or data did not load is hidden, not empty; an id
-the file does not have is a plain message with a way back. The page
+The NFL board's game view reaches it too: a game row's drawer opens with
+a link to the preview above its table. A section whose module or data
+did not load is hidden, not empty; an id the file does not have is a
+plain message with a way back. The page
 carries the one nav with nothing marked current, since nothing in the nav
 leads to it. A baseball card still opens the baseball board: there is no
 team profile or consistency log behind baseball.

@@ -52,8 +52,9 @@ lives inside football-board.js; the preview prints sentences instead),
 `index.html` cards use `g.preview||g.board` with a "Preview X at Y"
 label. `game.html` is not in `BOARDS` (nothing in the nav links it); it
 carries the nav with nothing current and `dom.test.mjs` pins the shell.
-Baseball cards still open the board. Not done: the NFL board's game
-rows do not link the preview yet.
+Baseball cards still open the board. The NFL board's game rows link
+it too: a game row's drawer opens with a `.dact` link to the preview
+(`app.__detail` in the game view; a game without an id gets none).
 
 ## Four takeaways from xep.ai (2026-10-21)
 

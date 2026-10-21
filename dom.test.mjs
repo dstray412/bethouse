@@ -2404,3 +2404,13 @@ test("game.html is the preview: the one nav with nothing current, the hosts in o
   assert.match(src("home.js"), /preview: g\.id != null && g\.id !== "" \? "game\.html\?id=" \+ encodeURIComponent\(String\(g\.id\)\) : undefined/, "the preview URL is not built from the game's id, or a game without one still gets a link");
   assert.match(src(SHEET), /\.mulist li\{/, "no rule for the matchup sentences");
 });
+
+test("a game row's drawer opens with a link to the game's preview, built from the game's id; a game without one has no link", async () => {
+  const { app, panelFor } = await mountBoard({ tendencies: TENDENCIES, games: GAMES.concat([{ home: "DEN", away: "LV", date: "2030-01-03T00:00Z", completed: false }]), ratings: RATINGS });
+  const i = app.__rows.findIndex((r) => r.g && r.g.id === "g1");
+  assert.match(panelFor(i), /^<div class="dact"><a class="open" href="game\.html\?id=g1">Game preview[^<]*→<\/a><\/div><table>/, "the game drawer does not open with the preview link");
+  const hostile = app.__rows.find((r) => r.g && !r.g.id);
+  assert.ok(hostile, "the fixture's id-less game is not on the board");
+  assert.doesNotMatch(panelFor(app.__rows.indexOf(hostile)), /game\.html/, "a game without an id links a preview that cannot find it");
+  assert.match(src("football-board.js"), /encodeURIComponent\(String\(r\.g\.id\)\)/, "the id is not URL-encoded on its way into the href");
+});
