@@ -32871,6 +32871,65 @@
     "recsVac": 0.5,
     "rushrecVac": 0.75
    }
+  },
+  {
+   "gameId": "401873029",
+   "playerId": "4603186",
+   "name": "Jack Bech",
+   "team": "LV",
+   "opp": "NYJ",
+   "prop": "td",
+   "prob": 0.1207,
+   "kickoff": "2026-11-01T18:00Z",
+   "recordedAt": "2026-11-01T17:56:36.481Z",
+   "model": {
+    "tdDecay": 0.97,
+    "tdRz": 0,
+    "tdScript": 0,
+    "yardDecay": 0.88,
+    "rushDecay": 0.97,
+    "rushrecDecay": 0.9,
+    "tdVac": 0.75,
+    "yardVac": 0.5,
+    "rushVac": 0,
+    "recsVac": 0.5,
+    "rushrecVac": 0.75
+   }
+  },
+  {
+   "gameId": "401873029",
+   "playerId": "4603186",
+   "name": "Jack Bech",
+   "team": "LV",
+   "opp": "NYJ",
+   "prop": "recyds",
+   "line": 22.5,
+   "prob": 0.3793,
+   "ladder": {
+    "10": 0.6684,
+    "20": 0.439,
+    "25": 0.3472,
+    "30": 0.2715,
+    "40": 0.1604,
+    "50": 0.0959,
+    "60": 0.0547,
+    "70": 0.0284
+   },
+   "kickoff": "2026-11-01T18:00Z",
+   "recordedAt": "2026-11-01T17:56:36.481Z",
+   "model": {
+    "tdDecay": 0.97,
+    "tdRz": 0,
+    "tdScript": 0,
+    "yardDecay": 0.88,
+    "rushDecay": 0.97,
+    "rushrecDecay": 0.9,
+    "tdVac": 0.75,
+    "yardVac": 0.5,
+    "rushVac": 0,
+    "recsVac": 0.5,
+    "rushrecVac": 0.75
+   }
   }
  ],
  "graded": false,
