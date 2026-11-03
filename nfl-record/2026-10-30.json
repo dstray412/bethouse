@@ -11425,7 +11425,8 @@
     "rushVac": 0,
     "recsVac": 0.5,
     "rushrecVac": 0.75
-   }
+   },
+   "scratched": true
   },
   {
    "gameId": "401873036",
@@ -11461,7 +11462,8 @@
     "rushVac": 0,
     "recsVac": 0.5,
     "rushrecVac": 0.75
-   }
+   },
+   "scratched": true
   },
   {
    "gameId": "401873036",
@@ -11495,7 +11497,8 @@
     "rushVac": 0,
     "recsVac": 0.5,
     "rushrecVac": 0.75
-   }
+   },
+   "scratched": true
   },
   {
    "gameId": "401873036",
@@ -11533,7 +11536,8 @@
     "rushVac": 0,
     "recsVac": 0.5,
     "rushrecVac": 0.75
-   }
+   },
+   "scratched": true
   },
   {
    "gameId": "401873027",
@@ -17994,6 +17998,14 @@
     "rushVac": 0,
     "recsVac": 0.5,
     "rushrecVac": 0.75
+   },
+   "actual": 0,
+   "result": {
+    "td": 0,
+    "recYds": 0,
+    "rushYds": 20,
+    "passYds": 188,
+    "recs": 0
    }
   },
   {
@@ -18031,6 +18043,14 @@
     "rushVac": 0,
     "recsVac": 0.5,
     "rushrecVac": 0.75
+   },
+   "actual": 0,
+   "result": {
+    "td": 0,
+    "recYds": 0,
+    "rushYds": 20,
+    "passYds": 188,
+    "recs": 0
    }
   },
   {
@@ -18055,6 +18075,14 @@
     "rushVac": 0,
     "recsVac": 0.5,
     "rushrecVac": 0.75
+   },
+   "actual": 0,
+   "result": {
+    "td": 0,
+    "recYds": 6,
+    "rushYds": 23,
+    "passYds": 0,
+    "recs": 3
    }
   },
   {
@@ -18094,6 +18122,14 @@
     "rushVac": 0,
     "recsVac": 0.5,
     "rushrecVac": 0.75
+   },
+   "actual": 0,
+   "result": {
+    "td": 0,
+    "recYds": 6,
+    "rushYds": 23,
+    "passYds": 0,
+    "recs": 3
    }
   },
   {
@@ -18134,6 +18170,14 @@
     "rushVac": 0,
     "recsVac": 0.5,
     "rushrecVac": 0.75
+   },
+   "actual": 0,
+   "result": {
+    "td": 0,
+    "recYds": 6,
+    "rushYds": 23,
+    "passYds": 0,
+    "recs": 3
    }
   },
   {
@@ -18371,6 +18415,14 @@
     "rushVac": 0,
     "recsVac": 0.5,
     "rushrecVac": 0.75
+   },
+   "actual": 0,
+   "result": {
+    "td": 0,
+    "recYds": 23,
+    "rushYds": 0,
+    "passYds": 0,
+    "recs": 2
    }
   },
   {
@@ -18408,6 +18460,14 @@
     "rushVac": 0,
     "recsVac": 0.5,
     "rushrecVac": 0.75
+   },
+   "actual": 0,
+   "result": {
+    "td": 0,
+    "recYds": 23,
+    "rushYds": 0,
+    "passYds": 0,
+    "recs": 2
    }
   },
   {
@@ -18442,6 +18502,14 @@
     "rushVac": 0,
     "recsVac": 0.5,
     "rushrecVac": 0.75
+   },
+   "actual": 0,
+   "result": {
+    "td": 0,
+    "recYds": 23,
+    "rushYds": 0,
+    "passYds": 0,
+    "recs": 2
    }
   },
   {
@@ -18479,6 +18547,14 @@
     "rushVac": 0,
     "recsVac": 0.5,
     "rushrecVac": 0.75
+   },
+   "actual": 0,
+   "result": {
+    "td": 0,
+    "recYds": 23,
+    "rushYds": 0,
+    "passYds": 0,
+    "recs": 2
    }
   },
   {
@@ -18503,6 +18579,14 @@
     "rushVac": 0,
     "recsVac": 0.5,
     "rushrecVac": 0.75
+   },
+   "actual": 1,
+   "result": {
+    "td": 1,
+    "recYds": 118,
+    "rushYds": 0,
+    "passYds": 0,
+    "recs": 6
    }
   },
   {
@@ -18543,6 +18627,14 @@
     "rushVac": 0,
     "recsVac": 0.5,
     "rushrecVac": 0.75
+   },
+   "actual": 1,
+   "result": {
+    "td": 1,
+    "recYds": 118,
+    "rushYds": 0,
+    "passYds": 0,
+    "recs": 6
    }
   },
   {
@@ -18579,6 +18671,14 @@
     "rushVac": 0,
     "recsVac": 0.5,
     "rushrecVac": 0.75
+   },
+   "actual": 0,
+   "result": {
+    "td": 1,
+    "recYds": 118,
+    "rushYds": 0,
+    "passYds": 0,
+    "recs": 6
    }
   },
   {
@@ -18621,6 +18721,14 @@
     "rushVac": 0,
     "recsVac": 0.5,
     "rushrecVac": 0.75
+   },
+   "actual": 1,
+   "result": {
+    "td": 1,
+    "recYds": 118,
+    "rushYds": 0,
+    "passYds": 0,
+    "recs": 6
    }
   },
   {
@@ -18645,6 +18753,14 @@
     "rushVac": 0,
     "recsVac": 0.5,
     "rushrecVac": 0.75
+   },
+   "actual": 1,
+   "result": {
+    "td": 1,
+    "recYds": 7,
+    "rushYds": 0,
+    "passYds": 0,
+    "recs": 1
    }
   },
   {
@@ -18682,6 +18798,14 @@
     "rushVac": 0,
     "recsVac": 0.5,
     "rushrecVac": 0.75
+   },
+   "actual": 0,
+   "result": {
+    "td": 1,
+    "recYds": 7,
+    "rushYds": 0,
+    "passYds": 0,
+    "recs": 1
    }
   },
   {
@@ -18715,6 +18839,14 @@
     "rushVac": 0,
     "recsVac": 0.5,
     "rushrecVac": 0.75
+   },
+   "actual": 0,
+   "result": {
+    "td": 1,
+    "recYds": 7,
+    "rushYds": 0,
+    "passYds": 0,
+    "recs": 1
    }
   },
   {
@@ -18752,6 +18884,14 @@
     "rushVac": 0,
     "recsVac": 0.5,
     "rushrecVac": 0.75
+   },
+   "actual": 0,
+   "result": {
+    "td": 1,
+    "recYds": 7,
+    "rushYds": 0,
+    "passYds": 0,
+    "recs": 1
    }
   },
   {
@@ -19590,6 +19730,14 @@
     "rushVac": 0,
     "recsVac": 0.5,
     "rushrecVac": 0.75
+   },
+   "actual": 0,
+   "result": {
+    "td": 0,
+    "recYds": 14,
+    "rushYds": 39,
+    "passYds": 0,
+    "recs": 2
    }
   },
   {
@@ -19627,6 +19775,14 @@
     "rushVac": 0,
     "recsVac": 0.5,
     "rushrecVac": 0.75
+   },
+   "actual": 0,
+   "result": {
+    "td": 0,
+    "recYds": 14,
+    "rushYds": 39,
+    "passYds": 0,
+    "recs": 2
    }
   },
   {
@@ -19660,6 +19816,14 @@
     "rushVac": 0,
     "recsVac": 0.5,
     "rushrecVac": 0.75
+   },
+   "actual": 0,
+   "result": {
+    "td": 0,
+    "recYds": 14,
+    "rushYds": 39,
+    "passYds": 0,
+    "recs": 2
    }
   },
   {
@@ -19697,6 +19861,14 @@
     "rushVac": 0,
     "recsVac": 0.5,
     "rushrecVac": 0.75
+   },
+   "actual": 1,
+   "result": {
+    "td": 0,
+    "recYds": 14,
+    "rushYds": 39,
+    "passYds": 0,
+    "recs": 2
    }
   },
   {
@@ -20111,7 +20283,8 @@
     "rushVac": 0,
     "recsVac": 0.5,
     "rushrecVac": 0.75
-   }
+   },
+   "scratched": true
   },
   {
    "gameId": "401873036",
@@ -20149,7 +20322,8 @@
     "rushVac": 0,
     "recsVac": 0.5,
     "rushrecVac": 0.75
-   }
+   },
+   "scratched": true
   },
   {
    "gameId": "401873036",
@@ -20189,7 +20363,8 @@
     "rushVac": 0,
     "recsVac": 0.5,
     "rushrecVac": 0.75
-   }
+   },
+   "scratched": true
   },
   {
    "gameId": "401873023",
@@ -24402,6 +24577,14 @@
     "rushVac": 0,
     "recsVac": 0.5,
     "rushrecVac": 0.75
+   },
+   "actual": 0,
+   "result": {
+    "td": 0,
+    "recYds": 0,
+    "rushYds": 1,
+    "passYds": 247,
+    "recs": 0
    }
   },
   {
@@ -24436,6 +24619,14 @@
     "rushVac": 0,
     "recsVac": 0.5,
     "rushrecVac": 0.75
+   },
+   "actual": 0,
+   "result": {
+    "td": 0,
+    "recYds": 0,
+    "rushYds": 1,
+    "passYds": 247,
+    "recs": 0
    }
   },
   {
@@ -24472,6 +24663,14 @@
     "rushVac": 0,
     "recsVac": 0.5,
     "rushrecVac": 0.75
+   },
+   "actual": 1,
+   "result": {
+    "td": 0,
+    "recYds": 0,
+    "rushYds": 1,
+    "passYds": 247,
+    "recs": 0
    }
   },
   {
@@ -24507,6 +24706,14 @@
     "rushVac": 0,
     "recsVac": 0.5,
     "rushrecVac": 0.75
+   },
+   "actual": 0,
+   "result": {
+    "td": 0,
+    "recYds": 0,
+    "rushYds": 1,
+    "passYds": 247,
+    "recs": 0
    }
   },
   {
@@ -24531,6 +24738,14 @@
     "rushVac": 0,
     "recsVac": 0.5,
     "rushrecVac": 0.75
+   },
+   "actual": 1,
+   "result": {
+    "td": 3,
+    "recYds": 10,
+    "rushYds": 69,
+    "passYds": 0,
+    "recs": 2
    }
   },
   {
@@ -24566,6 +24781,14 @@
     "rushVac": 0,
     "recsVac": 0.5,
     "rushrecVac": 0.75
+   },
+   "actual": 0,
+   "result": {
+    "td": 3,
+    "recYds": 10,
+    "rushYds": 69,
+    "passYds": 0,
+    "recs": 2
    }
   },
   {
@@ -24606,6 +24829,14 @@
     "rushVac": 0,
     "recsVac": 0.5,
     "rushrecVac": 0.75
+   },
+   "actual": 1,
+   "result": {
+    "td": 3,
+    "recYds": 10,
+    "rushYds": 69,
+    "passYds": 0,
+    "recs": 2
    }
   },
   {
@@ -24639,6 +24870,14 @@
     "rushVac": 0,
     "recsVac": 0.5,
     "rushrecVac": 0.75
+   },
+   "actual": 0,
+   "result": {
+    "td": 3,
+    "recYds": 10,
+    "rushYds": 69,
+    "passYds": 0,
+    "recs": 2
    }
   },
   {
@@ -24681,6 +24920,14 @@
     "rushVac": 0,
     "recsVac": 0.5,
     "rushrecVac": 0.75
+   },
+   "actual": 1,
+   "result": {
+    "td": 3,
+    "recYds": 10,
+    "rushYds": 69,
+    "passYds": 0,
+    "recs": 2
    }
   },
   {
@@ -24942,6 +25189,14 @@
     "rushVac": 0,
     "recsVac": 0.5,
     "rushrecVac": 0.75
+   },
+   "actual": 0,
+   "result": {
+    "td": 0,
+    "recYds": 87,
+    "rushYds": 0,
+    "passYds": 0,
+    "recs": 4
    }
   },
   {
@@ -24982,6 +25237,14 @@
     "rushVac": 0,
     "recsVac": 0.5,
     "rushrecVac": 0.75
+   },
+   "actual": 1,
+   "result": {
+    "td": 0,
+    "recYds": 87,
+    "rushYds": 0,
+    "passYds": 0,
+    "recs": 4
    }
   },
   {
@@ -25017,6 +25280,14 @@
     "rushVac": 0,
     "recsVac": 0.5,
     "rushrecVac": 0.75
+   },
+   "actual": 1,
+   "result": {
+    "td": 0,
+    "recYds": 87,
+    "rushYds": 0,
+    "passYds": 0,
+    "recs": 4
    }
   },
   {
@@ -25057,6 +25328,14 @@
     "rushVac": 0,
     "recsVac": 0.5,
     "rushrecVac": 0.75
+   },
+   "actual": 1,
+   "result": {
+    "td": 0,
+    "recYds": 87,
+    "rushYds": 0,
+    "passYds": 0,
+    "recs": 4
    }
   },
   {
@@ -25081,6 +25360,14 @@
     "rushVac": 0,
     "recsVac": 0.5,
     "rushrecVac": 0.75
+   },
+   "actual": 0,
+   "result": {
+    "td": 0,
+    "recYds": 65,
+    "rushYds": 0,
+    "passYds": 0,
+    "recs": 7
    }
   },
   {
@@ -25120,6 +25407,14 @@
     "rushVac": 0,
     "recsVac": 0.5,
     "rushrecVac": 0.75
+   },
+   "actual": 1,
+   "result": {
+    "td": 0,
+    "recYds": 65,
+    "rushYds": 0,
+    "passYds": 0,
+    "recs": 7
    }
   },
   {
@@ -25155,6 +25450,14 @@
     "rushVac": 0,
     "recsVac": 0.5,
     "rushrecVac": 0.75
+   },
+   "actual": 1,
+   "result": {
+    "td": 0,
+    "recYds": 65,
+    "rushYds": 0,
+    "passYds": 0,
+    "recs": 7
    }
   },
   {
@@ -25194,6 +25497,14 @@
     "rushVac": 0,
     "recsVac": 0.5,
     "rushrecVac": 0.75
+   },
+   "actual": 1,
+   "result": {
+    "td": 0,
+    "recYds": 65,
+    "rushYds": 0,
+    "passYds": 0,
+    "recs": 7
    }
   },
   {
@@ -25218,7 +25529,8 @@
     "rushVac": 0,
     "recsVac": 0.5,
     "rushrecVac": 0.75
-   }
+   },
+   "scratched": true
   },
   {
    "gameId": "401873036",
@@ -25257,7 +25569,8 @@
     "rushVac": 0,
     "recsVac": 0.5,
     "rushrecVac": 0.75
-   }
+   },
+   "scratched": true
   },
   {
    "gameId": "401873036",
@@ -25298,7 +25611,8 @@
     "rushVac": 0,
     "recsVac": 0.5,
     "rushrecVac": 0.75
-   }
+   },
+   "scratched": true
   },
   {
    "gameId": "401873036",
@@ -25322,6 +25636,14 @@
     "rushVac": 0,
     "recsVac": 0.5,
     "rushrecVac": 0.75
+   },
+   "actual": 1,
+   "result": {
+    "td": 1,
+    "recYds": 56,
+    "rushYds": 0,
+    "passYds": 0,
+    "recs": 7
    }
   },
   {
@@ -25362,6 +25684,14 @@
     "rushVac": 0,
     "recsVac": 0.5,
     "rushrecVac": 0.75
+   },
+   "actual": 0,
+   "result": {
+    "td": 1,
+    "recYds": 56,
+    "rushYds": 0,
+    "passYds": 0,
+    "recs": 7
    }
   },
   {
@@ -25397,6 +25727,14 @@
     "rushVac": 0,
     "recsVac": 0.5,
     "rushrecVac": 0.75
+   },
+   "actual": 1,
+   "result": {
+    "td": 1,
+    "recYds": 56,
+    "rushYds": 0,
+    "passYds": 0,
+    "recs": 7
    }
   },
   {
@@ -25438,6 +25776,14 @@
     "rushVac": 0,
     "recsVac": 0.5,
     "rushrecVac": 0.75
+   },
+   "actual": 0,
+   "result": {
+    "td": 1,
+    "recYds": 56,
+    "rushYds": 0,
+    "passYds": 0,
+    "recs": 7
    }
   },
   {
@@ -25867,7 +26213,8 @@
     "rushVac": 0,
     "recsVac": 0.5,
     "rushrecVac": 0.75
-   }
+   },
+   "scratched": true
   },
   {
    "gameId": "401873030",
@@ -26497,6 +26844,14 @@
     "rushVac": 0,
     "recsVac": 0.5,
     "rushrecVac": 0.75
+   },
+   "actual": 0,
+   "result": {
+    "td": 0,
+    "recYds": 26,
+    "rushYds": 0,
+    "passYds": 0,
+    "recs": 3
    }
   },
   {
@@ -26532,6 +26887,14 @@
     "rushVac": 0,
     "recsVac": 0.5,
     "rushrecVac": 0.75
+   },
+   "actual": 1,
+   "result": {
+    "td": 0,
+    "recYds": 26,
+    "rushYds": 0,
+    "passYds": 0,
+    "recs": 3
    }
   },
   {
@@ -27586,6 +27949,14 @@
     "rushVac": 0,
     "recsVac": 0.5,
     "rushrecVac": 0.75
+   },
+   "actual": 0,
+   "result": {
+    "td": 0,
+    "recYds": 0,
+    "rushYds": 0,
+    "passYds": 0,
+    "recs": 0
    }
   },
   {
@@ -28126,7 +28497,8 @@
     "rushVac": 0,
     "recsVac": 0.5,
     "rushrecVac": 0.75
-   }
+   },
+   "scratched": true
   },
   {
    "gameId": "401873036",
@@ -28150,6 +28522,14 @@
     "rushVac": 0,
     "recsVac": 0.5,
     "rushrecVac": 0.75
+   },
+   "actual": 0,
+   "result": {
+    "td": 0,
+    "recYds": 0,
+    "rushYds": 9,
+    "passYds": 0,
+    "recs": 0
    }
   },
   {
@@ -28186,6 +28566,14 @@
     "rushVac": 0,
     "recsVac": 0.5,
     "rushrecVac": 0.75
+   },
+   "actual": 0,
+   "result": {
+    "td": 0,
+    "recYds": 0,
+    "rushYds": 9,
+    "passYds": 0,
+    "recs": 0
    }
   },
   {
@@ -28210,7 +28598,8 @@
     "rushVac": 0,
     "recsVac": 0.5,
     "rushrecVac": 0.75
-   }
+   },
+   "scratched": true
   },
   {
    "gameId": "401873024",
@@ -28868,7 +29257,8 @@
     "rushVac": 0,
     "recsVac": 0.5,
     "rushrecVac": 0.75
-   }
+   },
+   "scratched": true
   },
   {
    "gameId": "401873036",
@@ -28899,7 +29289,8 @@
     "rushVac": 0,
     "recsVac": 0.5,
     "rushrecVac": 0.75
-   }
+   },
+   "scratched": true
   },
   {
    "gameId": "401873027",
@@ -30613,6 +31004,14 @@
     "rushVac": 0,
     "recsVac": 0.5,
     "rushrecVac": 0.75
+   },
+   "actual": 0,
+   "result": {
+    "td": 0,
+    "recYds": 11,
+    "rushYds": 17,
+    "passYds": 0,
+    "recs": 1
    }
   },
   {
@@ -30646,6 +31045,14 @@
     "rushVac": 0,
     "recsVac": 0.5,
     "rushrecVac": 0.75
+   },
+   "actual": 0,
+   "result": {
+    "td": 0,
+    "recYds": 11,
+    "rushYds": 17,
+    "passYds": 0,
+    "recs": 1
    }
   },
   {
@@ -30683,6 +31090,14 @@
     "rushVac": 0,
     "recsVac": 0.5,
     "rushrecVac": 0.75
+   },
+   "actual": 0,
+   "result": {
+    "td": 0,
+    "recYds": 11,
+    "rushYds": 17,
+    "passYds": 0,
+    "recs": 1
    }
   },
   {
@@ -32785,7 +33200,8 @@
     "rushVac": 0,
     "recsVac": 0.5,
     "rushrecVac": 0.75
-   }
+   },
+   "scratched": true
   },
   {
    "gameId": "401873036",
@@ -32820,7 +33236,8 @@
     "rushVac": 0,
     "recsVac": 0.5,
     "rushrecVac": 0.75
-   }
+   },
+   "scratched": true
   },
   {
    "gameId": "401873036",
@@ -32856,7 +33273,8 @@
     "rushVac": 0,
     "recsVac": 0.5,
     "rushrecVac": 0.75
-   }
+   },
+   "scratched": true
   },
   {
    "gameId": "401873034",
@@ -33411,6 +33829,14 @@
     "rushVac": 0,
     "recsVac": 0.5,
     "rushrecVac": 0.75
+   },
+   "actual": 0,
+   "result": {
+    "td": 0,
+    "recYds": 0,
+    "rushYds": 0,
+    "passYds": 0,
+    "recs": 0
    }
   },
   {
@@ -33446,6 +33872,14 @@
     "rushVac": 0,
     "recsVac": 0.5,
     "rushrecVac": 0.75
+   },
+   "actual": 0,
+   "result": {
+    "td": 0,
+    "recYds": 0,
+    "rushYds": 0,
+    "passYds": 0,
+    "recs": 0
    }
   },
   {
@@ -38683,7 +39117,19 @@
    "book": "DraftKings",
    "prob": 0.5,
    "kickoff": "2026-11-03T01:15Z",
-   "recordedAt": "2026-10-27T18:00:45.021Z"
+   "recordedAt": "2026-10-27T18:00:45.021Z",
+   "actual": 0,
+   "result": {
+    "homeScore": 17,
+    "awayScore": 34
+   },
+   "clv": 0,
+   "close": {
+    "spread": -3,
+    "total": 46.5,
+    "homeML": -166,
+    "awayML": 140
+   }
   },
   {
    "gameId": "401873036",
@@ -38700,7 +39146,19 @@
    "book": "DraftKings",
    "prob": 0.5032,
    "kickoff": "2026-11-03T01:15Z",
-   "recordedAt": "2026-10-27T18:00:45.021Z"
+   "recordedAt": "2026-10-27T18:00:45.021Z",
+   "actual": 0,
+   "result": {
+    "homeScore": 17,
+    "awayScore": 34
+   },
+   "clv": 0,
+   "close": {
+    "spread": -3,
+    "total": 46.5,
+    "homeML": -166,
+    "awayML": 140
+   }
   },
   {
    "gameId": "401873036",
@@ -38717,7 +39175,18 @@
    "book": "DraftKings",
    "prob": 0.6766,
    "kickoff": "2026-11-03T01:15Z",
-   "recordedAt": "2026-10-27T18:00:45.021Z"
+   "recordedAt": "2026-10-27T18:00:45.021Z",
+   "actual": 0,
+   "result": {
+    "homeScore": 17,
+    "awayScore": 34
+   },
+   "close": {
+    "spread": -3,
+    "total": 46.5,
+    "homeML": -166,
+    "awayML": 140
+   }
   },
   {
    "gameId": "401873029",
@@ -38961,6 +39430,14 @@
     "rushVac": 0,
     "recsVac": 0.5,
     "rushrecVac": 0.75
+   },
+   "actual": 0,
+   "result": {
+    "td": 0,
+    "recYds": 8,
+    "rushYds": 29,
+    "passYds": 0,
+    "recs": 2
    }
   },
   {
@@ -38998,6 +39475,14 @@
     "rushVac": 0,
     "recsVac": 0.5,
     "rushrecVac": 0.75
+   },
+   "actual": 0,
+   "result": {
+    "td": 0,
+    "recYds": 8,
+    "rushYds": 29,
+    "passYds": 0,
+    "recs": 2
    }
   },
   {
@@ -39036,10 +39521,18 @@
     "rushVac": 0,
     "recsVac": 0.5,
     "rushrecVac": 0.75
+   },
+   "actual": 1,
+   "result": {
+    "td": 0,
+    "recYds": 8,
+    "rushYds": 29,
+    "passYds": 0,
+    "recs": 2
    }
   }
  ],
- "graded": false,
+ "graded": true,
  "season": 2026,
  "week": 8,
  "model": {
@@ -39752,7 +40245,8 @@
    "prob": 0.146866236528,
    "adjusted": 0.146866236528,
    "correlation": "game",
-   "recordedAt": "2026-10-27T18:00:45.023Z"
+   "recordedAt": "2026-10-27T18:00:45.023Z",
+   "actual": 0
   }
  ]
 }
