@@ -30029,6 +30029,103 @@
     "recsVac": 0.5,
     "rushrecVac": 0.75
    }
+  },
+  {
+   "gameId": "401873070",
+   "playerId": "4241476",
+   "name": "Tyrell Shavers",
+   "team": "BUF",
+   "opp": "MIA",
+   "prop": "td",
+   "prob": 0.1626,
+   "kickoff": "2026-11-22T18:00Z",
+   "recordedAt": "2026-11-19T20:37:45.806Z",
+   "model": {
+    "tdDecay": 0.97,
+    "tdRz": 0,
+    "tdScript": 0,
+    "yardDecay": 0.88,
+    "rushDecay": 0.97,
+    "rushrecDecay": 0.9,
+    "tdVac": 0.75,
+    "yardVac": 0.5,
+    "rushVac": 0,
+    "recsVac": 0.5,
+    "rushrecVac": 0.75
+   }
+  },
+  {
+   "gameId": "401873070",
+   "playerId": "4241476",
+   "name": "Tyrell Shavers",
+   "team": "BUF",
+   "opp": "MIA",
+   "prop": "recyds",
+   "line": 27.5,
+   "prob": 0.407,
+   "ladder": {
+    "10": 0.7433,
+    "20": 0.5447,
+    "25": 0.4553,
+    "30": 0.3797,
+    "40": 0.25,
+    "50": 0.154,
+    "60": 0.103,
+    "70": 0.0653,
+    "80": 0.0357,
+    "90": 0.021
+   },
+   "kickoff": "2026-11-22T18:00Z",
+   "recordedAt": "2026-11-19T20:37:45.806Z",
+   "model": {
+    "tdDecay": 0.97,
+    "tdRz": 0,
+    "tdScript": 0,
+    "yardDecay": 0.88,
+    "rushDecay": 0.97,
+    "rushrecDecay": 0.9,
+    "tdVac": 0.75,
+    "yardVac": 0.5,
+    "rushVac": 0,
+    "recsVac": 0.5,
+    "rushrecVac": 0.75
+   }
+  },
+  {
+   "gameId": "401873070",
+   "playerId": "4241476",
+   "name": "Tyrell Shavers",
+   "team": "BUF",
+   "opp": "MIA",
+   "prop": "rushrec",
+   "line": 29.5,
+   "prob": 0.3657,
+   "ladder": {
+    "10": 0.7287,
+    "20": 0.5353,
+    "25": 0.4413,
+    "30": 0.3657,
+    "40": 0.2367,
+    "50": 0.1453,
+    "60": 0.0937,
+    "70": 0.0487,
+    "80": 0.0243
+   },
+   "kickoff": "2026-11-22T18:00Z",
+   "recordedAt": "2026-11-19T20:37:45.806Z",
+   "model": {
+    "tdDecay": 0.97,
+    "tdRz": 0,
+    "tdScript": 0,
+    "yardDecay": 0.88,
+    "rushDecay": 0.97,
+    "rushrecDecay": 0.9,
+    "tdVac": 0.75,
+    "yardVac": 0.5,
+    "rushVac": 0,
+    "recsVac": 0.5,
+    "rushrecVac": 0.75
+   }
   }
  ],
  "graded": false,
