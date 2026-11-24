@@ -145,6 +145,9 @@ export function gradeGame(record, gameId, lines, M = nfl) {
     if (value != null) p.result = value;
     const move = P.closeMove(p, p.close);
     if (move) { p.clvPts = move.pts; p.clvProb = move.prob; }
+    /* Minutes between the close and the start: the last look is only the closing line if it was close to it. */
+    const lead = p.close ? Math.round((Date.parse(p.kickoff) - Date.parse(p.close.at)) / 60000) : NaN;
+    if (Number.isFinite(lead)) p.closeLead = lead;
     graded++;
   }
   return graded;

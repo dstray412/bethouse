@@ -305,6 +305,9 @@ test("summarise: n, win rate, return with its interval and what the close did; a
   /* A close that held its line and offered no chance to compare is not a close that moved away. */
   const blind = P.summarise([{ outcome: "win", units: 1, clvPts: 0, clvProb: null }, { outcome: "win", units: 1, clvPts: 2, clvProb: null }]);
   assert.equal(blind.closed, 1); assert.equal(blind.movedToward, 100);
+  /* The median minutes between the close and the start, over the picks that have one. */
+  assert.equal(P.summarise([{ outcome: "win", units: 1, clvPts: 1, closeLead: 30 }, { outcome: "loss", units: -1, clvPts: -1, closeLead: 50 }, { outcome: "loss", units: -1, clvPts: 1, closeLead: 240 }, { outcome: "win", units: 1 }]).closeLead, 50);
+  assert.equal(s.closeLead, null);
   assert.equal(P.summarise([]), null); assert.equal(P.summarise([{ outcome: "void" }]), null);
 });
 
@@ -489,6 +492,10 @@ test("gradeGame: settled at the pick's line and price, with what the close did; 
   /* characterization: a void is "no line for him in the box score". A player who dressed and recorded nothing is voided too, where a book would settle him at zero, and that leans the record toward overs. README says so; change it when there is a way to tell the two apart. */
   assert.deepEqual([rec.picks.find((p) => p.name === "Marvin Harrison Jr.").outcome], ["void"], "nobody in the box score by that id");
   assert.equal(gradeGame(rec, "g1", lines, model), 0, "a settled pick is never settled twice");
+  /* How long before the start the close was taken, so a "close" from hours out is not read as the closing line. */
+  const lead = { picks: [{ gameId: "g9", playerId: "4361307", stat: "recyds", side: "over", line: 60.5, price: -110, fair: 0.5, kickoff: "2026-11-29T21:25Z", close: { line: 60.5, over: -120, under: 100, at: "2026-11-29T20:40:00Z" } }] };
+  gradeGame(lead, "g9", lines, model);
+  assert.equal(lead.picks[0].closeLead, 45);
   assert.equal(valueOf("td", { played: true, td: 2 }), 1); assert.equal(valueOf("td", { played: true, td: 0 }), 0);
   assert.equal(valueOf("recyds", { played: false, recYds: 0 }), null); assert.equal(valueOf("recyds", undefined), null);
   assert.equal(valueOf("rushrec", { played: true, recYds: 30, rushYds: 12 }), 42, "the model's own summation");
@@ -597,6 +604,8 @@ test("recordHtml: a row a market with n, the win rate, the return and its interv
   assert.match(h, /<b>3<\/b> prop picks settled since 2026-11-25/);
   assert.match(h, /<td>Receiving yards<\/td><td>n <b>2<\/b> · won <b>50%<\/b> · a unit on each returned <b>−5%<\/b> of stake \(/);
   assert.match(h, /the close moved toward the pick <b>50%<\/b> of 2, <b>−1\.5<\/b> points of no-vig chance/);
+  const led = reportOf([{ picks: [{ stat: "recyds", outcome: "win", units: 0.9, at: "2026-11-25T12:00:00Z", clvPts: 1, clvProb: null, closeLead: 42 }] }]);
+  assert.match(P.recordHtml(led), /closes read a median <b>42<\/b> minutes before the start/);
   assert.match(h, /<td>All props<\/td>/);
   /* The same picks cut by gap size and by role, under their own headings. */
   const cut = P.recordHtml(reportOf([{ picks: [

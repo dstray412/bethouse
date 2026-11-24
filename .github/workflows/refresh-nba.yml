@@ -23,6 +23,10 @@ on:
     # last is after the latest one, so each game is recorded before it starts.
     - cron: "40 15-23 * * *"
     - cron: "40 0-3 * * *"
+    # A second look in the hours games tip (7pm to 11pm Eastern), so the
+    # last prices read before a tip are the closing ones and not an
+    # hour old. Scheduled runs here have started up to 40 minutes late.
+    - cron: "10 23,0-3 * * *"
     # ...and once in the small hours, to grade the west-coast finals.
     - cron: "40 9 * * *"
   workflow_dispatch: {}

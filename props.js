@@ -431,6 +431,8 @@
       movedToward: closed.length ? r1((100 * closed.filter((p) => p.clvPts > 0 || (p.clvPts === 0 && p.clvProb > 0)).length) / closed.length) : null,
       lineMoved: moved.length,
       clvProb: sameLine.length ? r1(sameLine.reduce((a, p) => a + p.clvProb, 0) / sameLine.length) : null,
+      /* How long before the start the closes were read: the median, in minutes. A "close" from hours out is an early look, not the closing line. */
+      closeLead: (() => { const v = r.map((p) => p.closeLead).filter((x) => fin(x)).sort((a, b) => a - b); return v.length ? v[Math.floor((v.length - 1) / 2)] : null; })(),
     };
   }
 
@@ -562,7 +564,7 @@
     const signed = (v) => (v >= 0 ? "+" : "−") + Math.abs(v);
     const row = (label, s) => "<tr><td>" + esc(label) + "</td><td>n <b>" + esc(s.n) + "</b>" + (s.rate != null ? " · won <b>" + esc(s.rate) + "%</b>" : "") + (s.pushes ? " (" + esc(s.pushes) + " pushed)" : "") +
       " · a unit on each returned <b>" + signed(s.roi) + "%</b> of stake (" + signed(s.roiLo) + " to " + signed(s.roiHi) + ")" +
-      (s.closed ? " · the close moved toward the pick <b>" + esc(s.movedToward) + "%</b> of " + esc(s.closed) + (s.clvProb != null ? ", <b>" + signed(s.clvProb) + "</b> points of no-vig chance at an unmoved line" : "") : "") + "</td></tr>";
+      (s.closed ? " · the close moved toward the pick <b>" + esc(s.movedToward) + "%</b> of " + esc(s.closed) + (s.clvProb != null ? ", <b>" + signed(s.clvProb) + "</b> points of no-vig chance at an unmoved line" : "") + (s.closeLead != null ? "; closes read a median <b>" + esc(s.closeLead) + "</b> minutes before the start" : "") : "") + "</td></tr>";
     return "<p><b>" + esc(R.total) + "</b> prop pick" + (R.total === 1 ? "" : "s") + " settled since " + esc(R.since || "") + (R.open ? ", " + esc(R.open) + " open" : "") +
       ": every prop where the site and a book were " + esc(R.minGap) + "+ points apart, at the book's line and the price on file when it was logged.</p><table>" +
       Object.keys(R.markets).map((k) => row(R.markets[k].label, R.markets[k])).join("") + (Object.keys(R.markets).length > 1 ? row("All props", R.all) : "") + "</table>" +

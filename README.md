@@ -1930,7 +1930,10 @@ did not.
   rounds to N, and the gap compares the site's chance given no push
   with the book's, since the book's two chances sum to one.
 - The close is this site's own last look at the same book before
-  kickoff. At the same line, closing-line value is the picked side's
+  kickoff: its line and both prices, kept on the pick. Each settled
+  pick also keeps how many minutes before the start that look was
+  (`closeLead`), and the record prints the median, because a look from
+  hours out is an early price and not the closing one. At the same line, closing-line value is the picked side's
   closing no-vig chance minus the pick's; when the line moved it is the
   points moved toward the pick (an over gains when the line rises).
 - Money: a win returns the decimal price minus one, a loss −1, a push 0
