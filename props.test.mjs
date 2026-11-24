@@ -91,6 +91,11 @@ test("parseEvents: PropLine's three outcome shapes; only a book's main line, gat
   assert.deepEqual(of("recyds", "Cyrus Allen").map((o) => [o.line, o.over, o.under, o.espnId, o.at]), [[24.5, -120, -102, "4912218", "2026-11-22T17:10:00Z"]]);
   assert.deepEqual(of("recyds", "Trey McBride").map((o) => [o.line, o.over, o.under]), [[61.5, -114, -110]], "a milestone rung inside a main market is not a line");
   assert.equal(offers.length, 4);
+  /* Two men of one name told apart by the feed's id, whoever issued it (the NBA's are not ESPN's). */
+  const twins = [{ id: "1", home_team: "A", away_team: "B", commence_time: "2026-11-25T00:00:00Z", bookmakers: [{ key: "draftkings", markets: [{ key: "player_reception_yds", line_type: "main", outcomes: [
+    { name: "Over", description: "Jalen Williams", price: -110, point: 20.5, player_id: "nba:1" }, { name: "Under", description: "Jalen Williams", price: -110, point: 20.5, player_id: "nba:1" },
+    { name: "Over", description: "Jalen Williams", price: -110, point: 8.5, player_id: "nba:2" }, { name: "Under", description: "Jalen Williams", price: -110, point: 8.5, player_id: "nba:2" }] }] }] }];
+  assert.deepEqual(P.parseEvents(twins).map((o) => o.line).sort((a, b) => a - b), [8.5, 20.5]);
   /* The feed's timestamp is a timestamp or it is nothing. */
   const bad = JSON.parse(JSON.stringify(PROPLINE)); bad[0].bookmakers[0].last_update = "<img src=x>"; bad[0].bookmakers[0].markets.forEach((m) => { m.last_update = "<img src=x>"; });
   assert.ok(P.parseEvents(bad).every((o) => o.at === null));
@@ -217,7 +222,11 @@ test("quote: line, prices, no-vig, the site's chance at that line, the gap and t
   close(over.site, 0.5); close(over.gap, 100 * (0.5 - P.noVig(100, -120).over));
   /* A touchdown with only a Yes price: compared with the raw implied chance, and said to be. */
   const td = P.quote(fakeModel, BOARD, mc, { stat: "td", book: "draftkings", line: 0.5, over: 200, under: null });
-  assert.equal(td.oneSided, true); close(td.fair, 1 / 3); close(td.gap, 100 * (0.4 - 1 / 3)); assert.equal(td.sides.length, 1);
+  /* Oracle: the request (2026-11-24). A Yes price with no No still holds the book's cut, so it is priced against an estimated one: the raw implied chance over one plus the cut. */
+  assert.equal(td.oneSided, true); close(td.cut, P.ONE_SIDED_CUT); close(td.fair, 1 / 3 / (1 + P.ONE_SIDED_CUT)); close(td.gap, 100 * (0.4 - 1 / 3 / (1 + P.ONE_SIDED_CUT))); assert.equal(td.sides.length, 1);
+  /* A cut measured off the same book's two-sided touchdown prices replaces the assumed one. */
+  close(P.quote(fakeModel, BOARD, mc, { stat: "td", book: "draftkings", line: 0.5, over: 200, under: null, cut: 0.2 }).fair, 1 / 3 / 1.2);
+  assert.equal(P.quote(fakeModel, BOARD, mc, { stat: "recyds", book: "draftkings", line: 68.5, over: -110, under: -110 }).cut, null, "a two-sided market has its cut taken out, not estimated");
   assert.deepEqual(td.recent, { hits: 1, n: 3 });
   assert.equal(P.quote(fakeModel, BOARD, BOARD.players[3], { stat: "recyds", book: "draftkings", line: 30.5, over: -110, under: -110 }), null);
   assert.equal(P.quote(fakeModel, BOARD, mc, null), null);
@@ -263,6 +272,8 @@ test("closeMove: the closing no-vig chance against the pick's at the same line, 
   const yes = { side: "over", line: 0.5, fair: 1 / 3, oneSided: true };
   close(P.closeMove(yes, { line: 0.5, over: 150, under: -200 }).prob, Math.round(1000 * (1 / 2.5 - 1 / 3)) / 10);
   close(P.closeMove(yes, { line: 0.5, over: 150, under: null }).prob, Math.round(1000 * (1 / 2.5 - 1 / 3)) / 10);
+  /* With the pick's estimated cut on file, the close is read through the same cut. */
+  close(P.closeMove({ ...yes, fair: 1 / 3 / 1.1, cut: 0.1 }, { line: 0.5, over: 150, under: null }).prob, Math.round(1000 * (1 / 2.5 / 1.1 - 1 / 3 / 1.1)) / 10);
   /* A close with one price says the line held and nothing about the chance. */
   assert.deepEqual(P.closeMove(pick, { line: 68.5, over: -130, under: null }), { prob: null, pts: 0 });
   assert.equal(P.closeMove(pick, null), null); assert.equal(P.closeMove(pick, { line: null }), null);
@@ -371,45 +382,90 @@ const PAYLOAD = () => buildPayload({ events: EVENTS, D: { ...BOARD, season: 2026
 test("logPicks: the side the gap favours at five points or more, once a player, prop and book, pregame only, with its price", () => {
   const rec = { picks: [] }, payload = PAYLOAD();
   const first = logPicks(rec, payload, BOARD, fakeModel, NOW);
-  /* McBride exp 70. DK 68.5 at -115/-105: site over 0.6 against a no-vig 0.511, logged. FD 70.5: site over 0.4 against 0.505, the under at 0.6 logged. TD: 0.4 against 1/2.4, under five points, not logged. Harrison exp 50 at 55.5: over 0.4, under 0.6 against 0.5, logged. */
+  /* McBride exp 70. DK 68.5 at -115/-105: site over 0.6, a unit expects 0.6 x 0.87 - 0.4 = +0.12. FD 70.5 at -112/-108: site under 0.6, a unit expects 0.6 x 0.93 - 0.4 = +0.16. ONE pick a player and prop, the better-priced book (2026-11-24): FanDuel's under. TD: under five points, not logged. Harrison exp 50 at 55.5: under 0.6 against 0.5, logged. */
   assert.deepEqual(rec.picks.map((p) => [p.name, p.stat, p.book, p.side, p.line, p.price]).sort(), [
     ["Marvin Harrison Jr.", "recyds", "draftkings", "under", 55.5, -110],
-    ["Trey McBride", "recyds", "draftkings", "over", 68.5, -115],
     ["Trey McBride", "recyds", "fanduel", "under", 70.5, -108],
   ]);
-  assert.equal(first.added, 3);
-  const mc = rec.picks.find((p) => p.book === "draftkings" && p.name === "Trey McBride");
-  close(mc.site, 0.6); close(mc.fair, P.noVig(-115, -105).over, 1e-4); close(mc.gap, Math.round(1000 * (0.6 - P.noVig(-115, -105).over)) / 10);
-  close(mc.decimal, P.decimal(-115), 1e-4);
+  assert.equal(first.added, 2);
+  const mc = rec.picks.find((p) => p.name === "Trey McBride");
+  close(mc.site, 0.6); close(mc.fair, P.noVig(-112, -108).under, 1e-4); close(mc.gap, Math.round(1000 * (0.6 - P.noVig(-112, -108).under)) / 10);
+  close(mc.decimal, P.decimal(-108), 1e-4);
   assert.deepEqual([mc.at, mc.source, mc.kickoff, mc.gameId, mc.playerId], ["2026-11-25T12:00:00Z", "propline", "2026-11-29T21:25Z", "g1", "4361307"]);
-  assert.deepEqual(mc.close, { line: 68.5, over: -115, under: -105, at: "2026-11-25T12:00:00Z" }, "a pick starts with its own look as the close");
-  /* Rule 1: a later run with a moved line refreshes the close and never the pick. */
+  assert.deepEqual(mc.close, { line: 70.5, over: -112, under: -108, at: "2026-11-25T12:00:00Z" }, "a pick starts with its own look as the close");
+  /* Rule 1: a later run with a moved line refreshes the close at the pick's own book and never the pick, and the other book does not become a second pick. */
   const later = PAYLOAD(); later.fetched = "2026-11-29T20:55:00Z";
-  later.offers["4361307"].recyds.draftkings = { line: 71.5, over: -110, under: -110, at: "x", g: "g1" };
+  later.offers["4361307"].recyds.fanduel = { line: 71.5, over: -110, under: -110, at: "x", g: "g1" };
   const second = logPicks(rec, later, BOARD, fakeModel, Date.parse("2026-11-29T20:55:00Z"));
-  assert.equal(second.added, 0); assert.equal(second.closed, 3);
-  assert.equal(mc.line, 68.5); assert.equal(mc.price, -115);
+  assert.equal(second.added, 0); assert.equal(second.closed, 2); assert.equal(rec.picks.length, 2);
+  assert.equal(mc.line, 70.5); assert.equal(mc.price, -108);
   assert.deepEqual(mc.close, { line: 71.5, over: -110, under: -110, at: "2026-11-29T20:55:00Z" });
   /* Rule 3: after kickoff nothing is logged and the close is left alone. */
-  const after = PAYLOAD(); after.fetched = "2026-11-29T22:00:00Z"; after.offers["4361307"].recyds.draftkings.line = 99.5;
-  assert.deepEqual(logPicks(rec, after, BOARD, fakeModel, Date.parse("2026-11-29T22:00:00Z")), { added: 0, closed: 0 });
+  const after = PAYLOAD(); after.fetched = "2026-11-29T22:00:00Z"; after.offers["4361307"].recyds.fanduel.line = 99.5;
+  assert.deepEqual(logPicks(rec, after, BOARD, fakeModel, Date.parse("2026-11-29T22:00:00Z")), { added: 0, closed: 0, merged: 0 });
   assert.equal(mc.close.line, 71.5);
-  assert.deepEqual(logPicks({ picks: [] }, null, BOARD, fakeModel, NOW), { added: 0, closed: 0 });
+  assert.deepEqual(logPicks({ picks: [] }, null, BOARD, fakeModel, NOW), { added: 0, closed: 0, merged: 0 });
+});
+
+test("logPicks: two books' picks on one player and prop from before the rule are merged to the better-priced one while the game is still to come", () => {
+  /* Oracle: the request (2026-11-24): one pick a player prop, so the count matches real bets. The first live run logged both books. */
+  const pick = (book, price, extra) => ({ gameId: "g1", playerId: "4361307", name: "Trey McBride", stat: "recyds", side: "over", book, line: 68.5, price, decimal: P.decimal(price), fair: 0.5, site: 0.6, gap: 10, kickoff: "2026-11-29T21:25Z", ...extra });
+  const rec = { picks: [pick("draftkings", -115), pick("fanduel", -105), { ...pick("draftkings", -115), gameId: "g0", kickoff: "2026-11-20T18:00Z" }, { ...pick("fanduel", -105), gameId: "g0", kickoff: "2026-11-20T18:00Z" },
+    { ...pick("draftkings", -115), playerId: "77", outcome: "win" }, { ...pick("fanduel", -105), playerId: "77", outcome: "loss" }] };
+  const r = logPicks(rec, PAYLOAD(), BOARD, fakeModel, NOW);
+  assert.equal(r.merged, 1);
+  assert.deepEqual(rec.picks.filter((p) => p.gameId === "g1" && p.playerId === "4361307").map((p) => p.book), ["fanduel"], "the better price is the one kept");
+  assert.equal(rec.picks.filter((p) => p.gameId === "g0").length, 2, "a game already kicked off is history and is left as it was recorded");
+  assert.equal(rec.picks.filter((p) => p.playerId === "77").length, 2, "a settled pick is never removed");
+});
+
+test("logPicks: every pick is tagged with the player's role, season against recent, so the record can say where the losses come from", () => {
+  const roleOf = (p) => (p.id === "4361307" ? { season: 0.8, recent: 0.5 } : p.id === "77" ? { season: 0.6, recent: 0.62 } : null);
+  const rec = { picks: [] };
+  logPicks(rec, PAYLOAD(), BOARD, fakeModel, NOW, { roleOf });
+  assert.deepEqual(rec.picks.find((p) => p.name === "Trey McBride").role, { season: 0.8, recent: 0.5, moved: true });
+  assert.deepEqual(rec.picks.find((p) => p.name === "Marvin Harrison Jr.").role, { season: 0.6, recent: 0.62, moved: false });
+  /* A pick logged before the tag existed gets it on the next run before kickoff. */
+  const old = { picks: [{ gameId: "g1", playerId: "4361307", stat: "recyds", book: "fanduel", side: "under", line: 70.5, price: -108, kickoff: "2026-11-29T21:25Z" }] };
+  logPicks(old, PAYLOAD(), BOARD, fakeModel, NOW, { roleOf });
+  assert.equal(old.picks[0].role.moved, true);
+  assert.equal(P.roleMoved({ season: 0.4, recent: 0.31 }), false); assert.equal(P.roleMoved({ season: 0.4, recent: 0.29 }), true);
+  assert.equal(P.roleMoved({ season: 0.4, recent: 0.54 }), true); assert.equal(P.roleMoved(null), null); assert.equal(P.roleMoved({ season: 0, recent: 0.2 }), null);
+  assert.equal(P.gapBucket(5), "5-10"); assert.equal(P.gapBucket(9.9), "5-10"); assert.equal(P.gapBucket(10), "10-20"); assert.equal(P.gapBucket(20), "20+"); assert.equal(P.gapBucket(44.2), "20+");
+});
+
+test("the leagues' role: an NFL player's snap share, an NBA player's minutes, the season's against the last few games", () => {
+  assert.deepEqual(PROPS_LEAGUES.nfl.roleOf({ usage: { snap: 0.417, n: 20 }, usage3: { snap: 0.123, n: 3 } }), { season: 0.417, recent: 0.123 });
+  assert.equal(PROPS_LEAGUES.nfl.roleOf({ usage: { snap: 0.4, n: 20 }, usage3: { snap: 0.1, n: 1 } }), null, "one game is not a role");
+  assert.equal(PROPS_LEAGUES.nfl.roleOf({}), null);
+  assert.deepEqual(PROPS_LEAGUES.nba.roleOf({ games: 100, min: 2473, w: { min: { pts: 11.1 } } }), { season: 24.73, recent: 11.1 });
+  assert.equal(PROPS_LEAGUES.nba.roleOf({ games: 0, min: 0 }), null);
+});
+
+test("cutsOf: a book's cut on yes-only prices, measured off its own two-sided ones when it posts enough of them", () => {
+  const offers = {};
+  for (let i = 0; i < 12; i++) offers["p" + i] = { td: { draftkings: { line: 0.5, over: 200, under: -280, g: "g1" }, fanduel: { line: 0.5, over: 200, under: null, g: "g1" } } };
+  const cuts = P.cutsOf({ offers });
+  /* Yes at +200 is a raw 33.3%; with No at -280 the two sum to 107.0%, so the no-vig Yes is 31.1% and the cut on it 7.0%. */
+  close(cuts.draftkings, (1 / 3 + 280 / 380) - 1, 1e-9);
+  assert.equal(cuts.fanduel, undefined, "a book with no two-sided price has no measured cut");
+  assert.deepEqual(P.cutsOf({ offers: { p0: offers.p0 } }), {}, "a handful of prices is not a measurement");
+  assert.deepEqual(P.cutsOf(null), {});
 });
 
 test("logPicks: prices older than the last hour and a half, or older than the board they are compared with, log nothing and close nothing", () => {
   /* Oracle: the review's scenario (2026-11-24). A fetch fails, the board re-projects a player after news, and the old price beside the new projection reads as a gap that is not there. */
   const old = logPicks({ picks: [] }, PAYLOAD(), BOARD, fakeModel, NOW + 91 * 60e3);
   assert.deepEqual(old, { added: 0, closed: 0, stale: "prices" });
-  assert.equal(logPicks({ picks: [] }, PAYLOAD(), BOARD, fakeModel, NOW + 89 * 60e3).added, 3);
+  assert.equal(logPicks({ picks: [] }, PAYLOAD(), BOARD, fakeModel, NOW + 89 * 60e3).added, 2);
   const rebuilt = logPicks({ picks: [] }, PAYLOAD(), { ...BOARD, generated: "2026-11-25T12:20:00Z" }, fakeModel, NOW + 30 * 60e3);
   assert.deepEqual(rebuilt, { added: 0, closed: 0, stale: "board" });
-  assert.equal(logPicks({ picks: [] }, PAYLOAD(), { ...BOARD, generated: "2026-11-25T11:00:00Z" }, fakeModel, NOW + 30 * 60e3).added, 3);
+  assert.equal(logPicks({ picks: [] }, PAYLOAD(), { ...BOARD, generated: "2026-11-25T11:00:00Z" }, fakeModel, NOW + 30 * 60e3).added, 2);
   /* An existing pick's close is not refreshed from a stale file either. */
   const rec = { picks: [] }; logPicks(rec, PAYLOAD(), BOARD, fakeModel, NOW);
-  const stale = PAYLOAD(); stale.offers["4361307"].recyds.draftkings.line = 99.5;
+  const stale = PAYLOAD(); stale.offers["4361307"].recyds.fanduel.line = 99.5;
   logPicks(rec, stale, BOARD, fakeModel, NOW + 5 * 3600e3);
-  assert.equal(rec.picks.find((p) => p.book === "draftkings" && p.name === "Trey McBride").close.line, 68.5);
+  assert.equal(rec.picks.find((p) => p.name === "Trey McBride").close.line, 70.5);
 });
 
 test("boxComplete: a final game's box score with a side missing settles nothing", () => {
@@ -423,14 +479,13 @@ test("boxComplete: a final game's box score with a side missing settles nothing"
 test("gradeGame: settled at the pick's line and price, with what the close did; no box-score line is a void", () => {
   const rec = { picks: [] };
   logPicks(rec, PAYLOAD(), BOARD, fakeModel, NOW);
-  const mc = rec.picks.find((p) => p.book === "draftkings" && p.name === "Trey McBride");
-  mc.close = { line: 71.5, over: -110, under: -110, at: "x" };
+  const mc = rec.picks.find((p) => p.name === "Trey McBride");
+  mc.close = { line: 67.5, over: -110, under: -110, at: "x" };
   const model = { STATS: { recyds: {} }, statTotal: (stat, line) => line.recYds };
   const lines = new Map([["4361307", { played: true, recYds: 70, td: 1 }]]);
-  assert.equal(gradeGame(rec, "g1", lines, model), 3);
-  assert.deepEqual([mc.outcome, mc.units, mc.result, mc.clvPts, mc.clvProb], ["win", r4t(P.decimal(-115) - 1), 70, 3, null]);
-  const fd = rec.picks.find((p) => p.book === "fanduel");
-  assert.deepEqual([fd.outcome, fd.units, fd.clvPts], ["win", r4t(P.decimal(-108) - 1), 0], "70 is under 70.5");
+  assert.equal(gradeGame(rec, "g1", lines, model), 2);
+  /* The under 70.5 at -108: 70 is under it, and the line closing at 67.5 moved three points toward an under. */
+  assert.deepEqual([mc.outcome, mc.units, mc.result, mc.clvPts, mc.clvProb], ["win", r4t(P.decimal(-108) - 1), 70, 3, null]);
   /* characterization: a void is "no line for him in the box score". A player who dressed and recorded nothing is voided too, where a book would settle him at zero, and that leans the record toward overs. README says so; change it when there is a way to tell the two apart. */
   assert.deepEqual([rec.picks.find((p) => p.name === "Marvin Harrison Jr.").outcome], ["void"], "nobody in the box score by that id");
   assert.equal(gradeGame(rec, "g1", lines, model), 0, "a settled pick is never settled twice");
@@ -452,8 +507,18 @@ test("reportOf: one summary a market and all of them together, settled picks onl
   assert.deepEqual(Object.keys(R.markets), ["td", "recyds"], "a market with nothing settled has no row");
   assert.equal(R.markets.recyds.label, "Receiving yards"); assert.equal(R.markets.recyds.n, 2); assert.equal(R.markets.recyds.rate, 50);
   assert.equal(R.all.n, 3);
-  assert.deepEqual(reportOf([]), { total: 0, open: 0, since: null, minGap: P.MIN_GAP, all: null, markets: {} });
-  assert.equal(pickKey({ gameId: "g", playerId: "p", stat: "td", book: "fanduel" }), "g|p|td|fanduel");
+  assert.deepEqual(reportOf([]), { total: 0, open: 0, since: null, minGap: P.MIN_GAP, all: null, markets: {}, gaps: {}, roles: {} });
+  assert.equal(pickKey({ gameId: "g", playerId: "p", stat: "td", book: "fanduel" }), "g|p|td", "one pick a player and prop, whichever book");
+  /* The record by gap size and by role, so a cap can be set from data. */
+  const tagged = reportOf([{ picks: [
+    { stat: "recyds", outcome: "win", units: 0.9, gap: 6, role: { moved: false }, at: "2026-11-25T12:00:00Z" },
+    { stat: "recyds", outcome: "loss", units: -1, gap: 12, role: { moved: true }, at: "2026-11-25T12:00:00Z" },
+    { stat: "recyds", outcome: "loss", units: -1, gap: 31, role: { moved: true }, at: "2026-11-25T12:00:00Z" },
+    { stat: "recyds", outcome: "win", units: 1, gap: 25, at: "2026-11-25T12:00:00Z" }] }]);
+  assert.deepEqual(Object.keys(tagged.gaps), ["5-10", "10-20", "20+"]);
+  assert.deepEqual([tagged.gaps["5-10"].n, tagged.gaps["10-20"].n, tagged.gaps["20+"].n], [1, 1, 2]);
+  assert.deepEqual([tagged.roles.moved.n, tagged.roles.steady.n, tagged.roles.unknown.n], [2, 1, 1]);
+  assert.equal(tagged.roles.moved.roi, -100);
   assert.equal(weekFile(2026, 7), "2026-w07.json");
   /* The week file reads back as what was saved, a pick a line. */
   const rec = { season: 2026, week: 7, picks: [{ a: 1, name: "O'Neil \"Q\"" }, { b: 2 }] };
@@ -495,7 +560,10 @@ test("bookHtml: each book's line, both prices, the no-vig chance, the site's cha
   /* A gap inside the noise is greyed and said to be. */
   const td = P.bookHtml(fakeModel, D12, D12.players[0], "td", PAYLOAD(), NOW);
   assert.match(td, /class="dimrow"/); assert.match(td, /inside the noise/);
-  assert.match(td, /One-sided/, "a yes-only price says its cut is still in");
+  assert.match(td, /One-sided[^<]*estimated cut of 10%/, "a yes-only price says what cut it was read through");
+  /* Two books, the yes-only one first and a two-sided one last: the note still quotes the yes-only book's cut. */
+  const mixed = PAYLOAD(); mixed.offers["4361307"].td = { draftkings: { line: 0.5, over: 140, under: null, g: "g1" }, fanduel: { line: 0.5, over: 140, under: -180, g: "g1" } };
+  assert.match(P.bookHtml(fakeModel, D12, D12.players[0], "td", mixed, NOW), /estimated cut of 10%/);
   assert.equal(P.bookHtml(fakeModel, D12, D12.players[3], "recyds", PAYLOAD(), NOW), "");
   assert.equal(P.bookHtml(fakeModel, D12, D12.players[0], "recyds", null, NOW), "");
   /* The two markets the record has off say so beside the gap. */
@@ -530,5 +598,102 @@ test("recordHtml: a row a market with n, the win rate, the return and its interv
   assert.match(h, /<td>Receiving yards<\/td><td>n <b>2<\/b> · won <b>50%<\/b> · a unit on each returned <b>−5%<\/b> of stake \(/);
   assert.match(h, /the close moved toward the pick <b>50%<\/b> of 2, <b>−1\.5<\/b> points of no-vig chance/);
   assert.match(h, /<td>All props<\/td>/);
+  /* The same picks cut by gap size and by role, under their own headings. */
+  const cut = P.recordHtml(reportOf([{ picks: [
+    { stat: "recyds", outcome: "win", units: 0.9, gap: 6, role: { moved: false }, at: "2026-11-25T12:00:00Z" },
+    { stat: "recyds", outcome: "loss", units: -1, gap: 31, role: { moved: true }, at: "2026-11-25T12:00:00Z" }] }]));
+  assert.match(cut, /By the size of the gap[^]*<td>5 to 10 points<\/td><td>n <b>1<\/b>[^]*<td>over 20 points<\/td><td>n <b>1<\/b>/);
+  assert.match(cut, /By the player's role[^]*<td>role moved[^<]*<\/td><td>n <b>1<\/b>[^]*<td>role steady<\/td><td>n <b>1<\/b>/);
   assert.equal(P.recordHtml(null), ""); assert.equal(P.recordHtml(reportOf([])), "");
+});
+
+/* ------------------------------------------------------------------ *
+ * The NBA (2026-11-24): the same module, another league's markets
+ *
+ * Oracle: PropLine's docs. Sport key basketball_nba; market keys
+ * player_points, _rebounds, _assists, _threes and
+ * _points_rebounds_assists; an NBA outcome's player_id is the league's
+ * own ("nba:1629029"), not ESPN's, so the join is by name in the game.
+ * ------------------------------------------------------------------ */
+import { PROPS_LEAGUES, propsLeague } from "./props-leagues.mjs";
+import nba from "./nba.js";
+
+const NBA_EVENTS = [{
+  id: "412345", sport_key: "basketball_nba", home_team: "Orlando Magic", away_team: "Detroit Pistons", commence_time: "2026-11-25T00:00:00Z",
+  bookmakers: [{ key: "draftkings", title: "DraftKings", markets: [
+    { key: "player_points", line_type: "main", last_update: "2026-11-24T22:00:00Z", outcomes: [
+      { name: "Over", description: "Cade Cunningham", price: -112, point: 26.5, player_id: "nba:1630595" }, { name: "Under", description: "Cade Cunningham", price: -108, point: 26.5, player_id: "nba:1630595" }] },
+    { key: "player_points_rebounds_assists", line_type: "main", outcomes: [
+      { name: "Over", description: "Cade Cunningham", price: -110, point: 41.5 }, { name: "Under", description: "Cade Cunningham", price: -110, point: 41.5 }] },
+    { key: "player_threes", line_type: "main", outcomes: [
+      { name: "Over", description: "Cade Cunningham", price: 120, point: 2.5 }, { name: "Under", description: "Cade Cunningham", price: -150, point: 2.5 }] },
+    { key: "player_reception_yds", line_type: "main", outcomes: [{ name: "Over", description: "Cade Cunningham", price: -110, point: 9.5 }, { name: "Under", description: "Cade Cunningham", price: -110, point: 9.5 }] }] }],
+}];
+const NBA_BOARD = { season: 2027, date: "2026-11-24", games: [{ id: "401909314", date: "2026-11-25T00:00Z", name: "Detroit Pistons at Orlando Magic", home: "ORL", away: "DET" }],
+  players: [{ id: "4432166", name: "Cade Cunningham", team: "DET", opp: "ORL" }] };
+
+test("the leagues: each names its sport key, its markets, its files and its model, and an unknown one is refused", () => {
+  const L = PROPS_LEAGUES;
+  assert.equal(L.nfl.sport, "football_nfl"); assert.equal(L.nba.sport, "basketball_nba");
+  assert.deepEqual(L.nba.markets, { player_points: "pts", player_rebounds: "reb", player_assists: "ast", player_threes: "tpm", player_points_rebounds_assists: "pra" });
+  assert.deepEqual(Object.values(L.nba.markets).sort(), Object.keys(nba.STATS).sort(), "an NBA market the board has no prop for, or a prop with no market");
+  assert.equal(L.nfl.markets, P.MARKETS);
+  assert.deepEqual([L.nfl.out, L.nfl.recDir, L.nfl.recFile], ["nfl-props.js", "nfl-props-record", "nfl-props-record.js"], "the NFL's files must not move: a record is already in them");
+  assert.deepEqual([L.nba.out, L.nba.global, L.nba.recDir, L.nba.recFile, L.nba.recGlobal], ["nba-props.js", "BetHouseNBAProps", "nba-props-record", "nba-props-record.js", "BetHouseNBAPropsRecord"]);
+  assert.equal(L.nba.model, nba);
+  assert.equal(propsLeague(["log", "--league", "nba"]), L.nba); assert.equal(propsLeague(["log"]), L.nfl);
+  assert.throws(() => propsLeague(["--league", "curling"]), /unknown league/);
+  /* A slate's record file: the NFL's week, the NBA's day. */
+  assert.equal(L.nfl.recName({ season: 2026, week: 12 }), "2026-w12.json");
+  assert.equal(L.nba.recName({ season: 2027, date: "2026-11-24" }), "2026-11-24.json");
+});
+
+test("slateOf: the board a file of prices belongs to, a week of football or a night of basketball", () => {
+  assert.equal(P.slateOf({ season: 2026, week: 12 }), "2026-w12");
+  assert.equal(P.slateOf({ season: 2027, date: "2026-11-24" }), "2026-11-24");
+  assert.equal(P.slateOf({ slate: "x", season: 1, week: 2 }), "x");
+  assert.equal(P.slateOf(null), null); assert.equal(P.slateOf({}), null);
+});
+
+test("an NBA slate: only the NBA's markets, joined by name because the feed's id is not ESPN's, onto the night's board", () => {
+  const offers = P.parseEvents(NBA_EVENTS, { markets: PROPS_LEAGUES.nba.markets });
+  assert.deepEqual(offers.map((o) => [o.stat, o.line, o.over, o.under, o.espnId]).sort(), [["pra", 41.5, -110, -110, null], ["pts", 26.5, -112, -108, null], ["tpm", 2.5, 120, -150, null]]);
+  const now = Date.parse("2026-11-24T22:10:00Z");
+  const { payload } = buildPayload({ events: NBA_EVENTS, D: NBA_BOARD, source: "propline", fetched: "2026-11-24T22:10:00Z", now, markets: PROPS_LEAGUES.nba.markets });
+  assert.equal(payload.slate, "2026-11-24");
+  assert.deepEqual(Object.keys(payload.offers["4432166"]).sort(), ["pra", "pts", "tpm"]);
+  assert.equal(payload.offers["4432166"].pts.draftkings.g, "401909314");
+  /* The page shows it for tonight's board and not for tomorrow's. */
+  assert.ok(P.offersFor(payload, NBA_BOARD, NBA_BOARD.players[0], "pts", now));
+  assert.equal(P.offersFor(payload, { ...NBA_BOARD, date: "2026-11-25" }, NBA_BOARD.players[0], "pts", now), null);
+});
+
+test("the NBA model prices a book's line and its picks settle off an NBA box-score line", async () => {
+  const fs = await import("node:fs");
+  const w = {}; new Function("window", fs.readFileSync(new URL("./nba-data.js", import.meta.url), "utf8"))(w);
+  const D = w.BetHouseNBAData;
+  const p = D.players.find((x) => nba.statEligible("pts", x, null, P.contextFor(nba, D, x, "pts")));
+  if (!p) return; // an empty slate (the All-Star break, the summer) has nobody to price
+  const exp = nba.statEligible("pts", p, null, P.contextFor(nba, D, p, "pts")).exp;
+  const lo = P.siteChance(nba, D, p, "pts", Math.floor(exp * 0.7) + 0.5), hi = P.siteChance(nba, D, p, "pts", Math.floor(exp * 1.3) + 0.5);
+  assert.ok(lo.over > hi.over, `${lo.over} > ${hi.over}`);
+  const g = D.games.find((x) => x.home === p.team || x.away === p.team);
+  const now = Date.parse(g.date) - 3600e3;
+  const payload = { fetched: new Date(now).toISOString(), source: "propline", slate: P.slateOf(D),
+    offers: { [p.id]: { pts: { draftkings: { line: Math.floor(exp * 0.7) + 0.5, over: -110, under: -110, g: g.id } } } } };
+  const rec = { picks: [] };
+  const r = logPicks(rec, payload, { ...D, generated: new Date(now - 60e3).toISOString() }, nba, now);
+  assert.equal(r.added, 1); assert.equal(rec.picks[0].side, "over"); assert.equal(rec.picks[0].stat, "pts");
+  assert.equal(valueOf("pra", { played: true, pts: 20, reb: 7, ast: 5, tpm: 2 }, nba), 32);
+  assert.equal(valueOf("tpm", { played: true, pts: 20, reb: 7, ast: 5, tpm: 2 }, nba), 2);
+  gradeGame(rec, g.id, new Map([[String(p.id), { played: true, pts: 99, reb: 0, ast: 0, tpm: 0 }]]), nba);
+  assert.equal(rec.picks[0].outcome, "win");
+  assert.equal(reportOf([rec], nba).markets.pts.label, nba.STATS.pts.label);
+  assert.equal("td" in reportOf([rec], nba).markets, false);
+});
+
+test("fetchPropLine: the league's sport key and markets", async () => {
+  const urls = [];
+  await fetchPropLine("K", async (url) => { urls.push(url); return { ok: true, json: async () => [], headers: new Map() }; }, PROPS_LEAGUES.nba);
+  assert.ok(urls[0].startsWith(PL_BASE + "/v1/sports/basketball_nba/odds?markets=player_points,player_rebounds,player_assists,player_threes,player_points_rebounds_assists&"));
 });

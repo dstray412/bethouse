@@ -20,7 +20,7 @@ repos:
         # locally would put an 18,000-line reformatting diff on top of
         # whatever actually changed, and only when a human commits -- CI runs
         # no hooks, so the two would disagree forever.
-        exclude: '^(history|nfl-record|nba-record|nfl-props-record)/.*\.json$'
+        exclude: '^(history|nfl-record|nba-record|nfl-props-record|nba-props-record)/.*\.json$'
       - id: check-merge-conflict
       - id: check-added-large-files
         args: ["--maxkb=1024"]
@@ -29,7 +29,7 @@ repos:
         # 1.4 MB, 2026-09-21). The refresh bots commit them without hooks
         # either way; this keeps a human's commit of the same file from
         # being refused.
-        exclude: '^(nfl-record|nba-record|nfl-props-record)/.*\.json$'
+        exclude: '^(nfl-record|nba-record|nfl-props-record|nba-props-record)/.*\.json$'
       - id: detect-private-key
 
   # --- secret scanning (pre-commit) ---

@@ -83,6 +83,27 @@ jobs:
           node track-nba.mjs grade
           node track-nba.mjs report --write-record
 
+      # A book's prop lines for tonight's board (fetch-props.mjs, props.yml
+      # says how the key is handled). Here and not in props.yml on purpose:
+      # a pick is only logged from prices fetched AFTER the board they are
+      # compared with was built, and this board is rebuilt every hour, so
+      # the fetch has to follow the build in the same job. One request a
+      # run; with no secret set it says so and writes nothing.
+      # Neither step may stop the board from committing: the board does
+      # not depend on the book's lines, and must not start to.
+      - name: Fetch the book's lines
+        continue-on-error: true
+        env:
+          PROPLINE_API_KEY: ${{ secrets.PROPLINE_API_KEY }}
+        run: node fetch-props.mjs --league nba
+
+      - name: Log prop picks, refresh closes, settle finished games
+        continue-on-error: true
+        run: |
+          node track-props.mjs log --league nba
+          node track-props.mjs grade --league nba
+          node track-props.mjs report --write-record --league nba > /dev/null
+
       - name: Commit if the board changed
         run: |
           git config user.name  "bethouse-bot"
@@ -90,6 +111,9 @@ jobs:
           git add nba-data.js
           [ -d nba-record ] && git add nba-record || true
           [ -f nba-record.js ] && git add nba-record.js || true
+          [ -f nba-props.js ] && git add nba-props.js || true
+          [ -f nba-props-record.js ] && git add nba-props-record.js || true
+          [ -d nba-props-record ] && git add nba-props-record || true
           if git diff --staged --quiet; then
             echo "No change."
           else

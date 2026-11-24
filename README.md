@@ -1867,9 +1867,12 @@ did not.
 
 **The rules a pick is held to.**
 
-- A pick is the side the gap favours at 5 points or more, one per
-  player, prop and book, logged only before kickoff, at the line and
-  price on file. It is graded at that line and price whatever the line
+- A pick is the side the gap favours at 5 points or more, **one per
+  player and prop**, at whichever book a unit expects most from, logged
+  only before kickoff, at the line and price on file. The other book
+  never becomes a second pick. (The first live run, before this rule,
+  logged both books; those pairs are merged to the better-priced one
+  while their game is still to come.) It is graded at that line and price whatever the line
   does later.
 - A price is acted on only while it is under 90 minutes old and was
   fetched after the board it is compared with was built. An old price
@@ -1897,14 +1900,26 @@ did not.
   something does, read an over-heavy market's return as flattered. A
   final game whose box score is missing a side settles nothing until it
   fills in.
-- An anytime touchdown usually has a Yes price and no No. Its gap is
-  against the raw implied chance, which still holds the book's cut, so
-  the gap is understated and the page marks it. A touchdown is rushing
+- An anytime touchdown usually has a Yes price and no No, so there is
+  no opposite side to take the book's cut out with. It is priced against
+  an **estimated cut**: the raw implied chance over one plus the cut.
+  The cut is the book's own median over its two-sided touchdown prices
+  when it posts ten or more (`props.js cutsOf`), and otherwise an
+  assumed 10% (`ONE_SIDED_CUT`). **The 10% is an assumption, not a
+  measurement**: the first live file had no two-sided touchdown price
+  at either book, and its two-sided yardage markets held 4 to 7%. The
+  record's touchdown row is what should set it. A touchdown is rushing
   or receiving, as the board counts it; a passing touchdown is not one,
   and neither is a return touchdown, which a book does pay.
-- Two books on one player and prop are two picks. They are close to the
-  same bet, so the record's n overstates how many independent results
-  it holds.
+- Every pick carries two tags so the record can say where its losses
+  come from: the size of the gap (5 to 10, 10 to 20, over 20), and the
+  player's role when it was made, his recent share of the work against
+  his season's (NFL: snap share over his last three games against the
+  season; NBA: the recent-weighted minutes the projection runs on
+  against his minutes a game). A role "moved" at under three quarters
+  or over four thirds of the season's. The record page prints the
+  return by gap size and by role. The cut for a role is a line somebody
+  chose for sorting the record, not a model term.
 
 **What the page warns about.** A gap under 5 points is greyed: prices
 and the model both move by that much. Rushing-yard and passing-yard
@@ -1926,9 +1941,31 @@ later replays; that was not done. Whether today's offers file is itself
 within the terms is the account holder's call to make before adding the
 key.
 
-**Not built in version 1:** prices on the board's top plays and parlay
+**The first live run (2026-11-24, NFL week 12).** 7 of 16 games had
+props posted: 777 offers for 149 players, and 314 picks, 40% of
+everything offered. A real edge shows up in a few percent of lines, so
+that number says the model is off, not that the books are. The largest
+gaps were all roles the model had not caught up with (a back projected
+for 44 rushing yards against a line of 5.5 after his snaps fell from
+42% to 12%). Nothing was capped: the tags above are there so a cap can
+be set from what the record shows.
+
+**The NBA (2026-11-24).** The same module with the NBA's five markets
+(`props-leagues.mjs`: points, rebounds, assists, threes,
+points + rebounds + assists). `--league nba` on either script;
+`nba-props.js`, `nba-props-record/` (a file a night) and
+`nba-props-record.js`. The fetch runs inside `refresh-nba.yml`, after
+the board is built, because that board is rebuilt every hour and a pick
+is only logged from prices fetched after the board they are compared
+with. PropLine's NBA player ids are the league's own and not ESPN's, so
+the join is by name within the game's two teams. The NBA role tag's
+"season" figure is his minutes a game over every season on file, not
+this season alone, so a player whose minutes changed between seasons
+reads as moved.
+
+**Not built:** prices on the board's top plays and parlay
 legs (they sit at projection lines and milestones, which need the
-alternate markets); more books; NBA props; a historical backfill (every
+alternate markets); more books; a historical backfill (every
 provider keeps history on a paid tier). **Not verified:** any live
 response. The parser is tested against PropLine's documented shapes and
 its published NFL sample, and against The Odds API's documented shape.

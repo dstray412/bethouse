@@ -103,6 +103,9 @@
 <script src="nfl.js"></script>
 <script src="nba.js"></script>
 <script src="nba-data.js"></script>
+<!-- A book's prop lines, written by fetch-props.mjs --league nba; null until the first run. props.js prices them. -->
+<script src="props.js"></script>
+<script src="nba-props.js"></script>
 <!-- Written by track-nba.mjs. Empty until a night has been graded. -->
 <script src="nba-record.js"></script>
 <script src="watchlist.js"></script>
@@ -117,6 +120,7 @@ BetHouseFootballBoard.mount({
   model: window.BetHouseNBA,
   data: window.BetHouseNBAData,
   record: window.BETHOUSE_NBA_RECORD,
+  props: window.BetHouseNBAProps || null,
   league: 'NBA',
   fetcher: 'fetch-nba.mjs',
   td: false, games: false, track: false,

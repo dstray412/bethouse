@@ -4,6 +4,7 @@
  * A book's player-prop lines for the NFL board → `nfl-props.js`.
  *
  *   PROPLINE_API_KEY=… node fetch-props.mjs     # PropLine, one request
+ *   PROPLINE_API_KEY=… node fetch-props.mjs --league nba   # the NBA board's (props-leagues.mjs)
  *   ODDS_API_KEY=…     node fetch-props.mjs     # The Odds API, the backup
  *   node fetch-props.mjs                        # no key: says so, writes nothing
  *
@@ -32,21 +33,19 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import P from "./props.js";
+import { PROPS_LEAGUES, propsLeague } from "./props-leagues.mjs";
 
 const DIR = path.dirname(fileURLToPath(import.meta.url));
-const OUT = "nfl-props.js", GLOBAL = "BetHouseNFLProps";
 export const PROPLINE = "https://api.prop-line.com", ODDS_API = "https://api.the-odds-api.com";
 const PROPLINE_FLOOR = 100, ODDS_API_FLOOR = 40;
-/* The backup's three markets: two-sided, the most players, and the one the record says runs hot. */
-const ODDS_API_MARKETS = ["player_reception_yds", "player_rush_yds", "player_receptions"];
 const BOOK_KEYS = Object.keys(P.BOOKS);
 
 /** The page's file: today's offers by player, prop and book, for games not yet started. Pure. */
-export function buildPayload({ events, D, source, fetched, remaining, overrides, now }) {
+export function buildPayload({ events, D, source, fetched, remaining, overrides, now, markets }) {
   const t = now == null ? Date.now() : now;
   /* The bulk feed carries live games, and an in-play price beside a pregame chance is a wrong number. */
   const pregame = (Array.isArray(events) ? events : []).filter((e) => e && !e.live && Date.parse(e.commence_time) > t);
-  const { matched, unmatched } = P.matchOffers(P.parseEvents(pregame), D, overrides);
+  const { matched, unmatched } = P.matchOffers(P.parseEvents(pregame, markets ? { markets } : undefined), D, overrides);
   const offers = {};
   let n = 0;
   for (const o of matched) {
@@ -57,7 +56,7 @@ export function buildPayload({ events, D, source, fetched, remaining, overrides,
     n++;
   }
   return {
-    payload: { fetched, source, season: D && D.season, week: D && D.week, remaining: remaining == null ? null : remaining, books: P.BOOKS, count: n, offers },
+    payload: { fetched, source, slate: P.slateOf(D), season: D && D.season, ...(D && D.week != null ? { week: D.week } : {}), remaining: remaining == null ? null : remaining, books: P.BOOKS, count: n, offers },
     unmatched,
   };
 }
@@ -74,23 +73,23 @@ async function getJson(url, headers, fetchImpl) {
 }
 
 /** PropLine: the whole slate in one request, the key in a header. */
-export async function fetchPropLine(key, fetchImpl = fetch) {
-  const url = `${PROPLINE}/v1/sports/football_nfl/odds?markets=${Object.keys(P.MARKETS).join(",")}&bookmakers=${BOOK_KEYS.join(",")}`;
+export async function fetchPropLine(key, fetchImpl = fetch, league = PROPS_LEAGUES.nfl) {
+  const url = `${PROPLINE}/v1/sports/${league.sport}/odds?markets=${Object.keys(league.markets).join(",")}&bookmakers=${BOOK_KEYS.join(",")}`;
   const { body, headers } = await getJson(url, { "X-API-Key": key }, fetchImpl);
   const left = Number(headers.get("x-daily-remaining"));
   return { events: Array.isArray(body) ? body : [], remaining: Number.isFinite(left) ? left : null, missing: headers.get("x-propline-missing-markets") || "" };
 }
 
 /** The Odds API: props come one game at a time and each costs credits, so three markets and a floor. */
-export async function fetchOddsApi(key, fetchImpl = fetch, now = Date.now()) {
+export async function fetchOddsApi(key, fetchImpl = fetch, now = Date.now(), league = PROPS_LEAGUES.nfl) {
   const k = encodeURIComponent(key);
-  const list = await getJson(`${ODDS_API}/v4/sports/americanfootball_nfl/events?apiKey=${k}`, null, fetchImpl);
+  const list = await getJson(`${ODDS_API}/v4/sports/${league.oddsApiSport}/events?apiKey=${k}`, null, fetchImpl);
   let remaining = Number(list.headers.get("x-requests-remaining"));
   const events = [];
   for (const ev of Array.isArray(list.body) ? list.body : []) {
     if (!(Date.parse(ev.commence_time) > now)) continue;
     if (Number.isFinite(remaining) && remaining < ODDS_API_FLOOR) { console.log(`  stopping: ${remaining} credits left, under the floor of ${ODDS_API_FLOOR}`); break; }
-    const one = await getJson(`${ODDS_API}/v4/sports/americanfootball_nfl/events/${encodeURIComponent(ev.id)}/odds?apiKey=${k}&regions=us&oddsFormat=american&markets=${ODDS_API_MARKETS.join(",")}&bookmakers=${BOOK_KEYS.join(",")}`, null, fetchImpl);
+    const one = await getJson(`${ODDS_API}/v4/sports/${league.oddsApiSport}/events/${encodeURIComponent(ev.id)}/odds?apiKey=${k}&regions=us&oddsFormat=american&markets=${league.oddsApiMarkets.join(",")}&bookmakers=${BOOK_KEYS.join(",")}`, null, fetchImpl);
     const left = Number(one.headers.get("x-requests-remaining"));
     if (Number.isFinite(left)) remaining = left;
     if (one.body && one.body.id) events.push(one.body);
@@ -116,14 +115,15 @@ function readGlobal(file, name) {
   return w[name] || null;
 }
 
-export async function main() {
+export async function main(league = propsLeague(process.argv.slice(2))) {
+  const OUT = league.out, GLOBAL = league.global;
   const propline = process.env.PROPLINE_API_KEY, oddsApi = process.env.ODDS_API_KEY;
   if (!propline && !oddsApi) {
     console.log("no PROPLINE_API_KEY or ODDS_API_KEY in the environment: nothing fetched, nothing written.");
     return;
   }
-  const D = readGlobal("nfl-data.js", "BetHouseNFLData");
-  if (!D || !Array.isArray(D.players)) throw new Error("no nfl-data.js: run node fetch-nfl.mjs first");
+  const D = readGlobal(league.dataFile, league.dataGlobal);
+  if (!D || !Array.isArray(D.players)) throw new Error(`no ${league.dataFile}: run node ${league.fetcher} first`);
   const source = propline ? "propline" : "the-odds-api";
   const last = readGlobal(OUT, GLOBAL);
   if (underFloor(last, source)) {
@@ -134,14 +134,14 @@ export async function main() {
   const overrides = fs.existsSync(overridesFile) ? JSON.parse(fs.readFileSync(overridesFile, "utf8")) : {};
   let got;
   try {
-    got = propline ? await fetchPropLine(propline) : await fetchOddsApi(oddsApi);
+    got = propline ? await fetchPropLine(propline, fetch, league) : await fetchOddsApi(oddsApi, fetch, Date.now(), league);
   } catch (e) {
     /* A failed fetch leaves the last file: an hour-old line is better than a board with none, and the page prints its age. */
     console.log(`${source}: ${e.message}. The board keeps the last file.`);
     return;
   }
-  const { payload, unmatched } = buildPayload({ events: got.events, D, source, fetched: new Date().toISOString(), remaining: got.remaining, overrides });
-  console.log(`${source}: ${got.events.length} events, ${payload.count} offers for ${Object.keys(payload.offers).length} players; ${got.remaining == null ? "balance not reported" : got.remaining + " left"}`);
+  const { payload, unmatched } = buildPayload({ events: got.events, D, source, fetched: new Date().toISOString(), remaining: got.remaining, overrides, markets: league.markets });
+  console.log(`${league.label}, ${source}: ${got.events.length} events, ${payload.count} offers for ${Object.keys(payload.offers).length} players; ${got.remaining == null ? "balance not reported" : got.remaining + " left"}`);
   if (got.missing) console.log(`  markets the provider did not return: ${got.missing}`);
   if (unmatched.length) {
     const who = new Map();
@@ -152,7 +152,7 @@ export async function main() {
     for (const [name, n] of [...who].sort((a, b) => b[1] - a[1]).slice(0, 40)) console.log(`    ${name} x${n}`);
   }
   fs.writeFileSync(path.join(DIR, OUT),
-    `/* Written by fetch-props.mjs: the book lines the NFL board shows today. Not an archive. */\nwindow.${GLOBAL} = ${JSON.stringify(payload)};\n`);
+    `/* Written by fetch-props.mjs: the book lines the ${league.label} board shows today. Not an archive. */\nwindow.${GLOBAL} = ${JSON.stringify(payload)};\n`);
   console.log(`wrote ${OUT}`);
 }
 

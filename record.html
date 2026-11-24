@@ -69,6 +69,7 @@ method works; the live record says whether this board does.</div>
 </table>
 <p>All five are calibrated to within a point on games the model had not seen, and a little timid at both ends: a chance it calls 83% hit 85%, one it calls 8% hit 6%. Threes are the hardest to call and beat the base rate by the least. Three things this replay cannot see: a player it graded is one who played, so a late scratch is a void bet and not a miss; a teammate ruled out moves nobody's number yet (no dated injury history to measure it on); and nothing here is compared with a book's line, so calibrated is not the same as profitable. Re-check with <code>node backtest-nba.mjs --from 2026 --ladder</code>.</p>
 <div id="nba-live"></div>
+<div id="nba-book"></div>
   </div>
 </section>
 
@@ -83,15 +84,16 @@ method works; the live record says whether this board does.</div>
 <!-- Written by track-props.mjs: prop picks at a book's price. Null until one is settled. -->
 <script src="props.js"></script>
 <script src="nfl-props-record.js"></script>
+<script src="nba-props-record.js"></script>
 <script>
 if (window.BetHouseRecordPage) BetHouseRecordPage.render(document, {
   nfl: window.BETHOUSE_NFL_RECORD || null,
   nba: window.BETHOUSE_NBA_RECORD || null
 }, { nba: { unit: 'night', before: 'tip-off' } });
-(function () {
-  var el = document.getElementById('nfl-book'), html = window.BetHouseProps ? BetHouseProps.recordHtml(window.BetHouseNFLPropsRecord || null) : '';
+[['nfl-book', window.BetHouseNFLPropsRecord], ['nba-book', window.BetHouseNBAPropsRecord]].forEach(function (x) {
+  var el = document.getElementById(x[0]), html = window.BetHouseProps ? BetHouseProps.recordHtml(x[1] || null) : '';
   if (el && html) el.innerHTML = '<p><strong>Prop picks at a book\'s price.</strong></p>' + html;
-})();
+});
 </script>
 <script src="nav.js"></script>
 </body>

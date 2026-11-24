@@ -39,6 +39,19 @@
   /* A gap smaller than this is inside what prices and the model both move
      by, and is shown greyed and never logged. Points of probability. */
   const MIN_GAP = 5;
+  /*
+   * The cut assumed in a price that has no opposite side to take it out
+   * with: most books post an anytime touchdown as a Yes and nothing else.
+   * AN ASSUMPTION, NOT A MEASUREMENT (2026-11-24): a two-sided yardage
+   * market here holds 4 to 7 percent and a yes-only list is shaded
+   * harder, so ten is a floor someone chose. cutsOf replaces it with the
+   * book's own figure when the book posts enough two-sided touchdown
+   * prices to measure one, and the record's touchdown row is what should
+   * set it for good.
+   */
+  const ONE_SIDED_CUT = 0.10;
+  /* A role has moved when the recent share is under three quarters of the season's or over four thirds of it. A cut somebody chose, so the record can split its losses; not a model term. */
+  const ROLE_LOW = 0.75, ROLE_HIGH = 4 / 3;
   /* How old a price can be and still be shown (the page prints its time), and how old it can be and still be acted on. */
   const MAX_SHOWN_AGE = 12 * 3600e3, MAX_PICK_AGE = 90 * 60e3;
 
@@ -132,8 +145,9 @@
             if (!player || (stat !== "td" && !hasPoint)) continue;
             const point = stat === "td" ? 0.5 : Number(oc.point);
             const espn = /^espn:(\d+)$/.exec(String(oc.player_id == null ? "" : oc.player_id));
-            /* The feed's id when it has one: two men of one name in a game are two men. */
-            const key = espn ? "espn:" + espn[1] : normName(player);
+            /* The feed's id when it has one, whoever issued it (ESPN's for the NFL, the league's own for the NBA): two men of one name in a game are two men. Only an ESPN id is used to find him on the board. */
+            const anyId = /^\w[\w.]*:\S+$/.test(String(oc.player_id == null ? "" : oc.player_id)) ? String(oc.player_id) : null;
+            const key = anyId || normName(player);
             if (!byPlayer.has(key)) byPlayer.set(key, { player, espnId: null, at: null, lines: new Map() });
             const rec = byPlayer.get(key);
             if (espn && !rec.espnId) rec.espnId = espn[1];
@@ -279,13 +293,15 @@
    */
   function quote(M, D, p, offer) {
     if (!offer) return null;
+    const assumed = fin(offer.cut) && offer.cut >= 0 ? offer.cut : ONE_SIDED_CUT;
     const site = siteChance(M, D, p, offer.stat, offer.line);
     if (!site) return null;
     const dOver = decimal(offer.over), dUnder = decimal(offer.under);
     if (dOver == null && dUnder == null) return null;
     const nv = noVig(offer.over, offer.under);
     const oneSided = !nv;
-    const fair = nv ? { over: nv.over, under: nv.under } : { over: dOver != null ? 1 / dOver : null, under: dUnder != null ? 1 / dUnder : null };
+    /* One-sided: the raw implied chance still holds the book's cut, so it is priced against an estimated one. */
+    const fair = nv ? { over: nv.over, under: nv.under } : { over: dOver != null ? 1 / dOver / (1 + assumed) : null, under: dUnder != null ? 1 / dUnder / (1 + assumed) : null };
     const sides = [];
     for (const s of ["over", "under"]) {
       const d = s === "over" ? dOver : dUnder;
@@ -301,13 +317,50 @@
     const best = sides[0];
     return {
       stat: offer.stat, book: offer.book, line: offer.line, over: offer.over, under: offer.under,
-      oneSided, hold: nv ? nv.hold : null, exp: site.exp, push: site.push,
+      oneSided, cut: oneSided ? assumed : null, hold: nv ? nv.hold : null, exp: site.exp, push: site.push,
       sides, side: best.side, gap: best.gap, ev: best.ev, fair: best.fair, site: best.site, price: best.price,
       log: best.gap >= MIN_GAP,
       bias: Object.prototype.hasOwnProperty.call(BIASED, offer.stat) ? BIASED[offer.stat] : null,
       recent: recentAt(M, p, offer.stat, offer.line),
     };
   }
+
+  /**
+   * Each book's cut on a yes-only touchdown price, measured off the
+   * touchdown prices it does post both sides of: the median of the raw
+   * Yes chance over the no-vig one, less one. Only with ten or more;
+   * a book with fewer keeps the assumed ONE_SIDED_CUT.
+   */
+  function cutsOf(payload) {
+    const by = {};
+    const offers = (payload && payload.offers) || {};
+    for (const pid of Object.keys(offers)) {
+      const td = offers[pid] && offers[pid].td;
+      if (!td) continue;
+      for (const book of Object.keys(td)) {
+        const nv = noVig(td[book].over, td[book].under), d = decimal(td[book].over);
+        if (!nv || d == null) continue;
+        (by[book] = by[book] || []).push(1 / d / nv.over - 1);
+      }
+    }
+    const out = {};
+    for (const book of Object.keys(by)) {
+      if (by[book].length < 10) continue;
+      const v = by[book].slice().sort((a, b) => a - b);
+      out[book] = v.length % 2 ? v[(v.length - 1) / 2] : (v[v.length / 2 - 1] + v[v.length / 2]) / 2;
+    }
+    return out;
+  }
+
+  /** Whether a role moved: the recent share against the season's. Null when there is no role to compare. */
+  function roleMoved(role) {
+    if (!role || !fin(role.season) || !fin(role.recent) || !(role.season > 0)) return null;
+    const r = role.recent / role.season;
+    return r < ROLE_LOW || r > ROLE_HIGH;
+  }
+
+  /** The size of a gap, as the record groups it. */
+  function gapBucket(gap) { return gap >= 20 ? "20+" : gap >= 10 ? "10-20" : "5-10"; }
 
   /**
    * How the book's close compares with the pick. At the same line: the
@@ -323,7 +376,7 @@
     if (close.line === pick.line) {
       /* A one-sided pick's chance still holds the book's cut, so its close is read the same way. */
       const nv = noVig(close.over, close.under), d = decimal(pick.side === "over" ? close.over : close.under);
-      const closing = pick.oneSided ? (d != null ? 1 / d : null) : nv ? nv[pick.side] : null;
+      const closing = pick.oneSided ? (d != null ? 1 / d / (1 + (fin(pick.cut) ? pick.cut : 0)) : null) : nv ? nv[pick.side] : null;
       if (closing != null && fin(pick.fair)) out.prob = Math.round(1000 * (closing - pick.fair)) / 10;
       out.pts = 0;
     } else {
@@ -390,15 +443,23 @@
   const pct = (v) => (fin(v) ? (100 * v).toFixed(1) + "%" : "—");
   const pts = (v) => (v >= 0 ? "+" : "−") + Math.abs(v).toFixed(1);
 
+  /** The slate a board or a file of prices belongs to: a week of football, a night of basketball. Null when it names neither. */
+  function slateOf(x) {
+    if (!x) return null;
+    if (x.slate != null) return String(x.slate);
+    if (x.week != null && x.season != null) return x.season + "-w" + String(x.week).padStart(2, "0");
+    return x.date != null ? String(x.date) : null;
+  }
+
   /**
    * A player's offers on one prop, by book, when the file is this
-   * board's (same season and week) and his game has not kicked off; null
+   * board's (the same slate) and his game has not kicked off; null
    * otherwise. A price from another week sits beside a projection that
    * has since moved, and a pregame price after kickoff is nobody's.
    */
   function offersFor(payload, D, p, stat, now) {
     if (!payload || !payload.offers || !D || !p) return null;
-    if (payload.season !== D.season || payload.week !== D.week) return null;
+    if (slateOf(payload) == null || slateOf(payload) !== slateOf(D)) return null;
     const mine = payload.offers[String(p.id)], byBook = mine && mine[stat];
     if (!byBook) return null;
     const t = now == null ? Date.now() : now;
@@ -408,7 +469,9 @@
     for (const book of Object.keys(byBook)) {
       const o = byBook[book], g = ((D.games || []).find((x) => String(x.id) === String(o.g)));
       if (!o || !fin(o.line) || !g || !(Date.parse(g.date) > t)) continue;
-      out[book] = o;
+      /* The book's measured cut on a yes-only price, when it has one (cutsOf); worked out once a file. */
+      if (!payload.__cuts) Object.defineProperty(payload, "__cuts", { value: cutsOf(payload), enumerable: false });
+      out[book] = fin(payload.__cuts[book]) ? Object.assign({}, o, { cut: payload.__cuts[book] }) : o;
     }
     return Object.keys(out).length ? out : null;
   }
@@ -434,11 +497,12 @@
     const offers = offersFor(payload, D, p, stat, now);
     if (!offers) return "";
     const td = stat === "td";
-    let rows = "", any = null;
+    let rows = "", any = null, cutShown = null;
     for (const book of Object.keys(offers)) {
       const q = quote(M, D, p, Object.assign({ stat, book }, offers[book]));
       if (!q) continue;
       any = q;
+      if (q.oneSided && cutShown == null) cutShown = q.cut;
       const word = (side) => (td ? (side === "over" ? "to score" : "not to score") : (side === "over" ? "over " : "under ") + q.line);
       const small = q.gap < MIN_GAP;
       rows += '<tr' + (small ? ' class="dimrow"' : "") + "><td><b>" + esc(BOOKS[book] || book) + "</b></td>" +
@@ -453,7 +517,7 @@
     const oneSided = /\*<\/td>/.test(rows);
     const notes = [];
     notes.push("Site is the model's chance at the book's line, not at its own projection line. Gap is site minus the book's chance, with the return a unit at that price expects if the site is right; under " + MIN_GAP + " points is inside what prices and the model both move by.");
-    if (oneSided) notes.push("* One-sided: the book posts no opposite price here, so its cut is still in that chance and the gap is understated.");
+    if (oneSided) notes.push("* One-sided: the book posts no opposite price here, so its chance is the price's own less an estimated cut of " + Math.round(100 * (cutShown || 0)) + "%. The cut is an assumption until the record sets it.");
     if (any.bias != null) notes.push("<b>Read this gap with care.</b> The live record has this market's overs off by " + Math.abs(any.bias).toFixed(1) + " points (the model says " + (any.bias > 0 ? "more" : "less") + " than happens), which is more than the gap it takes to log a pick.");
     notes.push("Last over is his recent games " + (td ? "with a touchdown" : "over the book's line, whichever side the gap favours") + ": a count that small is context, not evidence (7 of 10 fits anything from 40% to 89%).");
     notes.push("Prices as of " + esc(String(payload.fetched || "").slice(0, 16).replace("T", " ")) + " UTC. Picks at a gap of " + MIN_GAP + "+ are logged and settled for money on the record.");
@@ -502,9 +566,13 @@
     return "<p><b>" + esc(R.total) + "</b> prop pick" + (R.total === 1 ? "" : "s") + " settled since " + esc(R.since || "") + (R.open ? ", " + esc(R.open) + " open" : "") +
       ": every prop where the site and a book were " + esc(R.minGap) + "+ points apart, at the book's line and the price on file when it was logged.</p><table>" +
       Object.keys(R.markets).map((k) => row(R.markets[k].label, R.markets[k])).join("") + (Object.keys(R.markets).length > 1 ? row("All props", R.all) : "") + "</table>" +
+      /* Where the losses come from (2026-11-24): the same picks by the size of the gap and by whether the player's role had moved. */
+      (R.gaps && Object.keys(R.gaps).length ? "<p>By the size of the gap:</p><table>" + Object.keys(R.gaps).map((k) => row({ "5-10": "5 to 10 points", "10-20": "10 to 20 points", "20+": "over 20 points" }[k] || k, R.gaps[k])).join("") + "</table>" : "") +
+      (R.roles && (R.roles.moved || R.roles.steady) ? "<p>By the player's role, his recent share of the work against his season's:</p><table>" +
+        [["moved", "role moved by a quarter or more"], ["steady", "role steady"], ["unknown", "no role on file"]].map((x) => (R.roles[x[0]] ? row(x[1], R.roles[x[0]]) : "")).join("") + "</table>" : "") +
       '<p class="note">The return is the test, and its interval is two standard errors either side. Nothing here is an edge until a market has a few hundred settled picks.</p>';
   }
 
-  return { MARKETS, BOOKS, MIN_GAP, MAX_SHOWN_AGE, MAX_PICK_AGE, BIASED, decimal, noVig, normName, parseEvents, matchOffers, contextFor, siteChance, recentAt, quote, closeMove, grade, summarise,
-    offersFor, rowTag, bookHtml, gameHtml, recordHtml };
+  return { MARKETS, BOOKS, MIN_GAP, ONE_SIDED_CUT, MAX_SHOWN_AGE, MAX_PICK_AGE, BIASED, cutsOf, roleMoved, gapBucket, decimal, noVig, normName, parseEvents, matchOffers, contextFor, siteChance, recentAt, quote, closeMove, grade, summarise,
+    slateOf, offersFor, rowTag, bookHtml, gameHtml, recordHtml };
 });

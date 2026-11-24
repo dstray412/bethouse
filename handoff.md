@@ -38,6 +38,37 @@ calls. The list lives in six places (the local gate, pre-commit, CI and the
 three refresh workflows) and `dom.test.mjs` checks all six.
 
 
+## 2026-11-24, later: props are live, the NBA is in, picks are tagged
+
+**Live:** the owner added `PROPLINE_API_KEY`; the first NFL run fetched
+777 offers and logged 314 picks (40% of offers). The owner's reading,
+which the data supports: the model is off, mostly on role; do not cap,
+tag and learn.
+
+**Changed after that run, at the owner's direction:**
+
+- One pick a player and prop, at the better-priced book (`pickKey` has
+  no book in it). Existing two-book pairs merge on the next `log` run
+  while their game is still ahead.
+- Every pick carries `role` (`props-leagues.mjs roleOf`: NFL snap share
+  season against last three, NBA minutes a game against the
+  recent-weighted figure) and the record reports by gap bucket and by
+  role (`reportOf` `gaps`, `roles`).
+- A yes-only touchdown is priced against an estimated cut:
+  `props.js ONE_SIDED_CUT` 10%, **an assumption**, replaced per book by
+  `cutsOf` when the book posts ten or more two-sided touchdown prices.
+- NBA props: `props-leagues.mjs`, `--league nba`, wired into
+  `nba.html`, `record.html` and `refresh-nba.yml` (after the board
+  build, on purpose).
+
+**Mixed rules in week 12's record:** touchdown picks logged on the
+first run measured the gap against the raw price (no `cut` on the
+row); those logged after measure it against the cut-adjusted one. The
+touchdown row and the gap buckets for that week hold both.
+
+**Open:** the role fix in the model itself (weighting the last three
+games) is the next piece and is a model change under the README's rule.
+
 ## 2026-11-24: prop picks at a book's price (version 1, waiting on a key)
 
 **Asked:** a written plan for showing DraftKings and FanDuel prop lines
