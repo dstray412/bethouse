@@ -48,7 +48,9 @@
         const g = R.picks[k];
         picks += "<tr><td>" + esc(lab[k] || k) + " picks</td><td>n <b>" + n(g.n) + "</b> · won <b>" + esc(g.rate) + "%</b> (" + esc(g.lo) + "–" + esc(g.hi) + "%)" +
           (g.clvPts != null ? " · closing line moved toward the pick <b>" + esc(g.movedToward) + "%</b> of the time, <b>" +
-            signed(g.clvPts) + "</b> pts on average" : "") + "</td></tr>";
+            signed(g.clvPts) + "</b> pts on average" : "") +
+          /* Favourites win most of the time; what a unit on each returned at its price is the test (2026-11-24). */
+          (g.roi != null ? " · a unit on each returned <b>" + signed(g.roi) + "%</b> of stake at the price posted (" + n(g.roiN) + " priced)" : "") + "</td></tr>";
       });
       picks = "<p>The sides the board picked, settled the way a book would:</p><table>" + picks + "</table>";
     }

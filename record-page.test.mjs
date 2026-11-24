@@ -31,6 +31,9 @@ test("the live record: one row per prop with n, predicted, actual, bias and Brie
   /* The anchored favourite (2026-11-24) is its own row, so the old rule's picks are never read as the new rule's. */
   const both = page.liveRecord({ ...R, picks: { ...R.picks, mlLine: { ...R.picks.ml, n: 12 } } });
   assert.match(both, /<td>moneyline picks<\/td><td>n <b>12<\/b>/);
+  assert.doesNotMatch(both, /of stake/, "a return printed with no priced pick behind it");
+  const priced = page.liveRecord({ ...R, picks: { mlLine: { ...R.picks.ml, n: 12, roi: -4.2, roiN: 12 } } });
+  assert.match(priced, /a unit on each returned <b>\u22124\.2%<\/b> of stake at the price posted \(12 priced\)/);
   assert.match(both, /to Nov 23\) picks<\/td><td>n <b>48<\/b>/);
   assert.doesNotMatch(h, /Far too few/, "2,360 is not too few");
   assert.match(page.liveRecord(Object.assign({}, R, { total: 120 })), /Far too few to mean anything yet/);

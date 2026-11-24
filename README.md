@@ -1819,7 +1819,11 @@ unchanged: still the side of the line the model is on, still printed at
 the measured shrink (the spread's is a coin flip), still recorded.
 Moneyline picks recorded before this date are the model's own side and
 keep their own row on the record (`ml`); the anchored favourite is
-recorded as `mlLine`.
+recorded as `mlLine` with the price it was made at. A row of market
+favourites wins most of the time and that says nothing, so the record
+reports what a unit on each returned (`track-football.mjs pickReturn`)
+beside the win rate. In the replay the side named won 68.6% of 708 and
+a unit on each at the closing price returned 0.0% ± 2.6 of stake.
 
 **A starting passer out: measured, not shipped.** The starter is the
 passer with the most attempts over his team's last three games; out

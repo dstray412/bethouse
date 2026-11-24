@@ -74,6 +74,12 @@ the tables; `node experiment-lines.mjs` reprints them):
 
 **Left as it is**
 
+- The moneyline record reports return on stake, not only wins
+  (`pickReturn`; `mlLine` rows carry `price`, the picked side's
+  American odds when recorded, stored and never shown as a quote).
+  Rows before 2026-11-24 have no price and no return.
+- The record was scanned for spread or total picks against a null
+  line (the `pickGame` bug): none in 489 game picks or the slips.
 - The record keeps two moneyline rows: `ml` (the model's own side, to
   2026-11-23) and `mlLine` (the anchored favourite, from 2026-11-24).
 - `lineMarginSD` and `marketWeight` were read off the same 907 games

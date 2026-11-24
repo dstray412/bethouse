@@ -301,6 +301,8 @@ export function snapshot(league) {
         /* The margin or total the side was read from: the model's own for a spread or total lean, the anchored margin for the winner. */
         projected: Math.round((prop === "total" ? proj.total : prop === "mlLine" && shown ? shown.margin : proj.margin) * 100) / 100,
         book: g.line.book || null,
+        /* The winner's price when the pick was made, kept so the record can settle it for money. Never shown as a quote. */
+        ...(prop === "mlLine" ? { price: k.side === "home" ? g.line.homeML : g.line.awayML } : {}),
         prob: Math.round(k.prob * 10000) / 10000,
         kickoff: g.date, recordedAt: new Date().toISOString(),
       });
@@ -591,6 +593,22 @@ export async function grade(league) {
  * moved toward the pick. Calibration (in core.report) asks whether the
  * probabilities were true; this asks whether the picks were any good.
  */
+/**
+ * What one unit on every pick returned at the price each was recorded
+ * at, as a percentage of stake. A row of market favourites wins most of
+ * the time and that says nothing; the return is the test. Only rows that
+ * carry a price and a result count; null with none.
+ */
+export function pickReturn(rows) {
+  let n = 0, units = 0;
+  for (const p of rows || []) {
+    if (!p || !Number.isFinite(p.price) || p.price === 0 || (p.actual !== 0 && p.actual !== 1)) continue;
+    n++;
+    units += p.actual === 1 ? (p.price > 0 ? p.price / 100 : 100 / -p.price) : -1;
+  }
+  return n ? { roi: Math.round((1000 * units) / n) / 10, roiN: n } : null;
+}
+
 export function gamePickSummary(dir) {
   const rows = [];
   for (const d of core.listDays(dir)) {
@@ -614,6 +632,7 @@ export function gamePickSummary(dir) {
       clvPts: withClv.length ? Math.round((100 * withClv.reduce((s, p) => s + p.clv, 0)) / withClv.length) / 100 : null,
       movedToward: withClv.length ? Math.round((1000 * withClv.filter((p) => p.clv > 0).length) / withClv.length) / 10 : null,
       clvN: withClv.length,
+      ...(pickReturn(r) || {}),
     };
   }
   return out;

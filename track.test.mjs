@@ -347,7 +347,17 @@ test("settlePlayer: touchdowns, then each counting prop against its own field", 
  * when a leg voids. Recorded pregame, first prediction wins, like every
  * other row.
  * ------------------------------------------------------------------ */
-import { parlayCandidates, recordSuggestedParlays, gradeParlays } from "./track-football.mjs";
+import { parlayCandidates, recordSuggestedParlays, gradeParlays, pickReturn } from "./track-football.mjs";
+
+/* Oracle: a book's settlement of a one-unit moneyline bet. A row of favourites wins often and can still lose money, which is why the record reports the return and not only the wins (2026-11-24). */
+test("pickReturn: one unit a pick at the price it was recorded at; favourites that win 2 of 3 at -200 break even", () => {
+  const rows = [{ price: -200, actual: 1 }, { price: -200, actual: 1 }, { price: -200, actual: 0 }];
+  assert.deepEqual(pickReturn(rows), { roi: 0, roiN: 3 });
+  assert.deepEqual(pickReturn([{ price: 150, actual: 1 }, { price: -110, actual: 0 }]), { roi: 25, roiN: 2 });
+  /* Rows without a price (everything before 2026-11-24, spreads, totals), pushes and ungraded rows are not bets it can settle. */
+  assert.equal(pickReturn([{ actual: 1 }, { price: null, actual: 1 }, { price: -150, push: true }, { price: -150 }, { price: 0, actual: 1 }]), null);
+  assert.deepEqual(pickReturn([{ actual: 1 }, { price: 100, actual: 1 }]), { roi: 100, roiN: 1 });
+});
 const close = (a, b, tol = 1e-9) => assert.ok(Math.abs(a - b) <= tol, `${a} ≈ ${b}`);
 
 const FUTURE = "2099-01-01T18:00Z", PAST = "2000-01-01T18:00Z";

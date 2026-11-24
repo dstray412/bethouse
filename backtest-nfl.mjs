@@ -423,7 +423,7 @@ for (let i = START_INDEX; i < ALL.length; i++) {
       const anchored = M.anchorGame(proj, { spread: g.spread, total: g.total });
       const pHome = anchored ? anchored.win : null;
       if (nv && pHome != null) {
-        mlRows.push({ model: pHome, market: nv[0], actual: margin > 0 ? 1 : 0 });
+        mlRows.push({ model: pHome, market: nv[0], actual: margin > 0 ? 1 : 0, homeML: Number(g.homeML), awayML: Number(g.awayML) });
       }
     }
     if (g.total != null) {
@@ -906,6 +906,10 @@ if (mlRows.length) {
   const bk = mean(mlRows.map((r) => (r.market - r.actual) ** 2));
   console.log(`  Brier, model        ${bm.toFixed(4)}`);
   console.log(`  Brier, market       ${bk.toFixed(4)}  ${bm < bk ? "(model is better)" : "(MARKET IS BETTER)"}`);
+  /* The side the board names wins most of the time because it is the favourite; what a unit on each returned at the closing price is the test. */
+  const bets = mlRows.filter((r) => r.model !== 0.5).map((r) => { const home = r.model > 0.5, price = home ? r.homeML : r.awayML, won = home ? r.actual === 1 : r.actual === 0; return { won, units: won ? (price > 0 ? price / 100 : 100 / -price) : -1 }; });
+  const u = bets.map((b) => b.units);
+  console.log(`  the side named      won ${pct(mean(bets.map((b) => (b.won ? 1 : 0))))} of ${bets.length}; a unit on each at the closing price returned ${(100 * mean(u)).toFixed(1)}% of stake (± ${(100 * sd(u) / Math.sqrt(u.length)).toFixed(1)})`);
 }
 
 console.log("");
