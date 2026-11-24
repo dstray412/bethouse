@@ -2017,6 +2017,74 @@ its published NFL sample, and against The Odds API's documented shape.
 The first real run is the check: compare 20 of its lines against the
 books' own sites.
 
+### The NBA's unders: shrink, a deflator and a narrower pool, none shipped
+
+**2026-11-24.** The first night of NBA book lines logged 82 unders in
+93 picks. `experiment-nba-bias.mjs` asks whether the projection runs
+high and whether shrinking or deflating it would change that: one walk
+forward, every variant on the same 166,604 player-games, fit 2024-25,
+validated on 2025-26 and 2026-27 to date.
+
+**The projection does not run high.** Mean actual over mean projection
+on the players the board would show, by thirds of projection size, on
+validation: points 0.99 / 0.99 / 1.00, rebounds 0.99 / 0.99 / 0.98,
+assists 1.00 / 0.99 / 1.00, threes 1.03 / 1.00 / 0.99, the sum 0.99 /
+1.00 / 0.99. (A first reading said 93 to 98%. That was the mean of each
+game's own ratio across the pool, which includes players below the
+board's gates and counts a three-point projection as much as a thirty.
+It was the wrong number to read a bias off.)
+
+| variant | paired Brier Δ/SE, validation (pts, reb, ast, tpm, pra) | projection, high third | verdict |
+|---|---|---|---|
+| K 4 (shipped is 2; threes 4) | +5.7, +4.8, +4.2, 0.0, +6.5 | 1.00 to 1.02 | worse |
+| K 8 | +8.7, +7.2, +7.2, +7.7, +9.6 | 1.02 to 1.04 | worse |
+| K 16 | +12.2, +10.2, +11.7, +10.0, +12.6 | 1.07 to 1.10 | worse, and now it runs LOW for the best players |
+| pool share 0.10 (shipped 0.25) | +1.8, +3.1, −0.5, +0.6, −0.1 | unchanged | noise to worse, bands off by 3pp |
+| deflator, actual = c + s × projection | 0.0, −1.0, +0.7, +2.1, −0.5 | unchanged | nothing to fix: s is 0.97 to 0.99 (threes 0.91) |
+
+None clears the rule; nothing ships. More shrink is worse on both
+windows at every size, as the K table in `nba.js` already said. The
+deflator's fitted line is all but the identity. The pool already
+depends on the size of the projection (a quarter of it, nearest his);
+a tenth is no better.
+
+**Why the picks are unders anyway.** A stat that cannot go below zero
+and sometimes doubles has its middle outcome under its average. A line
+at the books' usual place (about 96% of the projection; 92% for threes)
+went over 49.9% of the time for points on validation, 48.1% rebounds,
+47.8% assists, 46.2% threes, 47.9% the sum. So the books' lines sit at
+or a little above the middle, the model's chances scatter around 48%
+and not 50%, and a bar of five points from 50% catches mostly the low
+side. Tonight's unders do not cluster on high projections: 94% of the
+picks in the lowest third of projections were unders, 91% in the
+middle, 79% in the highest.
+
+**Hit rate and return, held out, with the caveat that matters.** There
+are no historical book lines here. The experiment places a stand-in
+line at that fraction of the shipped projection, −110 both ways, and
+takes a pick at five points from 50%:
+
+| validation | picks (of 91,310 lines) | unders | hit rate | return on stake |
+|---|---|---|---|---|
+| shipped | 30,308 | 82% | 57.8% | +10.3% ± 1.1 |
+| K 4 | 31,274 | 82% | 57.5% | +9.8% ± 1.0 |
+| K 8 | 33,076 | 83% | 57.0% | +8.8% ± 1.0 |
+| K 16 | 36,951 | 84% | 56.5% | +7.8% ± 1.0 |
+| pool share 0.10 | 34,217 | 76% | 57.1% | +9.0% ± 1.0 |
+| deflator | 30,520 | 83% | 57.7% | +10.1% ± 1.1 |
+
+**Do not read +10% as an edge.** The stand-in line is a fixed fraction
+of the model's own projection, so it can never know something about a
+player that the model does not, and the model's pool has seen exactly
+how outcomes fall around its projection at every size. Any line drawn
+that way is beatable by construction. A real line is set on tonight's
+rotation and news. The table says two honest things only: the model's
+chances are right about its own distribution on games it had not seen,
+and none of the three changes makes its picks better. On the one night
+of real lines, 55% of offers cleared the bar against 33% of stand-in
+lines; the difference is what the books knew and the model did not,
+and those are the picks most likely to lose. The record is the test.
+
 ### Twenty-seven seasons: what two could not settle
 
 **2026-09-30.** The box score is the record of what happened; nflverse
