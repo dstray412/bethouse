@@ -107,12 +107,24 @@ test("footballCard: the projection and the favourite the NFL board's game view s
   const g = all.find((x) => x.id === "nfl:2");
   const c = H.footballCard(N, NFL, g);
   const pr = N.projectGame(NFL.ratings, "BUF", "NE", { neutral: false });
-  assert.equal(c.homePts, Math.round(pr.homePts)); assert.equal(c.awayPts, Math.round(pr.awayPts));
-  assert.equal(c.fav.team, "BUF"); assert.equal(c.fav.prob, N.winProbability(pr.margin));
+  /* A card with a line shows the line nudged by the model, the same projection the game page leads with (2026-11-24). */
+  const a = N.anchorGame(pr, g.raw.line);
+  assert.equal(c.homePts, Math.round(a.homePts)); assert.equal(c.awayPts, Math.round(a.awayPts));
+  assert.equal(c.fav.team, "BUF"); assert.equal(c.fav.prob, a.win);
+  assert.equal(c.anchored, true);
   assert.equal("pick" in c, false, "a card carries no pick: the site shows chances, not odds (2026-10-17)");
   assert.doesNotMatch(JSON.stringify(c), /price|\bev\b/i);
   const noLine = H.footballCard(N, NFL, all.find((x) => x.id === "nfl:3"));
   assert.equal(noLine.fav.team, "KC");
+  const own = N.projectGame(NFL.ratings, "KC", "DEN", { neutral: false });
+  assert.equal(noLine.fav.prob, N.winProbability(own.margin), "without a line the card is the model's own");
+  assert.equal(noLine.anchored, false);
+  /* The model liking the underdog does not put the underdog on the card. */
+  const flipped = H.footballCard(N, NFL, { ...g, raw: { ...g.raw, line: { spread: 9.5, total: 44.5 } } });
+  assert.equal(flipped.fav.team, "NE");
+  /* A total alone anchors no margin: the card is the model's own and says so. */
+  const totalOnly = H.footballCard(N, NFL, { ...g, raw: { ...g.raw, line: { spread: null, total: 44.5 } } });
+  assert.equal(totalOnly.anchored, false); assert.equal(totalOnly.fav.prob, N.winProbability(pr.margin));
   assert.equal(H.footballCard(N, { ratings: null }, g), null, "no ratings, no card");
 });
 

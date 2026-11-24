@@ -47,12 +47,12 @@
        exist, or the first keystroke fails silently (the search box did,
        2026-09-09). Say so instead. */
     var NEEDS = ['STATS','statEligible','statOppFactor','allowOf','scoreAnytimeTD','empiricalOver','availability','playerMatches',
-      'statTotal','statOpportunity','ladder','lineFor','projectGame','pickGame','poolSize','poolReads','recentValues','recentHits','recentTdHits','recentDate','receivingOpportunity'];
+      'statTotal','statOpportunity','ladder','lineFor','projectGame','pickGame','anchorGame','poolSize','poolReads','recentValues','recentHits','recentTdHits','recentDate','receivingOpportunity'];
     /* What the league has. A page that says it has no touchdown view or
        no game lines is not asked for the functions behind them; a page
        that does not say is football and is asked for all of it. */
     var HAS_TD = cfg.td !== false, HAS_GAMES = cfg.games !== false;
-    var NOT_ASKED = (HAS_TD ? [] : ['scoreAnytimeTD','recentTdHits','receivingOpportunity']).concat(HAS_GAMES ? [] : ['projectGame','pickGame']);
+    var NOT_ASKED = (HAS_TD ? [] : ['scoreAnytimeTD','recentTdHits','receivingOpportunity']).concat(HAS_GAMES ? [] : ['projectGame','pickGame','anchorGame']);
     var missing = NEEDS.filter(function(k){ return NOT_ASKED.indexOf(k) < 0 && (typeof N[k] !== 'function' && k !== 'STATS' || (k === 'STATS' && !N.STATS)); });
     /* The same mix the other way: a fresh model with a data file from
        before the pools were levelled (2026-09-21) would price every prop
@@ -851,9 +851,18 @@
         /* The game's preview page (2026-10-21): the ratings, the matchup, the sheet and the consistency on one page. First, as the Track row is on a player. */
         var t=r.g&&r.g.id!=null&&r.g.id!==''?actRow('<a class="open" href="game.html?id='+esc(encodeURIComponent(String(r.g.id)))+'">Game preview: ratings, matchup, cheat sheet, consistency →</a>'):'';
         t+='<table>';
-        t+='<tr><td>projection</td><td><b>'+esc(r.h)+' '+r.pr.homePts.toFixed(1)+
-          '</b> — <b>'+esc(r.a)+' '+r.pr.awayPts.toFixed(1)+'</b> · margin <b>'+(r.pr.margin>=0?'+':'')+r.pr.margin.toFixed(1)+
-          '</b> to the home side'+(r.g.neutral?' (neutral site, no home field)':'')+' · total <b>'+r.pr.total.toFixed(1)+'</b></td></tr>';
+        /* The line leads and the model nudges it (2026-11-24). With a
+           line the projection row is nfl.js anchorGame's and the model's
+           own numbers get a row that says whose they are; without one
+           the model's projection is the only one there is. */
+        var an=r.g.line?N.anchorGame(r.pr,r.g.line):null;
+        if(an&&!an.spreadAnchored) an=null; // a total alone anchors no margin
+        var projRow=function(label,x,tail){
+          return '<tr><td>'+label+'</td><td><b>'+esc(r.h)+' '+x.homePts.toFixed(1)+
+            '</b> — <b>'+esc(r.a)+' '+x.awayPts.toFixed(1)+'</b> · margin <b>'+(x.margin>=0?'+':'')+x.margin.toFixed(1)+
+            '</b> to the home side'+(r.g.neutral?' (neutral site, no home field)':'')+' · total <b>'+x.total.toFixed(1)+'</b>'+(tail||'')+'</td></tr>';
+        };
+        if(!an) t+=projRow('projection',r.pr,'<br><span style="color:var(--muted)">The model\'s own ratings. Once a spread is posted it becomes the projection and the model only nudges it.</span>');
         if(r.g.line){
           var L=r.g.line;
           if(L.open&&isFinite(L.open.spread)){
@@ -864,13 +873,17 @@
           }
           /* The line itself, never its price: the spread and the total
              are the market's numbers, the odds beside them are not shown. */
-          t+='<tr><td>market</td><td>'+esc(r.h)+' <b>'+(L.spread>0?'+':'')+L.spread+'</b>'+
-            ' · total <b>'+L.total+'</b>'+
+          t+='<tr><td>market</td><td>'+(Number.isFinite(L.spread)?esc(r.h)+' <b>'+(L.spread>0?'+':'')+L.spread+'</b>':'no spread')+
+            ' · '+(Number.isFinite(L.total)?'total <b>'+L.total+'</b>':'no total')+
             (L.book?' · '+esc(L.book):'')+'</td></tr>';
+          if(an){
+            t+=projRow('projection',an,'<br><span style="color:var(--muted)">the line moved '+Math.round(100*(1-N.DEFAULTS.marketWeight))+'% of the way to the model</span>');
+            t+=projRow('model alone',r.pr,'<br><span style="color:var(--muted)">Its own ratings, recent games weighted more. In the replay its disagreement with the closing line was worth nothing.</span>');
+          }
           var line=function(label,k,prop){
             if(!k){ t+='<tr><td>'+label+'</td><td>no line</td></tr>'; return; }
             t+='<tr><td>'+label+'</td><td><b>'+esc(sideName(r.g,k,prop))+'</b>'+
-              ' — model <b>'+pct(k.prob)+'</b>'+
+              ' — '+(prop==='ml'?'the line, nudged':'model')+' <b>'+pct(k.prob)+'</b>'+
               (k.edge!=null?', <b>'+k.edge.toFixed(1)+'</b> points from the line':'')+'</td></tr>';
           };
           var pk=r.pick||{};

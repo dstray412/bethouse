@@ -47,23 +47,34 @@
     const t = Date.parse(game.date);
     const when = isFinite(t) ? new Date(t).toLocaleString(undefined, { weekday: "long", month: "long", day: "numeric" }) + " · " + new Date(t).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }) : "";
     const kick = [data && data.week != null ? "Week " + esc(data.week) : "", esc(when), game.completed ? "Final" : ""].filter(Boolean).join(" · ");
-    let sentence = "";
+    /* The line leads and the model nudges it (2026-11-24): the head used to
+       argue the model's side, then say the model does not beat the market. */
     const pr = model && data && data.ratings && typeof model.projectGame === "function"
       ? model.projectGame(data.ratings, game.home, game.away, { neutral: !!game.neutral, wind: game.wind, indoor: !!game.indoor }) : null;
-    if (pr) {
-      const fav = pr.margin >= 0 ? game.home : game.away, win = typeof model.winProbability === "function" ? model.winProbability(Math.abs(pr.margin)) : null;
-      sentence += "The model projects <b>" + esc(game.home) + " " + pr.homePts.toFixed(1) + "</b> — <b>" + esc(game.away) + " " + pr.awayPts.toFixed(1) + "</b>" +
-        (pr.margin !== 0 ? ", " + esc(fav) + " by " + Math.abs(pr.margin).toFixed(1) + (win != null ? " (a " + pct(win) + " chance)" : "") : ", a pick 'em") +
-        ", total <b>" + pr.total.toFixed(1) + "</b>";
-    }
     const L = game.line;
     /* Number.isFinite, not the global: the fetcher writes null for a number ESPN did not have, and global isFinite(null) is true. */
     const hasS = !!L && Number.isFinite(L.spread), hasT = !!L && Number.isFinite(L.total);
+    const shown = pr && typeof model.anchorGame === "function" ? model.anchorGame(pr, L) : null;
+    const by = (m) => (m !== 0 ? esc(m > 0 ? game.home : game.away) + " by " + Math.abs(m).toFixed(1) : "a pick 'em");
+    const score = (x) => "<b>" + esc(game.home) + " " + x.homePts.toFixed(1) + "</b> — <b>" + esc(game.away) + " " + x.awayPts.toFixed(1) + "</b>";
+    const chance = (x) => (x.margin !== 0 && isFinite(x.win) ? " (a " + pct(x.margin > 0 ? x.win : 1 - x.win) + " chance)" : "");
+    const parts = [];
     if (hasS || hasT) {
-      sentence += (sentence ? ". " : "") + "The market has " + (hasS ? esc(game.home) + " <b>" + sgn(L.spread) + "</b>" : "") +
-        (hasS && hasT ? ", " : "") + (hasT ? "total <b>" + L.total + "</b>" : "") + (L.book ? " (" + esc(L.book) + ")" : "");
+      parts.push("The market has " + (hasS ? esc(game.home) + " <b>" + sgn(L.spread) + "</b>" : "") +
+        (hasS && hasT ? ", " : "") + (hasT ? "total <b>" + L.total + "</b>" : "") + (L.book ? " (" + esc(L.book) + ")" : ""));
     }
-    if (sentence) sentence += ". The replay found neither the favourite nor the lines beat the market: shown because you asked which side, not as a bet.";
+    if (shown && shown.spreadAnchored) {
+      const share = Math.round(100 * (1 - model.DEFAULTS.marketWeight));
+      parts.push("The projection is that line moved " + share + "% of the way to the model: " + score(shown) + ", " + by(shown.margin) + chance(shown) + ", total <b>" + shown.total.toFixed(1) + "</b>");
+      parts.push("On its own the model has " + by(pr.margin) + ", total " + pr.total.toFixed(1) +
+        "; in the replay its disagreement with the closing line was worth nothing, so it only nudges. A lean, not a bet");
+    } else if (shown) {
+      /* No spread to anchor to (no line at all, or a total alone): the model's own, said to be. */
+      const own = model.anchorGame(pr, null);
+      parts.push((hasT ? "No spread yet" : "No line yet") + ". The model's own ratings project " + score(own) + ", " + by(own.margin) + chance(own) + ", total <b>" + own.total.toFixed(1) +
+        "</b>. Once a spread is posted it becomes the projection and the model only nudges it");
+    }
+    const sentence = parts.length ? parts.join(". ") + "." : "";
     return '<div class="week gphead"><span class="kick">' + kick + '</span><h2>' + mark(game.away) + esc(game.away) + '<span class="at">at</span>' + mark(game.home) + esc(game.home) + '</h2>' +
       (game.venue ? '<span class="venue">' + esc(game.venue) + (game.neutral ? " · neutral site" : "") + "</span>" : "") +
       (sentence ? "<p>" + sentence + ' <a class="open" href="nfl.html">The NFL board →</a></p>' : "") + "</div>";

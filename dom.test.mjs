@@ -824,6 +824,30 @@ test("a game whose teams are not in the tendencies file shows no matchup section
   assert.ok(html.includes("projection"), "the rest of the panel disappeared with it");
 });
 
+test("a game's drawer leads with the market's line, shows the projection as that line nudged, and names the model alone as such", async () => {
+  const nfl = (await import("./nfl.js")).default;
+  const lined = GAMES.map((g) => (g.id === "g1" ? Object.assign({}, g, { line: { spread: 6, total: 54.5, homeML: 237, awayML: -290, book: "DraftKings" } }) : g));
+  const { app, panelFor } = await mountBoard({ tendencies: TENDENCIES, games: lined, ratings: RATINGS });
+  const i = app.__rows.findIndex((r) => r.g.id === "g1");
+  const html = panelFor(i);
+  const pr = nfl.projectGame(RATINGS, "LAC", "KC", {}), a = nfl.anchorGame(pr, lined[0].line);
+  assert.ok(html.indexOf("<td>market</td>") < html.indexOf("<td>projection</td>"), "the line does not lead");
+  assert.ok(html.includes("<b>LAC " + a.homePts.toFixed(1) + "</b> — <b>KC " + a.awayPts.toFixed(1) + "</b>"), "the projection row is not the anchored one");
+  assert.match(html, /<td>projection<\/td><td>[^]*?the line moved 10% of the way to the model/);
+  assert.ok(html.includes("<td>model alone</td>") && html.includes("LAC " + pr.homePts.toFixed(1)), "the model's own numbers are not on their own row");
+  assert.match(html, /<td>moneyline<\/td><td><b>KC ML<\/b>/, "the moneyline side is not the anchored favourite");
+  /* The fetcher writes null for a number the book did not post: it must not print. */
+  const half = await mountBoard({ tendencies: TENDENCIES, games: GAMES.map((g) => (g.id === "g1" ? Object.assign({}, g, { line: { spread: 6, total: null } }) : g)), ratings: RATINGS });
+  assert.doesNotMatch(half.panelFor(half.app.__rows.findIndex((r) => r.g.id === "g1")), /null|NaN/, "a missing total printed");
+  /* No line: one projection row, the model's, and no row pretending to be a second opinion. */
+  const g2 = panelFor(app.__rows.findIndex((r) => r.g.id === "g2"));
+  assert.doesNotMatch(g2, /model alone/);
+  /* A total alone anchors no margin: no second row with the same margin under another name. */
+  const tot = await mountBoard({ tendencies: TENDENCIES, games: GAMES.map((g) => (g.id === "g1" ? Object.assign({}, g, { line: { spread: null, total: 44 } }) : g)), ratings: RATINGS });
+  assert.doesNotMatch(tot.panelFor(tot.app.__rows.findIndex((r) => r.g.id === "g1")), /model alone|null/);
+  assert.match(g2, /<td>projection<\/td>/);
+});
+
 test("a board with no tendencies file loaded renders every game without one", async () => {
   const { app, panelFor } = await mountBoard({ tendencies: undefined, games: GAMES, ratings: RATINGS });
   for (let i = 0; i < app.__rows.length; i++) {
@@ -1452,7 +1476,7 @@ test("index.html is the home: the two-board switch, the week line, the game scro
   assert.match(html, /F\.img\(u,'tlogo',36\)/, "the logo is not built by faces.js");
   assert.match(html, /H\.logoUrl\(/, "the src comes from home.js");
   // The boards' verdict travels with the numbers: the replay found the favourite and the lines do not beat the market.
-  assert.match(html, /id="caveat"[^>]*>[^<]*replay found neither beats the market/, "the home shows the football numbers without the boards' warning");
+  assert.match(html, /id="caveat"[^>]*>[^<]*market's line[^<]*replay found the model adds nothing to the closing line/, "the home shows the football numbers without saying whose they are");
   for (const gone of ["cfb", "pga", "golf", "CFB", "PGA"]) assert.doesNotMatch(html, new RegExp(gone), "the home still carries the removed " + gone + " board");
   // The top plays are the parlay page's rule and markup (one a family in turn, one a player), on the slate day's games, with their own guard; never a raw chance ranking.
   assert.match(html, /PP\.topPlays\(/, "the top plays are not the module's rule");

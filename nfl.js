@@ -184,7 +184,7 @@
     /* Team scoring: home field is worth about two points now, not three. */
     homeField: 1.97,
     leaguePoints: 22.96, // per team per game
-    marginSD: 14.29,
+    marginSD: 12.95, // the model's own miss with ratingHalfLife 150 (13.06 on 2023-24, 12.80 on 2025-26); 14.29 before 2026-11-24
     totalSD: 13.44,
     /*
      * Wind (A4): points per mph of wind over windFloor taken off the
@@ -268,6 +268,31 @@
     totalShrink: 0.04,
     /* Ridge for the team ratings solve. */
     teamK: 6,
+    /*
+     * Days for a game's weight in the ratings solve to halve; 0 counts
+     * every game the same. Until 2026-11-24 it did: three seasons on
+     * file, about 43 games a team, a 2023 result worth as much as last
+     * week's. Fitted on 2023-24 over a grid of half-lives and ridges and
+     * validated on 2025 and 2026 to week 11 (experiment-lines.mjs; the
+     * table is in the README under "The game projection starts from the
+     * line"): squared margin error fell 7.5 +/- 2.5 on the fit window
+     * and 13.6 +/- 4.6 on validation; the total moved 4.5 +/- 2.2 and
+     * 0.8 +/- 3.4. The ridge stayed where it was.
+     */
+    ratingHalfLife: 150,
+    /*
+     * How much of the shown projection is the market's line, when there
+     * is one. Regressing (margin + spread) on (model + spread) over 907
+     * closing lines gives the model 0.02 +/- 0.12 of its disagreement
+     * (0.29 +/- 0.15 on 2023-24, -0.47 +/- 0.19 on 2025-26): the
+     * measured weight is nothing, and nothing above a tenth is
+     * defensible. A tenth ships because the page was asked to let the
+     * model nudge the line (2026-11-24); at a tenth the anchored margin
+     * misses by 12.47 points rms against the line's own 12.47.
+     */
+    marketWeight: 0.9,
+    lineMarginSD: 12.48, // rms miss of the anchored margin, 907 games
+    lineTotalSD: 12.9,   // the same for the anchored total, 738 games
 
     /* Yardage: shrink a player's per-game average toward a replacement-level
        per-game figure by this many games. */
@@ -493,12 +518,26 @@
       const hs = num(g.home.score), as = num(g.away.score);
       if (!(hs >= 0 && as >= 0)) continue;
       // A neutral site gives home field to nobody. See fetch-football.mjs.
-      obs.push({ off: g.home.team, def: g.away.team, pts: hs, home: g.neutral ? 0 : 1 });
-      obs.push({ off: g.away.team, def: g.home.team, pts: as, home: 0 });
+      const at = Date.parse(g.date);
+      obs.push({ off: g.home.team, def: g.away.team, pts: hs, home: g.neutral ? 0 : 1, at });
+      obs.push({ off: g.away.team, def: g.home.team, pts: as, home: 0, at });
     }
     if (!obs.length) return { off: {}, def: {}, league: o.leaguePoints, homeField: o.homeField, games: {} };
 
-    const league = obs.reduce((s, x) => s + x.pts, 0) / obs.length;
+    /* Recent games count more: a weight that halves every ratingHalfLife
+       days back from the newest game on file, which counts in full, as
+       does a game with no date. Aged from the newest game and not from
+       today or the next kickoff on purpose: the ridge is added to the
+       summed weight, so ageing every game by an off-season would shrink
+       every rating, and the replay and the board would then disagree. */
+    const hl = num(o.ratingHalfLife);
+    const asOf = obs.reduce((m, x) => (isFinite(x.at) && x.at > m ? x.at : m), -Infinity);
+    for (const x of obs) {
+      const age = hl > 0 && isFinite(asOf) && isFinite(x.at) ? Math.max(0, (asOf - x.at) / 864e5) : 0;
+      x.w = hl > 0 ? Math.pow(0.5, age / hl) : 1;
+    }
+
+    const league = obs.reduce((s, x) => s + x.w * x.pts, 0) / obs.reduce((s, x) => s + x.w, 0);
     const off = new Map(), def = new Map(), played = new Map();
     for (const x of obs) {
       off.set(x.off, 0); def.set(x.def, 0);
@@ -512,16 +551,16 @@
       const oSum = new Map(), oN = new Map();
       for (const x of obs) {
         const r = x.pts - league - def.get(x.def) - (x.home ? hfa : 0);
-        oSum.set(x.off, (oSum.get(x.off) || 0) + r);
-        oN.set(x.off, (oN.get(x.off) || 0) + 1);
+        oSum.set(x.off, (oSum.get(x.off) || 0) + x.w * r);
+        oN.set(x.off, (oN.get(x.off) || 0) + x.w);
       }
       for (const t of off.keys()) off.set(t, (oSum.get(t) || 0) / ((oN.get(t) || 0) + K));
       // defence: what it allowed above league
       const dSum = new Map(), dN = new Map();
       for (const x of obs) {
         const r = x.pts - league - off.get(x.off) - (x.home ? hfa : 0);
-        dSum.set(x.def, (dSum.get(x.def) || 0) + r);
-        dN.set(x.def, (dN.get(x.def) || 0) + 1);
+        dSum.set(x.def, (dSum.get(x.def) || 0) + x.w * r);
+        dN.set(x.def, (dN.get(x.def) || 0) + x.w);
       }
       for (const t of def.keys()) def.set(t, (dSum.get(t) || 0) / ((dN.get(t) || 0) + K));
     }
@@ -619,6 +658,33 @@
     return normalCDF(projectedMargin / o.marginSD);
   }
 
+  /**
+   * The projection the page shows: the market's line, nudged by the model.
+   *
+   *     margin = marketWeight * (-spread) + (1 - marketWeight) * model margin
+   *
+   * and the same for the total, each only when the line carries that
+   * number. `win` is the home side's chance from the margin shown, in
+   * units of how far that margin usually misses: the anchored margin's
+   * error with a spread, the model's own without. With no line at all
+   * the model's projection stands and `anchored` is false. `model` is
+   * the projection that went in, for the row that shows the nudge.
+   */
+  function anchorGame(projection, line, opts) {
+    const o = Object.assign({}, DEFAULTS, opts || {});
+    if (!projection || !isFinite(projection.margin) || !isFinite(projection.total)) return null;
+    const w = clamp(num(o.marketWeight), 0, 1);
+    const hasS = !!line && Number.isFinite(line.spread), hasT = !!line && Number.isFinite(line.total);
+    const margin = hasS ? w * -line.spread + (1 - w) * projection.margin : projection.margin;
+    const total = hasT ? w * line.total + (1 - w) * projection.total : projection.total;
+    return {
+      homePts: (total + margin) / 2, awayPts: (total - margin) / 2, margin, total,
+      win: normalCDF(margin / (hasS ? o.lineMarginSD : o.marginSD)),
+      anchored: hasS || hasT, spreadAnchored: hasS, totalAnchored: hasT,
+      model: projection,
+    };
+  }
+
   /*
    * Which side the model likes, on each market a line offers.
    *
@@ -637,7 +703,8 @@
     const m = projection.margin, t = projection.total;
     const out = { spread: null, total: null, ml: null };
 
-    if (isFinite(line.spread) && isFinite(m)) {
+    /* Number.isFinite: the fetcher writes null for a number the book did not post, and the global isFinite(null) is true. */
+    if (Number.isFinite(line.spread) && isFinite(m)) {
       const sp = spreadProbability(m, line.spread, opts);
       if (sp.edge > 0) {
         out.spread = { side: "home", prob: sp.homeCoverProb, edge: sp.edge, line: line.spread };
@@ -645,7 +712,7 @@
         out.spread = { side: "away", prob: 1 - sp.homeCoverProb, edge: -sp.edge, line: line.spread };
       }
     }
-    if (isFinite(line.total) && isFinite(t)) {
+    if (Number.isFinite(line.total) && isFinite(t)) {
       const tp = totalProbability(t, line.total, opts);
       if (tp.edge > 0) {
         out.total = { side: "over", prob: tp.overProb, edge: tp.edge, line: line.total };
@@ -653,9 +720,12 @@
         out.total = { side: "under", prob: 1 - tp.overProb, edge: -tp.edge, line: line.total };
       }
     }
-    if (isFinite(line.homeML) && isFinite(line.awayML) && isFinite(m) && m !== 0) {
-      const pHome = winProbability(m, opts);
-      out.ml = m > 0 ? { side: "home", prob: pHome } : { side: "away", prob: 1 - pHome };
+    /* Who wins is asked of the projection the page shows, the line nudged
+       by the model (2026-11-24): the model alone lost to the market's win
+       probabilities, and a flat model made every underdog look like value. */
+    const a = anchorGame(projection, line, opts);
+    if (Number.isFinite(line.homeML) && Number.isFinite(line.awayML) && a && a.margin !== 0) {
+      out.ml = a.margin > 0 ? { side: "home", prob: a.win } : { side: "away", prob: 1 - a.win };
     }
     return out;
   }
@@ -1455,6 +1525,7 @@
       totalProbability: (t, m, opts) => totalProbability(t, m, merge(opts)),
       winProbability: (m, opts) => winProbability(m, merge(opts)),
       pickGame: (proj, line, opts) => pickGame(proj, line, merge(opts)),
+      anchorGame: (proj, line, opts) => anchorGame(proj, line, merge(opts)),
       usageTDs: (c, t, opts, rz) => usageTDs(c, t, merge(opts), rz),
       receivingOpportunity: (rec, opts) => receivingOpportunity(rec, merge(opts)),
       usagePoolFrom,
@@ -1508,6 +1579,7 @@
     totalProbability,
     winProbability,
     pickGame,
+    anchorGame,
     usageTDs,
     rzPerGame,
     weightedLine,

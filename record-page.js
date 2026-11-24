@@ -43,7 +43,7 @@
     });
     let picks = "";
     if (R.picks) {
-      const lab = { spread: "spread", total: "total", ml: "moneyline" };
+      const lab = { spread: "spread", total: "total", ml: "moneyline (the model alone, to Nov 23)", mlLine: "moneyline" };
       Object.keys(R.picks).forEach((k) => {
         const g = R.picks[k];
         picks += "<tr><td>" + esc(lab[k] || k) + " picks</td><td>n <b>" + n(g.n) + "</b> · won <b>" + esc(g.rate) + "%</b> (" + esc(g.lo) + "–" + esc(g.hi) + "%)" +

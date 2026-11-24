@@ -1755,6 +1755,85 @@ The efficiency lines are now kept in the history cache (`home.stats`,
 `away.stats`: yards, plays, turnovers, first downs, possession) so the next
 attempt does not start with a ten-minute refetch.
 
+### The game projection starts from the line
+
+**2026-11-24.** A game page led with the model's own score (Washington
+by half a point) beside a line that had Cincinnati by six, then said the
+model does not beat the market. The cause was the ratings: three seasons
+on file, about 43 games a team, every game counted the same. Three
+things were measured in `experiment-lines.mjs`, each fitted on 2023 to
+2024 and read again on 2025 and 2026 to week 11 (915 games, 907 with a
+closing spread).
+
+**Recent games count more: shipped.** A game's weight in the ratings
+solve halves every `ratingHalfLife` days. Root-mean-square miss of the
+model's own margin | total:
+
+| half-life (days), ridge 6 | fit, 480 games | validation, 435 games |
+|---|---|---|
+| none (before) | 13.34 \| 13.50 | 13.34 \| 13.60 |
+| 60 | 13.04 \| 13.34 | 12.97 \| 13.85 |
+| 90 | 13.02 \| 13.32 | 12.87 \| 13.72 |
+| 120 | 13.03 \| 13.32 | 12.83 \| 13.63 |
+| **150 (ships)** | 13.05 \| 13.33 | 12.82 \| 13.57 |
+| 180 | 13.07 \| 13.34 | 12.84 \| 13.54 |
+| 240 | 13.11 \| 13.36 | 12.89 \| 13.50 |
+| 365 | 13.17 \| 13.40 | 12.99 \| 13.48 |
+
+Paired against no weighting, squared margin error fell 7.5 ± 2.5 on the
+fit window (Δ/SE −3.0) and 13.6 ± 4.6 on validation (−3.0). The total
+moved 4.5 ± 2.2 and 0.8 ± 3.4: better on the fit window, flat on
+validation. Ages run back from the newest game on file, which counts in
+full; the ridge is added to the summed weight, so ageing from today
+would shrink every rating through an off-season. The ridge was swept at 3, 6 and 9 and stayed at 6.
+`marginSD` is re-measured at 12.95 (it was 14.29). The player props
+share these ratings and did not move: under `--fixed-lines` the paired
+Brier difference is exactly zero for every counting prop on both
+windows, and the touchdown model's is inside the noise.
+
+**The line is the projection and the model nudges it: shipped at 90/10.**
+The slope of (actual − line) on (model − line), with the shipped
+ratings, is the weight the model earns beside the close:
+
+| window | spread | total |
+|---|---|---|
+| fit | 0.29 ± 0.15 (479) | 0.12 ± 0.21 (312) |
+| validation | −0.47 ± 0.19 (428) | −0.04 ± 0.19 (426) |
+| all | 0.02 ± 0.12 (907) | 0.03 ± 0.14 (738) |
+
+The better ratings miss by less on their own (12.95 against the line's
+12.47) and still add nothing to the line. The measured weight is zero;
+a tenth ships because the page was asked to let the model nudge, and at
+a tenth the anchored margin misses by 12.47 against the line's 12.47,
+which is no cost. (`lineMarginSD` and the weight were read off the same
+907 games the moneyline Brier below is scored on, so that comparison is
+in-sample.) Nothing above a tenth is defensible. `nfl.js`
+`anchorGame` is the one place this happens: the game page's head, the
+board's game drawer and the home card show its output when a game has a
+line and the model's own projection, labelled as the model's, when it
+does not. The moneyline pick is the anchored favourite at the anchored
+margin's chance, and in the replay that chance scores level with the
+market's own (Brier 0.2083 against 0.2075 over 708 games; the model
+alone scored 0.2220 against 0.1999). The spread and total leans are
+unchanged: still the side of the line the model is on, still printed at
+the measured shrink (the spread's is a coin flip), still recorded.
+Moneyline picks recorded before this date are the model's own side and
+keep their own row on the record (`ml`); the anchored favourite is
+recorded as `mlLine`.
+
+**A starting passer out: measured, not shipped.** The starter is the
+passer with the most attempts over his team's last three games; out
+means he threw no pass. Those teams fell short of the model by
+4.05 ± 1.32 points on the fit window (116 team-games) and 1.82 ± 1.47 on
+validation (92). Applying the fitted 4.05 improves squared error on the
+fit window (−16.4 ± 10.7, in-sample) and not on validation (+1.7 ± 11.9), so it
+fails the rule. Against the closing line the same teams were
+−2.97 ± 1.22 and +0.65 ± 1.37: the line has it. With a line the
+projection is nine parts line, which is how quarterback and injury news
+reaches the page. A term for other injuries was not attempted: the
+skill-position vacated share already moves the props (A4), and no
+box-score measure of a missing lineman or corner exists here.
+
 ### Twenty-seven seasons: what two could not settle
 
 **2026-09-30.** The box score is the record of what happened; nflverse

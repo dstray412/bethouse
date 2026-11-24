@@ -257,6 +257,9 @@ test("gradeGamePick: the moneyline settles on the winner and a tie is void", () 
   assert.equal(gradeGamePick({ prop: "ml", side: "away" }, score(20, 24)).actual, 1);
   assert.equal(gradeGamePick({ prop: "ml", side: "home" }, score(20, 24)).actual, 0);
   assert.equal(gradeGamePick({ prop: "ml", side: "home" }, score(20, 20)).push, true);
+  /* The anchored favourite (2026-11-24) is recorded under its own id and settles as a moneyline does. */
+  assert.equal(gradeGamePick({ prop: "mlLine", side: "away" }, score(20, 24)).actual, 1);
+  assert.equal(gradeGamePick({ prop: "mlLine", side: "home" }, score(20, 20)).push, true);
 });
 
 test("gradeGamePick: closing line value is points in the pick's favour", () => {

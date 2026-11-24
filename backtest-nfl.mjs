@@ -419,7 +419,9 @@ for (let i = START_INDEX; i < ALL.length; i++) {
        behind the moneyline verdict on the board.) */
     if (g.homeML != null && g.awayML != null && margin !== 0) {
       const nv = devig([g.homeML, g.awayML]);
-      const pHome = M.winProbability(proj.margin);
+      /* The win probability the board shows: the line nudged by the model (nfl.js anchorGame). */
+      const anchored = M.anchorGame(proj, { spread: g.spread, total: g.total });
+      const pHome = anchored ? anchored.win : null;
       if (nv && pHome != null) {
         mlRows.push({ model: pHome, market: nv[0], actual: margin > 0 ? 1 : 0 });
       }

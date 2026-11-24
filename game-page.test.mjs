@@ -45,21 +45,37 @@ test("find and players: the game by its id as a string or a number, and the play
   assert.deepEqual(page.players(DATA, null), []);
 });
 
-test("head: the week, the matchup, the model's projection and the market's line as numbers, never a price; the caveat travels with them", () => {
+test("head: the market's line leads, the projection is that line nudged by the model, and the model alone is named as such; never a price", () => {
   const h = page.headHtml(GAME, DATA, nfl, H);
   assert.match(h, /^<div class="week gphead"><span class="kick">Week 7 · /, "the kicker is not the week line's");
   /* The fetcher writes null for a number ESPN did not have: it must not print. */
   const half = page.headHtml({ ...GAME, line: { spread: -3, total: null, book: "Draft Kings" } }, DATA, nfl, H);
   assert.match(half, /The market has LAC <b>-3<\/b> \(Draft Kings\)/); assert.doesNotMatch(half, /null/, "a null total printed");
-  assert.doesNotMatch(page.headHtml({ ...GAME, line: { spread: null, total: null } }, DATA, nfl, H), /The market has|null/, "a line with no numbers is a market sentence");
   assert.match(h, /<h2>KC<span class="at">at<\/span>LAC<\/h2>/);
   assert.match(h, /SoFi/);
   const pr = nfl.projectGame(DATA.ratings, "LAC", "KC", { neutral: false, wind: undefined, indoor: false });
-  assert.match(h, new RegExp("projects <b>LAC " + pr.homePts.toFixed(1) + "</b> — <b>KC " + pr.awayPts.toFixed(1) + "</b>"), "the projection is not the model's");
+  const a = nfl.anchorGame(pr, GAME.line);
+  assert.ok(h.indexOf("The market has") < h.indexOf("The projection is"), "the line does not lead");
+  assert.match(h, new RegExp("The projection is that line moved 10% of the way to the model: <b>LAC " + a.homePts.toFixed(1) + "</b> — <b>KC " + a.awayPts.toFixed(1) + "</b>, LAC by " + a.margin.toFixed(1)), "the projection shown is not the anchored one");
+  assert.match(h, new RegExp("\\(a " + Math.round(100 * a.win) + "% chance\\), total <b>" + a.total.toFixed(1) + "</b>"), "the chance is not the anchored margin's");
+  /* The conflict the head had: a model that likes the other side is the last word, labelled, never the headline. */
+  const flipped = page.headHtml({ ...GAME, line: { spread: -6, total: 54.5 } }, DATA, nfl, H);
+  assert.match(flipped, /The projection is.*, LAC by 5\.0 \(/, "the shown favourite is not the market's");
+  assert.match(flipped, /On its own the model has KC by 4\.0/, "the model's own lean is not named as the model's own");
   assert.match(h, /total <b>50\.5<\/b> \(Draft Kings\)/, "the market's total is not shown");
   assert.match(h, /LAC <b>-3<\/b>/, "the market's spread is not shown");
   assert.doesNotMatch(h, /-148|124|-102|price|odds/, "a price on the head");
-  assert.match(h, /neither the favourite nor the lines beat the market/, "the replay's verdict does not travel with the numbers");
+  assert.match(h, /worth nothing, so it only nudges/, "the replay's verdict does not travel with the numbers");
+  /* A total alone anchors no margin: the favourite shown is the model's own and says so, once. */
+  const totalOnly = page.headHtml({ ...GAME, line: { spread: null, total: 44 } }, DATA, nfl, H);
+  assert.match(totalOnly, /The market has total <b>44<\/b>\. No spread yet\. The model's own ratings project/);
+  assert.doesNotMatch(totalOnly, /moved 10%|On its own/, "a total-only line is worded as an anchored margin");
+  /* No line: the model's projection, said to be the model's, and no market sentence. */
+  for (const line of [null, { spread: null, total: null }]) {
+    const none = page.headHtml({ ...GAME, line }, DATA, nfl, H);
+    assert.doesNotMatch(none, /The market has|null/, "a line with no numbers is a market sentence");
+    assert.match(none, new RegExp("No line yet\\. The model's own ratings project <b>LAC " + pr.homePts.toFixed(1) + "</b>"));
+  }
   assert.equal(page.headHtml(null, DATA, nfl, H), "");
   const bare = page.headHtml({ ...GAME, line: null }, { week: 7 }, null, {});
   assert.doesNotMatch(bare, /<p>/, "a sentence with no projection and no line");

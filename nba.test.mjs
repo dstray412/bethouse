@@ -558,7 +558,7 @@ test("propsFor: the NBA record reports its five props and nothing football-shape
   assert.deepEqual(propsFor(nba).map((p) => p.id), ["pts", "reb", "ast", "tpm", "pra"]);
   const ids = propsFor(nfl).map((p) => p.id);
   assert.equal(ids[0], "td");
-  assert.deepEqual(ids.slice(-3), ["spread", "total", "ml"]);
+  assert.deepEqual(ids.slice(-4), ["spread", "total", "ml", "mlLine"]);
 });
 
 test("playerRows: one row a prop the board offers, at the board's line, with the ladder it shows", () => {

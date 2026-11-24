@@ -308,3 +308,89 @@ if (moved.length >= 50) {
 }
 
 console.log(`Twenty-odd buckets were looked at. One of them at two standard errors is what chance looks like.\n`);
+
+/* ------------------------------------------------------------------ *
+ * 2026-11-24: the game projection starts from the line
+ *
+ * Three questions, each fitted on 2023-24 and read again on 2025-26
+ * (README, "The game projection starts from the line"). Everything here
+ * runs through nfl.js's own buildTeamRatings and projectGame.
+ *
+ *   1. Does weighting recent games more make the model's own projection
+ *      miss by less? (ratingHalfLife x teamK)
+ *   2. Beside the closing line, what weight does the model earn?
+ *      (marketWeight is one minus it.)
+ *   3. Does a team whose starting passer does not play fall short of its
+ *      rating, and does the line already know?
+ * ------------------------------------------------------------------ */
+{
+  const rms = (a) => Math.sqrt(mean(a.map((x) => x * x)));
+  const FIT = (r) => r.season <= 2024, VAL = (r) => r.season >= 2025;
+  const HLS = [0, 60, 90, 120, 150, 180, 240, 365], KS = [3, 6, 9];
+  const grid = HLS.flatMap((hl) => KS.map((k) => ({ hl, k })));
+  const index = new Map(ALL.map((g, i) => [g.id, i]));
+  const gr = [];
+  for (let i = 1; i < weeks.length; i++) {
+    const w = weeks[i], prior = weeks.slice(0, i).flatMap((x) => x.games);
+    if (prior.length < 60) continue;
+    /* Aged from the newest prior game, as the board's build and the replay do. */
+    const rts = grid.map((c) => M.buildTeamRatings(prior, { ratingHalfLife: c.hl, teamK: c.k }));
+    for (const g of w.games) {
+      gr.push({ g, season: w.season, am: g.home.score - g.away.score, at: g.home.score + g.away.score,
+        p: rts.map((rt) => M.projectGame(rt, g.home.team, g.away.team, { neutral: !!g.neutral })) });
+    }
+  }
+  const col = (f, i) => `${rms(gr.filter(f).map((r) => r.am - r.p[i].margin)).toFixed(2)} | ${rms(gr.filter(f).map((r) => r.at - r.p[i].total)).toFixed(2)}`;
+  console.log(`RECENCY — rms miss of the model's own margin | total, ${gr.filter(FIT).length} games 2023-24 (fit) and ${gr.filter(VAL).length} since (validation)`);
+  console.log(`  ${"half-life".padEnd(11)}${"teamK".padEnd(7)}${"fit".padEnd(17)}validation`);
+  grid.forEach((c, i) => console.log(`  ${String(c.hl || "none").padEnd(11)}${String(c.k).padEnd(7)}${col(FIT, i).padEnd(17)}${col(VAL, i)}`));
+  const base = grid.findIndex((c) => c.hl === 0 && c.k === M.DEFAULTS.teamK);
+  const ship = grid.findIndex((c) => c.hl === M.DEFAULTS.ratingHalfLife && c.k === M.DEFAULTS.teamK);
+  if (ship >= 0) {
+    for (const [name, f] of [["fit", FIT], ["validation", VAL]]) for (const [what, e] of [["margin", (r, i) => (r.am - r.p[i].margin) ** 2], ["total", (r, i) => (r.at - r.p[i].total) ** 2]]) {
+      const d = gr.filter(f).map((r) => e(r, ship) - e(r, base));
+      console.log(`  shipped (${M.DEFAULTS.ratingHalfLife} days, K ${M.DEFAULTS.teamK}) against none, ${name}, ${what}: squared error ${mean(d).toFixed(2)} ± ${(sd(d) / Math.sqrt(d.length)).toFixed(2)}  (Δ/SE ${(mean(d) / (sd(d) / Math.sqrt(d.length))).toFixed(1)})`);
+    }
+    console.log(`\nTHE MODEL'S WEIGHT BESIDE THE LINE — slope of (actual − line) on (model − line), shipped ratings`);
+    for (const [name, f] of [["fit", FIT], ["validation", VAL], ["all", () => true]]) {
+      const s = gr.filter((r) => f(r) && r.g.spread != null), t = s.filter((r) => r.g.total != null);
+      const fitw = (rows, e, y) => { let xy = 0, xx = 0; for (const r of rows) { xy += e(r) * y(r); xx += e(r) ** 2; } return { w: xy / xx, se: sd(rows.map(y)) / Math.sqrt(xx) }; };
+      const a = fitw(s, (r) => r.p[ship].margin + r.g.spread, (r) => r.am + r.g.spread), b = fitw(t, (r) => r.p[ship].total - r.g.total, (r) => r.at - r.g.total);
+      const mw = M.DEFAULTS.marketWeight;
+      console.log(`  ${name.padEnd(11)}spread ${a.w.toFixed(2)} ± ${a.se.toFixed(2)} (n ${s.length})   total ${b.w.toFixed(2)} ± ${b.se.toFixed(2)} (n ${t.length})   ` +
+        `rms: line ${rms(s.map((r) => r.am + r.g.spread)).toFixed(2)}, anchored at ${mw} ${rms(s.map((r) => r.am - M.anchorGame(r.p[ship], r.g).margin)).toFixed(2)}, model ${rms(s.map((r) => r.am - r.p[ship].margin)).toFixed(2)}; ` +
+        `anchored total ${rms(t.map((r) => r.at - M.anchorGame(r.p[ship], r.g).total)).toFixed(2)}`);
+    }
+    /* The starter is the passer with the most attempts over the team's last
+       three games this season (40 or more); "out" is that he threw no pass
+       in this one. A box-score proxy: it cannot see a mid-game injury as
+       out, and it knows on the day what a bettor knew only if it was
+       announced. */
+    const qb = [];
+    for (const r of gr) {
+      const g = r.g, at = index.get(g.id);
+      for (const side of ["home", "away"]) {
+        const T = g[side].team, prev = [];
+        for (let j = at - 1; j >= 0 && prev.length < 3; j--) { const h = ALL[j]; if (h.season !== g.season) break; if (h.home.team === T || h.away.team === T) prev.push(h); }
+        if (prev.length < 2) continue;
+        const att = new Map();
+        for (const h of prev) for (const p of h.players || []) if (p.team === T && p.pass && p.pass.att) att.set(p.id, (att.get(p.id) || 0) + p.pass.att);
+        const top = [...att.entries()].sort((a, b) => b[1] - a[1])[0];
+        if (!top || top[1] < 40) continue;
+        const row = (g.players || []).find((p) => p.id === top[0] && p.team === T);
+        const sign = side === "home" ? 1 : -1;
+        qb.push({ season: g.season, out: !(row && row.pass && row.pass.att >= 1), model: sign * (r.am - r.p[ship].margin), line: g.spread != null ? sign * (r.am + g.spread) : null });
+      }
+    }
+    console.log(`\nSTARTING PASSER OUT — the team's margin against the model and against the closing line`);
+    for (const [name, f] of [["fit", FIT], ["validation", VAL], ["all", () => true]]) {
+      const o = qb.filter((x) => f(x) && x.out), l = o.filter((x) => x.line != null);
+      const fitted = mean(qb.filter((x) => FIT(x) && x.out).map((x) => x.model));
+      const d = o.map((x) => (x.model - fitted) ** 2 - x.model ** 2);
+      console.log(`  ${name.padEnd(11)}${String(o.length).padStart(4)} team-games   against the model ${mean(o.map((x) => x.model)).toFixed(2)} ± ${(sd(o.map((x) => x.model)) / Math.sqrt(o.length || 1)).toFixed(2)}   ` +
+        `against the line ${mean(l.map((x) => x.line)).toFixed(2)} ± ${(sd(l.map((x) => x.line)) / Math.sqrt(l.length || 1)).toFixed(2)}   ` +
+        `squared error with the fitted ${fitted.toFixed(2)} applied: ${mean(d).toFixed(1)} ± ${(sd(d) / Math.sqrt(d.length || 1)).toFixed(1)}`);
+    }
+  }
+  console.log();
+}

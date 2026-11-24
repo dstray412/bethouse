@@ -78,11 +78,15 @@ export function propsFor(M) {
     ...(typeof M.pickGame === "function" ? [
       { id: "spread", label: "Spread, the side the model likes" },
       { id: "total", label: "Total, the side the model likes" },
-      { id: "ml", label: "Moneyline, the side the model likes" },
+      /* Two moneyline rows since 2026-11-24: until then the pick was the model's own side, and a record must not put those under the new rule's name. */
+      { id: "ml", label: "Moneyline, the side the model liked (to 2026-11-23)" },
+      { id: "mlLine", label: "Moneyline, the favourite of the line nudged by the model" },
     ] : []),
   ];
 }
-const GAME_PROPS = new Set(["spread", "total", "ml"]);
+const GAME_PROPS = new Set(["spread", "total", "ml", "mlLine"]);
+/* What pickGame calls each market, and the id its pick is recorded under. */
+const PICK_IDS = { spread: "spread", total: "total", ml: "mlLine" };
 
 /**
  * A prediction's identity, and the whole of rule 1: a row whose key is
@@ -281,8 +285,9 @@ export function snapshot(league) {
     const proj = M.projectGame(D.ratings, g.home, g.away, { neutral: !!g.neutral });
     const pick = M.pickGame(proj, g.line);
     if (!pick) continue;
-    for (const prop of GAME_PROPS) {
-      const k = pick[prop];
+    const shown = typeof M.anchorGame === "function" ? M.anchorGame(proj, g.line) : null;
+    for (const market of Object.keys(PICK_IDS)) {
+      const k = pick[market], prop = PICK_IDS[market];
       if (!k || !isFinite(k.prob)) continue;
       const key = `${g.id}|game|${prop}`;
       if (seen.has(key)) continue;                // Rule 1: first prediction wins
@@ -293,7 +298,8 @@ export function snapshot(league) {
         /* Where the line opened, so the record can say whether the market
            had already moved toward the pick when it was made. */
         open: g.line.open ? (prop === "total" ? g.line.open.total : prop === "spread" ? g.line.open.spread : null) : null,
-        projected: Math.round((prop === "total" ? proj.total : proj.margin) * 100) / 100,
+        /* The margin or total the side was read from: the model's own for a spread or total lean, the anchored margin for the winner. */
+        projected: Math.round((prop === "total" ? proj.total : prop === "mlLine" && shown ? shown.margin : proj.margin) * 100) / 100,
         book: g.line.book || null,
         prob: Math.round(k.prob * 10000) / 10000,
         kickoff: g.date, recordedAt: new Date().toISOString(),
@@ -354,7 +360,7 @@ export function gradeGamePick(pick, result, close) {
     if (close && isFinite(close.total)) {
       out.clv = pick.side === "over" ? close.total - pick.line : pick.line - close.total;
     }
-  } else if (pick.prop === "ml") {
+  } else if (pick.prop === "ml" || pick.prop === "mlLine") {
     if (margin === 0) out.push = true;
     else out.actual = (pick.side === "home" ? margin > 0 : margin < 0) ? 1 : 0;
   }

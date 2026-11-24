@@ -616,11 +616,124 @@ test("pickGame: the away side, and its probability is the away side's", () => {
   close(p.total.prob, 1 - totalProbability(40, 47).overProb);
 });
 
-test("pickGame: the moneyline pick is the projected winner with its win probability", () => {
-  const p = nfl.pickGame({ margin: -4, total: 40 }, { spread: 2.5, total: 40, homeML: 130, awayML: -150 });
+test("pickGame: the moneyline pick is the anchored favourite, at the anchored margin's chance", () => {
+  // Oracle: anchorGame. The winner is asked of the line nudged by the model, not of the model alone.
+  const pr = { margin: -4, total: 40, homePts: 18, awayPts: 22 }, line = { spread: 2.5, total: 40, homeML: 130, awayML: -150 };
+  const p = nfl.pickGame(pr, line);
+  const a = nfl.anchorGame(pr, line);
   assert.equal(p.ml.side, "away");
-  close(p.ml.prob, 1 - nfl.winProbability(-4));
+  close(p.ml.prob, 1 - a.win);
   assert.equal("price" in p.ml, false, "a pick carries no price: the site shows chances, not odds");
+});
+
+test("pickGame: a model that likes the underdog still names the market's favourite to win", () => {
+  // The 2026-11-23 game: the model had the home side by half a point, the line had the visitor by 6.
+  const p = nfl.pickGame({ margin: 0.5, total: 55.7, homePts: 28.1, awayPts: 27.6 }, { spread: 6, total: 54.5, homeML: 237, awayML: -290 });
+  assert.equal(p.ml.side, "away");
+  assert.ok(p.ml.prob > 0.6 && p.ml.prob < 0.72, `got ${p.ml.prob}`);
+  assert.equal(p.spread.side, "home", "the spread side is still the way the model leans from the line");
+});
+
+/* ------------------------------------------------------------------ *
+ * The market anchor
+ *
+ * Oracle: the replay (experiment-lines.mjs, 2026-11-24). Over 907 lined
+ * games the fraction of the model's disagreement with the closing spread
+ * that came true was 0.02 +/- 0.12, so the line is the projection and the
+ * model moves it by marketWeight's remainder.
+ * ------------------------------------------------------------------ */
+
+test("anchorGame: the line is the projection and the model only nudges it", () => {
+  const pr = { margin: 0.5, total: 55.7, homePts: 28.1, awayPts: 27.6 };
+  const a = nfl.anchorGame(pr, { spread: 6, total: 54.5 }, { marketWeight: 0.9 });
+  close(a.margin, 0.9 * -6 + 0.1 * 0.5);
+  close(a.total, 0.9 * 54.5 + 0.1 * 55.7);
+  close(a.homePts + a.awayPts, a.total);
+  close(a.homePts - a.awayPts, a.margin);
+  assert.equal(a.anchored, true);
+  assert.equal(a.model, pr, "the model's own projection rides along, for the row that shows the nudge");
+  close(a.win, normalCDF(a.margin / DEFAULTS.lineMarginSD));
+});
+
+test("anchorGame: without a line the model's projection stands, at the model's own error", () => {
+  const pr = { margin: 3, total: 44, homePts: 23.5, awayPts: 20.5 };
+  for (const line of [null, undefined, {}, { spread: null, total: null }]) {
+    const a = nfl.anchorGame(pr, line);
+    assert.equal(a.anchored, false);
+    close(a.margin, 3); close(a.total, 44);
+    close(a.win, normalCDF(3 / DEFAULTS.marginSD));
+  }
+  assert.equal(nfl.anchorGame(null, { spread: -3 }), null);
+});
+
+test("anchorGame: a line with only one number anchors only that number", () => {
+  const pr = { margin: 3, total: 44, homePts: 23.5, awayPts: 20.5 };
+  const a = nfl.anchorGame(pr, { spread: -7, total: null }, { marketWeight: 0.9 });
+  close(a.margin, 0.9 * 7 + 0.1 * 3);
+  close(a.total, 44);
+  assert.equal(a.anchored, true);
+  const t = nfl.anchorGame(pr, { total: 50 }, { marketWeight: 0.9 });
+  close(t.margin, 3); close(t.total, 0.9 * 50 + 0.1 * 44);
+  close(t.win, normalCDF(3 / DEFAULTS.marginSD), 1e-9);
+});
+
+test("anchorGame: marketWeight 0 is the model and 1 is the line", () => {
+  const pr = { margin: 3, total: 44, homePts: 23.5, awayPts: 20.5 }, line = { spread: -7, total: 50 };
+  close(nfl.anchorGame(pr, line, { marketWeight: 0 }).margin, 3);
+  close(nfl.anchorGame(pr, line, { marketWeight: 1 }).margin, 7);
+  assert.ok(DEFAULTS.marketWeight >= 0.8 && DEFAULTS.marketWeight <= 1);
+});
+
+/* ------------------------------------------------------------------ *
+ * Recent games count more
+ *
+ * Oracle: the rule the fix was asked for (2026-11-24): a game from two
+ * seasons ago must not count the same as last week's.
+ * ------------------------------------------------------------------ */
+
+function datedSeasons() {
+  // FADE was strong a year ago and is weak now; RISE the reverse. Same totals over the two blocks.
+  const games = [];
+  const block = (start, fade, rise) => {
+    for (let w = 0; w < 8; w++) {
+      const d = new Date(Date.parse(start) + w * 7 * 864e5).toISOString();
+      games.push({ date: d, home: { team: "FADE", score: 23 + fade }, away: { team: "MID", score: 23 } });
+      games.push({ date: d, home: { team: "MID2", score: 23 }, away: { team: "RISE", score: 23 + rise } });
+    }
+  };
+  block("2025-09-07T17:00Z", 14, -14);
+  block("2026-09-13T17:00Z", -14, 14);
+  return games;
+}
+
+test("buildTeamRatings: a half-life makes the recent block outweigh the old one", () => {
+  const games = datedSeasons();
+  const flat = buildTeamRatings(games, { ratingHalfLife: 0, homeField: 0 });
+  const recent = buildTeamRatings(games, { ratingHalfLife: 150, homeField: 0 });
+  close(flat.off.FADE, flat.off.RISE, 1e-6);
+  assert.ok(recent.off.RISE > recent.off.FADE + 5, `RISE ${recent.off.RISE} FADE ${recent.off.FADE}`);
+});
+
+test("buildTeamRatings: ages are counted from the newest game on file, so an idle off-season shrinks nothing", () => {
+  // Oracle: the ridge is added to the summed weight; ageing from "today" would rate the same games lower every week nobody plays.
+  const games = datedSeasons();
+  const a = buildTeamRatings(games, { ratingHalfLife: 150, homeField: 0 });
+  const b = buildTeamRatings(games, { ratingHalfLife: 150, homeField: 0, asOf: "2030-01-01T00:00Z" });
+  close(a.off.RISE, b.off.RISE);
+  const old = buildTeamRatings(games.slice(0, 16), { ratingHalfLife: 150, homeField: 0 });
+  assert.ok(old.off.FADE > old.off.RISE);
+});
+
+test("buildTeamRatings: a game with no date counts in full, and games stays a count", () => {
+  const undated = syntheticSeason({ A: 4, B: -4, C: 0 }, 4);
+  const a = buildTeamRatings(undated, { ratingHalfLife: 150 }), b = buildTeamRatings(undated, { ratingHalfLife: 0 });
+  close(a.off.A, b.off.A);
+  assert.equal(buildTeamRatings(datedSeasons(), { ratingHalfLife: 150 }).games.FADE, 16);
+});
+
+test("the NFL ships a rating half-life", () => {
+  // characterization: 150 days from the 2026-11-24 fit (README, "The game projection starts from the line").
+  assert.ok(DEFAULTS.ratingHalfLife > 0);
 });
 
 
@@ -631,6 +744,15 @@ test("pickGame: no line, no pick; a market that is missing is null, not a guess"
   assert.equal(p.total, null);
   assert.equal(p.ml, null);
   assert.equal(nfl.pickGame(null, { spread: -3.5 }), null);
+});
+
+test("pickGame: a number the book did not post is null in the file, and null is not a line", () => {
+  // Oracle: fetch-football.mjs writes null for a missing number. A total pick against null was shown and recorded as "o null".
+  const p = nfl.pickGame({ margin: 7, total: 45 }, { spread: -3.5, total: null, homeML: null, awayML: null });
+  assert.ok(p.spread);
+  assert.equal(p.total, null);
+  assert.equal(p.ml, null);
+  assert.equal(nfl.pickGame({ margin: 7, total: 45 }, { spread: null, total: 44.5 }).spread, null);
 });
 
 test("pickGame: exactly on the number is not a pick", () => {

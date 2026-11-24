@@ -150,16 +150,16 @@ BetHouseFootballBoard.mount({
         'Replayed over 30,245 player-games: bias 0.8 points, the seasons within two (measured 2026-09-21, before the recent-form weight). Tap a player for every alternate line and its chance.'
     },
     noteGames: 'The side the model likes on each game, against a real line, with its chance to cover. No price is shown: the site shows chances, not odds. '+
-      '<b>This model did not beat the closing line over two seasons</b> — read the note below before betting one.',
-    gameBanner: '<p>These projections were measured against <b>480 real closing lines</b> and did not beat them. '+
-      'The spread model won <b>48.1%</b> of the time and the total model <b>52.5%</b> — neither clears the break-even '+
-      'a book\'s standard cut sets, and both confidence intervals straddle a coin flip. '+
-      'Separating a break-even model from noise would take about <b>1,700</b> games; two seasons is 480.</p>'+
-      '<p>The picks are shown because you asked which side, not because there is proven edge in them. Every one '+
+      '<b>The model\'s lean did not beat the closing line over 901 games</b>, so the projection in each game starts from the line — read the note below before betting one.',
+    gameBanner: '<p>On a game with a line, the projection is <b>the line itself, moved 10% of the way to the model</b>. '+
+      'The model\'s own ratings were measured against <b>901 real closing lines</b> and their disagreement with the spread was worth nothing: '+
+      'the side the model leans to covered <b>50.1%</b> of the time, and its total side <b>52.4%</b> of 736. Neither clears the break-even '+
+      'a book\'s standard cut sets. Separating a break-even model from noise would take about <b>1,700</b> games.</p>'+
+      '<p>The leans are shown because you asked which side, not because there is proven edge in them. Every one '+
       'is recorded before kickoff and settled like a book would, and the live record at the bottom will say whether '+
       'they win and whether the closing line moves toward them.</p>',
-    mlVerdict: '<b>Do not bet the moneyline off this.</b> In the replay the market\'s win probabilities beat the model\'s (Brier 0.1999 against 0.2220), and betting the side the model liked more than the market lost <b>11.9%</b> of stake over 468 games.',
-    gameHonestly: 'this did not beat the closing line over two seasons'
+    mlVerdict: 'The win chance is the line\'s, nudged by the model. In the replay it scored level with the market\'s own win probabilities (Brier 0.2083 against 0.2075 over 708 games): it says what the market thinks, not where the market is wrong.',
+    gameHonestly: 'the model\'s lean did not beat the closing line over 901 games'
   }
 });
 /* The phone's Filters button: the controls row shows while the bar is open; the button says so. */

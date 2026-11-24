@@ -143,19 +143,25 @@
   }
 
   /* What the football board's game view says about a game: the
-     projection and the favourite from the projected margin. No pick and
+     projection and the favourite from the projected margin, the line's
+     when there is one. No pick and
      no price since 2026-10-17: the site shows chances, not odds. */
   function footballCard(model, D, g) {
     const ratings = D && D.ratings;
     if (!ratings || !model || !g) return null;
     const pr = model.projectGame(ratings, g.home, g.away, { neutral: !!(g.raw && g.raw.neutral) });
     if (!pr) return null;
+    /* With a line the card is the line nudged by the model, as on the game page; without one, the model's own (2026-11-24). */
+    const a = typeof model.anchorGame === "function" ? model.anchorGame(pr, g.raw && g.raw.line) : null;
+    /* A total alone anchors no margin: the card's score and favourite are then the model's own. */
+    const own = !(a && a.spreadAnchored);
+    const shown = own ? (typeof model.anchorGame === "function" ? model.anchorGame(pr, null) : null) || pr : a;
     let fav = null;
-    if (isFinite(pr.margin) && pr.margin !== 0) {
-      const p = model.winProbability(pr.margin);
-      fav = pr.margin > 0 ? { team: g.home, prob: p } : { team: g.away, prob: 1 - p };
+    if (isFinite(shown.margin) && shown.margin !== 0) {
+      const p = isFinite(shown.win) ? shown.win : model.winProbability(pr.margin);
+      fav = shown.margin > 0 ? { team: g.home, prob: p } : { team: g.away, prob: 1 - p };
     }
-    return { homePts: Math.round(pr.homePts), awayPts: Math.round(pr.awayPts), total: pr.total, margin: pr.margin, fav };
+    return { homePts: Math.round(shown.homePts), awayPts: Math.round(shown.awayPts), total: shown.total, margin: shown.margin, fav, anchored: !own };
   }
 
   /** Said and hit across the records' props, weighted by graded calls, in percent; null with nothing graded. The home's vocabulary strip (2026-10-21). */

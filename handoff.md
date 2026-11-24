@@ -37,6 +37,60 @@ Zero dependencies, no build step, no server, no API key. `node --test` with
 calls. The list lives in six places (the local gate, pre-commit, CI and the
 three refresh workflows) and `dom.test.mjs` checks all six.
 
+
+## 2026-11-24: the game projection starts from the line
+
+**Asked:** a review of the WSH–CIN game page found the model's score
+(WSH by 0.5) leading a page whose line had CIN by 6, then a sentence
+saying the model does not beat the market. Diagnosis: `buildTeamRatings`
+counted three seasons of games equally. Four fixes were asked for.
+
+**Shipped** (README, "The game projection starts from the line", has
+the tables; `node experiment-lines.mjs` reprints them):
+
+- `nfl.js` `ratingHalfLife: 150`: a game's weight in the ratings halves
+  every 150 days back from the newest game. Margin
+  error better by 3 SE on validation. `marginSD` 14.29 → 12.95.
+- `nfl.js` `anchorGame(projection, line)`, `marketWeight: 0.9`,
+  `lineMarginSD`, `lineTotalSD`: the shown projection is the line moved
+  10% toward the model. Used by `game-page.js` head, the board's game
+  drawer (`market` → `projection` → `model alone` rows) and
+  `home.js footballCard`. `pickGame`'s moneyline is the anchored
+  favourite; spread and total leans are unchanged.
+- Copy: `nfl.html` banner, moneyline verdict and games note; the home
+  caveat. Numbers are the full replay's (901 spreads, 736 totals, 708
+  moneylines).
+- `backtest-nfl.mjs`'s moneyline test grades the anchored chance.
+
+**Decisions and what the data said**
+
+- The model's measured weight beside the close is 0.02 ± 0.12, and
+  negative on validation. 10% ships because it was asked for and costs
+  nothing measurable; do not raise it without a measurement.
+- A quarterback-out term fails validation and did not ship. No other
+  injury term was attempted. The line carries both.
+- Props share the ratings and did not move (paired Δ exactly 0 under
+  `--fixed-lines`), so the prop constants were not re-measured.
+
+**Left as it is**
+
+- The record keeps two moneyline rows: `ml` (the model's own side, to
+  2026-11-23) and `mlLine` (the anchored favourite, from 2026-11-24).
+- `lineMarginSD` and `marketWeight` were read off the same 907 games
+  the moneyline Brier is scored on: that comparison is in-sample.
+- Ratings age from the newest game on file, not from today (the ridge
+  is added to the summed weight; see the comment in `nfl.js`).
+- The prop script factor (`football-board.js`, `parlay-page.js`) still
+  reads the model's own projected points, not the anchored ones. Not
+  measured.
+- The total's calibration slope prints well above 1 against
+  `totalShrink` 0.04 in the full replay (it did before this change
+  too). Nobody has looked at whether the shrink is now too hard.
+- README rows dated before today (the 48.1% of 480, the 0.2220 Brier)
+  are the old model's and are left as history.
+- The local `nfl-history.json` was refreshed to week 11 (979 games) for
+  this; the measurements above are on that file.
+
 ## The NBA board (2026-11-23, latest)
 
 The user: "Let's add the NBA." Shipped a third board,
