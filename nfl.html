@@ -140,14 +140,14 @@ BetHouseFootballBoard.mount({
         'The opponent is shown but not applied: on the replay it moved nothing. '+
         'Checked against <b>23,805</b> unseen player-games: bias 1.7 points, hot, the seasons 0 and 3, measured 2026-09-21 before the recent-form weight, '+
         'which read better on a window it was not fitted on (2026-10-01, the README has the table).',
-      rushyds: 'Chance of going <b>over</b> a rushing yards line, from his yards a game (recent games weighted up, 3% a game of age), pulled toward an ordinary back, '+
+      rushyds: 'Chance of going <b>over</b> a rushing yards line, from his yards a game (his last 3 games counted 3 times over, and recent games weighted up, 3% a game of age), pulled toward an ordinary back, '+
         'the opponent\'s run defence applied at half strength, and the over read off real games by backs the board would price (a teammate ruled out is not applied: on the replay it read worse). '+
         'Checked against <b>11,150</b> unseen player-games: bias 0.9 points, hot, the seasons within a point (measured 2026-09-21, before the recent-form weight); '+
-        'a pool that let quarterbacks\' scrambles in ran 7 points cold.',
-      passyds: 'Chance of going <b>over</b> a passing yards line, from his yards a game, pulled toward an ordinary starter, the opponent\'s pass defence applied at half strength, '+
+        'a pool that let quarterbacks\' scrambles in ran 7 points cold. The last-three weight is from 2026-11-24: better on both replay windows, by about 4 standard errors.',
+      passyds: 'Chance of going <b>over</b> a passing yards line, from his yards a game (his last 3 games counted 3 times over), pulled toward an ordinary starter, the opponent\'s pass defence applied at half strength, '+
         'and the over read off real quarterback games. Checked against <b>4,560</b> unseen player-games: bias 1.1 points, hot, but the two seasons disagree by 4 points and '+
         'the bands say the number is too timid at both ends. Read it as approximate.',
-      recs: 'Chance of going <b>over</b> a receptions line, from his catches a game, pulled toward an ordinary receiver, scaled up by half the targets a teammate ruled out leaves behind, with the over read off real receiver games. '+
+      recs: 'Chance of going <b>over</b> a receptions line, from his catches a game (his last 3 games counted 4 times over), pulled toward an ordinary receiver, scaled up by half the targets a teammate ruled out leaves behind, with the over read off real receiver games. '+
         'The opponent is shown but not applied: on the replay it moved nothing. Checked against <b>24,015</b> unseen player-games: bias 0.1 points, though the two seasons disagree by 6.',
       rushrec: 'Chance of going <b>over</b> a <b>rushing plus receiving</b> yards line: the back who catches and the receiver who runs, his two yardages added and priced as one number, '+
         'from his rushing and receiving yards a game (recent games weighted up, 10% a game of age), pulled toward an ordinary player, scaled up by three quarters of the work a teammate ruled out leaves behind, off real games by backs and receivers. The opponent is not applied: on the replay it read worse. '+

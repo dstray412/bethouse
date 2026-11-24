@@ -180,6 +180,25 @@
     passDecay: 1,
     recsDecay: 1,
     rushrecDecay: 0.9,
+    /*
+     * The role weight (2026-11-24): a prop's last `roleGames` games count
+     * (1 + role) times in its weighted total, on top of its decay. Asked
+     * for after the first book lines showed the model a week or three
+     * behind a change of role (a back projected for 44 rushing yards
+     * against a line of 5.5). Swept at 0.5, 1, 2, 3, 4, 6 and 9 under the
+     * README's rule, fixed lines, fit 2023-24, validated 2025-26; the
+     * value is the fit window's best and the table is in the README
+     * under "The last three games". Paired Brier, Δ/SE fit | validation:
+     *
+     *   rushing yards    2   -4.4 | -4.1    worst band +0.9 | +0.2
+     *   passing yards    2   -1.4 | -4.6               +1.9 | +1.4
+     *   receptions       3   -7.8 | -8.8               +2.6 | +2.0
+     *   receiving yards  0   worse at every weight on both windows
+     *                        (it already decays 12% a game of age)
+     *   rush + rec       0   noise at 0.5, worse above
+     */
+    roleGames: 3,
+    yardRole: 0, rushRole: 2, passRole: 2, recsRole: 3, rushrecRole: 0,
 
     /* Team scoring: home field is worth about two points now, not three. */
     homeField: 1.97,
@@ -1011,14 +1030,14 @@
    * so a league can bind its own.
    */
   const STATS = {
-    recyds:  { label: "Receiving yards", total: ["recYds"],  opportunity: "receiving", box: [["rec", "yds"]],  priorKey: "yardPrior", poolFloorKey: "yardPoolFloor", poolShareKey: "yardPoolShare", minOppKey: "yardMinOpportunity", floorKey: "yardFloor", oppShrinkKey: "yardOppShrink", decayKey: "yardDecay", vacKey: "yardVac", vac: "rec" },
-    rushyds: { label: "Rushing yards",   total: ["rushYds"], opportunity: "carries",   box: [["rush", "yds"]], priorKey: "rushPrior", poolFloorKey: "rushPoolFloor", poolShareKey: "rushPoolShare", minOppKey: "rushMinOpportunity", floorKey: "rushFloor", oppShrinkKey: "rushOppShrink", decayKey: "rushDecay", vacKey: "rushVac", vac: "rush" },
-    passyds: { label: "Passing yards",   total: ["passYds"], opportunity: "passAtt",   box: [["pass", "yds"]], priorKey: "passPrior", poolFloorKey: "passPoolFloor", poolShareKey: "passPoolShare", minOppKey: "passMinOpportunity", floorKey: "passFloor", oppShrinkKey: "passOppShrink", decayKey: "passDecay", vacKey: null, vac: null },
-    recs:    { label: "Receptions",      total: ["recs"],    opportunity: "receiving", box: [["rec", "rec"]],  priorKey: "recsPrior", poolFloorKey: "recsPoolFloor", poolShareKey: "recsPoolShare", minOppKey: "yardMinOpportunity", floorKey: "recsFloor", oppShrinkKey: "recsOppShrink", decayKey: "recsDecay", vacKey: "recsVac", vac: "rec" },
+    recyds:  { label: "Receiving yards", total: ["recYds"],  opportunity: "receiving", box: [["rec", "yds"]],  priorKey: "yardPrior", poolFloorKey: "yardPoolFloor", poolShareKey: "yardPoolShare", minOppKey: "yardMinOpportunity", floorKey: "yardFloor", oppShrinkKey: "yardOppShrink", decayKey: "yardDecay", roleKey: "yardRole", vacKey: "yardVac", vac: "rec" },
+    rushyds: { label: "Rushing yards",   total: ["rushYds"], opportunity: "carries",   box: [["rush", "yds"]], priorKey: "rushPrior", poolFloorKey: "rushPoolFloor", poolShareKey: "rushPoolShare", minOppKey: "rushMinOpportunity", floorKey: "rushFloor", oppShrinkKey: "rushOppShrink", decayKey: "rushDecay", roleKey: "rushRole", vacKey: "rushVac", vac: "rush" },
+    passyds: { label: "Passing yards",   total: ["passYds"], opportunity: "passAtt",   box: [["pass", "yds"]], priorKey: "passPrior", poolFloorKey: "passPoolFloor", poolShareKey: "passPoolShare", minOppKey: "passMinOpportunity", floorKey: "passFloor", oppShrinkKey: "passOppShrink", decayKey: "passDecay", roleKey: "passRole", vacKey: null, vac: null },
+    recs:    { label: "Receptions",      total: ["recs"],    opportunity: "receiving", box: [["rec", "rec"]],  priorKey: "recsPrior", poolFloorKey: "recsPoolFloor", poolShareKey: "recsPoolShare", minOppKey: "yardMinOpportunity", floorKey: "recsFloor", oppShrinkKey: "recsOppShrink", decayKey: "recsDecay", roleKey: "recsRole", vacKey: "recsVac", vac: "rec" },
     /* Rushing + receiving yards: the book's line for a back who catches
        and a receiver who runs. The two totals summed, touches (carries +
        receiving opportunity) for whether he is in that business. */
-    rushrec: { label: "Rush + rec yards", total: ["rushYds", "recYds"], opportunity: "touches", box: [["rush", "yds"], ["rec", "yds"]], priorKey: "rushrecPrior", poolFloorKey: "rushrecPoolFloor", poolShareKey: "rushrecPoolShare", minOppKey: "yardMinOpportunity", floorKey: "rushrecFloor", oppShrinkKey: "rushrecOppShrink", decayKey: "rushrecDecay", vacKey: "rushrecVac", vac: "both" },
+    rushrec: { label: "Rush + rec yards", total: ["rushYds", "recYds"], opportunity: "touches", box: [["rush", "yds"], ["rec", "yds"]], priorKey: "rushrecPrior", poolFloorKey: "rushrecPoolFloor", poolShareKey: "rushrecPoolShare", minOppKey: "yardMinOpportunity", floorKey: "rushrecFloor", oppShrinkKey: "rushrecOppShrink", decayKey: "rushrecDecay", roleKey: "rushrecRole", vacKey: "rushrecVac", vac: "both" },
   };
 
   /*
@@ -1047,7 +1066,7 @@
     return t;
   }
 
-  /** A counting stat's total with recent games weighted up (the prop's decayKey):
+  /** A counting stat's total with recent games weighted up (the prop's decayKey, and its roleKey for the last few games):
       from the per-game log when the record carries one (rows in STAT
       order, oldest first), else the fetcher's precomputed `w`, else the
       plain total. Weights are scaled to sum to the game count. */
@@ -1056,25 +1075,27 @@
     const plain = statTotal(stat, record);
     const st = STATS[stat];
     const decay = st ? num(o[st.decayKey]) : 1;
-    if (!(decay < 1) || !record) return plain;
+    /* The role weight: his last `roleGames` games count (1 + role) times, on top of the decay. 0 is no term. */
+    const role = st ? Math.max(0, num(o[st.roleKey])) : 0, last = Math.max(0, num(o.roleGames));
+    if ((!(decay < 1) && !(role > 0)) || !record) return plain;
     const log = record.slog;
     if (Array.isArray(log) && log.length) {
       const i = Object.keys(STATS).indexOf(stat);
       if (i < 0) return plain;
       let wsum = 0, tot = 0;
-      for (let k = 0; k < log.length; k++) { const w = Math.pow(decay, log.length - 1 - k); wsum += w; tot += w * num(log[k][i]); }
+      for (let k = 0; k < log.length; k++) { const age = log.length - 1 - k, w = Math.pow(decay, age) * (age < last ? 1 + role : 1); wsum += w; tot += w * num(log[k][i]); }
       return wsum > 0 ? tot * (log.length / wsum) : plain;
     }
     if (record.w && record.w[stat] != null && isFinite(record.w[stat])) return num(record.w[stat]);
     return plain;
   }
 
-  /** The weighted total of every stat whose decay is under 1, for the fetcher to write as `w`; null without a log or with every decay at 1. */
+  /** The weighted total of every stat with a decay under 1 or a role weight, for the fetcher to write as `w`; null without a log or with nothing weighting any stat. */
   function weightedStatTotals(record, opts) {
     const o = Object.assign({}, DEFAULTS, opts || {});
     if (!record || !Array.isArray(record.slog) || !record.slog.length) return null;
     const out = {};
-    for (const stat of Object.keys(STATS)) if (num(o[STATS[stat].decayKey]) < 1) out[stat] = Number(weightedStatTotal(stat, record, opts).toFixed(2));
+    for (const stat of Object.keys(STATS)) if (num(o[STATS[stat].decayKey]) < 1 || num(o[STATS[stat].roleKey]) > 0) out[stat] = Number(weightedStatTotal(stat, record, opts).toFixed(2));
     return Object.keys(out).length ? out : null;
   }
 

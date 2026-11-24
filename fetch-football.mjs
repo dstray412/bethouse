@@ -895,7 +895,7 @@ export function teamSheet(games, roster, opts) {
 
 export function boardPlayer(p, { roster, injuries, backups, vac, opponentOf, recent, usage, model }) {
   const on = roster && typeof roster.get === "function" ? roster.get(String(p.id)) : null;
-  /* The recent-weighted totals, only the stats whose decay is under 1: the log itself would double the file. */
+  /* The recent-weighted totals, only the stats a decay or a role weight moves: the log itself would double the file. */
   const w = model && p.slog ? model.weightedStatTotals(p) : null;
   const inj = injuries && injuries[p.id];
   const rows = recent && recent.get(p.id);
@@ -1115,6 +1115,8 @@ export async function buildBoard(league, history) {
     /* The terms this build ran with, stamped on every record row (track-football.mjs), so the record reads by era. */
     model: { tdDecay: model.DEFAULTS.tdDecay, tdRz: model.DEFAULTS.tdRz, tdScript: model.DEFAULTS.tdScript,
       yardDecay: model.DEFAULTS.yardDecay, rushDecay: model.DEFAULTS.rushDecay, rushrecDecay: model.DEFAULTS.rushrecDecay,
+      /* The role weights, which the weighted totals (`w`) on every row were built with. */
+      roleGames: model.DEFAULTS.roleGames, rushRole: model.DEFAULTS.rushRole, passRole: model.DEFAULTS.passRole, recsRole: model.DEFAULTS.recsRole, yardRole: model.DEFAULTS.yardRole, rushrecRole: model.DEFAULTS.rushrecRole,
       tdVac: model.DEFAULTS.tdVac, yardVac: model.DEFAULTS.yardVac, rushVac: model.DEFAULTS.rushVac, recsVac: model.DEFAULTS.recsVac, rushrecVac: model.DEFAULTS.rushrecVac },
     season, week: up.week,
     statsSeasons,

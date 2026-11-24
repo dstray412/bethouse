@@ -1838,6 +1838,51 @@ reaches the page. A term for other injuries was not attempted: the
 skill-position vacated share already moves the props (A4), and no
 box-score measure of a missing lineman or corner exists here.
 
+### The last three games
+
+**2026-11-24.** The first book lines on the board showed the model a
+week or three behind a change of role: a back projected for 44 rushing
+yards against a line of 5.5 after his snaps fell from 42% to 12%. The
+fix asked for was to weight the last three games. `nfl.js` gained a
+role weight per prop: a player's last `roleGames` (3) games count
+(1 + role) times in his weighted total, on top of the prop's decay.
+Swept under the rule above, fixed lines, fit 2023 to 2024 and validated
+2025 to 2026 (`node backtest-nfl.mjs --fixed-lines --set rushRole=2 …
+--dump`, then `compare-stats.mjs`). Paired Brier Δ/SE against the model
+without it, fit | validation:
+
+| role | rushing yards | passing yards | receptions | receiving yards | rush + rec |
+|---|---|---|---|---|---|
+| 0.5 | −6.2 \| −6.0 | −2.3 \| −5.0 | −12.3 \| −12.8 | +1.3 \| +2.0 | −0.7 \| −0.8 |
+| 1 | −6.3 \| −5.4 (a band +7.3) | −1.9 \| −5.1 | −11.4 \| −12.1 | +4.0 \| +3.9 | +1.5 \| +1.3 |
+| 2 | **−4.4 \| −4.1** | **−1.4 \| −4.6** | −9.3 \| −10.5 | +7.0 \| +6.2 | +4.7 \| +4.1 |
+| 3 | −3.3 \| −3.8 | −0.9 \| −3.9 | **−7.8 \| −8.8** | | |
+| 4 | −2.2 \| −2.9 | −0.4 \| −3.1 | −6.7 \| −7.6 | +9.9 \| +9.1 | +7.8 \| +7.5 |
+| 6 | −1.1 \| −1.7 | +0.3 \| −2.0 | −4.8 \| −5.5 | | |
+| 9 | +0.3 \| +0.0 | +1.0 \| −1.1 | −3.2 \| −3.3 | | |
+
+Δ/SE falls as the weight rises because the standard error grows; the
+value shipped is the one with the lowest Brier on the fit window, as
+the rule says: **rushing yards 2, passing yards 2, receptions 3**. Each
+improves Brier on both windows, clears −2 on validation, and moves no
+calibration band worse by 3 points (worst bands, fit | validation:
+rushing +0.9 | +0.2, passing +1.9 | +1.4, receptions +2.6 | +2.0).
+Rushing at a weight of 1 improved Brier and moved one validation band
+by 7.3 points, which is why the bands are read at the value shipped and
+not assumed. **Receiving yards and rush + rec yards ship at 0**: worse
+at every weight on both windows. They already decay by 12% and 10% a
+game of age, which is the same idea with a longer tail.
+
+**What it does not do.** It is an average improvement, not a cure for
+the cases that prompted it. The back above moves from 43.6 projected
+rushing yards to 35.0, against a line of 5.5: three games at triple
+weight are still outvoted by seventeen older ones. A sudden demotion,
+an injury, a returning starter is news, and the book has it the day it
+happens. The prop record tags every pick with whether the role had
+moved so the size of that hole is measured (see below); closing it
+needs something that reads the news, such as the depth chart or the
+snap share itself, and that is not built.
+
 ### Prop picks at a book's price
 
 **2026-11-24.** Until now the site showed chances and never a price (the

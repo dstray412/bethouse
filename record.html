@@ -33,20 +33,20 @@ method works; the live record says whether this board does.</div>
 <section class="rec" id="nfl">
   <h2 class="gtitle">NFL</h2>
   <div class="recbody">
-<p><strong>Does it work?</strong> Two seasons replayed a game at a time, each game predicted only from games already played:</p>
+<p><strong>Does it work?</strong> 2023 to 2026 so far, replayed a game at a time, each game predicted only from games already played:</p>
 
 <table>
-<tr><td>anytime touchdown</td><td>bias <b>&minus;0.8pp</b>, Brier <b>0.1591</b> against 0.1718 · top 20% scored <b>39.0%</b>, bottom 20% <b>9.3%</b></td></tr>
-<tr><td>receiving yards</td><td>bias <b>+1.7pp</b>, Brier <b>0.2205</b> against 0.2458 · pool at his level</td></tr>
-<tr><td>rushing yards</td><td>bias <b>+0.9pp</b>, Brier <b>0.2186</b> against 0.2477 · opponent at half strength · pool at his level</td></tr>
-<tr><td>rush + rec yards</td><td>bias <b>+0.8pp</b>, Brier <b>0.2155</b> against 0.2464 · pool at his level</td></tr>
-<tr><td>passing yards</td><td>bias <b>+1.1pp</b>, Brier <b>0.1610</b> against 0.2488 · seasons 4pp apart · opponent at half strength</td></tr>
-<tr><td>receptions</td><td>bias <b>&minus;0.1pp</b>, Brier <b>0.2046</b> against 0.2369 · seasons 6pp apart</td></tr>
+<tr><td>anytime touchdown</td><td>bias <b>&minus;0.5pp</b>, Brier <b>0.1557</b> against 0.1697 · top 20% scored <b>39.8%</b>, bottom 20% <b>8.8%</b></td></tr>
+<tr><td>receiving yards</td><td>bias <b>&minus;0.1pp</b>, Brier <b>0.2190</b> against 0.2440 · pool at his level</td></tr>
+<tr><td>rushing yards</td><td>bias <b>+2.1pp</b>, Brier <b>0.2175</b> against 0.2476 · opponent at half strength · last three games weighted · pool at his level</td></tr>
+<tr><td>rush + rec yards</td><td>bias <b>&minus;0.1pp</b>, Brier <b>0.2136</b> against 0.2451 · pool at his level</td></tr>
+<tr><td>passing yards</td><td>bias <b>&minus;0.9pp</b>, Brier <b>0.1637</b> against 0.2495 · last three games weighted · opponent at half strength</td></tr>
+<tr><td>receptions</td><td>bias <b>&minus;0.4pp</b>, Brier <b>0.2008</b> against 0.2341 · last three games weighted · seasons 4pp apart</td></tr>
 <tr><td>spread</td><td><b>48.1%</b> against the closing line — under break-even</td></tr>
 <tr><td>total</td><td><b>52.5%</b> against the closing line — inside the noise</td></tr>
 
 </table>
-<p>The player props are calibrated on the whole and worth reading; passing yards and receptions move a few points between seasons, so hold them more loosely. The game lines are not: the NFL closing number is very good, and two seasons is not enough games to prove otherwise either way. Re-check with <code>node backtest-nfl.mjs</code>.</p>
+<p>The player props are calibrated on the whole and worth reading; every prop moves a few points between seasons, so hold a single week loosely. The game lines are not: the NFL closing number is very good, and two seasons is not enough games to prove otherwise either way. Re-check with <code>node backtest-nfl.mjs</code>.</p>
 <div id="nfl-live"></div>
 <div id="nfl-book"></div>
   </div>

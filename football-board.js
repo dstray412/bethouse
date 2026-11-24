@@ -71,11 +71,13 @@
        decays would project off totals it did not weight and label them
        with its own percentage, so on a mismatch the totals are dropped
        and the board runs on the plain season lines until the next build. */
-    var DECAYS=['yardDecay','rushDecay','rushrecDecay','passDecay','recsDecay'];
+    /* ...and the role weights (2026-11-24), which the same totals carry. A file from before them has none stamped and no role in its totals, so a script with a role weight must not read it as its own. */
+    var DECAYS=['yardDecay','rushDecay','rushrecDecay','passDecay','recsDecay','rushRole','passRole','recsRole','yardRole','rushrecRole'];
     /* A model that states its terms as one string (nba.js TERMS) is compared on that; football's on its decays. */
     var decayMismatch=typeof N.TERMS==='string'
       ? !!(D.model&&D.model.terms!=null&&String(D.model.terms)!==N.TERMS)
-      : !!(D.model&&DECAYS.some(function(k){ return D.model[k]!=null&&Number(D.model[k])!==Number(N.DEFAULTS[k]); }));
+      /* A stamp with no role key is a file from before the role weight: its totals carry none, which is a role of 0. A stamp with no decay key is left alone, as before. */
+      : !!(D.model&&DECAYS.some(function(k){ var have=D.model[k]!=null?Number(D.model[k]):(/Role$/.test(k)?0:null); return have!=null&&have!==Number(N.DEFAULTS[k]); }));
     if(decayMismatch) (D.players||[]).forEach(function(p){ if(p.w) delete p.w; });
     if (missing.length || stalePools || stalePage) {
       app.innerHTML = '<div class="empty"><div class="big">Reload this page</div>' +
@@ -322,6 +324,14 @@
       var words=cls==='up'?'Above his rate':cls==='down'?'Below his rate':'Steady';
       var dp=unit==='TD'?2:unit==='catches'?1:(rateDp||0);
       return band('rate '+cls,'vs his own rate',words,(delta>=0?'+':'−')+Math.abs(delta).toFixed(dp)+' '+unit+' ('+(d>=0?'+':'−')+Math.abs(d)+'%)','own rate '+own);
+    };
+    /* How his games were weighted before the shrink, in the drawer's words: the decay, the role weight on his last few games, both or neither. Only when the data file carries the weighted total it describes. */
+    var weightedWhy=function(ST,p,stat){
+      if(!(p.w&&p.w[stat]!=null)) return '';
+      var decay=Number(N.DEFAULTS[ST.decayKey]), role=ST.roleKey?Number(N.DEFAULTS[ST.roleKey]):0, last=Number(N.DEFAULTS.roleGames)||0, parts=[];
+      if(role>0&&last>0) parts.push('his last '+last+' games counted '+(1+role)+' times over');
+      if(decay<1) parts.push((parts.length?'and ':'his recent games weighted up (')+(parts.length?'every game losing ':'')+Math.round((1-decay)*100)+'% a game of age'+(parts.length?'':')'));
+      return parts.length?parts.join(' ')+', then ':'';
     };
     var actRow=function(inner){ return inner?'<div class="dact">'+inner+'</div>':''; };
     /* The featured strip (B4): the five highest chances on the view, each
@@ -650,7 +660,7 @@
           {l:'Season average',v:f1(avg),n:esc(unit.trim())+' a game over '+games+' games, every game alike'},
           opps!=null?{l:'Opportunities',v:(opps/games).toFixed(1),n:oppWordFor+' a game over '+games+' games'}:null,
           /* The shrink toward the prior, and the recent-form weight when the model applies one: with it on, a rising line regresses UP. */
-          Math.abs(r.base-avg)>=(dpOf(stat)?0.05:0.5)?{l:'Regressed to',v:f1(r.base),c:dirOf(Number(f1(r.base))-Number(f1(avg))),n:(N.DEFAULTS[ST.decayKey]<1&&r.p.w&&r.p.w[stat]!=null?'his recent games weighted up ('+Math.round((1-N.DEFAULTS[ST.decayKey])*100)+'% a game of age), then ':'')+'part of the way toward an ordinary player\'s '+N.DEFAULTS[ST.priorKey]+(games<10?'; few games, so a long way':'')}:null,
+          Math.abs(r.base-avg)>=(dpOf(stat)?0.05:0.5)?{l:'Regressed to',v:f1(r.base),c:dirOf(Number(f1(r.base))-Number(f1(avg))),n:weightedWhy(ST,r.p,stat)+'part of the way toward an ordinary player\'s '+N.DEFAULTS[ST.priorKey]+(games<10?'; few games, so a long way':'')}:null,
           oppCell,
           vacMoved(r.vacFactor)?{l:'Teammates out',v:'×'+r.vacFactor.toFixed(2),n:vacNames(r.p)+'; '+vacHis(r.p)+' share of the work to those still in, in proportion, at the measured strength, which adds '+f1(Math.abs(r.exp-r.base*r.oppFactor)),c:dirOf(r.vacFactor-1,0.02)}:null,
           {l:'Read off',v:used.toLocaleString('en-US'),n:'real games by '+poolWord+(used<held?' whose own projection was nearest his':' against their own projections')},

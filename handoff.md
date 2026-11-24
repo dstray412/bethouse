@@ -66,8 +66,18 @@ first run measured the gap against the raw price (no `cut` on the
 row); those logged after measure it against the cut-adjusted one. The
 touchdown row and the gap buckets for that week hold both.
 
-**Open:** the role fix in the model itself (weighting the last three
-games) is the next piece and is a model change under the README's rule.
+**The role weight shipped** (README, "The last three games"): `nfl.js`
+`rushRole` 2, `passRole` 2, `recsRole` 3 (`roleGames` 3); receiving
+yards and rush + rec stay 0, worse on both windows. Stamped in
+`D.model` and in the board's stale-totals check. `record.html`'s static
+replay rows were re-read from a full replay of 2023 to 2026 to date.
+**It does not fix the cases that prompted it** (Dobbins 43.6 → 35.0
+against a line of 5.5). The next idea, not built: project volume from
+the last-three snap share directly.
+
+**Also seen, not acted on:** the NBA's first night logged 80 unders in
+91 picks with only 5 flagged as a moved role: the NBA model projects
+below the books' lines across the board.
 
 ## 2026-11-24: prop picks at a book's price (version 1, waiting on a key)
 

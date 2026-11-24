@@ -75,8 +75,10 @@ if (Object.keys(overrides).length) console.log(`overrides: ${JSON.stringify(over
    re-measured under this flag. The summary tables keep the model's own
    lines, as the board offers them. */
 const FIXED = args.includes("--fixed-lines");
-const REF = FIXED ? league.model.bind({ yardDecay: 1, rushDecay: 1, passDecay: 1, recsDecay: 1, rushrecDecay: 1, yardOppShrink: 0, rushOppShrink: 0, passOppShrink: 0, recsOppShrink: 0, rushrecOppShrink: 0, tdVac: 0, yardVac: 0, rushVac: 0, recsVac: 0, rushrecVac: 0 }) : null;
-if (FIXED) console.log("fixed lines: eligibility and the graded line from the plain season expectation (no decay, no opponent); the model supplies the probability");
+/* Every stat's decay at 1 and role weight at 0, read off the model's own table so the next weighting term cannot slip into the reference the way the role weight nearly did (2026-11-24). */
+const PLAIN = Object.fromEntries(Object.values(league.model.STATS).flatMap((st) => [[st.decayKey, 1]].concat(st.roleKey ? [[st.roleKey, 0]] : [])));
+const REF = FIXED ? league.model.bind({ ...PLAIN, yardOppShrink: 0, rushOppShrink: 0, passOppShrink: 0, recsOppShrink: 0, rushrecOppShrink: 0, tdVac: 0, yardVac: 0, rushVac: 0, recsVac: 0, rushrecVac: 0 }) : null;
+if (FIXED) console.log("fixed lines: eligibility and the graded line from the plain season expectation (no decay, no role weight, no opponent); the model supplies the probability");
 const {
   buildTeamRatings, projectGame, spreadProbability, totalProbability,
   scoreAnytimeTD, expectedVolume, empiricalOver, usagePoolFrom, receivingOpportunity,

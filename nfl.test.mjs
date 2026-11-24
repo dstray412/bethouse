@@ -1587,6 +1587,32 @@ test("a decay of 1 is today's model: the weighted total is the plain total, with
   close(nfl.weightedStatTotal("recyds", { games: 4, recYds: 200 }, { yardDecay: 0.9 }), 200, 1e-9, "no log and no w: the plain total");
 });
 
+/* The role weight (2026-11-24): the last three games count extra, on top of the decay. Oracle: the request, "weight the last three games for role". */
+test("a role weight counts the last three games extra: nothing at 0, a flat log unchanged, a fallen role pulled down, weights still summing to the game count", () => {
+  const FELL = rec4([{ rec: { yds: 80 } }, { rec: { yds: 80 } }, { rec: { yds: 80 } }, { rec: { yds: 80 } }, { rec: { yds: 10 } }, { rec: { yds: 10 } }, { rec: { yds: 10 } }]);
+  close(nfl.weightedStatTotal("recyds", FELL, { yardDecay: 1, yardRole: 0 }), 350);
+  close(nfl.weightedStatTotal("recyds", FLAT, { yardDecay: 1, yardRole: 3 }), 200, 1e-9);
+  // By hand: four games at weight 1 (320) and three at weight 1 + 3 = 4 (120); 440 over a weight of 16, times 7 games = 192.5.
+  close(nfl.weightedStatTotal("recyds", FELL, { yardDecay: 1, yardRole: 3, roleGames: 3 }), 440 * 7 / 16, 1e-9);
+  // With a decay too: the role weight multiplies the decay's.
+  const d = 0.9, w = [d ** 6, d ** 5, d ** 4, d ** 3, 4 * d ** 2, 4 * d, 4];
+  const want = [80, 80, 80, 80, 10, 10, 10].reduce((s, v, i) => s + v * w[i], 0) * 7 / w.reduce((a, b) => a + b, 0);
+  close(nfl.weightedStatTotal("recyds", FELL, { yardDecay: d, yardRole: 3, roleGames: 3 }), want, 1e-9);
+  // Each stat has its own: receiving's role weight does not move rushing.
+  const rr = rec4([{ rush: { yds: 90 } }, { rush: { yds: 90 } }, { rush: { yds: 90 } }, { rush: { yds: 90 } }, { rush: { yds: 5 } }]);
+  close(nfl.weightedStatTotal("rushyds", rr, { rushDecay: 1, yardRole: 3, rushRole: 0 }), 365);
+  assert.ok(nfl.weightedStatTotal("rushyds", rr, { rushDecay: 1, rushRole: 3 }) < 365);
+  // The fetcher's precomputed totals carry it, so the page projects off what the build weighted.
+  assert.ok(nfl.weightedStatTotals(FELL, { yardDecay: 1, recsDecay: 1, rushDecay: 1, rushrecDecay: 1, passDecay: 1, yardRole: 3 }).recyds < 350);
+});
+
+test("the NFL ships a role weight on the three props it cleared the rule on, and none on the two it did not", () => {
+  // characterization: 2026-11-24, README "The last three games". Fit 2023-24, validated 2025-26, fixed lines.
+  assert.equal(nfl.DEFAULTS.roleGames, 3);
+  assert.deepEqual([nfl.DEFAULTS.rushRole, nfl.DEFAULTS.passRole, nfl.DEFAULTS.recsRole], [2, 2, 3]);
+  assert.deepEqual([nfl.DEFAULTS.yardRole, nfl.DEFAULTS.rushrecRole], [0, 0], "receiving yards and rush + rec were worse with it on both windows");
+});
+
 test("a decay under 1 weights recent games up without changing the evidence: a flat log is unchanged, a rising one rises, weights sum to the game count", () => {
   close(nfl.weightedStatTotal("recyds", FLAT, { yardDecay: 0.8 }), 200, 1e-9, "equal games, any decay: the same total");
   const w = nfl.weightedStatTotal("recyds", RISING, { yardDecay: 0.8 });
@@ -1595,23 +1621,25 @@ test("a decay under 1 weights recent games up without changing the evidence: a f
   assert.ok(w > 200, "a rising line weighted toward the recent games is above its plain total");
   close(nfl.expectedStat("recyds", RISING, { yardDecay: 0.8 }), nfl.expectedVolume(w, 4, nfl.DEFAULTS.yardPrior), 1e-9, "the expectation is the shrink of the weighted total");
   // Each stat reads its own column: receptions from the rec column, rush + rec from the sum.
-  close(nfl.weightedStatTotal("recs", RISING, { recsDecay: 0.8 }), 16.384 * 4 / 2.952, 1e-6, "receptions read the wrong column");
+  close(nfl.weightedStatTotal("recs", RISING, { recsDecay: 0.8, recsRole: 0 }), 16.384 * 4 / 2.952, 1e-6, "receptions read the wrong column");
   const rr = rec4([{ rush: { yds: 20 }, rec: { yds: 10 } }, { rush: { yds: 50 }, rec: { yds: 20 } }]);
   close(nfl.weightedStatTotal("rushrec", rr, { rushrecDecay: 0.5 }), (0.5 * 30 + 70) * 2 / 1.5, 1e-9, "the rushrec column is not the sum");
 });
 
 test("the fetcher's precomputed w stands in for the log on the board, agrees with it to rounding, and carries only the stats whose decay is under 1", () => {
-  const only = { yardDecay: 0.8, rushDecay: 1, passDecay: 1, recsDecay: 1, rushrecDecay: 1 };
+  const NO_ROLE = { yardRole: 0, rushRole: 0, passRole: 0, recsRole: 0, rushrecRole: 0 };
+  const only = { yardDecay: 0.8, rushDecay: 1, passDecay: 1, recsDecay: 1, rushrecDecay: 1, ...NO_ROLE };
   const w = nfl.weightedStatTotals(RISING, only);
   assert.deepEqual(Object.keys(w), ["recyds"], "w carries a stat whose decay is 1, or misses the one that is not");
-  assert.deepEqual(Object.keys(nfl.weightedStatTotals(RISING)).sort(), ["recyds", "rushrec", "rushyds"], "the shipped decays: three stats in w, not five");
+  assert.deepEqual(Object.keys(nfl.weightedStatTotals(RISING, NO_ROLE)).sort(), ["recyds", "rushrec", "rushyds"], "the shipped decays: three stats in w, not five");
+  assert.deepEqual(Object.keys(nfl.weightedStatTotals(RISING)).sort(), ["passyds", "recs", "recyds", "rushrec", "rushyds"], "with the shipped role weights every stat is weighted by something, so w carries all five");
   const board = { games: 4, recYds: 200, recs: 20, w };
   close(nfl.weightedStatTotal("recyds", board, { yardDecay: 0.8 }), w.recyds, 1e-9);
   // toFixed(2) on the total: within 0.005 of the log's figure, so the per-game expectation within 0.002.
   close(nfl.expectedStat("recyds", board, { yardDecay: 0.8 }), nfl.expectedStat("recyds", RISING, { yardDecay: 0.8 }), 2e-3, "the board's w and the replay's log disagree beyond rounding");
   close(nfl.expectedStat("recyds", board, { yardDecay: 1 }), nfl.expectedVolume(200, 4, nfl.DEFAULTS.yardPrior), 1e-9, "with the decay off, w is ignored");
   assert.equal(nfl.weightedStatTotals({ games: 4, recYds: 200 }), null, "no log, no w");
-  assert.equal(nfl.weightedStatTotals(RISING, { yardDecay: 1, rushDecay: 1, passDecay: 1, recsDecay: 1, rushrecDecay: 1 }), null, "every decay at 1: nothing to write");
+  assert.equal(nfl.weightedStatTotals(RISING, { yardDecay: 1, rushDecay: 1, passDecay: 1, recsDecay: 1, rushrecDecay: 1, ...NO_ROLE }), null, "every decay at 1 and no role weight: nothing to write");
 });
 
 test("end to end: seasonLines writes the log the decay reads, so a rising receiver projects above his plain average", async () => {

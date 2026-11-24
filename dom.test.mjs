@@ -478,6 +478,13 @@ test("the board's notes name the inputs its own model reads: the receiving word,
     assert.deepEqual(nfl.STATS.rushrec.total, ["rushYds", "recYds"], "the fixture assumes rush + rec is made of the two yardages");
     assert.match(rr, /rushing and receiving yards a game/, `${f}: the rush + rec note does not say the number is yards`);
     assert.doesNotMatch(rr, /touches a game/, `${f}: the rush + rec note claims touches, which only gate the prop`);
+    /* The role weight is claimed where the model applies one, at the model's own size, and nowhere else (2026-11-24). */
+    for (const stat of Object.keys(nfl.STATS)) {
+      const start = notes.indexOf(stat + ":"), ends = Object.keys(nfl.STATS).map((k) => notes.indexOf("\n      " + k + ":", start + 1)).filter((i) => i > start);
+      const entry = notes.slice(start, ends.length ? Math.min(...ends) : notes.length), role = M.DEFAULTS[nfl.STATS[stat].roleKey];
+      if (role > 0) assert.match(entry, new RegExp("his last " + M.DEFAULTS.roleGames + " games counted " + (1 + role) + " times over"), `${f}: the ${stat} note does not state the model's role weight`);
+      else assert.doesNotMatch(entry, /games counted \d+ times over/, `${f}: the ${stat} note claims a role weight the model does not apply`);
+    }
     /* A weight is claimed only where the league's decay is under one. */
     for (const [key, pct] of [["recyds", "yardDecay"], ["rushyds", "rushDecay"], ["rushrec", "rushrecDecay"]]) {
       /* The entry runs from its key to the next stat's key, or the end of the table; a colon inside the prose is not a boundary. */
@@ -2020,7 +2027,8 @@ test("the football board's footer is one line with the graded count, the touchdo
 test("record.html: a section for the football league with its replay table and a live-record slot, the record file and the page script, no faces", () => {
   const m = markup("record.html"), s = src("record.html");
   for (const id of ["nfl", "nfl-live"]) assert.match(m, new RegExp('id="' + id + '"'), "no #" + id);
-  assert.match(m, /Does it work\?[\s\S]*anytime touchdown[\s\S]*Brier <b>0\.1591<\/b>/, "the NFL replay table is not on the record page");
+  /* A Brier figure on the touchdown row, whatever the last replay made it: the number moves with every re-run and is not this test's to pin. */
+  assert.match(m, /Does it work\?[\s\S]*anytime touchdown<\/td><td>[^<]*<b>[^<]*<\/b>, Brier <b>0\.\d{4}<\/b>/, "the NFL replay table is not on the record page");
   assert.doesNotMatch(m, /College football|FBS|cfb/, "the college section is still on the record page");
   for (const f of ["nfl-record.js", "record-page.js"]) assert.match(s, new RegExp('<script src="' + f.replace(".", "\\.") + '"></script>'), "record.html does not load " + f);
   assert.match(s, /BetHouseRecordPage\.render\(document/);
@@ -2191,9 +2199,15 @@ test("a data file whose weighted totals were built under other decays than the m
   const nfl = (await import("./nfl.js")).default;
   const withW = PLAYERS.map((p) => Object.assign({}, p, { w: { recyds: p.recYds * 1.2 } }));
   const stamp = (model) => ({ players: withW.map((p) => Object.assign({}, p)), pools: recPool(nfl), model });
-  const same = await mountPlayers(stamp({ tdDecay: nfl.DEFAULTS.tdDecay, yardDecay: nfl.DEFAULTS.yardDecay, rushDecay: nfl.DEFAULTS.rushDecay, rushrecDecay: nfl.DEFAULTS.rushrecDecay }));
-  assert.ok(same.app.__rows.every((r) => r.p.w), "the same decays: the totals stay");
-  const other = await mountPlayers(stamp({ tdDecay: nfl.DEFAULTS.tdDecay, yardDecay: 0.5, rushDecay: nfl.DEFAULTS.rushDecay, rushrecDecay: nfl.DEFAULTS.rushrecDecay }));
+  const ROLES = { rushRole: nfl.DEFAULTS.rushRole, passRole: nfl.DEFAULTS.passRole, recsRole: nfl.DEFAULTS.recsRole, yardRole: nfl.DEFAULTS.yardRole, rushrecRole: nfl.DEFAULTS.rushrecRole };
+  const same = await mountPlayers(stamp({ tdDecay: nfl.DEFAULTS.tdDecay, yardDecay: nfl.DEFAULTS.yardDecay, rushDecay: nfl.DEFAULTS.rushDecay, rushrecDecay: nfl.DEFAULTS.rushrecDecay, ...ROLES }));
+  assert.ok(same.app.__rows.every((r) => r.p.w), "the same decays and role weights: the totals stay");
+  /* The role weights (2026-11-24) ride the same totals: another value, or a stamp from before they existed (a role of 0), is another model's file. */
+  const otherRole = await mountPlayers(stamp({ tdDecay: nfl.DEFAULTS.tdDecay, yardDecay: nfl.DEFAULTS.yardDecay, rushDecay: nfl.DEFAULTS.rushDecay, rushrecDecay: nfl.DEFAULTS.rushrecDecay, ...ROLES, rushRole: nfl.DEFAULTS.rushRole + 1 }));
+  assert.ok(otherRole.app.__rows.every((r) => !r.p.w), "a data file built under another role weight kept its totals");
+  const before = await mountPlayers(stamp({ tdDecay: nfl.DEFAULTS.tdDecay, yardDecay: nfl.DEFAULTS.yardDecay, rushDecay: nfl.DEFAULTS.rushDecay, rushrecDecay: nfl.DEFAULTS.rushrecDecay }));
+  assert.equal(before.app.__rows.every((r) => !r.p.w), Object.values(ROLES).some((v) => v > 0), "a stamp with no role weight is a file built with none");
+  const other = await mountPlayers(stamp({ tdDecay: nfl.DEFAULTS.tdDecay, yardDecay: 0.5, rushDecay: nfl.DEFAULTS.rushDecay, rushrecDecay: nfl.DEFAULTS.rushrecDecay, ...ROLES }));
   assert.ok(other.app.__rows.every((r) => !r.p.w), "a data file built under another decay kept its totals");
   const none = await mountPlayers(stamp(undefined));
   assert.ok(none.app.__rows.every((r) => r.p.w), "a data file with no stamp (before the era stamp) is left alone");
