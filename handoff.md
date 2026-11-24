@@ -75,9 +75,23 @@ replay rows were re-read from a full replay of 2023 to 2026 to date.
 against a line of 5.5). The next idea, not built: project volume from
 the last-three snap share directly.
 
-**Also seen, not acted on:** the NBA's first night logged 80 unders in
-91 picks with only 5 flagged as a moved role: the NBA model projects
-below the books' lines across the board.
+**The NBA's unders, looked into (2026-11-24), not acted on.** The first
+night logged 80 unders in 91 picks. It is NOT the model projecting
+below the lines (an earlier note here said so and was wrong): the
+median projection is 4% ABOVE the book's line. The cause is in the
+pools. Over the last 450 games players landed at 93 to 98% of the
+model's projection on average and 83 to 95% at the median (points:
+mean 0.94, median 0.90; worst at low projections, 0.92 at 8 points
+against 0.98 at 26), so the model puts the middle outcome about 10%
+under its own projection while the book's line is only about 4% under
+it. The model therefore calls the over about 45% on nearly every line,
+in every minutes band, and a 5-point bar logs half of them as unders.
+Two things follow. (1) The projection the NBA board prints runs high:
+it is not what players average. More shrink or a deflator would fix
+that and needs the rule. (2) Whether the unders are right cannot be
+told from one night: books are widely said to shade prop lines toward
+the over, and books also know tonight's rotation where the pool is
+every night. The record's NBA rows are the test.
 
 ## 2026-11-24: prop picks at a book's price (version 1, waiting on a key)
 
