@@ -22,12 +22,14 @@
   /* True while the league is in season, false out of it, null for a page
      that is not a board. The NFL's first game is the Thursday after Labor
      Day, so September 4 at the earliest, through the Super Bowl in mid
-     February; MLB from late March through a World Series that can run
-     into the second week of November. A window that wraps the new year
+     February; the NBA from opening night in the third week of October
+     (the 20th, 21st and 22nd in the three seasons on file) through a
+     Finals that has ended as late as June 22; MLB from late March
+     through a World Series that can run into the second week of November. A window that wraps the new year
      is the one that starts after it ends. By the calendar because the
      nav is on every page and the data files are not: a slate is one
      day, and an off day is not an off season. */
-  var WINDOWS = { "nfl.html": [[9, 4], [2, 15]], "baseball.html": [[3, 20], [11, 10]] };
+  var WINDOWS = { "nfl.html": [[9, 4], [2, 15]], "nba.html": [[10, 20], [6, 25]], "baseball.html": [[3, 20], [11, 10]] };
   function inSeason(page, now) {
     var w = WINDOWS[page];
     if (!w) return null;

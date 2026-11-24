@@ -34,8 +34,8 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const DIR = dirname(fileURLToPath(import.meta.url));
-const BOARDS = ["index.html", "baseball.html", "nfl.html", "bets.html", "live.html", "record.html", "teams.html", "defence.html", "offence.html", "consistency.html", "parlays.html"];
-/* Every page: the nav's eleven plus the pages reached from a card (the game preview), which the site-wide rules cover and the nav rules do not. */
+const BOARDS = ["index.html", "baseball.html", "nfl.html", "nba.html", "bets.html", "live.html", "record.html", "teams.html", "defence.html", "offence.html", "consistency.html", "parlays.html"];
+/* Every page: the nav's twelve plus the pages reached from a card (the game preview), which the site-wide rules cover and the nav rules do not. */
 const PAGES = BOARDS.concat(["game.html"]);
 const src = (f) => readFileSync(resolve(DIR, f), "utf8");
 
@@ -183,7 +183,7 @@ test("every page carries the one nav: a link to every page, itself marked curren
     assert.equal(hrefs.length, BOARDS.length, f + " links a page twice");
     assert.deepEqual(links.filter((l) => l.current).map((l) => l.href), [f], f + " does not mark itself, and only itself, current");
     for (const h of hrefs) assert.ok(existsSync(resolve(DIR, h)), f + " links to " + h + ", which does not exist");
-    assert.match(NAV(f), /<span class="prim">[\s\S]*href="nfl\.html"[\s\S]*href="baseball\.html"[\s\S]*<\/span>[\s\S]*<span class="sec">[\s\S]*href="index\.html"[\s\S]*href="bets\.html"[\s\S]*href="live\.html"[\s\S]*href="record\.html"[\s\S]*<\/span>[\s\S]*<details class="research">[\s\S]*<summary>Research/, f + ": the nav is not the switch, the four pages and the Research dropdown, in that order");
+    assert.match(NAV(f), /<span class="prim">[\s\S]*href="nfl\.html"[\s\S]*href="nba\.html"[\s\S]*href="baseball\.html"[\s\S]*<\/span>[\s\S]*<span class="sec">[\s\S]*href="index\.html"[\s\S]*href="bets\.html"[\s\S]*href="live\.html"[\s\S]*href="record\.html"[\s\S]*<\/span>[\s\S]*<details class="research">[\s\S]*<summary>Research/, f + ": the nav is not the switch, the four pages and the Research dropdown, in that order");
     assert.doesNotMatch(src(f), /class="navlink"|class="boards"/, f + " still carries the old link row");
     assert.match(src(f), /<script src="nav\.js"><\/script>/, f + " does not load nav.js, so the Research panel never closes on a click outside it");
   }
@@ -377,6 +377,7 @@ test("every test file runs in every gate that runs tests", () => {
     ".github/workflows/ci.yml",
     ".github/workflows/refresh.yml",
     ".github/workflows/refresh-nfl.yml",
+    ".github/workflows/refresh-nba.yml",
   ];
 
   const files = readdirSync(DIR)
@@ -2324,7 +2325,7 @@ test("the teams page's panel scrolls sideways inside itself, the team cell stick
  * ------------------------------------------------------------------ */
 test("the board switch carries a season dot on every page: after the label, hidden until nav.js reads the calendar", async () => {
   for (const f of PAGES) {
-    assert.match(NAV(f), /<a href="nfl\.html"[^>]*>NFL<i class="dot" hidden><\/i><\/a><a href="baseball\.html"[^>]*>Baseball<i class="dot" hidden><\/i><\/a>/, f + ": the switch has no season dots after the labels");
+    assert.match(NAV(f), /<a href="nfl\.html"[^>]*>NFL<i class="dot" hidden><\/i><\/a><a href="nba\.html"[^>]*>NBA<i class="dot" hidden><\/i><\/a><a href="baseball\.html"[^>]*>Baseball<i class="dot" hidden><\/i><\/a>/, f + ": the switch has no season dots after the labels");
   }
   const js = src("nav.js");
   // The module exports the rule like every other module (UMD, window.BetHouseNav), so no global leaks and the test imports it.
@@ -2339,6 +2340,11 @@ test("the board switch carries a season dot on every page: after the label, hidd
   assert.equal(inSeason("baseball.html", new Date(2026, 3, 2)), true);
   assert.equal(inSeason("baseball.html", new Date(2026, 10, 8)), true, "a World Series can run into the second week of November");
   assert.equal(inSeason("baseball.html", new Date(2026, 11, 20)), false);
+  // The NBA tips off in the third week of October and the Finals have run to June 22.
+  assert.equal(inSeason("nba.html", new Date(2026, 10, 23)), true);
+  assert.equal(inSeason("nba.html", new Date(2027, 5, 20)), true, "June is the Finals");
+  assert.equal(inSeason("nba.html", new Date(2026, 9, 10)), false, "the preseason is not the season");
+  assert.equal(inSeason("nba.html", new Date(2026, 7, 1)), false);
   assert.equal(inSeason("teams.html", new Date(2026, 9, 20)), null, "a page that is not a board has no season");
   assert.match(js, /querySelectorAll\("\.mnav \.prim a"\)/, "nav.js never finds the switch");
   assert.match(js, /dot\.hidden ?= ?!on/, "nav.js never shows the dot");
@@ -2352,7 +2358,7 @@ test("the home's vocabulary strip: projection, chance, record, the record cell f
   assert.ok(strip.length > 0 && m.indexOf('id="vocab"') > m.indexOf('id="gscroll"'), "the strip is not between the slate and the plays");
   assert.match(strip, /<small>[^<]*<\/small><b>Projection<\/b>[\s\S]*<small>[^<]*<\/small><b>Chance<\/b>[\s\S]*<small>[^<]*<\/small><b>Record<\/b><p id="vrec">/, "the three cells are not projection, chance, record with the record cell a host");
   assert.doesNotMatch(strip, /price|odds|fair/i, "the vocabulary names a price");
-  assert.match(html, /\[\['NFL',window\.BETHOUSE_NFL_RECORD\],\['Baseball',window\.BETHOUSE_RECORD\]\][\s\S]*H\.saidHit\(\[x\[1\]\]\)/, "the record cell is not home.js's arithmetic, one record at a time with its league named");
+  assert.match(html, /\[\['NFL',window\.BETHOUSE_NFL_RECORD\],\['NBA',window\.BETHOUSE_NBA_RECORD\],\['Baseball',window\.BETHOUSE_RECORD\]\][\s\S]*H\.saidHit\(\[x\[1\]\]\)/, "the record cell is not home.js's arithmetic, one record at a time with its league named");
   assert.match(html, /el\('vrec'\)/, "the record cell is never filled");
   // Kicker then heading on every section head on the home, the week line's own pattern; the stylesheet draws the accent dash.
   const heads = [...m.matchAll(/<div class="shead">(<h2[\s\S]*?<\/h2>)<div class="gmeta">/g)];
@@ -2413,4 +2419,169 @@ test("a game row's drawer opens with a link to the game's preview, built from th
   assert.ok(hostile, "the fixture's id-less game is not on the board");
   assert.doesNotMatch(panelFor(app.__rows.indexOf(hostile)), /game\.html/, "a game without an id links a preview that cannot find it");
   assert.match(src("football-board.js"), /encodeURIComponent\(String\(r\.g\.id\)\)/, "the id is not URL-encoded on its way into the href");
+});
+
+/* ------------------------------------------------------------------ *
+ * The NBA board (2026-11-23)
+ *
+ * nba.html is football-board.js told what basketball does not have. The
+ * script is run for real against the stub, like the football mounts
+ * above, with nba.js and a small slate: a claim about what a page shows
+ * is a claim about output.
+ * ------------------------------------------------------------------ */
+
+const NBA_GAMES = [{ id: "n1", date: "2099-11-24T00:30Z", home: "ATL", away: "NY", completed: false }];
+const nbaPool = (stat, level) => ({ stat, exp: Array.from({ length: 400 }, () => level), ratio: Array.from({ length: 400 }, (_, i) => i / 200) });
+const NBA_POOLS = { pts: nbaPool("pts", 22), reb: nbaPool("reb", 6), ast: nbaPool("ast", 5), tpm: nbaPool("tpm", 2), pra: nbaPool("pra", 33) };
+const nbaPlayer = (id, name, team, more) => Object.assign({ id, name, team, opp: team === "ATL" ? "NY" : "ATL", home: team === "ATL", pos: "G", games: 20, min: 680, pts: 440, reb: 120, ast: 100, tpm: 48,
+  recent: [["261122", "BOS", 34, 28, 9, 6, 4, team], ["261120", "MIA", 30, 12, 4, 2, 0, team]] }, more || {});
+const NBA_PLAYERS = [
+  nbaPlayer("1", "Alpha Guard", "ATL"),
+  nbaPlayer("2", "Bravo Wing", "NY", { pos: "F", pts: 300, tpm: 30 }),
+  nbaPlayer("3", "Charlie Out", "NY", { status: "Out", injury: "Knee" }),
+  nbaPlayer("4", "Delta Dtd", "ATL", { pos: "C", pts: 360, status: "Day-To-Day", injury: "Ankle" }),
+];
+
+async function mountNba({ players, model, record, search, games, noData } = {}) {
+  const nba = (await import("./nba.js")).default;
+  const doc = stubDoc();
+  const win = { BetHouseFaces: (await import("./faces.js")).default, BetHouseWatchlist: (await import("./watchlist.js")).default, BetHouseChips: (await import("./chips.js")).default, pushed: [], listeners: {} };
+  win.location = { search: search || "", pathname: "/nba.html" };
+  win.history = { pushState(_s, _t, url) { win.pushed.push(url); }, replaceState(_s, _t, url) { win.pushed.push(url); } };
+  win.addEventListener = (type, fn) => { (win.listeners[type] = win.listeners[type] || []).push(fn); };
+  const store = new Map();
+  win.localStorage = { getItem: (k) => (store.has(k) ? store.get(k) : null), setItem: (k, v) => store.set(k, String(v)), removeItem: (k) => store.delete(k) };
+  // eslint-disable-next-line no-new-func
+  new Function("window", "document", src("football-board.js"))(win, doc);
+  /* The page's own mount call, lifted out of nba.html, so the test runs the configuration the page ships. */
+  const call = src("nba.html").match(/BetHouseFootballBoard\.mount\((\{[\s\S]*?\n\})\);/);
+  assert.ok(call, "nba.html no longer mounts the board");
+  // eslint-disable-next-line no-new-func
+  const cfg = new Function("window", "Intl", "return " + call[1])({ BetHouseNBA: nba, BetHouseNBAData: noData ? undefined : {
+    season: 2027, date: "2026-11-23", generated: "2026-11-23T17:00:00.000Z", gamesCached: 10, statsSeasons: [2026, 2027],
+    games: games || NBA_GAMES, teamFactors: { ATL: { allow: { pts: 1.2, reb: 1, ast: 1, tpm: 1, pra: 1 } }, NY: { allow: { pts: 1, reb: 1, ast: 1, tpm: 1, pra: 1 } } },
+    players: players || NBA_PLAYERS, pools: NBA_POOLS, model: model === undefined ? { terms: nba.TERMS } : model,
+  }, BETHOUSE_NBA_RECORD: record || null }, Intl);
+  win.BetHouseFootballBoard.mount(cfg);
+  const press = (id, label) => { const b = doc.getElementById(id).children.find((x) => x.textContent === label); assert.ok(b, `no "${label}" button in #${id}`); b.handlers.click[0](); };
+  return { app: doc.getElementById("app"), doc, win, press, nba, cfg };
+}
+
+test("nba.html: the football page's shell, basketball's scripts in order, and the mount says what it does not have", () => {
+  const s = src("nba.html"), m = markup("nba.html");
+  for (const id of ["bar", "view", "q", "controls", "lineseg", "sortseg", "teamsel", "posseg", "starseg", "app", "note", "drawer", "dbar", "dhead", "dbands", "dtabs", "dbody", "tray", "tcards", "foot", "tile", "tagline"]) {
+    assert.match(m, new RegExp('id="' + id + '"'), "nba.html has no #" + id);
+  }
+  const order = ["faces.js", "teams-data.js", "teams.js", "nfl.js", "nba.js", "nba-data.js", "nba-record.js", "watchlist.js", "chips.js", "football-board.js", "nav.js"];
+  const at = order.map((f) => s.indexOf('<script src="' + f + '">'));
+  assert.ok(at.every((i) => i >= 0), "nba.html is missing one of " + order.join(", "));
+  assert.deepEqual(at, [...at].sort((a, b) => a - b), "nba.html loads its scripts out of order: nba.js needs nfl.js, the board needs both");
+  assert.match(s, /td: false, games: false, track: false/, "the NBA page does not say it has no touchdown view, game lines or live feed");
+  assert.doesNotMatch(s, /parlay\.js|tendencies|sheet-page\.js/, "the NBA page loads a football-only module");
+  assert.doesNotMatch(s, /fair price|odds\b/i, "the site shows chances, not odds");
+});
+
+test("the NBA board: a view per prop and nothing football-shaped, a slate date for a tagline, projections to one decimal at the nearest half line", async () => {
+  const { app, doc, nba, press } = await mountNba();
+  assert.deepEqual(doc.getElementById("view").children.map((b) => b.textContent), Object.values(nba.STATS).map((st) => st.label));
+  assert.equal(doc.getElementById("tagline").textContent, "NBA — Mon, Nov 23");
+  assert.equal(doc.getElementById("parlaywrap").hidden, true, "no lift was measured, so no slip is offered");
+  assert.deepEqual(doc.getElementById("posseg").children.map((b) => b.textContent), ["All", "G", "F", "C"]);
+  const names = app.__rows.map((r) => r.p.name);
+  assert.deepEqual(names, ["Alpha Guard", "Delta Dtd", "Bravo Wing"], "ranked by projection, the player ruled out not shown");
+  for (const r of app.__rows) {
+    const y = nba.statEligible("pts", r.p, null, { oppFactor: nba.allowOf({ ATL: { allow: { pts: 1.2 } }, NY: { allow: { pts: 1 } } }, r.p.opp, "pts") });
+    assert.equal(r.exp, y.exp, "the row is the model's own projection, opponent included");
+    assert.equal(r.line, nba.lineFor(r.exp), "at the model's own line");
+    assert.ok(Math.abs(r.line - r.exp) <= 0.5);
+  }
+  assert.match(app.innerHTML, /<span class="prob">\d+\.\d<small>points<\/small><\/span>/, "a projection prints to one decimal with its unit");
+  assert.match(app.innerHTML, /<span class="tag q" title="Listed day-to-day">DTD<\/span>/, "day-to-day is flagged in basketball's word");
+  assert.doesNotMatch(app.innerHTML, /yards|catches|touchdown|Questionable/i, "a football word on the NBA board");
+  // Bravo faces ATL, which gives up 20% more points: the opponent is in his number at the model's strength.
+  const bravo = app.__rows.find((r) => r.p.name === "Bravo Wing");
+  assert.ok(Math.abs(bravo.oppFactor - (1 + nba.DEFAULTS.ptsOppShrink * 0.2)) < 1e-9);
+  press("view", "Threes made");
+  assert.match(app.innerHTML, /<small>threes<\/small>/);
+  assert.ok(app.__rows.every((r) => r.line === nba.lineFor(r.exp)));
+});
+
+test("the NBA card: basketball's words, the game log's own columns, the ladder, and no Track button", async () => {
+  const { app, doc, nba } = await mountNba({ search: "?player=1&prop=pts" });
+  const r = app.__rows.find((x) => x.p.id === "1");
+  assert.equal(doc.getElementById("dtitle").textContent, "Alpha Guard");
+  const bands = app.__bands(r);
+  assert.match(bands, /Projected points/);
+  assert.match(bands, /Averages <b>22\.0<\/b> points a game on <b>34\.0<\/b> minutes over <b>20<\/b> games/);
+  assert.doesNotMatch(bands, /kickoff/, "a tip-off is not a kickoff");
+  const detail = app.__detail(r);
+  assert.match(detail, /minutes a game over 20 games/);
+  assert.match(detail, /real games by rotation players/);
+  assert.doesNotMatch(detail + bands, /yards|catches|receivers|quarterbacks/);
+  const rungs = app.__ladder(r);
+  assert.deepEqual(rungs.map((x) => x.at), nba.ladder("pts", r.exp, NBA_POOLS.pts).map((x) => x.at));
+  const tabs = doc.getElementById("dtabs").children;
+  tabs.find((b) => b.textContent === "Recent games").handlers.click[0]();
+  const body = doc.getElementById("dbody").innerHTML;
+  assert.match(body, /<tr><td>game<\/td><td>min<\/td><td>pts<\/td><td>reb<\/td><td>ast<\/td><td>3pm<\/td><\/tr>/, "the log is not the model's own columns");
+  assert.match(body, /<td>2026-11-22 BOS<\/td><td>34<\/td><td>28<\/td><td>9<\/td><td>6<\/td><td>4<\/td>/);
+  assert.equal((body.match(/<rect class="bar/g) || []).length, 2, "a bar a game");
+  tabs.find((b) => b.textContent === "Alternate lines").handlers.click[0]();
+  assert.doesNotMatch(doc.getElementById("dbody").innerHTML, /data-track/, "the live page has no NBA feed, so nothing is offered to track");
+  tabs.find((b) => b.textContent === "Overview").handlers.click[0]();
+  assert.doesNotMatch(doc.getElementById("dbody").innerHTML, /data-track/);
+});
+
+test("the NBA board says so when its data was built under other terms, when there is no slate, and when there is no data", async () => {
+  const stale = await mountNba({ model: { terms: "decay 1/1/1/1/1 opp 0/0/0/0/0 k 4/4/4/4/4 min -" }, players: [nbaPlayer("1", "Alpha Guard", "ATL", { w: { pts: 9999, min: { pts: 34 } } })] });
+  assert.ok(stale.app.__rows[0].exp < 40, "weighted totals built under other terms are dropped, not projected off");
+  const same = await mountNba({ players: [nbaPlayer("1", "Alpha Guard", "ATL", { w: { pts: 600, min: { pts: 34 } } })] });
+  assert.ok(same.app.__rows[0].exp > 25, "under the model's own terms the weighted totals are the line");
+  const empty = await mountNba({ players: [], games: [] });
+  assert.match(empty.app.innerHTML, /No games on this slate/);
+  const none = await mountNba({ noData: true });
+  assert.match(none.app.innerHTML, /No board yet[\s\S]*fetch-nba\.mjs/);
+  // The footer is the league's: tip-off, not kickoff, and no touchdown figure.
+  assert.match(same.doc.getElementById("foot").innerHTML, /recorded before tip-off/);
+});
+
+test("the football board is still asked for everything: a page that does not say what it lacks is football", async () => {
+  const js = src("football-board.js");
+  assert.match(js, /var HAS_TD = cfg\.td !== false, HAS_GAMES = cfg\.games !== false;/, "the capability flags no longer default to football");
+  assert.doesNotMatch(src("nfl.html"), /td: false|games: false|track: false/, "the NFL page switched a view off");
+  assert.match(js, /N\.lineFor\(y\.exp,state\.lineMult\)/, "the board computes a line itself instead of asking the model");
+  assert.doesNotMatch(js, /Math\.round\(y\.exp\*state\.lineMult\)/, "a second copy of the line rule");
+  assert.match(src("track-football.mjs"), /M\.lineFor\(y\.exp, LINE_MULT\)/, "the tracker records a line the board does not compute");
+});
+
+test("the chart's bars are not the live page's progress bar: no unscoped .bar rule reaches an SVG rect", () => {
+  /* A CSS height beats an SVG rect's height attribute, and `.bar{height:8px}` (the live tracker's) flattened every bar
+     of the recent-games chart on both boards until 2026-11-23. */
+  const css = src(SHEET);
+  assert.doesNotMatch(css, /(^|\}|,)\s*\.bar\{/m, "an unscoped .bar rule: it will set a CSS height on the recent-games chart's rects");
+  assert.match(css, /\.bar:not\(rect\)\{[^}]*height:8px/, "the live page's bar lost its rule");
+});
+
+test("the NBA reaches the home, the record page and the pipeline through the shared code, not a copy", () => {
+  const home = src("index.html");
+  assert.match(home, /<script src="nba-data\.js" onerror="void 0"><\/script>/);
+  assert.match(home, /nba:window\.BetHouseNBAData\|\|null/);
+  const rec = src("record.html");
+  assert.match(rec, /<section class="rec" id="nba">[\s\S]*<div id="nba-live"><\/div>/, "record.html has no NBA section with a live-record slot");
+  assert.match(rec, /nba: window\.BETHOUSE_NBA_RECORD \|\| null/);
+  assert.match(rec, /nba: \{ unit: 'night', before: 'tip-off' \}/);
+  // The replay and the board fill their pools and read the opponent through the same two functions.
+  for (const f of ["backtest-nba.mjs", "fetch-nba.mjs"]) {
+    const js = src(f);
+    assert.match(js, /poolEntries\(stat, g, d\.lines, (M|model)\)/, `${f} fills a pool its own way`);
+    assert.match(js, /= contextFor\(M, d\.lines\.teamFactors|projectedStat\(stat, rec, null, contextFor\(model, lines\.teamFactors/, `${f} does not hand a projection the opponent through contextFor`);
+  }
+  assert.match(src("track-nba.mjs"), /import \{ run \} from "\.\/track-football\.mjs";/, "the NBA tracker is not the shared tracker");
+  assert.match(src("nba.js"), /sortedPool: core\.sortedPool, poolNear: core\.poolNear/, "nba.js carries its own pool arithmetic");
+  // The cache is not committed; the board, the record and the workflow are.
+  assert.match(src(".gitignore"), /^nba-history\.json$/m);
+  const wf = src(".github/workflows/refresh-nba.yml");
+  assert.match(wf, /group: refresh\n/, "the NBA refresh can race the other two to push");
+  assert.match(wf, /node fetch-nba\.mjs[\s\S]*node track-nba\.mjs snapshot[\s\S]*node track-nba\.mjs grade[\s\S]*git pull --rebase --autostash origin main/);
+  assert.doesNotMatch(wf, /if \(!d\.players\.length\)|empty player list/, "the sanity check refuses an empty slate, which is a real answer in July");
 });

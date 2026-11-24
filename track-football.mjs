@@ -71,12 +71,15 @@ const DIR = path.dirname(fileURLToPath(import.meta.url));
  * but not reported is a number nobody ever sees.
  */
 export function propsFor(M) {
+  /* A model without a touchdown score or a game projection (the NBA's, since 2026-11-23) reports neither. */
   return [
-    { id: "td", label: "Anytime touchdown" },
+    ...(typeof M.scoreAnytimeTD === "function" ? [{ id: "td", label: "Anytime touchdown" }] : []),
     ...Object.keys(M.STATS).map((id) => ({ id, label: `${M.STATS[id].label}, over` })),
-    { id: "spread", label: "Spread, the side the model likes" },
-    { id: "total", label: "Total, the side the model likes" },
-    { id: "ml", label: "Moneyline, the side the model likes" },
+    ...(typeof M.pickGame === "function" ? [
+      { id: "spread", label: "Spread, the side the model likes" },
+      { id: "total", label: "Total, the side the model likes" },
+      { id: "ml", label: "Moneyline, the side the model likes" },
+    ] : []),
   ];
 }
 const GAME_PROPS = new Set(["spread", "total", "ml"]);
@@ -180,12 +183,12 @@ export function playerRows(M, D, p, g) {
 
   /* The vacated share the fetcher wrote on the row, as the board hands it over. */
   const vacR = (q) => (q.vac ? q.vac.r : undefined), vacC = (q) => (q.vac ? q.vac.c : undefined);
-  const td = M.scoreAnytimeTD(p, {
+  const td = typeof M.scoreAnytimeTD === "function" ? M.scoreAnytimeTD(p, {
     teamFactor: (teamFactors[p.team] || {}).off || 1,
     oppFactor: p.opp ? oppDef(p.opp) : 1,
     usagePool,
     vacRec: vacR(p), vacRush: vacC(p),
-  });
+  }) : null;
   if (td && isFinite(td.prob)) out.push(row({ prop: "td", prob: p4(td.prob) }));
 
   /* The counting props, each behind the same gate the board applies
@@ -193,11 +196,12 @@ export function playerRows(M, D, p, g) {
      drift. A record of players the board never displayed would grade a
      bet nobody was offered. */
   for (const stat of Object.keys(M.STATS)) {
-    const y = M.statEligible(stat, p, null, { oppFactor: p.opp ? M.allowOf(teamFactors, p.opp, stat) : null, vacRec: vacR(p), vacRush: vacC(p) });
+    const y = M.statEligible(stat, p, null, { oppFactor: p.opp ? M.allowOf(teamFactors, p.opp, stat) : null, vacRec: vacR(p), vacRush: vacC(p), home: p.home });
     if (!y) continue;
     const pool = poolFor(stat);
 
-    const line = Math.round(y.exp * LINE_MULT) + 0.5;
+    /* The model's own line rule (lineFor), the one the page calls: football rounds the projection, basketball takes the nearest half. */
+    const line = M.lineFor(y.exp, LINE_MULT);
     const over = M.empiricalOver(y.exp, line, pool);
     if (over == null || !isFinite(over)) continue;
 
@@ -229,11 +233,12 @@ export function snapshot(league) {
     console.log("No games on the board yet — nothing to record.");
     return;
   }
-  const date = kickoffs[0].slice(0, 10);
+  /* A slate a night (the NBA) names its own day, the league's and not UTC's: two nights can share a UTC date, a matinee and the late games before it. */
+  const date = /^\d{4}-\d\d-\d\d$/.test(String(D.date || "")) ? D.date : kickoffs[0].slice(0, 10);
 
   const day = core.loadDay(HIST, date);
   day.season = D.season;
-  day.week = D.week;
+  if (D.week != null) day.week = D.week;
   /* The model terms the board ran with. Every row carries its own, beside
      recordedAt, because "first prediction wins" means a day file spans
      builds; the day-level copy is the first era seen and is never
@@ -270,7 +275,7 @@ export function snapshot(league) {
   /* Game picks, against the line the board carried. The same pickGame the
      page calls, so the record holds exactly the side that was shown. */
   let games = 0;
-  for (const g of D.games || []) {
+  for (const g of typeof M.pickGame === "function" ? D.games || [] : []) {
     if (!g.line || !g.home || !g.away) continue;
     if (core.startedAlready(g.date)) continue;
     const proj = M.projectGame(D.ratings, g.home, g.away, { neutral: !!g.neutral });
@@ -302,12 +307,13 @@ export function snapshot(league) {
   /* The slips the board would suggest -- the whole slate at 3, 4 and 5
      legs, and one game at 3 -- recorded the same way, so the number a
      parlay product would sell is measured and not only the legs. */
-  const slips = recordSuggestedParlays(day, parlayCandidates(day, M.DEFAULTS.parlayProps), M.DEFAULTS.parlayLift);
+  /* Only where the lift was measured: a model with no parlayProps (the NBA's) suggests no slip, so none is recorded. */
+  const slips = M.DEFAULTS.parlayProps ? recordSuggestedParlays(day, parlayCandidates(day, M.DEFAULTS.parlayProps), M.DEFAULTS.parlayLift) : 0;
 
   core.saveDay(HIST, day);
   if (slips) console.log(`  + ${slips} suggested parlays recorded`);
   const players = new Set(day.predictions.filter((p) => p.playerId !== "game").map((p) => p.playerId)).size;
-  console.log(`snapshot ${date} (${D.season} week ${D.week}): +${added} predictions ` +
+  console.log(`snapshot ${date} (${D.season}${D.week != null ? ` week ${D.week}` : ""}): +${added} predictions ` +
     `(${day.predictions.length} total, ${players} players, ${games} new game picks, ${rungs} new ladder rungs)`);
   if (skippedStarted) console.log(`  skipped ${skippedStarted} players whose game has kicked off`);
   if (skippedNoGame) console.log(`  skipped ${skippedNoGame} players with no game on this board`);
@@ -364,10 +370,10 @@ export function gradeGamePick(pick, result, close) {
  * `statTotal` is the model's own summation, so a stat made of two fields
  * (rush + rec yards) settles on both without this file knowing which.
  */
-export function settlePlayer(pred, line) {
+export function settlePlayer(pred, line, M = nfl) {
   if (pred.prop === "td") return line.td > 0 ? 1 : 0;
-  if (!nfl.STATS[pred.prop]) return null;
-  return nfl.statTotal(pred.prop, line) > pred.line ? 1 : 0;
+  if (!M.STATS[pred.prop]) return null;
+  return M.statTotal(pred.prop, line) > pred.line ? 1 : 0;
 }
 
 /* ------------------------------------------------------------------ *
@@ -536,7 +542,8 @@ export async function grade(league) {
       }
 
       /* The same id the board carries, so no name matching. */
-      const stat = boxScoreLines(summary);
+      /* The league's own box score where it has one (the NBA's is one block, not three). */
+      const stat = (league.boxScoreLines || boxScoreLines)(summary);
       if (!stat.size) continue;
 
       for (const p of day.predictions) {
@@ -549,10 +556,10 @@ export async function grade(league) {
           p.scratched = true;
           continue;
         }
-        const settled = settlePlayer(p, s);
+        const settled = settlePlayer(p, s, league.model);
         if (settled == null) continue;
         p.actual = settled;
-        p.result = { td: s.td, recYds: s.recYds, rushYds: s.rushYds, passYds: s.passYds, recs: s.recs };
+        p.result = league.resultOf ? league.resultOf(s) : { td: s.td, recYds: s.recYds, rushYds: s.rushYds, passYds: s.passYds, recs: s.recs };
         totalGraded++;
       }
     }
@@ -628,7 +635,7 @@ export function ladderSummary(dir, M = nfl) {
       if (!p.ladder || p.actual == null || !p.result) continue;
       for (const [at, prob] of Object.entries(p.ladder)) {
         const rung = Number(at);
-        const actual = settlePlayer({ prop: p.prop, line: rung - 0.5 }, p.result);
+        const actual = settlePlayer({ prop: p.prop, line: rung - 0.5 }, p.result, M);
         if (actual == null || !isFinite(prob)) continue;
         rows.push({ prop: p.prop, rung, prob, actual });
       }

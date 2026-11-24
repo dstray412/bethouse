@@ -1,6 +1,6 @@
 /* home.js — the home page's arithmetic. Shared by index.html and the tests.
  *
- * The home shows one slate out of the two boards' data: which games are on
+ * The home shows one slate out of the boards' data: which games are on
  * today (or the next day that has any), what the model says about each
  * football game, and a few numbers for the tile. Nothing here fetches
  * and nothing here is a model: the projection, favourite and pick come
@@ -16,7 +16,7 @@
 })(typeof globalThis !== "undefined" ? globalThis : this, function (F) {
   "use strict";
 
-  const BOARD = { NFL: "nfl.html", MLB: "baseball.html" };
+  const BOARD = { NFL: "nfl.html", NBA: "nba.html", MLB: "baseball.html" };
   /* One football league since the college board went (2026-10-16). */
   const FOOTBALL = "NFL";
   /* One validator for a team key, faces.js's; without faces.js nothing is a key. */
@@ -35,6 +35,23 @@
         state, board: BOARD[FOOTBALL], raw: g,
         /* A football game has a preview page (2026-10-21); a baseball game opens its board. */
         preview: g.id != null && g.id !== "" ? "game.html?id=" + encodeURIComponent(String(g.id)) : undefined,
+      });
+    }
+    return out;
+  }
+
+  /* The NBA board's slate (nba-data.js): a card a game that opens the board. No projected score: the NBA model projects players, not games. */
+  function basketballGames(D, now) {
+    const out = [];
+    for (const g of (D && D.games) || []) {
+      if (!g || !g.home || !g.away || !g.date) continue;
+      const t = Date.parse(g.date);
+      const state = g.completed ? "post" : isFinite(t) && t <= now ? "in" : "pre";
+      out.push({
+        sport: "basketball", league: "NBA", id: "nba:" + g.id, start: g.date,
+        home: g.home, away: g.away, homeName: g.home, awayName: g.away,
+        homeKey: key(g.home), awayKey: key(g.away),
+        state, board: BOARD.NBA, raw: g,
       });
     }
     return out;
@@ -59,7 +76,7 @@
   function normalise(data, now) {
     const d = data || {};
     const t = isFinite(now) ? now : Date.now();
-    const all = footballGames(d.nfl, t).concat(baseballGames(d.mlb));
+    const all = footballGames(d.nfl, t).concat(basketballGames(d.nba, t), baseballGames(d.mlb));
     all.sort((a, b) => String(a.start).localeCompare(String(b.start)));
     return all;
   }
@@ -107,14 +124,14 @@
     return weekday(day);
   }
 
-  const LEAGUE_WORD = { NFL: "NFL", MLB: "MLB" };
-  /** "2 games: 1 NFL, 1 MLB · first at 6:08 PM" */
+  const LEAGUE_WORD = { NFL: "NFL", NBA: "NBA", MLB: "MLB" };
+  /** "3 games: 1 NFL, 1 NBA, 1 MLB · first at 6:08 PM" */
   function sentence(s, tz) {
     if (!s || !s.games || !s.games.length) return "No games on the boards yet.";
     const n = s.games.length;
     const counts = {};
     for (const g of s.games) counts[g.league] = (counts[g.league] || 0) + 1;
-    const parts = ["NFL", "MLB"].filter((l) => counts[l]).map((l) => counts[l] + " " + LEAGUE_WORD[l]);
+    const parts = ["NFL", "NBA", "MLB"].filter((l) => counts[l]).map((l) => counts[l] + " " + LEAGUE_WORD[l]);
     const first = clock(s.games[0].start, tz);
     const when = s.when === "today" ? "first at " + first : (s.label || weekday(s.day)) + " at " + first;
     return n + (n === 1 ? " game: " : " games: ") + parts.join(", ") + " · " + when;
@@ -158,7 +175,7 @@
   /** The tile: games on the slate, players projected across the boards, predictions graded. */
   function counts(data, games) {
     const d = data || {};
-    let players = ((d.nfl && d.nfl.players) || []).length;
+    let players = ((d.nfl && d.nfl.players) || []).length + ((d.nba && d.nba.players) || []).length;
     for (const g of (d.mlb && d.mlb.games) || []) {
       for (const side of ["away", "home"]) {
         const s = g && g[side];

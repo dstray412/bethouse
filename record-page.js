@@ -2,7 +2,7 @@
  *
  * One page for every board's forward record: what each board actually
  * published, graded after the fact, and the suggested parlays settled
- * the way a book would. The tracker (track-nfl.mjs) writes a record
+ * the way a book would. The trackers (track-nfl.mjs, track-nba.mjs) write a record
  * file per league; this reads each one and fills its slot on record.html. The replay tables beside them are static markup
  * on the page: they change only when a backtest is re-run.
  *
@@ -27,10 +27,12 @@
   /* The forward record: a row per prop, then the game picks. A backtest
      grades a model against history it was fitted to; this grades what the
      board actually said before kickoff, which is the number that counts. */
-  function liveRecord(R) {
+  /* `words` is what the league calls a slate and its start: football's week and kickoff unless the page says otherwise (the NBA's night and tip-off). */
+  function liveRecord(R, words) {
+    const unit = (words && words.unit) || "week", before = (words && words.before) || "kickoff";
     if (!R || !R.total) {
       return "<p><b>Live record:</b> nothing graded yet. Predictions are recorded " +
-        "before kickoff and graded once the games are final; the first numbers arrive after the first week.</p>";
+        "before " + esc(before) + " and graded once the games are final; the first numbers arrive after the first " + esc(unit) + ".</p>";
     }
     let rows = "";
     Object.keys(R.props || {}).forEach((k) => {
@@ -52,7 +54,7 @@
     }
     const weeks = (R.days || []).length;
     return "<p><b>" + n(R.total) + "</b> graded prediction" + (R.total === 1 ? "" : "s") +
-      " over " + weeks + " week" + (weeks === 1 ? "" : "s") + ", measured against what the board actually published:</p><table>" + rows + "</table>" + picks +
+      " over " + weeks + " " + esc(unit) + (weeks === 1 ? "" : "s") + ", measured against what the board actually published:</p><table>" + rows + "</table>" + picks +
       (R.total < 400 ? "<p>Far too few to mean anything yet. Bias needs n in the thousands.</p>" : "");
   }
 
@@ -71,10 +73,10 @@
 
   /* Fill each league's slot: `records` maps a slot prefix to its record
      object, or null when the league's file carries nothing yet. */
-  function render(doc, records) {
+  function render(doc, records, words) {
     Object.keys(records || {}).forEach((k) => {
       const el = doc.getElementById(k + "-live");
-      if (el) el.innerHTML = liveRecord(records[k]) + parlayRecord(records[k]);
+      if (el) el.innerHTML = liveRecord(records[k], words && words[k]) + parlayRecord(records[k]);
     });
   }
 

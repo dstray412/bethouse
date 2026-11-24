@@ -19,3 +19,6 @@ nfl-enrich.json
 
 # Layout mockups the user keeps beside the pages (2026-10-16); they link board.css and must never publish.
 mock-*.html
+
+# The NBA box-score cache (fetch-nba.mjs): rebuilt from ESPN, carried between runs by the workflow.
+nba-history.json

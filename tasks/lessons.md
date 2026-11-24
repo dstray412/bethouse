@@ -773,3 +773,20 @@ during A3.
 **Rule:** a replay's flags are typed out literally on each command line,
 never assembled in a shell variable; and the first thing read off a dump
 is its `window` and `overrides` header, before any number in it.
+
+## A class name is shared by every element that wears it, SVG included (2026-11-23)
+
+The live tracker's progress bar is `.bar{height:8px}`. The recent-games
+chart in the player drawer draws `<rect class="bar" height="93">`. A CSS
+`height` on an SVG rect is a geometry property and beats the attribute,
+so every bar of the chart was 8 CSS pixels tall, a row of pills where the
+columns should be, on the NFL board in production for weeks. Nothing
+caught it: the DOM tests count the rects, and the suite draws no pixels.
+It was found by opening the NBA board, which reused the chart, and
+looking. The same trap as `.more` (the Research dropdown painted as a
+"show more" bar, 2026-10-16).
+
+**Rule:** a short generic class in the shared sheet (`.bar`, `.more`,
+`.card`, `.row`) is checked against every other element that wears it
+before it gets a box property, and a new page is looked at in a browser
+before it ships, not only counted.

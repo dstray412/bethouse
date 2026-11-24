@@ -14,7 +14,7 @@
     <h1 class="logo">BETHOUSE</h1>
     <div class="tagline">Record</div>
   <nav class="mnav" aria-label="Boards">
-      <span class="prim"><a href="nfl.html">NFL<i class="dot" hidden></i></a><a href="baseball.html">Baseball<i class="dot" hidden></i></a></span>
+      <span class="prim"><a href="nfl.html">NFL<i class="dot" hidden></i></a><a href="nba.html">NBA<i class="dot" hidden></i></a><a href="baseball.html">Baseball<i class="dot" hidden></i></a></span>
       <span class="sec"><a href="index.html">Home</a><a href="bets.html">Bets</a><a href="live.html">Live</a><a href="record.html" aria-current="page">Record</a></span>
       <details class="research"><summary>Research</summary><div><a href="teams.html">Teams</a><a href="defence.html">Defences</a><a href="offence.html">Offences</a><a href="consistency.html">Consistency</a><a href="parlays.html">Parlays</a></div></details>
     </nav>
@@ -27,8 +27,8 @@ what each board actually published before kickoff, once the games are final. The
 method works; the live record says whether this board does.</div>
 
 <!-- The replay tables are static: they change only when a backtest is
-     re-run (node backtest-nfl.mjs), and the commit that
-     re-runs it edits them here. The live records are filled by
+     re-run (node backtest-nfl.mjs, node backtest-nba.mjs), and the
+     commit that re-runs it edits them here. The live records are filled by
      record-page.js from the files the trackers write. -->
 <section class="rec" id="nfl">
   <h2 class="gtitle">NFL</h2>
@@ -51,16 +51,39 @@ method works; the live record says whether this board does.</div>
   </div>
 </section>
 
+<!-- From `node backtest-nba.mjs --from 2026 --ladder` on 2026-11-23: the 2025-26 season and the 2026-27 games played by
+     then, the window no constant was chosen on. The commit that re-runs it edits the table. -->
+<section class="rec" id="nba">
+  <h2 class="gtitle">NBA</h2>
+  <div class="recbody">
+<p><strong>Does it work?</strong> A season and a month replayed a night at a time, each night predicted only from games already played, on games no constant was chosen on. Each player is graded at five lines around his projection:</p>
+
+<table>
+<tr><td>points</td><td>bias <b>&minus;0.1pp</b>, Brier <b>0.1881</b> against 0.2479 · 19,620 player-games · worst band 2.1pp</td></tr>
+<tr><td>rebounds</td><td>bias <b>&minus;0.2pp</b>, Brier <b>0.1939</b> against 0.2468 · 19,378 player-games · worst band 2.3pp</td></tr>
+<tr><td>assists</td><td>bias <b>&minus;0.6pp</b>, Brier <b>0.2027</b> against 0.2469 · 15,305 player-games · worst band 2.8pp</td></tr>
+<tr><td>threes made</td><td>bias <b>&minus;0.7pp</b>, Brier <b>0.2171</b> against 0.2455 · 17,949 player-games · worst band 2.1pp</td></tr>
+<tr><td>pts + reb + ast</td><td>bias <b>&minus;0.1pp</b>, Brier <b>0.1657</b> against 0.2486 · 19,058 player-games · worst band 3.5pp</td></tr>
+<tr><td>every alternate line</td><td>bias between <b>&minus;0.2pp</b> and <b>+0.1pp</b> by prop over 1,028,801 rungs · no rung off by more than 2.4pp</td></tr>
+</table>
+<p>All five are calibrated to within a point on games the model had not seen, and a little timid at both ends: a chance it calls 83% hit 85%, one it calls 8% hit 6%. Threes are the hardest to call and beat the base rate by the least. Three things this replay cannot see: a player it graded is one who played, so a late scratch is a void bet and not a miss; a teammate ruled out moves nobody's number yet (no dated injury history to measure it on); and nothing here is compared with a book's line, so calibrated is not the same as profitable. Re-check with <code>node backtest-nba.mjs --from 2026 --ladder</code>.</p>
+<div id="nba-live"></div>
+  </div>
+</section>
+
 <footer id="foot"><p>Baseball keeps its record on its own board for now.</p></footer>
 </div>
 
 <!-- Written by track-nfl.mjs. Empty until a week has been graded. -->
 <script src="nfl-record.js"></script>
+<!-- Written by track-nba.mjs. Empty until a night has been graded. -->
+<script src="nba-record.js"></script>
 <script src="record-page.js"></script>
 <script>
 if (window.BetHouseRecordPage) BetHouseRecordPage.render(document, {
-  nfl: window.BETHOUSE_NFL_RECORD || null
-});
+  nfl: window.BETHOUSE_NFL_RECORD || null,
+  nba: window.BETHOUSE_NBA_RECORD || null
+}, { nba: { unit: 'night', before: 'tip-off' } });
 </script>
 <script src="nav.js"></script>
 </body>

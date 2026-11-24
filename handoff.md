@@ -13,8 +13,9 @@ commit you are reading and how old the data on disk is.
 
 ## Where things are
 
-**Eleven pages**, all live and deployed (thirteen until 2026-10-16, when
-the college football and PGA Tour boards were removed):
+**Twelve pages** (eleven until 2026-11-23, when the NBA board was added;
+thirteen until 2026-10-16, when the college football and PGA Tour boards
+were removed):
 
 | page | what |
 |---|---|
@@ -27,12 +28,120 @@ the college football and PGA Tour boards were removed):
 | `offence.html` | the offensive cheat sheet, the twin: what either offence does most. Added 2026-10-02 |
 | `consistency.html` | the consistency cards: a prop a card, players ranked by hits in their last ten games. Added 2026-10-02 |
 | `nfl.html` | anytime TD; receiving, rushing, rush + rec and passing yards and receptions, each with a ladder of alternate lines; game matchups from play-by-play. Spreads and totals shown with the board saying they do not beat the close |
+| `nba.html` | the NBA board: points, rebounds, assists, threes made, pts + reb + ast, each with a ladder. Added 2026-11-23 |
 | `bets.html` | the bet log: history, win rate by bet type |
 | `parlays.html` | the prop parlay page: N+ legs on the model's ladder, the consistency count and the cheat-sheet rank beside each, the slip |
 
 Zero dependencies, no build step, no server, no API key. `node --test` with
 **named files** — bare discovery pulls in the backtests, which fire live API
-calls. The list lives in six places and `dom.test.mjs` checks all six.
+calls. The list lives in six places (the local gate, pre-commit, CI and the
+three refresh workflows) and `dom.test.mjs` checks all six.
+
+## The NBA board (2026-11-23, latest)
+
+The user: "Let's add the NBA." Shipped a third board,
+`nba.html`, with its model, fetcher, replay, forward record and hourly
+refresh. Scope was chosen without asking (the standing instruction is to
+run to completion): the five standard props with ladders, and nothing
+that needed a measurement nobody has (game lines, parlays).
+
+**The stack, and what is shared.**
+- `nba.js` (UMD `BetHouseNBA`, loads after `nfl.js`): `STATS` (pts, reb,
+  ast, tpm, pra), `LADDERS`, `statEligible` (the one gate: 5 games, 15
+  recent-weighted minutes, a floor per prop), `projectedStat`,
+  `weightedStatTotal` (per-minute rate × minutes now), `lineFor` (the
+  NEAREST half; football's rounds first), `terms()` / `TERMS` (one short
+  string, the record's era stamp), `availability`, `parseRoster`. The
+  pool arithmetic, the shrink and the roster/search helpers are `nfl.js`'s
+  functions by reference; `nba.test.mjs` pins that with `assert.equal`.
+- `fetch-nba.mjs`: `NBA` (the league object, shaped like
+  `football-leagues.mjs`'s), `parseGame`, `parseScheduleEvent`, `wanted`,
+  `calendarDates`, `slateDay` (Eastern, turning at 6am), `refreshHistory`
+  (`history.done[season]` = closed dates, `history.missing` = finals ESPN
+  has no box for), `seasonLines`, `walk`, `poolEntries`, `contextFor`,
+  `pickSlate`, `boardPayload` (pure, tested), `buildBoard`. It reuses
+  `parseInjuries`, `notActive`, `fetchRosters` from `fetch-football.mjs`.
+- `backtest-nba.mjs`: the replay; `--fixed-lines --dump` writes what
+  `compare-stats.mjs` already reads.
+- `track-nba.mjs` is `run(NBA)` on `track-football.mjs`, which gained
+  small league hooks: no touchdown row and no game picks without the
+  model functions, no slips without `parlayProps`, `league.boxScoreLines`
+  / `league.resultOf`, `settlePlayer(pred, line, M)`, the day file named
+  `D.date` when the board has one, and `M.lineFor` for the recorded line.
+- `football-board.js` is the page script for both boards. A page says
+  `td: false, games: false, track: false` and gets the stat views alone;
+  units, decimals, the pool's "who", the opportunity word and the game
+  log's columns come from the model's stat table (`unit`, `decimals`,
+  `who`, `opportunityWord`, `RECENT_COLUMNS`) with football's words as
+  the fallback; `copy.before`, `qLabel`, `qTitle`, `statusNote`,
+  `footNote`, `cfg.slate`, `cfg.positions`, `cfg.sport`. `nfl.js` gained
+  `lineFor` (its existing rule, now named) and the board, tracker and
+  slip call it. The NFL board's output is unchanged; its tests did not
+  move.
+- `home.js` `basketballGames`; `index.html` loads `nba-data.js` and
+  `nba-record.js` (not `nba.js`), shows a card a game ("N projected"),
+  counts NBA players in the tile and names the NBA in the record cell.
+  `record.html` has `#nba` with the replay table and `#nba-live`;
+  `record-page.js` `liveRecord(R, words)` (night / tip-off). `faces.js`,
+  `fetch-teams.mjs` + `teams-data.js` (30 NBA teams), `nav.js` (Oct 20 to
+  Jun 25). The nav on all thirteen files; `BOARDS` is 12.
+
+**The measurements** are in `nba.js` beside each constant and in the
+README under "NBA": fit 2024-25, validated 2025-26 + 2026-27 to date,
+fixed lines, paired. Shipped: decay 0.92/0.92/0.92/0.95/0.90, minDecay
+0.85, K 2 (threes 4), opponent 0.75, pool share 0.25. Dead: home floor.
+Validation on own lines: every prop within 0.72pp, every rung within
+2.4pp, 1,028,801 rungs.
+
+**Decisions a new session should know.**
+- The record's row stamp is `{terms: "<one string>"}` for the NBA. A
+  first attempt dropped the stamp from rows that matched the day's; an
+  existing test (`snapshot stamps each prediction with the model era…`)
+  pins that a row made before stamps existed stays unlabelled, so the
+  tracker's rule was left alone and the stamp was made short instead.
+- The NBA pools are walked forward (as-of projections), unlike the NFL
+  board's, which divide by today's line. Deliberate; README says why.
+- The board leaves off a player absent from his team's last six games.
+  Not measured; a judgment about stale lines. The replay does not apply
+  it (it grades who played).
+- `board.css`: `.bar{height:8px}` (the live tracker's) had been
+  flattening the recent-games chart's SVG rects on the NFL board too. It
+  is `.bar:not(rect)` now and `dom.test.mjs` pins it.
+- Tonight's first snapshot is in `nba-record/2026-11-23.json` (183 rows,
+  three games; the other seven had tipped before the board existed).
+
+**Verified:** the named suite, 0 skipped (count in the commit); the pages
+at 1440 and 390 in the headless browser (`nba.html` rows, drawer, ladder,
+recent games, phone; `index.html`; `record.html`), no console errors, no
+sideways scroll; a live `node fetch-nba.mjs` and `node track-nba.mjs
+snapshot`. `/code-review` and `/security-review` outcomes are in the
+commit message.
+
+**The reviews** (independent agents, 2026-11-23). Security: nothing high
+or medium; an event id must now be digits before it reaches a request
+url; actions pinned by tag, not SHA, is the repo's existing pattern and
+was left. Code: one medium, fixed (a request that failed all its retries
+was treated as "ESPN has no box score" and the game given up on for
+good; only a reply with no lines in it is now), and fixed lows: the game
+log's dates were UTC's, a day late for every night game; `terms()` left
+out the priors and the home strength; the page and the tracker did not
+pass the home side the replay passes. Left standing, each small: the
+board's two filters (ten minutes a game, absent six games) have no twin
+in the replay; a slate's earlier finals are inside the lines the later
+games are priced off; a postponed game keeps its date open and is asked
+about every run; the shared `refresh` concurrency group can drop a
+queued run behind a long one, as it already could.
+
+**Not done, on purpose:** NBA game lines; an NBA parlay slip (needs a
+lift measured on NBA slips); the live tracker and the bet log for NBA
+props (`track: false` hides the button; `bets.js` `RECORD_DIR` is still
+NFL only); the research pages and the game preview for the NBA; top
+plays on the home; a vacated-minutes term (needs dated injury history;
+the replay could only use who actually sat, which is hindsight); rest
+and back-to-backs; a minutes chip. `local-check.sh`'s freshness step had failed
+every day since the World Series because `provenance.mjs` read the newest
+file in `history/` (baseball's) alone; it reads the newest record of any
+board now (`RECORD_DIRS`).
 
 ## The game preview (2026-10-21, latest)
 

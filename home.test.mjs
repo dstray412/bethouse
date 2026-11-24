@@ -164,3 +164,19 @@ test("slate: a football game without an id gets no preview, so the card falls ba
   const s = H.normalise({ nfl: { games: [{ date: "2026-10-02T00:15Z", home: "CLE", away: "PIT", completed: false }] } }, NOW);
   assert.equal(s.length, 1); assert.equal(s[0].preview, undefined); assert.equal(s[0].board, "nfl.html");
 });
+
+test("the NBA slate joins the one list: a card a game that opens the NBA board, counted in the sentence and the tile", () => {
+  const nba = { games: [
+    { id: "n1", date: "2026-11-24T00:30Z", home: "IND", away: "OKC", completed: false },
+    { id: "n2", date: "2026-11-23T22:00Z", home: "ATL", away: "NY", completed: true },
+    { id: "bad", home: "ATL" },
+  ], players: [{ id: "1", team: "IND" }, { id: "2", team: "OKC" }, { id: "3", team: "ATL" }] };
+  const now = Date.parse("2026-11-23T23:00:00Z");
+  const all = H.normalise({ nba }, now);
+  assert.deepEqual(all.map((g) => [g.id, g.league, g.sport, g.state, g.board]), [["nba:n2", "NBA", "basketball", "post", "nba.html"], ["nba:n1", "NBA", "basketball", "pre", "nba.html"]]);
+  assert.equal(all[1].homeKey, "ind"); assert.equal(all[1].preview, undefined, "a basketball card opens the board: there is no NBA game preview");
+  const s = H.slate(all, now, "America/New_York");
+  assert.match(H.sentence(s, "America/New_York"), /^2 games: 2 NBA · first at /);
+  assert.equal(H.counts({ nba }, 2).players, 3);
+  assert.equal(H.logoUrl("NBA", "utah"), "https://a.espncdn.com/i/teamlogos/nba/500/utah.png");
+});

@@ -1108,6 +1108,17 @@
   }
 
   /**
+   * The line a projection is offered and recorded at: the half number
+   * over the projection rounded, times the board's Low / High multiple.
+   * One rule, here, for the page, the tracker and the slip: a line
+   * computed in two places is a record that grades a bet the board
+   * never showed.
+   */
+  function lineFor(expected, mult) {
+    return Math.round(num(expected) * (mult == null ? 1 : num(mult))) + 0.5;
+  }
+
+  /**
    * Whether a row for this stat belongs on the board, and at what
    * projection. `null` when it does not. The ONE gate: the page shows a
    * row iff this says so, and the tracker records a row iff this says so,
@@ -1467,6 +1478,7 @@
       statOpportunity: (stat, rec, opts) => statOpportunity(stat, rec, merge(opts)),
       expectedStat: (stat, rec, opts) => expectedStat(stat, rec, merge(opts)),
       statEligible: (stat, rec, opts, ctx) => statEligible(stat, rec, merge(opts), ctx),
+      lineFor,
       projectedStat: (stat, rec, opts, ctx) => projectedStat(stat, rec, merge(opts), ctx),
       statOppFactor: (stat, allow, opts) => statOppFactor(stat, allow, merge(opts)),
       opponentIn,
@@ -1520,6 +1532,7 @@
     statOpportunity,
     expectedStat,
     statEligible,
+    lineFor,
     projectedStat,
     statOppFactor,
     opponentIn,

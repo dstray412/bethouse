@@ -6,9 +6,9 @@
  * the tray cards' left edge (teams.js reads it; DESIGN.md says where a
  * team colour may go and where it may not).
  *
- * Keyless, like every other fetcher here. Two requests, one per league
- * the boards show, keyed the way faces.js keys a team: the NFL and MLB by
- * abbreviation (the one the game rows carry). A team without a six-hex
+ * Keyless, like every other fetcher here. Three requests, one per league
+ * the boards show, keyed the way faces.js keys a team: the NFL, MLB and
+ * NBA by abbreviation (the one the game rows carry). A team without a six-hex
  * colour is left out, so a missing colour is a missing stripe; a team
  * whose primary IS black (the Steelers, the Raiders) keeps both colours and
  * teams.js paints with the secondary. The MLB rows are written under
@@ -29,6 +29,7 @@ const ESPN = "https://site.api.espn.com/apis/site/v2/sports";
 const LEAGUES = [
   { league: "NFL", path: "football/nfl", limit: 40, min: 32, key: (t) => t.abbreviation },
   { league: "MLB", path: "baseball/mlb", limit: 40, min: 30, key: (t) => t.abbreviation, alias: { chw: "cws", ari: "az" } },
+  { league: "NBA", path: "basketball/nba", limit: 40, min: 30, key: (t) => t.abbreviation },
 ];
 const HEX = /^[0-9a-f]{6}$/;
 const keyOf = (v) => { const k = String(v == null ? "" : v).toLowerCase(); return /^[a-z0-9]{1,8}$/.test(k) ? k : null; };

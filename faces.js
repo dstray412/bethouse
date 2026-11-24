@@ -1,7 +1,7 @@
 /* faces.js — a player's photo and a team's mark, for every page.
  *
  * The leagues publish these themselves: ESPN's image service for NFL
- * headshots and for every team's logo, MLB's photo service for batters.
+ * and NBA headshots and for every team's logo, MLB's photo service for batters.
  * A page asks here for a url by league and id and gets one sized for the spot (a row's 44px disc, the drawer's cutout),
  * or null when the id is not an id. The img markup is built here too,
  * once, so every image on the site carries the same rules: no referrer,
@@ -16,8 +16,8 @@
   "use strict";
 
   const ESPN = "https://a.espncdn.com";
-  const HEADS = { NFL: "nfl" };
-  const LOGOS = { NFL: "nfl", MLB: "mlb" };
+  const HEADS = { NFL: "nfl", NBA: "nba" };
+  const LOGOS = { NFL: "nfl", MLB: "mlb", NBA: "nba" };
   const HEAD_SIZE = { row: "w=96&h=70", large: "w=200&h=145" };
   const MLB_SIZE = { row: "w_120", large: "w_240" };
 

@@ -51,6 +51,9 @@ const FETCH_STALE_HOURS = 6;
  * How old is the data on disk
  * ------------------------------------------------------------------ */
 
+/* Where each board's tracker writes its day files. */
+export const RECORD_DIRS = ["history", "nfl-record", "nba-record"];
+
 export function newestDay(dir) {
   if (!fs.existsSync(dir)) return null;
   const days = fs
@@ -148,7 +151,8 @@ export function repoState(now = Date.now()) {
     }
   }
 
-  const newest = newestDay(path.join(DIR, "history"));
+  /* The newest record any board has written: baseball's (history/), the NFL's, the NBA's. Baseball alone read as a stale tree every day from the World Series to opening day (the gate failed for 27 days running by 2026-11-23) while two other boards were recording nightly. */
+  const newest = RECORD_DIRS.map((d) => newestDay(path.join(DIR, d))).filter(Boolean).sort().pop() || null;
   return {
     head,
     dirty,

@@ -222,3 +222,10 @@ test("repoState: reports this repository without throwing", () => {
   assert.equal(typeof s.dirty, "boolean");
   assert.ok(Number.isFinite(s.behind) && s.behind >= 0, "behind is a count");
 });
+
+test("the freshness reading is the newest record of any board, not baseball's alone", async () => {
+  const { RECORD_DIRS } = await import("./provenance.mjs");
+  assert.deepEqual(RECORD_DIRS, ["history", "nfl-record", "nba-record"]);
+  const src = (await import("node:fs")).readFileSync(new URL("./provenance.mjs", import.meta.url), "utf8");
+  assert.match(src, /RECORD_DIRS\.map\(\(d\) => newestDay\(/, "the reading no longer looks at every board's record");
+});

@@ -12,10 +12,10 @@
 <header>
   <div class="brand">
     <h1 class="logo">BETHOUSE</h1>
-    <!-- The one nav every page carries (the two boards as a switch; Home, Bets, Live, Record; the research pages behind
+    <!-- The one nav every page carries (the three boards as a switch; Home, Bets, Live, Record; the research pages behind
          Research), with the count badges the home alone fills. -->
     <nav class="mnav" aria-label="Boards">
-      <span class="prim"><a href="nfl.html">NFL<i class="dot" hidden></i></a><a href="baseball.html">Baseball<i class="dot" hidden></i></a></span>
+      <span class="prim"><a href="nfl.html">NFL<i class="dot" hidden></i></a><a href="nba.html">NBA<i class="dot" hidden></i></a><a href="baseball.html">Baseball<i class="dot" hidden></i></a></span>
       <span class="sec"><a href="index.html" aria-current="page">Home</a><a href="bets.html">Bets<b id="betsn" hidden></b></a><a href="live.html">Live<b id="liven" hidden></b></a><a href="record.html">Record</a></span>
       <details class="research"><summary>Research</summary><div><a href="teams.html">Teams</a><a href="defence.html">Defences</a><a href="offence.html">Offences</a><a href="consistency.html">Consistency</a><a href="parlays.html">Parlays</a></div></details>
     </nav>
@@ -87,8 +87,11 @@
      slate-data.js (games + top picks) and load that instead. -->
 <script src="mlb-data.js" onerror="void 0"></script>
 <script src="nfl-data.js" onerror="void 0"></script>
+<!-- The NBA slate: the home reads its games and its player count, not its model, so nba.js is not loaded here. -->
+<script src="nba-data.js" onerror="void 0"></script>
 <script src="record.js" onerror="void 0"></script>
 <script src="nfl-record.js" onerror="void 0"></script>
+<script src="nba-record.js" onerror="void 0"></script>
 <script>
 (function(){
   'use strict';
@@ -103,8 +106,8 @@
   var F=window.BetHouseFaces||null, T=window.BetHouseTeams||null;
   var esc=function(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); };
   var el=function(id){ return document.getElementById(id); };
-  var data={ nfl:window.BetHouseNFLData||null, mlb:window.BETHOUSE_MLB||null,
-             records:[window.BETHOUSE_RECORD, window.BETHOUSE_NFL_RECORD] };
+  var data={ nfl:window.BetHouseNFLData||null, nba:window.BetHouseNBAData||null, mlb:window.BETHOUSE_MLB||null,
+             records:[window.BETHOUSE_RECORD, window.BETHOUSE_NFL_RECORD, window.BETHOUSE_NBA_RECORD] };
   var now=Date.now();
   var all=H.normalise(data, now);
   var s=H.slate(all, now);
@@ -118,7 +121,7 @@
   /* The vocabulary's record cell: each board's own said and hit, named, because the two leagues' base rates differ
      (a baseball 1+ hit call says 66%, a touchdown call 22%) and one pooled figure would describe neither. */
   var vr=el('vrec'), said=[];
-  [['NFL',window.BETHOUSE_NFL_RECORD],['Baseball',window.BETHOUSE_RECORD]].forEach(function(x){
+  [['NFL',window.BETHOUSE_NFL_RECORD],['NBA',window.BETHOUSE_NBA_RECORD],['Baseball',window.BETHOUSE_RECORD]].forEach(function(x){
     var rh=H.saidHit([x[1]]); if(!rh) return;
     said.push(x[0]+' said <span class="n">'+rh.said.toFixed(1)+'%</span>, hit <span class="n">'+rh.hit.toFixed(1)+'%</span> over <span class="n">'+rh.n.toLocaleString('en-US')+'</span> calls');
   });
@@ -136,11 +139,11 @@
   }catch(e){ el('liven').hidden=true; }
 
   /* The week line: which day the slate is, the NFL week when football is on it, one measured sentence. */
-  var hasFb=s.games.some(function(g){ return g.sport==='football'; }), hasBb=s.games.some(function(g){ return g.sport==='baseball'; });
+  var hasFb=s.games.some(function(g){ return g.sport==='football'; }), hasBb=s.games.some(function(g){ return g.sport==='baseball'; }), hasNba=s.games.some(function(g){ return g.sport==='basketball'; });
   var week=hasFb&&data.nfl&&data.nfl.week!=null?'Week '+data.nfl.week+' · ':'';
   el('wkick').textContent=s.day?week+longDay(s.day):'';
   el('htitle').textContent=s.when==='today'?'Tonight\'s slate':s.when==='next'?'Next up':'Nothing on the boards';
-  el('hsent').textContent=H.sentence(s)+(hasFb?' · projected score and the model favourite on each football card':'')+(hasBb?' · probable pitchers and whether lineups are posted on each baseball card':'');
+  el('hsent').textContent=H.sentence(s)+(hasFb?' · projected score and the model favourite on each football card':'')+(hasNba?' · the players projected on each basketball card':'')+(hasBb?' · probable pitchers and whether lineups are posted on each baseball card':'');
   el('caveat').hidden=!hasFb; // the warning is about football numbers; a baseball day has none to warn about
 
   /* One card per game, in a strip that scrolls. The logo is the one image the site ships: ESPN's,
@@ -154,6 +157,7 @@
     var abbr=side==='home'?g.home:g.away;
     var line='';
     if(g.sport==='football'){ var pts=card?(side==='home'?card.homePts:card.awayPts):null; if(pts!=null) line='<span class="pts">'+esc(pts)+'</span>'; }
+    else if(g.sport==='basketball'){ line=''; }
     else { var f=side==='home'?g.raw.homeFaces:g.raw.awayFaces; line='<span class="pit" title="'+esc(f&&f.name||'')+'">'+esc(H.pitcherLabel(f))+'</span>'; }
     return '<span class="side">'+logo(g,side)+'<b title="'+esc(side==='home'?g.homeName:g.awayName)+'">'+esc(abbr)+'</b>'+line+'</span>';
   };
@@ -162,11 +166,14 @@
     return a&&h?'Lineups posted':a?'Away posted':h?'Home posted':'No lineups yet';
   };
   var stateWord=function(g){ return g.state==='in'?(g.sport==='baseball'?'Live':'Started'):g.state==='post'?'Final':null; };
+  /* A basketball card says how many of its players the board projects tonight: the one number the NBA file has about a game. */
+  var nbaTeams={}; ((data.nba&&data.nba.players)||[]).forEach(function(p){ if(p&&p.team) nbaTeams[p.team]=(nbaTeams[p.team]||0)+1; });
+  var projectedWord=function(g){ var n=(nbaTeams[g.home]||0)+(nbaTeams[g.away]||0); return n?n+' projected':esc(g.league); };
   var h='';
   s.games.forEach(function(g){
     var card=g.sport==='football'?H.footballCard(N,data.nfl,g):null;
     var fav=card?H.favLabel(card.fav):null;
-    var left=stateWord(g)||(g.sport==='football'?(fav?esc(fav):(card?'pick \'em':esc(g.league))):lineupWord(g));
+    var left=stateWord(g)||(g.sport==='football'?(fav?esc(fav):(card?'pick \'em':esc(g.league))):g.sport==='basketball'?projectedWord(g):lineupWord(g));
     /* The two teams' colours as a stripe along the top (teams.js): a background, never a text colour. */
     var stripe=T?T.stripe(g.league,g.awayKey,g.homeKey):'';
     /* A football card opens the game's preview (ratings, matchup, sheet, consistency); a baseball card opens its board. */
@@ -174,7 +181,7 @@
       '<span class="t">'+sideHtml(g,'away',card)+'<span class="at">at</span>'+sideHtml(g,'home',card)+'</span>'+
       '<span class="m"><span>'+left+'</span><span class="gtime">'+esc(H.clock(g.start))+'</span></span></a>';
   });
-  if(!s.games.length) h='<div class="empty" style="flex:1 1 100%"><div class="big">No games on the boards</div>The boards rebuild on their own schedule; the NFL file daily, baseball every half hour in season.</div>';
+  if(!s.games.length) h='<div class="empty" style="flex:1 1 100%"><div class="big">No games on the boards</div>The boards rebuild on their own schedule; the NFL file daily, the NBA through the afternoon and evening, baseball every half hour in season.</div>';
   el('gscroll').innerHTML=h;
 
   /* The NFL slate day: today's NFL games, or the next day that has any, the same rule the slate itself uses.
@@ -259,6 +266,7 @@
   /* The footer: when each board's data was built. */
   var built=[];
   if(data.nfl&&data.nfl.generated) built.push('NFL '+String(data.nfl.generated).slice(0,16).replace('T',' '));
+  if(data.nba&&data.nba.generated) built.push('NBA '+String(data.nba.generated).slice(0,16).replace('T',' '));
   if(data.mlb&&data.mlb.fetchedAt) built.push('baseball '+String(data.mlb.fetchedAt).slice(0,16).replace('T',' '));
   el('foot').innerHTML='<p>Built from the boards\' own data files'+(built.length?' ('+esc(built.join(' · '))+' UTC)':'')+'. Every number on this page is one a board measured; the projected score and favourite are the NFL board\'s game view, with the board\'s verdict on them above. Team logos are ESPN\'s.</p>';
   }

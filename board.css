@@ -466,7 +466,8 @@ button.rung:hover{border-color:var(--rule)}
 .card .cname{font-family:var(--display);font-size:17px;font-weight:600;color:var(--text)}
 .card .cmeta{font-size:14px;color:var(--muted);margin-top:2px}
 .card .cprop{font-family:var(--label);font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-stretch:100%}
-.bar{height:8px;border-radius:999px;background:color-mix(in srgb,var(--text) 8%,transparent);overflow:hidden;margin:12px 0 8px}
+/* Not the chart's bars: a CSS height on an SVG rect beats its attribute, and this rule flattened every bar of the recent-games chart to 8px (found 2026-11-23). */
+.bar:not(rect){height:8px;border-radius:999px;background:color-mix(in srgb,var(--text) 8%,transparent);overflow:hidden;margin:12px 0 8px}
 .bar i{display:block;height:100%;background:var(--accent);border-radius:999px;transition:width .4s ease-out}
 .card.reached .bar i,.card.cashed .bar i{background:var(--good)}
 .card.missed .bar i,.card.void .bar i{background:var(--muted-dim)}

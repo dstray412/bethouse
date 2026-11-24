@@ -4,9 +4,13 @@ Ranks MLB hitters for three props, every game, every day: **1+ hits/runs/RBI**,
 **total bases** (2+, 3+, 4+), and **home runs**. And prices three football bets
 in the NFL: **anytime touchdown**, four counting props (**receiving yards**,
 **rushing yards**, **passing yards**, **receptions**), and **spreads and totals**.
+And, since 2026-11-23, five NBA props a night: **points**, **rebounds**,
+**assists**, **threes made** and **points + rebounds + assists**, each with a
+ladder of alternate lines.
 
 Open `index.html` for the home (tonight's slate across the boards),
-`baseball.html` for baseball, `nfl.html` for the NFL, `live.html` for the
+`baseball.html` for baseball, `nfl.html` for the NFL, `nba.html` for the
+NBA, `live.html` for the
 live tracker and `bets.html` for the bet log. No build step, no server, no
 API key. (A college football board and a PGA Tour make-the-cut board shipped
 here from 2026-08 and 2026-09 until 2026-10-16, when both were removed to
@@ -48,6 +52,7 @@ means 72% — including the part where 72% loses more than a quarter of the time
 ```sh
 node provenance.mjs     # what commit am I reading, and how old is the data?
 node fetch-mlb.mjs      # builds mlb-data.js for today
+node fetch-nba.mjs      # the NBA box-score cache, then nba-data.js for tonight
 bash scripts/local-check.sh                # freshness + the whole suite + secrets, mirrors CI
 node backtest.mjs --prop tb2               # validate total bases
 node backtest.mjs                          # measures whether the model works
@@ -250,7 +255,7 @@ should be re-fitted when the run environment shifts.
 | `backtest.mjs` | Replays real games, measures calibration, fits `k`, and tests parlays (`--parlay`) and hot streaks (`--streaks`). |
 | `track.mjs` | Records each day's pregame predictions, grades them once games end, keeps the running record. |
 | `track-core.mjs` | The rules a forward record needs, shared by both sports so they cannot drift apart. |
-| `track-football.mjs` | The same for football: records each week before kickoff, grades from ESPN box scores. `track-nfl.mjs` picks the league. |
+| `track-football.mjs` | The same for any board whose model has a stat table: records each slate before it starts, grades from ESPN box scores. `track-nfl.mjs` and `track-nba.mjs` pick the league (the name is older than the second one). |
 | `lineup-context.mjs` | Replays committed board snapshots to test whether on-base ahead of a hitter moves the residual. It does not. |
 | `calibrate.mjs` | Rebuilds the model from committed snapshots and measures it against its own shipped predictions. Found and fitted the spread correction. |
 | `bets.js` | Your bet log, singles and parlays. What you tracked, how it graded, and how that compares to what the model said. 46 tests. |
@@ -258,6 +263,11 @@ should be re-fitted when the run environment shifts.
 | `provenance.mjs` | Every analysis tool prints where its numbers came from: the commit, the age of the data, whether the checkout is behind origin. Exists because a session once read a 77-commit-stale tree and reported three false things as fact. 22 tests. |
 | `nfl.html` | The NFL board. Open it. Renders through `football-board.js`; since 2026-10-16 its controls sit in one bar that sticks while the table scrolls (only the bet type and the search on a phone, the rest behind Filters) and the method paragraph folds under the table. |
 | `nfl.js` | The three football models, and `bind()`, the same code with other constants (the backtest's sweeps; the college board, while it existed). 51 tests. |
+| `nba.html` | The NBA board (2026-11-23). Open it. The same page script as the NFL's, told what basketball does not have: no touchdown view, no game lines, no parlay slip, no Track button. |
+| `nba.js` | The NBA model: five counting props from one stat table, the line as a per-minute rate times the minutes he is getting now, the opponent's allowance, the nearest-half line rule, the availability words. Takes its pool arithmetic from `nfl.js` by reference. Tested in `nba.test.mjs`. |
+| `fetch-nba.mjs` | Keyless ESPN requests → `nba-history.json` (the box-score cache, gitignored) and `nba-data.js`; also the season lines, the day-by-day walk and the pool entries the board and the replay share. |
+| `backtest-nba.mjs` | Replays the NBA a night at a time: calibration by prop, by season, by line and by level, every ladder rung (`--ladder`), and the dump `compare-stats.mjs` pairs (`--fixed-lines --dump`). |
+| `track-nba.mjs` | The NBA's forward record: three lines that hand the NBA to `track-football.mjs`. |
 | `football-leagues.mjs` | The one table of what is league-shaped: endpoints, files, weeks, the model. One entry since the college board went. |
 | `fetch-football.mjs` | Keyless ESPN requests → `<league>-history.json` and `<league>-data.js`. `fetch-nfl.mjs` picks the league. |
 | `backtest-nfl.mjs` | Replays the NFL, measures the constants (`--measure`), fits the two that are fitted (`--fit`). |
@@ -2586,3 +2596,141 @@ already priced most of what it sees.
 
 Positive expected value is a long-run statement, and the long run is longer
 than it sounds. Bet only what you can afford to lose.
+
+## NBA
+
+`nba.html`, since 2026-11-23. Five props, a slate a night.
+
+```sh
+node fetch-nba.mjs --history --seasons 2024,2025,2026,2027   # the box-score cache, once (~4,500 requests)
+node fetch-nba.mjs                 # ...then tonight's board
+node --test nba.test.mjs           # the parsers, the model, the board file, the record
+node backtest-nba.mjs --from 2026 --ladder   # does it work, on games no constant was chosen on?
+node track-nba.mjs snapshot        # record tonight before it tips; grade and report as for the NFL
+```
+
+A season is named the way ESPN names it, by the year it ends in: 2026-27 is
+`2027`. No key, no account.
+
+### What the number is
+
+Points, rebounds, assists, threes made, and the three added. Each is the
+football counting prop's machinery over a basketball stat table (`STATS` in
+`nba.js`): a projection, and an over read off real games by players
+projected near his level instead of off a bell curve. Made threes are small
+whole numbers, and a normal curve would be wrong about them in the way
+`tasks/lessons.md` describes; the pool does not care.
+
+The projection is four terms, each measured (next section):
+
+1. **Recent form.** A game's weight in his line falls 8% per game of age
+   (5% for threes, 10% for the sum). An NBA season is 82 games and the
+   window is this season and last, so an equal-weight line is mostly a year
+   old.
+2. **Minutes now.** The line is his per-minute rate times his minutes a
+   game, the minutes weighted to forget faster (15% a game). A role changes
+   in a night; a shot does not.
+3. **A little shrink** toward an ordinary rotation player (two games of
+   one; four for threes).
+4. **The opponent**: what tonight's defence allows of that stat against the
+   league, at three quarters strength.
+
+Not in the number: home floor (measured, dead), rest and back-to-backs (not
+measured), and a teammate ruled out (the NFL's vacated share has no NBA
+twin yet, because ESPN serves no dated injury history to measure one on).
+
+### Does it work?
+
+Fitted on 2024-25, validated on 2025-26 and the 2026-27 games played by
+2026-11-23, under the rule for every model change: fixed lines, paired row
+for row against the model without the term. The first cached season
+(2023-24) is only ever a window for the next. On the validation window, on
+the model's own lines, five lines a player:
+
+| prop | player-games | bias | Brier | against the base rate | worst 10-point band |
+|---|---|---|---|---|---|
+| points | 19,620 | −0.06pp | 0.1881 | 0.2479 | 2.1pp |
+| rebounds | 19,378 | −0.20pp | 0.1939 | 0.2468 | 2.3pp |
+| assists | 15,305 | −0.58pp | 0.2027 | 0.2469 | 2.8pp |
+| threes made | 17,949 | −0.72pp | 0.2171 | 0.2455 | 2.1pp |
+| pts + reb + ast | 19,058 | −0.05pp | 0.1657 | 0.2486 | 3.5pp |
+
+Every rung of every ladder, 1,028,801 of them: bias between −0.23pp and
++0.05pp by prop, no rung off by more than 2.4pp (2+ assists, said 78.3%,
+hit 80.7%). The shape of the miss is the same everywhere and small: the
+board is a little timid at both ends (a chance it calls 83% hit 85%, one it
+calls 8% hit 6%).
+
+What each term bought, paired Brier Δ/SE, fit / validation (the full sweeps
+are in `nba.js` beside each constant):
+
+| term | points | rebounds | assists | threes | pts+reb+ast |
+|---|---|---|---|---|---|
+| recent-form decay (0.92, 0.92, 0.92, 0.95, 0.90) | −21.9 / −37.7 | −16.3 / −22.4 | −21.1 / −29.3 | −14.0 / −22.5 | −24.9 / −37.5 |
+| minutes decay 0.85, on top | −5.5 / −14.5 | −10.8 / −12.2 | −10.0 / −14.9 | −6.5 / −11.7 | −4.7 / −12.2 |
+| shrink K 2 against 4, on top | −3.6 / −7.0 | −4.6 / −6.3 | −4.5 / −4.7 | kept at 4 | −1.6 / −6.7 |
+| opponent at 0.75, on top | −7.8 / −8.9 | −2.9 / −9.3 | −9.3 / −9.3 | −3.5 / −6.8 | −6.1 / −10.2 |
+| home floor at 1% | +0.1 / −0.9 | +0.2 / +3.3 | −1.4 / −2.0 | −1.7 / −1.1 | +0.2 / +0.1 |
+
+Recent form is the model: points Brier 0.19292 → 0.18596 on the fit window
+and 0.19402 → 0.18225 on validation from that one term. Home floor is dead
+and stays wired at 0. One more finding is structural: reading every over
+off the **whole** pool instead of the quarter nearest his projection is
+worse by Δ/SE +10 to +27 on every prop, with bands 5 to 10 points off. A
+ten-point scorer and a thirty-point one do not share a shape, which is what
+the NFL ladder replay found about yards.
+
+### What the replay cannot tell you
+
+- **Calibrated is not profitable.** Nothing here is compared with a book's
+  line; the site shows chances, not odds. The NFL lesson stands: a number
+  can be true and already in the price.
+- **It grades who played.** A player the board lists who is then scratched
+  is a void bet and a scratched row, not a miss, in the replay and in the
+  record. The board's own guard is the injury report (Out is hidden,
+  day-to-day is flagged `DTD`) and one rule of its own: a player absent
+  from his team's last six games is left off until the night after he is
+  back.
+- **A teammate's absence moves nobody.** When a star sits, the others'
+  minutes and shots rise and the board does not know. That is the largest
+  thing missing.
+- **2026-27 is a month.** It reads a point hot on points and a point and a
+  half cold on threes on about 3,000 player-games; both are inside what a
+  month does.
+
+### The line, and why it is not football's
+
+Football offers a counting prop at the half over the projection *rounded*
+(`nfl.js lineFor`): nothing in yards. A projection of 2.6 threes would be
+offered at 3.5, most of a made three away. The NBA takes the half *nearest*
+the projection (`nba.js lineFor`), so every prop's own line is within half
+a count of it. The page, the tracker and the replay all ask the model for
+the line; none computes one.
+
+### The pools are filled the way the replay fills them
+
+The NFL board builds a pool from each player's line as it stands today. The
+NBA board walks the cache forward a night at a time and takes each ratio
+against the projection made *before* that game (`fetch-nba.mjs walk`,
+`poolEntries`), which is exactly what `backtest-nba.mjs` prices off: one
+function, called by both. A ratio against a line that already holds the
+game is narrower than anything the board will face.
+
+### The pipeline
+
+`.github/workflows/refresh-nba.yml` runs hourly from late morning through
+the last tip, Eastern, and once in the small hours to grade the west coast.
+Each run refreshes the cache (the calendar says which dates have games; a
+date is closed once every final on it is cached), rebuilds the board for
+the league's day (the Eastern date, turning over at 6am), snapshots what
+has not tipped, grades what is final. `nba-history.json` is 15 MB and
+gitignored; the workflow carries it between runs. Eight 2026 playoff games
+have no box score at ESPN and are skipped by name (`history.missing`).
+
+### What the board does not have yet
+
+No game lines, no parlay slip (no lift has been measured for basketball),
+no Track button (the live page has no NBA feed), and the research pages
+(teams, cheat sheets, consistency, parlays, the game preview) are still
+the NFL's alone. The home shows the NBA slate as game cards that open the
+board.

@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>BetHouse — NBA</title>
+<link rel="stylesheet" href="fonts/fonts.css">
+<link rel="stylesheet" href="board.css">
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="brand">
+    <h1 class="logo">BETHOUSE</h1>
+    <div class="tagline" id="tagline">NBA</div>
+  <nav class="mnav" aria-label="Boards">
+      <span class="prim"><a href="nfl.html">NFL<i class="dot" hidden></i></a><a href="nba.html" aria-current="page">NBA<i class="dot" hidden></i></a><a href="baseball.html">Baseball<i class="dot" hidden></i></a></span>
+      <span class="sec"><a href="index.html">Home</a><a href="bets.html">Bets</a><a href="live.html">Live</a><a href="record.html">Record</a></span>
+      <details class="research"><summary>Research</summary><div><a href="teams.html">Teams</a><a href="defence.html">Defences</a><a href="offence.html">Offences</a><a href="consistency.html">Consistency</a><a href="parlays.html">Parlays</a></div></details>
+    </nav>
+  </div>
+  <div class="tile" id="tile"></div>
+</header>
+
+<!-- One control bar, stuck to the top while the table scrolls under it: the bet type, the search, then the
+     view's own controls. On a phone only the bet-type strip pins and the rest sits behind Filters. -->
+<div class="cbar" id="bar">
+  <div class="ctl">
+    <label id="lab-view">Bet type</label>
+    <div class="seg" id="view" role="group" aria-labelledby="lab-view"></div>
+  </div>
+  <div class="ctl" id="find">
+    <label id="lab-q" for="q">Find</label>
+    <input class="search" id="q" type="search" placeholder="Player or team" autocomplete="off" spellcheck="false">
+  </div>
+<div class="controls" id="controls" hidden>
+  <div class="ctl" id="linewrap">
+    <label id="lab-line">Line</label>
+    <div class="seg" id="lineseg" role="group" aria-labelledby="lab-line"></div>
+  </div>
+  <div class="ctl" id="sortwrap">
+    <label id="lab-sort">Sort</label>
+    <div class="seg" id="sortseg" role="group" aria-labelledby="lab-sort"></div>
+  </div>
+  <div class="ctl" id="teamwrap">
+    <label id="lab-team" for="teamsel">Team</label>
+    <select id="teamsel" class="search"></select>
+  </div>
+  <div class="ctl" id="poswrap" hidden>
+    <label id="lab-pos">Position</label>
+    <div class="seg" id="posseg" role="group" aria-labelledby="lab-pos"></div>
+  </div>
+  <div class="ctl" id="starwrap" hidden>
+    <label id="lab-star">Watchlist</label>
+    <div class="seg" id="starseg" role="group" aria-labelledby="lab-star"></div>
+  </div>
+  <div class="ctl" id="parlaywrap" hidden>
+    <label id="lab-parlay">Parlay</label>
+    <div class="seg" id="parlayseg" role="group" aria-labelledby="lab-parlay"></div>
+  </div>
+</div>
+<button type="button" class="filters" id="filters" aria-expanded="false" aria-controls="controls">Filters</button>
+</div>
+<div class="controls" id="parlayctl" hidden>
+  <div class="ctl">
+    <label id="lab-plegs">Legs</label>
+    <div class="seg" id="plegs" role="group" aria-labelledby="lab-plegs"></div>
+  </div>
+  <div class="ctl">
+    <label id="lab-pscope">From</label>
+    <div class="seg" id="pscope" role="group" aria-labelledby="lab-pscope"></div>
+  </div>
+  <div class="ctl">
+    <label id="lab-pkinds">Kinds</label>
+    <div class="seg" id="pkinds" role="group" aria-labelledby="lab-pkinds"></div>
+  </div>
+  <div class="ctl" id="pgamewrap" hidden>
+    <label id="lab-pgame" for="pgame">Game</label>
+    <select id="pgame" class="search"></select>
+  </div>
+</div>
+<div id="app"><div class="empty"><div class="big">Loading…</div>
+  <div>If this does not clear, run <code>node fetch-nba.mjs</code>.</div></div></div>
+<!-- The method, folded under the table: the board writes the view's note into #note as before. -->
+<details class="method" id="how"><summary>How this number is made · how it was checked</summary><div class="note" id="note"></div></details>
+<div class="scrim" id="scrim" hidden></div>
+<div class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="dtitle" hidden>
+  <div class="dbar" id="dbar"><button type="button" class="dcompare" id="dcompare" hidden>Compare</button><button type="button" class="dclose" id="dclose" aria-label="Close">×</button></div>
+  <div class="dhead" id="dhead"><div class="dwho"><div class="dkick" id="dkick"></div><h2 id="dtitle"></h2><div class="dsub" id="dsub"></div></div><div class="dface" id="dface"></div></div>
+  <div class="dbands" id="dbands"></div>
+  <div class="seg dtabs" id="dtabs" role="group" aria-label="Sections"></div>
+  <div class="why dbody" id="dbody"></div>
+</div>
+<div class="tray" id="tray" hidden><div class="tcards" id="tcards"></div><button type="button" class="tclear" id="tclear">Clear compare</button></div>
+<footer id="foot"></footer>
+</div>
+
+<script src="faces.js"></script>
+<!-- Written by fetch-teams.mjs: each team's colours, for the hero's tint and the tray's edge. -->
+<script src="teams-data.js"></script>
+<script src="teams.js"></script>
+<!-- nba.js takes its pool arithmetic from nfl.js by reference, so the football model loads first. -->
+<script src="nfl.js"></script>
+<script src="nba.js"></script>
+<script src="nba-data.js"></script>
+<!-- Written by track-nba.mjs. Empty until a night has been graded. -->
+<script src="nba-record.js"></script>
+<script src="watchlist.js"></script>
+<script src="chips.js"></script>
+<script src="football-board.js"></script>
+<script>
+/* The page is football-board.js, told what basketball does not have: no touchdown view, no game lines, no parlay slip
+   (no lift has been measured here), no Track button (the live page has no NBA feed yet). What is the NBA's own is the
+   model, the data, the record, and the numbers it quotes -- every one of them from `node backtest-nba.mjs --from 2026`
+   on 2026-11-23: the 2025-26 season and the 2026-27 games played by then, neither of which a constant was chosen on. */
+BetHouseFootballBoard.mount({
+  model: window.BetHouseNBA,
+  data: window.BetHouseNBAData,
+  record: window.BETHOUSE_NBA_RECORD,
+  league: 'NBA',
+  fetcher: 'fetch-nba.mjs',
+  td: false, games: false, track: false,
+  sport: 'basketball',
+  positions: ['G','F','C'],
+  /* The slate's own day, the league's: "Mon, Nov 23". */
+  slate: function(D){
+    var m=/^(\d{4})-(\d\d)-(\d\d)$/.exec(String(D.date||''));
+    if(!m) return String(D.season||'');
+    return new Intl.DateTimeFormat('en-US',{weekday:'short',month:'short',day:'numeric',timeZone:'UTC'}).format(new Date(Date.UTC(+m[1],+m[2]-1,+m[3],12)));
+  },
+  copy: {
+    before: 'tip-off',
+    qLabel: 'DTD', qTitle: 'Listed day-to-day',
+    statusNote: 'listed day-to-day; how often such a player plays has not been measured here. A bet on a player who does not play is void, not lost',
+    footNote: 'A player is on the board the night after he is back on the floor: one absent from his team\'s last six games is left off.',
+    /* Each note leads with the inputs the number is made of, then the check it passed; every figure is from the
+       README's NBA tables. The same four terms make every prop, so the notes differ in the word and the check. */
+    noteStat: {
+      pts: 'Chance of going <b>over</b> a points line, from his points a minute (recent games weighted up, 8% a game of age) times the minutes he is getting now, '+
+        'pulled a little toward an ordinary rotation player, moved by three quarters of what tonight\'s defence allows against the league, '+
+        'with the over read off real games by players projected near his level rather than a bell curve. Home floor is not applied: on the replay it moved nothing. '+
+        'Checked against <b>19,620</b> unseen player-games at five lines each: bias under 0.1 points, no ten-point band off by more than 2.1. Tap a player for every alternate line and its chance.',
+      reb: 'Chance of going <b>over</b> a rebounds line, from his rebounds a minute (recent games weighted up, 8% a game of age) times the minutes he is getting now, '+
+        'pulled a little toward an ordinary rotation player, moved by three quarters of what tonight\'s opponent allows on the glass against the league, '+
+        'with the over read off real games by players projected near his level. '+
+        'Checked against <b>19,378</b> unseen player-games at five lines each: bias 0.2 points cold (it says a little less than happens), no ten-point band off by more than 2.3.',
+      ast: 'Chance of going <b>over</b> an assists line, from his assists a minute (recent games weighted up, 8% a game of age) times the minutes he is getting now, '+
+        'pulled a little toward an ordinary rotation player, moved by three quarters of what tonight\'s defence allows against the league, '+
+        'with the over read off real games by players projected near his level. '+
+        'Checked against <b>15,305</b> unseen player-games at five lines each: bias 0.6 points cold (it says a little less than happens), no ten-point band off by more than 2.8.',
+      tpm: 'Chance of going <b>over</b> a made-threes line, from his threes a minute (recent games weighted up, 5% a game of age: shooting is noisier than playing time) times the minutes he is getting now, '+
+        'pulled toward an ordinary rotation player, moved by three quarters of what tonight\'s defence allows from deep against the league, '+
+        'with the over read off real games by players projected near his level, so a count of whole threes is never a bell curve. '+
+        'Checked against <b>17,949</b> unseen player-games at five lines each: bias 0.7 points cold (it says a little less than happens), no ten-point band off by more than 2.1. The hardest of the five to call: it beats the base rate by the least.',
+      pra: 'Chance of going <b>over</b> a <b>points plus rebounds plus assists</b> line, the three added and priced as one number: '+
+        'his total a minute (recent games weighted up, 10% a game of age) times the minutes he is getting now, pulled a little toward an ordinary rotation player, '+
+        'moved by three quarters of what tonight\'s defence allows against the league, with the over read off real games by players projected near his level. '+
+        'Checked against <b>19,058</b> unseen player-games at five lines each: bias under 0.1 points, no ten-point band off by more than 3.5.'
+    }
+  }
+});
+/* The phone's Filters button: the controls row shows while the bar is open; the button says so. */
+(function(){
+  var bar=document.getElementById('bar'), btn=document.getElementById('filters');
+  if(!bar||!btn) return;
+  btn.addEventListener('click',function(){ var open=bar.classList.toggle('open'); btn.setAttribute('aria-expanded', open?'true':'false'); });
+})();
+</script>
+<script src="nav.js"></script>
+</body>
+</html>

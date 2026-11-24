@@ -1,0 +1,99 @@
+# BetHouse NBA board refresh.
+#
+# SEPARATE FROM THE OTHER TWO, AND FOR ITS OWN REASON.
+#
+# Baseball refreshes every half hour because lineups post all afternoon; the
+# NFL once a day because nothing moves between Sundays. Basketball is between
+# the two: a slate a night, and an injury report that changes until tip-off
+# (a star ruled out at 5pm is a void bet the board should stop showing). So:
+# hourly from late morning through the last tip, Eastern.
+#
+# The cost is small once the cache is warm. `nba-history.json` (the box
+# scores, 15 MB, gitignored) is carried between runs, so a run asks ESPN for
+# the calendar, the dates still open (yesterday, today), the games that went
+# final since, thirty rosters and the injury report: about forty requests. A
+# cold runner rebuilds three seasons, about 4,500 requests and ten minutes,
+# once.
+name: Refresh NBA board
+
+on:
+  schedule:
+    # 15:40 to 03:40 UTC: 10:40am to 10:40pm Eastern in winter, an hour later
+    # in daylight time. The first run is ahead of every tip of the day, the
+    # last is after the latest one, so each game is recorded before it starts.
+    - cron: "40 15-23 * * *"
+    - cron: "40 0-3 * * *"
+    # ...and once in the small hours, to grade the west-coast finals.
+    - cron: "40 9 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+# Same group as the other refreshes: all three push to main, and two jobs
+# racing to push would leave one failing on a non-fast-forward.
+concurrency:
+  group: refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh-nba:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "20"
+
+      # Carries nba-history.json between runs so the fetch stays incremental.
+      - name: Restore the box score cache
+        uses: actions/cache@v4
+        with:
+          path: nba-history.json
+          key: nba-history-${{ github.run_id }}
+          restore-keys: |
+            nba-history-
+
+      - name: Fetch the NBA board
+        run: node fetch-nba.mjs
+
+      - name: Sanity check before committing
+        # Never publish a board the page cannot read. An empty slate is a
+        # real answer (the All-Star break, the summer) and is not refused:
+        # a check that demands players went red on quiet days for baseball.
+        run: |
+          node -e '
+            global.window = {};
+            require("./nba-data.js");
+            const d = window.BetHouseNBAData;
+            if (!d || !Array.isArray(d.players) || !Array.isArray(d.games)) throw new Error("no players or games array");
+            if (!d.pools || !d.pools.pts || !Array.isArray(d.pools.pts.ratio)) throw new Error("no pools");
+            if (d.games.length && !d.players.length) throw new Error("a slate with games and nobody on it");
+            console.log("ok:", d.players.length, "players,", d.games.length, "games,", d.date);
+          '
+          node --test score.test.mjs nfl.test.mjs nba.test.mjs parlay.test.mjs nflverse.test.mjs tendencies.test.mjs statcast.test.mjs bets.test.mjs track.test.mjs provenance.test.mjs watchlist.test.mjs live.test.mjs home.test.mjs faces.test.mjs enrich-nfl.test.mjs chips.test.mjs record-page.test.mjs teams.test.mjs compare-td.test.mjs teams-page.test.mjs fetch-weather.test.mjs sheet-page.test.mjs consistency-page.test.mjs parlay-page.test.mjs game-page.test.mjs dom.test.mjs
+
+      # The forward record. Snapshot reads the local board and costs nothing;
+      # first prediction wins and anything past its own tip-off is refused,
+      # so an hourly cadence cannot turn a third-quarter number into a
+      # prediction. Grade fetches only games not yet settled.
+      - name: Record predictions and grade finished games
+        run: |
+          node track-nba.mjs snapshot
+          node track-nba.mjs grade
+          node track-nba.mjs report --write-record
+
+      - name: Commit if the board changed
+        run: |
+          git config user.name  "bethouse-bot"
+          git config user.email "bethouse-bot@users.noreply.github.com"
+          git add nba-data.js
+          [ -d nba-record ] && git add nba-record || true
+          [ -f nba-record.js ] && git add nba-record.js || true
+          if git diff --staged --quiet; then
+            echo "No change."
+          else
+            git commit -m "nba: $(date -u +%Y-%m-%dT%H:%MZ)"
+            git pull --rebase --autostash origin main
+            git push
+          fi

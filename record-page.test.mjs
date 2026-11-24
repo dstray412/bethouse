@@ -60,3 +60,16 @@ test("every label the record carries is escaped before it is printed", () => {
   assert.doesNotMatch(h, /<img/);
   assert.match(h, /&lt;img/);
 });
+
+test("a league's own words: the NBA record counts nights and is recorded before tip-off; football's words are the default", () => {
+  const words = { unit: "night", before: "tip-off" };
+  assert.match(page.liveRecord(R, words), /graded predictions over 3 nights/);
+  assert.match(page.liveRecord(null, words), /recorded before tip-off[\s\S]*after the first night/);
+  assert.match(page.liveRecord(null), /recorded before kickoff[\s\S]*after the first week/);
+  const slots = {};
+  const doc = { getElementById: (id) => (slots[id] = slots[id] || { innerHTML: "" }) };
+  page.render(doc, { nfl: R, nba: Object.assign({}, R, { days: ["2026-11-23"] }) }, { nba: words });
+  assert.match(slots["nba-live"].innerHTML, /over 1 night,/);
+  assert.match(slots["nfl-live"].innerHTML, /over 3 weeks,/);
+  assert.doesNotMatch(page.liveRecord(R, { unit: "<b>x", before: "y" }), /<b>x/, "a word from the page is escaped like a label from the file");
+});
