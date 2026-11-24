@@ -35,6 +35,10 @@
 
   function mount(cfg) {
     var N = cfg.model, D = cfg.data, C = cfg.copy || {}, P = window.BetHouseParlay, W = window.BetHouseWatchlist;
+    /* A book's prop lines beside the board's own numbers (props.js, 2026-11-24): only where the page passes the file fetch-props.mjs wrote, and only while it is this week's. */
+    var BK = cfg.props && window.BetHouseProps ? window.BetHouseProps : null;
+    var bookFor=function(p,stat){ return BK ? BK.bookHtml(N,D,p,stat,cfg.props) : ''; };
+    var bookTag=function(p,stat){ var t=BK?BK.rowTag(BK.offersFor(cfg.props,D,p,stat)):''; return t?'<span class="bk">'+t+'</span>':''; };
     var app = document.getElementById("app");
     if (!D || !D.players) {
       app.innerHTML = '<div class="empty"><div class="big">No board yet</div>' +
@@ -519,7 +523,7 @@
           {l:'Opponent',v:r.p.opp?esc(r.p.opp)+' ×'+r.s.oppFactor.toFixed(2):'—',n:r.p.opp?(r.s.oppFactor>1.02?'gives up more touchdowns than average':r.s.oppFactor<0.98?'gives up fewer than average':'about average'):'no opponent scheduled',c:r.p.opp?dirOf(r.s.oppFactor-1,0.02):''},
           {l:'Expected TDs',v:r.s.lambda.toFixed(3),n:'pulled '+Math.round((1-N.DEFAULTS.tdShrink)*100)+'% toward the league average, which stops the top of the board running hot'},
           {l:'Games',v:String(r.p.games),n:'in the window'}
-        ].concat(statusCells(r.p)));
+        ].concat(statusCells(r.p)))+bookFor(r.p,'td');
       };
     }
 
@@ -573,7 +577,7 @@
         r.i=i;
         html+='<div class="rowline"><button class="row" aria-haspopup="dialog" data-i="'+i+'">'+
           '<span class="slot">'+(i+1)+'</span>'+face(r.p)+
-          '<span class="who">'+esc(r.p.name)+posTag(r.p)+qTag(r.p)+rowChips(r.chips)+'</span>'+
+          '<span class="who">'+esc(r.p.name)+posTag(r.p)+qTag(r.p)+bookTag(r.p,stat)+rowChips(r.chips)+'</span>'+
           mtch(r.p,(function(){ var avg=N.statTotal(stat,r.p)/r.p.games; return avg>0?r.exp/avg:null; })())+
           '<span class="prob">'+f1(r.exp)+'<small>'+esc(unitOf(stat))+'</small></span>'+
           '<span class="be'+(atProj?' dim':'')+'">'+pct(r.over,0)+'<small>o'+r.line+'</small></span>'+
@@ -651,7 +655,7 @@
           vacMoved(r.vacFactor)?{l:'Teammates out',v:'×'+r.vacFactor.toFixed(2),n:vacNames(r.p)+'; '+vacHis(r.p)+' share of the work to those still in, in proportion, at the measured strength, which adds '+f1(Math.abs(r.exp-r.base*r.oppFactor)),c:dirOf(r.vacFactor-1,0.02)}:null,
           {l:'Read off',v:used.toLocaleString('en-US'),n:'real games by '+poolWord+(used<held?' whose own projection was nearest his':' against their own projections')},
           {l:'Games',v:String(games),n:'in the window'}
-        ].concat(statusCells(r.p)));
+        ].concat(statusCells(r.p)))+bookFor(r.p,stat);
       };
     }
 

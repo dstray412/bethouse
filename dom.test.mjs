@@ -985,7 +985,7 @@ const PLAYERS = [
 ];
 
 /** Mount the real board on the TD view with players and watchlist.js present. */
-async function mountPlayers({ players, storage, storageThrows, noWatchlist, search, pools, games, record, teamFactors, noChips, model, bound }) {
+async function mountPlayers({ players, storage, storageThrows, noWatchlist, search, pools, games, record, teamFactors, noChips, model, bound, props }) {
   /* `bound`: a model with other constants (nfl.bind(...)), for a term the shipped constants hold at 0. */
   const nfl = bound || (await import("./nfl.js")).default;
   const doc = stubDoc();
@@ -996,6 +996,8 @@ async function mountPlayers({ players, storage, storageThrows, noWatchlist, sear
   win.addEventListener = (type, fn) => { (win.listeners[type] = win.listeners[type] || []).push(fn); };
   if (!noWatchlist) win.BetHouseWatchlist = (await import("./watchlist.js")).default;
   if (!noChips) win.BetHouseChips = (await import("./chips.js")).default;
+  /* `props`: the file fetch-props.mjs writes, with the module that prices it, as nfl.html loads them. */
+  if (props) win.BetHouseProps = (await import("./props.js")).default;
   if (storageThrows) Object.defineProperty(win, "localStorage", { get() { throw new Error("SecurityError: storage is disabled"); } });
   else win.localStorage = { getItem: (k) => (store.has(k) ? store.get(k) : null), setItem: (k, v) => store.set(k, String(v)), removeItem: (k) => store.delete(k) };
   // eslint-disable-next-line no-new-func
@@ -1007,7 +1009,7 @@ async function mountPlayers({ players, storage, storageThrows, noWatchlist, sear
       games: games || GAMES, ratings: RATINGS, teamFactors: teamFactors || {}, players, pools: pools || {}, usagePool: [],
       ...(model ? { model } : {}),
     },
-    record: record || null, league: "NFL", fetcher: "fetch-nfl.mjs",
+    record: record || null, props: props || null, league: "NFL", fetcher: "fetch-nfl.mjs",
     copy: {
       noteTD: "n", noteStat: Object.fromEntries(Object.keys(nfl.STATS).map((k) => [k, "n"])),
       noteGames: "n", gameBanner: "<p>n</p>", mlVerdict: "n", gameHonestly: "n", footer: "<p>n</p>",
@@ -1174,6 +1176,39 @@ function recPool(nfl) {
   for (let k = 0; k < 400; k++) { exp.push(40 + (k % 40)); ratio.push(0.2 + ((k * 37) % 100) / 60); }
   return { recyds: nfl.sortedPool(exp, ratio, "recyds") };
 }
+
+/* ------------------------------------------------------------------ *
+ * A book's line beside the board's numbers (props.js, 2026-11-24)
+ *
+ * Oracle: the request. A row shows the book's line beside the
+ * projection's; the drawer prices the model at the BOOK's line. With no
+ * file, or a file from another week, the board is exactly what it was.
+ * ------------------------------------------------------------------ */
+test("with a book's lines on file a stat row carries the book's line and its drawer prices the model at that line; without, nothing changes", async () => {
+  const nfl = (await import("./nfl.js")).default;
+  const P = (await import("./props.js")).default;
+  /* Fetched now: the board shows a price only while it is under half a day old. */
+  const props = { season: 2026, week: 2, fetched: new Date().toISOString(), source: "propline",
+    offers: { a: { recyds: { draftkings: { line: 60.5, over: -110, under: -110, g: "g1" } }, td: { fanduel: { line: 0.5, over: 120, under: null, g: "g1" } } } } };
+  const { app, press } = await mountPlayers({ players: PLAYERS, pools: recPool(nfl), props });
+  const tdRow = app.__rows.find((r) => r.p.id === "a");
+  assert.match(app.__detail(tdRow), /At the book[^]*<b>FanDuel<\/b>[^]*to score[^]*One-sided/, "the touchdown drawer has no book block");
+  press("view", "Receiving yards");
+  const r = app.__rows.find((x) => x.p.id === "a");
+  assert.match(app.innerHTML, /<span class="bk">DK 60\.5<\/span>/, "the row does not show the book's line");
+  const html = app.__detail(r);
+  assert.match(html, /At the book[^]*<b>DraftKings<\/b><\/td><td>[^<]*<\/td><td>(over|under) <b>60\.5<\/b>/);
+  const site = P.siteChance(nfl, { teamFactors: {}, pools: recPool(nfl) }, PLAYERS[0], "recyds", 60.5);
+  assert.ok(html.includes("<b>" + (100 * Math.max(site.over, site.under)).toFixed(1) + "%</b>"), "the site's chance is not read at the book's line");
+  assert.doesNotMatch(app.__detail(app.__rows.find((x) => x.p.id === "c")), /At the book/, "a player with no offer has a book block");
+  /* No file, last week's, or one half a day old: the board as it was. */
+  for (const other of [undefined, { ...props, week: 1 }, { ...props, fetched: new Date(Date.now() - 13 * 3600e3).toISOString() }]) {
+    const plain = await mountPlayers({ players: PLAYERS, pools: recPool(nfl), props: other });
+    plain.press("view", "Receiving yards");
+    assert.doesNotMatch(plain.app.innerHTML, /class="bk"/);
+    assert.doesNotMatch(plain.app.__detail(plain.app.__rows.find((x) => x.p.id === "a")), /At the book/);
+  }
+});
 
 test("the ladder tab is the model's rungs as buttons: the near rung pressed first, a press moves the headline and the recent-games threshold", async () => {
   const nfl = (await import("./nfl.js")).default;

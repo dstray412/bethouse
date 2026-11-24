@@ -1838,6 +1838,103 @@ reaches the page. A term for other injuries was not attempted: the
 skill-position vacated share already moves the props (A4), and no
 box-score measure of a missing lineman or corner exists here.
 
+### Prop picks at a book's price
+
+**2026-11-24.** Until now the site showed chances and never a price (the
+2026-10-17 decision). That holds everywhere except here: where a book's
+main line for a player prop is on file, the NFL board shows the book's
+line and both prices, the chance those prices imply with the book's cut
+taken out, **the model's chance at the book's line** (the same
+distribution the Low / Projection / High buttons move along, read at the
+book's number), and the gap between the two. Nothing appears until a
+provider key is set; without one the pages are exactly as they were.
+
+| piece | what it does |
+|---|---|
+| `props.js` | Pure, shared by page, fetcher and tracker: the feed's three outcome shapes parsed to one main line a player, prop and book; the join to the board (the feed's ESPN id, then name within the game's two teams, then `props-overrides.json`); de-vig; the site's chance at a line, with the push a whole-number line can land on; the gap; closing-line value; settlement; the page's tables. |
+| `fetch-props.mjs` | One request to PropLine (`/v1/sports/football_nfl/odds`, six markets, DraftKings and FanDuel, the key in an `X-API-Key` header) → `nfl-props.js`. The Odds API is a backup run by hand: a game at a time, three markets, stops under 40 credits. No key, no request. |
+| `track-props.mjs` | `log` records a pick for every prop whose gap is 5 points or more and refreshes the close on open picks; `grade` settles from ESPN box scores; `report --write-record` writes `nfl-props-record.js`. |
+| `.github/workflows/props.yml` | Hourly on game days at :40 (20 to 45 minutes before every kickoff window), four times on the others. Secret `PROPLINE_API_KEY`. The Odds API is not on the schedule: a full slate is about 48 of its 500 free credits a month, so an hourly job would spend the month in a day. |
+
+**Setting it up.** Sign up for a free PropLine key (an email, no card)
+and add it as the repository secret `PROPLINE_API_KEY` (Settings →
+Secrets and variables → Actions). For a cross-check against The Odds
+API, run `ODDS_API_KEY=… node fetch-props.mjs` on your own machine
+with no PropLine key set. Then run the "Refresh prop
+lines" workflow once by hand and read its log: it prints the offers
+matched, the balance left and every name the feed had that the board
+did not.
+
+**The rules a pick is held to.**
+
+- A pick is the side the gap favours at 5 points or more, one per
+  player, prop and book, logged only before kickoff, at the line and
+  price on file. It is graded at that line and price whatever the line
+  does later.
+- A price is acted on only while it is under 90 minutes old and was
+  fetched after the board it is compared with was built. An old price
+  beside a projection rebuilt after injury news reads as a gap that is
+  not there. The page stops showing a price at 12 hours.
+- A player the board hides as ruled out (Out, Doubtful, injured
+  reserve) is never priced or logged.
+- At a whole-number line the model's own rule decides (N+ is the over
+  of N − 0.5): the over is N+1 or more, the push is the band that
+  rounds to N, and the gap compares the site's chance given no push
+  with the book's, since the book's two chances sum to one.
+- The close is this site's own last look at the same book before
+  kickoff. At the same line, closing-line value is the picked side's
+  closing no-vig chance minus the pick's; when the line moved it is the
+  points moved toward the pick (an over gains when the line rises).
+- Money: a win returns the decimal price minus one, a loss −1, a push 0
+  (a whole-number line the stat lands on), a void 0 and counted
+  nowhere. **Void in version 1 is "no line for the player in ESPN's box
+  score".** Books draw that line in different places (dressed, took the
+  field, played a snap) and DraftKings' and FanDuel's house rules have
+  not been checked against it. **This rule leans the record toward
+  overs:** a player who dressed and recorded nothing is voided here,
+  where a book settles him at zero, so a lost over and a won under both
+  vanish. Nothing on file says who was inactive on the day; until
+  something does, read an over-heavy market's return as flattered. A
+  final game whose box score is missing a side settles nothing until it
+  fills in.
+- An anytime touchdown usually has a Yes price and no No. Its gap is
+  against the raw implied chance, which still holds the book's cut, so
+  the gap is understated and the page marks it. A touchdown is rushing
+  or receiving, as the board counts it; a passing touchdown is not one,
+  and neither is a return touchdown, which a book does pay.
+- Two books on one player and prop are two picks. They are close to the
+  same bet, so the record's n overstates how many independent results
+  it holds.
+
+**What the page warns about.** A gap under 5 points is greyed: prices
+and the model both move by that much. Rushing-yard and passing-yard
+gaps carry a warning, because the live record has those overs off by
+6.7 and 5.7 points (`props.js BIASED`, read off `record.html` on
+2026-11-24), more than the gap it takes to log a pick. The bias is
+flagged, not applied; folding it into the chance is the next step and
+needs the rule above. A last-ten count is printed with its n and called
+context: 7 of 10 fits a true rate anywhere from 40% to 89%.
+
+**What is not kept, and why.** The repository is public and PropLine's
+terms (§2, read 2026-11-24) prohibit publishing "aggregated odds dumps"
+or "historical line-movement snapshots" while allowing individual
+values inside a product. So `nfl-props.js` holds only the offers the
+board shows today for games not yet kicked off, no raw response is
+stored, and the record keeps a price only for a pick it logged. The
+plan this was built from asked for every fetched line to be stored for
+later replays; that was not done. Whether today's offers file is itself
+within the terms is the account holder's call to make before adding the
+key.
+
+**Not built in version 1:** prices on the board's top plays and parlay
+legs (they sit at projection lines and milestones, which need the
+alternate markets); more books; NBA props; a historical backfill (every
+provider keeps history on a paid tier). **Not verified:** any live
+response. The parser is tested against PropLine's documented shapes and
+its published NFL sample, and against The Odds API's documented shape.
+The first real run is the check: compare 20 of its lines against the
+books' own sites.
+
 ### Twenty-seven seasons: what two could not settle
 
 **2026-09-30.** The box score is the record of what happened; nflverse

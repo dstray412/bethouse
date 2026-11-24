@@ -148,7 +148,7 @@
   }
 
   /* The sections, by host id; their heads are the page's own markup (game.html). */
-  const SECTIONS = [{ id: "ratings" }, { id: "matchup" }, { id: "cheat" }, { id: "cons" }];
+  const SECTIONS = [{ id: "ratings" }, { id: "matchup" }, { id: "cheat" }, { id: "book" }, { id: "cons" }];
 
   /**
    * Render into the page: the head into #ghead, each section into its
@@ -176,6 +176,8 @@
     draw(null);
     put("matchup", matchupHtml(o.tend, o.core, game));
     put("cheat", cheatHtml(o.data, game, o));
+    /* A book's lines where the site is five points or more away (props.js); nothing without the file fetch-props.mjs writes. */
+    put("book", o.props && o.propsData && typeof o.props.gameHtml === "function" ? o.props.gameHtml(o.model, o.data, game, o.propsData) : "");
     put("cons", consistencyHtml(o.model, o.data, game, o));
     /* A column head on a ratings table re-sorts that table, as on the teams page; one listener per host. */
     const rate = doc.getElementById("ratings");

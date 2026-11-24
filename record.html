@@ -48,6 +48,7 @@ method works; the live record says whether this board does.</div>
 </table>
 <p>The player props are calibrated on the whole and worth reading; passing yards and receptions move a few points between seasons, so hold them more loosely. The game lines are not: the NFL closing number is very good, and two seasons is not enough games to prove otherwise either way. Re-check with <code>node backtest-nfl.mjs</code>.</p>
 <div id="nfl-live"></div>
+<div id="nfl-book"></div>
   </div>
 </section>
 
@@ -79,11 +80,18 @@ method works; the live record says whether this board does.</div>
 <!-- Written by track-nba.mjs. Empty until a night has been graded. -->
 <script src="nba-record.js"></script>
 <script src="record-page.js"></script>
+<!-- Written by track-props.mjs: prop picks at a book's price. Null until one is settled. -->
+<script src="props.js"></script>
+<script src="nfl-props-record.js"></script>
 <script>
 if (window.BetHouseRecordPage) BetHouseRecordPage.render(document, {
   nfl: window.BETHOUSE_NFL_RECORD || null,
   nba: window.BETHOUSE_NBA_RECORD || null
 }, { nba: { unit: 'night', before: 'tip-off' } });
+(function () {
+  var el = document.getElementById('nfl-book'), html = window.BetHouseProps ? BetHouseProps.recordHtml(window.BetHouseNFLPropsRecord || null) : '';
+  if (el && html) el.innerHTML = '<p><strong>Prop picks at a book\'s price.</strong></p>' + html;
+})();
 </script>
 <script src="nav.js"></script>
 </body>

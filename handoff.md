@@ -38,6 +38,63 @@ calls. The list lives in six places (the local gate, pre-commit, CI and the
 three refresh workflows) and `dom.test.mjs` checks all six.
 
 
+## 2026-11-24: prop picks at a book's price (version 1, waiting on a key)
+
+**Asked:** a written plan for showing DraftKings and FanDuel prop lines
+and prices beside the board's numbers, logging picks and settling them
+for money. Built as planned except where noted. README, "Prop picks at
+a book's price", is the reference.
+
+**State:** everything is in and tested; **nothing is live** because no
+provider key exists. `nfl-props.js` and `nfl-props-record.js` are
+committed as `null`, and with them null every page is unchanged.
+
+**The owner's steps:** sign up for a free PropLine key; add it as the
+repository secret `PROPLINE_API_KEY`; run "Refresh prop lines" by hand
+and read the log; check 20 lines against the books' sites.
+
+**Files:** `props.js` (pure; parse, match, de-vig, chance at a line,
+gap, CLV, settlement, the page's tables), `fetch-props.mjs`,
+`track-props.mjs`, `props.test.mjs` (in all six gates),
+`.github/workflows/props.yml`, `props-overrides.json` (normalised feed
+name → ESPN id, empty). Wired into `football-board.js` (`cfg.props`:
+the row's `.bk` tag, `bookFor` at the end of both drawers),
+`game-page.js` (`book` section), `record.html` (`#nfl-book`).
+
+**Decisions**
+
+- **This reverses "chances, never a price" (2026-10-17) for NFL props
+  only**, on the plan's say-so. Parlays, top plays, game lines and the
+  other boards still show no price, and their copy still says so.
+- **PropLine's real format is not The Odds API's.** Three outcome
+  shapes, several markets under one key with a `line_type`, the player
+  in `name` for most touchdown markets, sport key `football_nfl`, no
+  `regions` parameter, key in a header. Read from its docs; the plan
+  assumed otherwise.
+- **No archive of fetched lines** (the plan asked for one): PropLine's
+  terms prohibit publishing odds dumps and line-movement history, and
+  the repository is public. Picks only.
+- **The two biased markets are flagged, not corrected.**
+- **Void is "no box-score line"**, pending the books' house rules.
+
+**From the reviews, fixed before the first commit:** a whole-number
+line read the over half a unit too generously (now the model's N − 0.5
+rule, with the gap taken given no push); picks could be logged from an
+hours-old prices file (now 90 minutes, and never against a board built
+after the fetch); ruled-out players were priced; a one-sided box score
+voided picks for good; closes with nothing to compare counted as moved
+away. **Known and left:** the void rule flatters overs (README); a
+return touchdown is not a touchdown here; The Odds API backup is by
+hand only, since a scheduled run would spend its month in a day.
+
+**Not done:** prices on top plays and parlay legs, line shopping,
+alternate lines, NBA, backfill. **Not verified:** any live response;
+the picks' `price` for a one-sided touchdown is the Yes price.
+
+**Watch for on the first live runs:** the unmatched-names list in the
+workflow log (add to `props-overrides.json`); two books doubling the
+pick count; hourly `props:` commits (about 130 a week).
+
 ## 2026-11-24: the game projection starts from the line
 
 **Asked:** a review of the WSH–CIN game page found the model's score

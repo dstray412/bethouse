@@ -1,0 +1,78 @@
+# BetHouse prop lines: a book's player-prop prices for the NFL board.
+#
+# SEPARATE FROM refresh-nfl.yml, AND DELIBERATELY SO. The board's own
+# numbers change once a day; a book's prices move all week and matter most
+# in the half hour before a kickoff. This job is one request to the odds
+# provider (fetch-props.mjs), then the pick record (track-props.mjs).
+#
+# THE KEY is a repository secret and reaches the script as an environment
+# variable. It is never written to a file, a URL in a log, or the page.
+# With no secret set the fetch says so and writes nothing, so the job is
+# safe to have before anyone has signed up.
+#
+# THE BACKUP IS NOT ON THIS SCHEDULE. The Odds API charges about three
+# credits a game, so one run of a full slate is near 48 of its free 500
+# a month and an hourly job would spend the month by Tuesday. It is for
+# a cross-check by hand: ODDS_API_KEY=... node fetch-props.mjs.
+#
+# THE SCHEDULE. :40 past the hour lands 20 to 45 minutes ahead of every
+# kickoff window (18:00, 21:05, 21:25, 01:15 and 01:20 UTC), so the last
+# run before a game is the close the record keeps. Hourly on the days that
+# have a game in UTC (Thursday night is Friday 01:15 UTC, Monday night is
+# Tuesday 01:15), four times on the others. About 130 requests a week
+# against a free allowance of 1,000 a day. Cron can start a few minutes
+# late; a run that lands after kickoff logs nothing for that game.
+name: Refresh prop lines
+
+on:
+  schedule:
+    - cron: "40 * * * 0,1,2,4,5"
+    - cron: "40 0,6,12,18 * * 3,6"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+# Same group as the other refreshes: all push to main.
+concurrency:
+  group: refresh
+  cancel-in-progress: false
+
+jobs:
+  props:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "20"
+
+      - name: Fetch the book's lines
+        env:
+          PROPLINE_API_KEY: ${{ secrets.PROPLINE_API_KEY }}
+        run: node fetch-props.mjs
+
+      - name: Sanity check before committing
+        run: node --test props.test.mjs nfl.test.mjs
+
+      # Log costs nothing (it reads the two local files). Grade fetches an
+      # ESPN box score only for a game with an unsettled pick.
+      - name: Log picks, refresh closes, settle finished games
+        run: |
+          node track-props.mjs log
+          node track-props.mjs grade
+          node track-props.mjs report --write-record > /dev/null
+
+      - name: Commit if anything changed
+        run: |
+          git config user.name  "bethouse-bot"
+          git config user.email "bethouse-bot@users.noreply.github.com"
+          git add nfl-props.js nfl-props-record.js
+          [ -d nfl-props-record ] && git add nfl-props-record || true
+          if git diff --staged --quiet; then
+            echo "No change."
+          else
+            git commit -m "props: $(date -u +%Y-%m-%dT%H:%MZ)"
+            git pull --rebase --autostash origin main
+            git push
+          fi

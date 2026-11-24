@@ -716,3 +716,15 @@ button.rung:hover{border-color:var(--rule)}
   /* Nothing to filter (the game view hides every control): no button to open an empty row. */
   .cbar:has(#controls[hidden]) .filters,.cbar:not(:has(#controls>.ctl:not([hidden]))) .filters{display:none}
 }
+
+/* A book's prop lines beside the board's numbers (props.js, 2026-11-24). */
+.bk{font-family:var(--body);color:var(--muted);font-weight:400;font-size:12px;margin-left:8px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.bookblk{margin-top:18px}
+.booktbl{border-collapse:collapse;width:100%;font-size:13px;font-variant-numeric:tabular-nums}
+.booktbl th{text-align:left;color:var(--muted);font-weight:500;font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:8px 8px 7px;border-bottom:1px solid var(--line);white-space:nowrap}
+.booktbl td{padding:8px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+.booktbl tr.dimrow td{color:var(--muted)}
+.booktbl tr.dimrow b{font-weight:500;color:var(--muted)}
+.booktbl small{color:var(--muted);font-size:11px}
+.bookblk .note{font-size:13px;max-width:72ch;margin:8px 2px 0}
+.bookblk .booktbl td small{display:block;margin-top:2px}

@@ -36,6 +36,10 @@
   <div class="shead"><h2 class="gtitle"><span class="kick">Cheat sheet</span> What each side has allowed or done most</h2><div class="gmeta"><b>D</b> the defence, <b>O</b> the offence · the top five of the league · <a class="open" href="defence.html">Defences →</a> <a class="open" href="offence.html">Offences →</a></div></div>
   <div id="cheat"></div>
 </section>
+<section id="booksec" hidden>
+  <div class="shead"><h2 class="gtitle"><span class="kick">At the book</span> Where the site and a book disagree</h2><div class="gmeta">a gap of five points or more at the book's own line · logged and settled for money on <a class="open" href="record.html">the record</a> · a gap is not an edge until the record says so</div></div>
+  <div id="book"></div>
+</section>
 <section id="conssec" hidden>
   <div class="shead"><h2 class="gtitle"><span class="kick">Consistency</span> Who has cleared his line most in his last ten</h2><div class="gmeta">this season and last, at a line the board projects · six hits or better, five a card · a count, not a chance: the chance is in his drawer on the <a class="open" href="nfl.html">NFL board →</a></div></div>
   <div id="cons"></div>
@@ -55,6 +59,8 @@
 <script src="teams-page.js"></script>
 <script src="sheet-page.js"></script>
 <script src="consistency-page.js"></script>
+<script src="props.js"></script>
+<script src="nfl-props.js"></script>
 <script src="game-page.js"></script>
 <script>
 (function () {
@@ -68,6 +74,8 @@
       teamsPage: window.BetHouseTeamsPage || null,
       sheetPage: window.BetHouseSheetPage || null,
       consistencyPage: window.BetHouseConsistency || null,
+      props: window.BetHouseProps || null,
+      propsData: window.BetHouseNFLProps || null,
       faces: window.BetHouseFaces || null,
       teams: window.BetHouseTeams || null,
       league: 'NFL'

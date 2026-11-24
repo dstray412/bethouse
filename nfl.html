@@ -101,6 +101,9 @@
 <script src="teams.js"></script>
 <script src="nfl.js"></script>
 <script src="nfl-data.js"></script>
+<!-- A book's prop lines, written by fetch-props.mjs; null until a provider key is set. props.js prices them. -->
+<script src="props.js"></script>
+<script src="nfl-props.js"></script>
 <!-- Written by tendencies.mjs from nflverse play-by-play. The matchup
      panel on the game view reads it; the board works without it. -->
 <script src="tendencies-data.js"></script>
@@ -120,6 +123,7 @@ BetHouseFootballBoard.mount({
   model: window.BetHouseNFL,
   data: window.BetHouseNFLData,
   record: window.BETHOUSE_NFL_RECORD,
+  props: window.BetHouseNFLProps || null,
   league: 'NFL',
   fetcher: 'fetch-nfl.mjs',
   copy: {

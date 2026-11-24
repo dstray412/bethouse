@@ -135,7 +135,7 @@ test("cheat sheet and consistency: the sheet module's list for the game, and the
 const stubDoc = () => {
   const els = {};
   const el = (id) => (els[id] = els[id] || { id, innerHTML: "", hidden: false, listeners: {}, addEventListener(t, f) { (this.listeners[t] = this.listeners[t] || []).push(f); } });
-  for (const id of ["ghead", "ratings", "ratingssec", "matchup", "matchupsec", "cheat", "cheatsec", "cons", "conssec", "gfoot"]) el(id);
+  for (const id of ["ghead", "ratings", "ratingssec", "matchup", "matchupsec", "cheat", "cheatsec", "book", "booksec", "cons", "conssec", "gfoot"]) el(id);
   return { title: "", getElementById: (id) => els[id] || null, els };
 };
 
@@ -144,7 +144,16 @@ test("render: the head, four sections each hidden when empty, the title, the foo
   page.render(doc, { ...H, data: DATA, model: nfl, tend: TEND, core, id: "401" });
   assert.equal(doc.title, "KC at LAC · BetHouse");
   assert.match(doc.els.ghead.innerHTML, /^<div class="week gphead">/);
-  for (const s of page.SECTIONS) { assert.equal(doc.els[s.id + "sec"].hidden, false, s.id + " hidden with content"); assert.ok(doc.els[s.id].innerHTML.length, s.id + " is empty"); }
+  for (const s of page.SECTIONS.filter((x) => x.id !== "book")) { assert.equal(doc.els[s.id + "sec"].hidden, false, s.id + " hidden with content"); assert.ok(doc.els[s.id].innerHTML.length, s.id + " is empty"); }
+  /* The book section needs the file fetch-props.mjs writes and the module that prices it: hidden without either, the module's own table with both. */
+  assert.equal(doc.els.booksec.hidden, true, "a book section with no prices on file");
+  const priced = stubDoc(), calls = [];
+  page.render(priced, { ...H, data: DATA, model: nfl, tend: TEND, core, id: "401", propsData: { offers: {} }, props: { gameHtml: (m, d, g, payload) => { calls.push([g.id, payload]); return "<table>lines</table>"; } } });
+  assert.equal(priced.els.booksec.hidden, false); assert.equal(priced.els.book.innerHTML, "<table>lines</table>");
+  assert.deepEqual(calls, [["401", { offers: {} }]], "the game and the file are not what the module was asked about");
+  const noFile = stubDoc();
+  page.render(noFile, { ...H, data: DATA, model: nfl, tend: TEND, core, id: "401", propsData: null, props: { gameHtml: () => "<table>lines</table>" } });
+  assert.equal(noFile.els.booksec.hidden, true);
   assert.match(doc.els.gfoot.innerHTML, /2026-10-20 17:04 UTC/);
   /* Re-sort the offence table by team: only that table's pressed head moves. */
   const head = { getAttribute: (k) => ({ "data-sort": "team" }[k]), closest: (sel) => (sel === "[data-sort]" ? head : { getAttribute: () => "off" }) };
