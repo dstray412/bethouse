@@ -1933,7 +1933,15 @@ did not.
   kickoff: its line and both prices, kept on the pick. Each settled
   pick also keeps how many minutes before the start that look was
   (`closeLead`), and the record prints the median, because a look from
-  hours out is an early price and not the closing one. At the same line, closing-line value is the picked side's
+  hours out is an early price and not the closing one. The closing
+  figures are printed twice: over every close, and over only those
+  read within 30 minutes of the start (`props.js NEAR_CLOSE`), which
+  are the ones to trust.
+- The record also splits by price: picks on the side the book makes
+  the underdog (under 50% with its cut out) against picks on its
+  favourite side. A ten-point gap on a price the book has at 37% is
+  where the market most often knows something the model does not; on
+  the NBA's first night 26 of 82 unders were such plus-money unders. At the same line, closing-line value is the picked side's
   closing no-vig chance minus the pick's; when the line moved it is the
   points moved toward the pick (an over gains when the line rises).
 - Money: a win returns the decimal price minus one, a loss −1, a push 0

@@ -54,6 +54,8 @@
   const ROLE_LOW = 0.75, ROLE_HIGH = 4 / 3;
   /* How old a price can be and still be shown (the page prints its time), and how old it can be and still be acted on. */
   const MAX_SHOWN_AGE = 12 * 3600e3, MAX_PICK_AGE = 90 * 60e3;
+  /* A close read within this many minutes of the start is the closing line; one from further out is an early price. A choice (2026-11-24), for reading the record, not a model term. */
+  const NEAR_CLOSE = 30;
 
   /*
    * Markets whose live record is off by more than the gap it would take
@@ -359,6 +361,9 @@
     return r < ROLE_LOW || r > ROLE_HIGH;
   }
 
+  /** Which side of the book's price a pick took: the one it makes likelier than not, or the underdog. Null without a no-vig chance. */
+  function priceSide(pick) { return pick && fin(pick.fair) ? (pick.fair >= 0.5 ? "favourite" : "underdog") : null; }
+
   /** The size of a gap, as the record groups it. */
   function gapBucket(gap) { return gap >= 20 ? "20+" : gap >= 10 ? "10-20" : "5-10"; }
 
@@ -422,16 +427,22 @@
     const sameLine = r.filter((p) => p.clvProb != null);
     /* Only a close with something to compare: the line moved, or it held and both closes gave a chance. */
     const closed = r.filter((p) => p.clvPts != null && (p.clvPts !== 0 || p.clvProb != null));
+    const toward = (p) => p.clvPts > 0 || (p.clvPts === 0 && p.clvProb > 0);
+    const near = closed.filter((p) => fin(p.closeLead) && p.closeLead >= 0 && p.closeLead <= NEAR_CLOSE), nearSame = near.filter((p) => p.clvProb != null);
     return {
       n: r.length, won, pushes: r.length - decided.length,
       rate: decided.length ? r1((100 * won) / decided.length) : null,
       roi: r1(100 * mean), roiLo: r1(100 * (mean - 1.96 * se)), roiHi: r1(100 * (mean + 1.96 * se)),
       closed: closed.length,
       /* Toward the pick: the line moved its way, or at the same line the no-vig chance rose. */
-      movedToward: closed.length ? r1((100 * closed.filter((p) => p.clvPts > 0 || (p.clvPts === 0 && p.clvProb > 0)).length) / closed.length) : null,
+      movedToward: closed.length ? r1((100 * closed.filter(toward).length) / closed.length) : null,
       lineMoved: moved.length,
       clvProb: sameLine.length ? r1(sameLine.reduce((a, p) => a + p.clvProb, 0) / sameLine.length) : null,
       /* How long before the start the closes were read: the median, in minutes. A "close" from hours out is an early look, not the closing line. */
+      /* The same over the closes read within NEAR_CLOSE minutes of the start: the only ones to trust as closing lines. */
+      nearClosed: near.length,
+      nearToward: near.length ? r1((100 * near.filter(toward).length) / near.length) : null,
+      nearClvProb: nearSame.length ? r1(nearSame.reduce((a, p) => a + p.clvProb, 0) / nearSame.length) : null,
       closeLead: (() => { const v = r.map((p) => p.closeLead).filter((x) => fin(x)).sort((a, b) => a - b); return v.length ? v[Math.floor((v.length - 1) / 2)] : null; })(),
     };
   }
@@ -564,7 +575,8 @@
     const signed = (v) => (v >= 0 ? "+" : "−") + Math.abs(v);
     const row = (label, s) => "<tr><td>" + esc(label) + "</td><td>n <b>" + esc(s.n) + "</b>" + (s.rate != null ? " · won <b>" + esc(s.rate) + "%</b>" : "") + (s.pushes ? " (" + esc(s.pushes) + " pushed)" : "") +
       " · a unit on each returned <b>" + signed(s.roi) + "%</b> of stake (" + signed(s.roiLo) + " to " + signed(s.roiHi) + ")" +
-      (s.closed ? " · the close moved toward the pick <b>" + esc(s.movedToward) + "%</b> of " + esc(s.closed) + (s.clvProb != null ? ", <b>" + signed(s.clvProb) + "</b> points of no-vig chance at an unmoved line" : "") + (s.closeLead != null ? "; closes read a median <b>" + esc(s.closeLead) + "</b> minutes before the start" : "") : "") + "</td></tr>";
+      (s.closed ? " · the close moved toward the pick <b>" + esc(s.movedToward) + "%</b> of " + esc(s.closed) + (s.clvProb != null ? ", <b>" + signed(s.clvProb) + "</b> points of no-vig chance at an unmoved line" : "") + (s.closeLead != null ? "; closes read a median <b>" + esc(s.closeLead) + "</b> minutes before the start" +
+          (s.nearClosed ? "; of the <b>" + esc(s.nearClosed) + "</b> read within " + NEAR_CLOSE + " minutes of it, <b>" + esc(s.nearToward) + "%</b> moved toward the pick" + (s.nearClvProb != null ? " (<b>" + signed(s.nearClvProb) + "</b> points)" : "") : "; none read within " + NEAR_CLOSE + " minutes of it") : "") : "") + "</td></tr>";
     return "<p><b>" + esc(R.total) + "</b> prop pick" + (R.total === 1 ? "" : "s") + " settled since " + esc(R.since || "") + (R.open ? ", " + esc(R.open) + " open" : "") +
       ": every prop where the site and a book were " + esc(R.minGap) + "+ points apart, at the book's line and the price on file when it was logged.</p><table>" +
       Object.keys(R.markets).map((k) => row(R.markets[k].label, R.markets[k])).join("") + (Object.keys(R.markets).length > 1 ? row("All props", R.all) : "") + "</table>" +
@@ -572,9 +584,11 @@
       (R.gaps && Object.keys(R.gaps).length ? "<p>By the size of the gap:</p><table>" + Object.keys(R.gaps).map((k) => row({ "5-10": "5 to 10 points", "10-20": "10 to 20 points", "20+": "over 20 points" }[k] || k, R.gaps[k])).join("") + "</table>" : "") +
       (R.roles && (R.roles.moved || R.roles.steady) ? "<p>By the player's role, his recent share of the work against his season's:</p><table>" +
         [["moved", "role moved by a quarter or more"], ["steady", "role steady"], ["unknown", "no role on file"]].map((x) => (R.roles[x[0]] ? row(x[1], R.roles[x[0]]) : "")).join("") + "</table>" : "") +
-      '<p class="note">The return is the test, and its interval is two standard errors either side. Nothing here is an edge until a market has a few hundred settled picks.</p>';
+      (R.prices && (R.prices.underdog || R.prices.favourite) ? "<p>By the price: a big gap on the side the book makes the underdog is where the market most often knows something the model does not.</p><table>" +
+        [["underdog", "the book's underdog side (under 50% with its cut out)"], ["favourite", "the book's favourite side (50% or more)"]].map((x) => (R.prices[x[0]] ? row(x[1], R.prices[x[0]]) : "")).join("") + "</table>" : "") +
+      '<p class="note">The return is the test, and its interval is two standard errors either side. Only a close read within ' + NEAR_CLOSE + ' minutes of the start is a closing line; the rest are early prices. Nothing here is an edge until a market has a few hundred settled picks.</p>';
   }
 
-  return { MARKETS, BOOKS, MIN_GAP, ONE_SIDED_CUT, MAX_SHOWN_AGE, MAX_PICK_AGE, BIASED, cutsOf, roleMoved, gapBucket, decimal, noVig, normName, parseEvents, matchOffers, contextFor, siteChance, recentAt, quote, closeMove, grade, summarise,
+  return { MARKETS, BOOKS, MIN_GAP, ONE_SIDED_CUT, MAX_SHOWN_AGE, MAX_PICK_AGE, BIASED, NEAR_CLOSE, cutsOf, roleMoved, gapBucket, priceSide, decimal, noVig, normName, parseEvents, matchOffers, contextFor, siteChance, recentAt, quote, closeMove, grade, summarise,
     slateOf, offersFor, rowTag, bookHtml, gameHtml, recordHtml };
 });

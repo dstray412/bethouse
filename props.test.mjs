@@ -308,6 +308,15 @@ test("summarise: n, win rate, return with its interval and what the close did; a
   /* The median minutes between the close and the start, over the picks that have one. */
   assert.equal(P.summarise([{ outcome: "win", units: 1, clvPts: 1, closeLead: 30 }, { outcome: "loss", units: -1, clvPts: -1, closeLead: 50 }, { outcome: "loss", units: -1, clvPts: 1, closeLead: 240 }, { outcome: "win", units: 1 }]).closeLead, 50);
   assert.equal(s.closeLead, null);
+  /* Only a close read near the start is the closing line: the same figures again over those alone (NEAR_CLOSE minutes). */
+  const near = P.summarise([
+    { outcome: "win", units: 1, clvPts: 1, closeLead: 20 }, { outcome: "loss", units: -1, clvPts: 0, clvProb: -2, closeLead: 30 },
+    { outcome: "loss", units: -1, clvPts: 3, closeLead: 31 }, { outcome: "win", units: 1, clvPts: 2, closeLead: 400 }, { outcome: "win", units: 1, clvPts: 1 }]);
+  assert.equal(P.NEAR_CLOSE, 30);
+  assert.equal(near.closed, 5); assert.equal(near.movedToward, 80);
+  assert.equal(near.nearClosed, 2); assert.equal(near.nearToward, 50); assert.equal(near.nearClvProb, -2);
+  assert.equal(P.summarise([{ outcome: "win", units: 1, clvPts: 1, closeLead: 90 }]).nearClosed, 0);
+  assert.equal(P.priceSide({ fair: 0.371 }), "underdog"); assert.equal(P.priceSide({ fair: 0.5 }), "favourite"); assert.equal(P.priceSide({ fair: 0.61 }), "favourite"); assert.equal(P.priceSide({}), null);
   assert.equal(P.summarise([]), null); assert.equal(P.summarise([{ outcome: "void" }]), null);
 });
 
@@ -514,7 +523,7 @@ test("reportOf: one summary a market and all of them together, settled picks onl
   assert.deepEqual(Object.keys(R.markets), ["td", "recyds"], "a market with nothing settled has no row");
   assert.equal(R.markets.recyds.label, "Receiving yards"); assert.equal(R.markets.recyds.n, 2); assert.equal(R.markets.recyds.rate, 50);
   assert.equal(R.all.n, 3);
-  assert.deepEqual(reportOf([]), { total: 0, open: 0, since: null, minGap: P.MIN_GAP, all: null, markets: {}, gaps: {}, roles: {} });
+  assert.deepEqual(reportOf([]), { total: 0, open: 0, since: null, minGap: P.MIN_GAP, all: null, markets: {}, gaps: {}, roles: {}, prices: {} });
   assert.equal(pickKey({ gameId: "g", playerId: "p", stat: "td", book: "fanduel" }), "g|p|td", "one pick a player and prop, whichever book");
   /* The record by gap size and by role, so a cap can be set from data. */
   const tagged = reportOf([{ picks: [
@@ -525,6 +534,12 @@ test("reportOf: one summary a market and all of them together, settled picks onl
   assert.deepEqual(Object.keys(tagged.gaps), ["5-10", "10-20", "20+"]);
   assert.deepEqual([tagged.gaps["5-10"].n, tagged.gaps["10-20"].n, tagged.gaps["20+"].n], [1, 1, 2]);
   assert.deepEqual([tagged.roles.moved.n, tagged.roles.steady.n, tagged.roles.unknown.n], [2, 1, 1]);
+  /* By price (2026-11-24): the side the book makes the underdog is where it most often knows something the model does not. */
+  const priced = reportOf([{ picks: [
+    { stat: "recyds", outcome: "loss", units: -1, gap: 10, fair: 0.371, at: "2026-11-25T12:00:00Z" }, { stat: "recyds", outcome: "win", units: 1.5, gap: 10, fair: 0.383, at: "2026-11-25T12:00:00Z" },
+    { stat: "recyds", outcome: "win", units: 0.9, gap: 6, fair: 0.52, at: "2026-11-25T12:00:00Z" }] }]);
+  assert.deepEqual([priced.prices.underdog.n, priced.prices.favourite.n], [2, 1]);
+  assert.equal(priced.prices.underdog.roi, 25);
   assert.equal(tagged.roles.moved.roi, -100);
   assert.equal(weekFile(2026, 7), "2026-w07.json");
   /* The week file reads back as what was saved, a pick a line. */
@@ -606,6 +621,12 @@ test("recordHtml: a row a market with n, the win rate, the return and its interv
   assert.match(h, /the close moved toward the pick <b>50%<\/b> of 2, <b>−1\.5<\/b> points of no-vig chance/);
   const led = reportOf([{ picks: [{ stat: "recyds", outcome: "win", units: 0.9, at: "2026-11-25T12:00:00Z", clvPts: 1, clvProb: null, closeLead: 42 }] }]);
   assert.match(P.recordHtml(led), /closes read a median <b>42<\/b> minutes before the start/);
+  assert.match(P.recordHtml(led), /none read within 30 minutes of it/, "a record with no close near the start does not say so");
+  const tight = P.recordHtml(reportOf([{ picks: [
+    { stat: "recyds", outcome: "win", units: 0.9, fair: 0.4, at: "2026-11-25T12:00:00Z", clvPts: 1, closeLead: 20 },
+    { stat: "recyds", outcome: "loss", units: -1, fair: 0.55, at: "2026-11-25T12:00:00Z", clvPts: -1, closeLead: 25 }] }]));
+  assert.match(tight, /of the <b>2<\/b> read within 30 minutes of it, <b>50%<\/b> moved toward the pick/);
+  assert.match(tight, /By the price[^]*<td>the book&#39;s underdog side[^<]*<\/td><td>n <b>1<\/b>[^]*<td>the book&#39;s favourite side[^<]*<\/td><td>n <b>1<\/b>/);
   assert.match(h, /<td>All props<\/td>/);
   /* The same picks cut by gap size and by role, under their own headings. */
   const cut = P.recordHtml(reportOf([{ picks: [

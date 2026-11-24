@@ -164,11 +164,12 @@ export function reportOf(records, M = nfl) {
   }
   const all = P.summarise(picks);
   /* The same picks by the size of the gap and by whether the role had moved: where the losses come from, so a cap can be set from data. */
-  const gaps = {}, roles = {};
+  const gaps = {}, roles = {}, prices = {};
+  for (const k of ["underdog", "favourite"]) { const s2 = P.summarise(picks.filter((p) => P.priceSide(p) === k)); if (s2) prices[k] = s2; }
   for (const b of ["5-10", "10-20", "20+"]) { const s2 = P.summarise(picks.filter((p) => Number.isFinite(p.gap) && P.gapBucket(p.gap) === b)); if (s2) gaps[b] = s2; }
   for (const [k, f] of [["moved", (p) => p.role && p.role.moved === true], ["steady", (p) => p.role && p.role.moved === false], ["unknown", (p) => !p.role]]) { const s2 = P.summarise(picks.filter(f)); if (s2) roles[k] = s2; }
   const days = picks.map((p) => String(p.at || "").slice(0, 10)).filter(Boolean).sort();
-  return { total: all ? all.n : 0, open: records.flatMap((r) => r.picks || []).filter((p) => !p.outcome).length, since: days[0] || null, minGap: P.MIN_GAP, all, markets, gaps, roles };
+  return { total: all ? all.n : 0, open: records.flatMap((r) => r.picks || []).filter((p) => !p.outcome).length, since: days[0] || null, minGap: P.MIN_GAP, all, markets, gaps, roles, prices };
 }
 
 /* ------------------------------ files ------------------------------ */
